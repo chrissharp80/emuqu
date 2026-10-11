@@ -44,7 +44,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.performPurge()": "2d6f177d70af20c6"
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.performPurge()": "9c0f9430d592c398"
    }
   },
   {
@@ -314,8 +314,8 @@
   },
   {
    "key": "func DeleteAllDataPage.performPurge()",
-   "hash": "aaa4aa6172401c03",
-   "does": "Sets isPurging, then in a Task awaits DataPurgeService.purgeAllUserData(archive, rawBackup, cloudSync, settingsManager) — remote CloudKit zone deletion then local container/defaults/keychain wipe — stores the Report and clears isPurging.",
+   "hash": "f6fbd66950978624",
+   "does": "Sets isPurging, then in a Task awaits DataPurgeService.purgeAllUserData(archive, rawBackup, cloudSync, settingsManager) — remote CloudKit zone deletion then local container/defaults/keychain wipe — stores the Report, clears isPurging and clears the typed confirmation phrase so a rerun (the iCloud-failure retry) needs the phrase typed again.",
    "entry": "Called from confirmation dialog destructive button",
    "calls": [
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:deleteRemote:)"
@@ -324,6 +324,7 @@
    "writes": [
     "mem:DeleteAllDataPage.isPurging",
     "mem:DeleteAllDataPage.report",
+    "mem:DeleteAllDataPage.typedConfirmation",
     "ck:private DB zones (deleted via purgeAllUserData)",
     "file:all app containers (swept)",
     "ud:all keys (swept)",
@@ -332,21 +333,9 @@
     "notif:flowRecoveryArchiveChanged (posted by DataPurgeService.sweepAndForget, DataPurgeService.swift:219)"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "typedConfirmation is not cleared after a purge, so the button stays enabled and a second confirmation immediately reruns the full purge; this is the intended retry path for a failed iCloud deletion but nothing distinguishes it from an accidental re-run.",
-     "evidence": [
-      "Emuqu/Sources/Views/DeleteAllDataPage.swift:35",
-      "Emuqu/Sources/Views/DeleteAllDataPage.swift:129",
-      "Emuqu/Sources/Views/DeleteAllDataPage.swift:202"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:deleteRemote:)": "738ba787af751fec"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:deleteRemote:)": "20cbe93781402ef3"
    }
   }
  ],

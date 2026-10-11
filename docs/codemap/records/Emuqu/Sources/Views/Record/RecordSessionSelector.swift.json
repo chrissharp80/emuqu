@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/Record/RecordSessionSelector.swift",
- "hash": "0e18f57cf8a77fce",
+ "hash": "1429ef3e893ffebb",
  "role": "Session-type picker (Daily/quick, Extended/overnight, Nap) shown before a recording, plus the compact selected-session header with a Change button.",
  "types": [
   "RecordSessionSelector: struct — View; three large mode buttons bound to selectedSessionType",
@@ -8,53 +8,9 @@
   "RecordSelectedSessionHeader: struct — View; selected type icon/name + Change button"
  ],
  "state": [],
- "toplevel": "@Environment(\\.dependencies) injected only for the unused settingsManager.",
- "flags": [
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "settingsManager is declared but never read in the file (grep finds only the declaration).",
-   "evidence": [
-    "Emuqu/Sources/Views/Record/RecordSessionSelector.swift:10"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Type doc says the picker lets the user choose 'between Extended (overnight) and Quick reading', but the view offers three modes including Nap.",
-   "evidence": [
-    "Emuqu/Sources/Views/Record/RecordSessionSelector.swift:4",
-    "Emuqu/Sources/Views/Record/RecordSessionSelector.swift:58"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "No environment dependencies. modeLabel/modeGlyph are the one name and glyph per session type, shared by the mode buttons and RecordSelectedSessionHeader.",
+ "flags": [],
  "units": [
-  {
-   "key": "var RecordSessionSelector.settingsManager",
-   "hash": "a5b9ef0fa49aaa67",
-   "does": "Returns dependencies.app.settingsManager; never read.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "settingsManager is declared but never read in the file (grep finds only the declaration).",
-     "evidence": [
-      "Emuqu/Sources/Views/Record/RecordSessionSelector.swift:10"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be"
-   }
-  },
   {
    "key": "var RecordSessionSelector.body",
    "hash": "65dd899b0e026def",
@@ -88,9 +44,9 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/Record/RecordSessionSelector.swift::var RecordSessionSelector.chooseSessionHeader": "e5a3b13bbd8da151",
-    "Emuqu/Sources/Views/Record/RecordSessionSelector.swift::var RecordSessionSelector.dailyModeButton": "fed60515b4835a14",
-    "Emuqu/Sources/Views/Record/RecordSessionSelector.swift::var RecordSessionSelector.extendedModeButton": "fd233b30e1c3269b",
-    "Emuqu/Sources/Views/Record/RecordSessionSelector.swift::var RecordSessionSelector.napModeButton": "1e0ad9249240844f"
+    "Emuqu/Sources/Views/Record/RecordSessionSelector.swift::var RecordSessionSelector.dailyModeButton": "0d76e2dc8026746e",
+    "Emuqu/Sources/Views/Record/RecordSessionSelector.swift::var RecordSessionSelector.extendedModeButton": "da2673c5ad5fe28b",
+    "Emuqu/Sources/Views/Record/RecordSessionSelector.swift::var RecordSessionSelector.napModeButton": "02ee96a4305d3918"
    }
   },
   {
@@ -114,12 +70,14 @@
   },
   {
    "key": "var RecordSessionSelector.dailyModeButton",
-   "hash": "c21cf6624b4227ba",
-   "does": "Mode button for SessionType.quick labelled 'Daily' (5-min spot check — Polar strap).",
+   "hash": "77d8e48fd1e48461",
+   "does": "Mode button for SessionType.quick labelled 'Daily' (5-min spot check — Polar strap); label and glyph from modeLabel/modeGlyph(.quick).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/Record/RecordSessionSelector.swift::func RecordSessionSelector.v2ModeButton(type:label:glyph:subheading:detail:)",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/Record/RecordSessionSelector.swift::func RecordSessionSelector.modeLabel(_:)",
+    "Emuqu/Sources/Views/Record/RecordSessionSelector.swift::func RecordSessionSelector.modeGlyph(_:)"
    ],
    "reads": [],
    "writes": [],
@@ -127,17 +85,21 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Record/RecordSessionSelector.swift::func RecordSessionSelector.modeGlyph(_:)": "484b8c428d86c5a4",
+    "Emuqu/Sources/Views/Record/RecordSessionSelector.swift::func RecordSessionSelector.modeLabel(_:)": "7bc56dc68e4cd6ba",
     "Emuqu/Sources/Views/Record/RecordSessionSelector.swift::func RecordSessionSelector.v2ModeButton(type:label:glyph:subheading:detail:)": "3d67c569d599adb9"
    }
   },
   {
    "key": "var RecordSessionSelector.extendedModeButton",
-   "hash": "aca4597511c8e5c4",
-   "does": "Mode button for SessionType.overnight labelled 'Extended' (overnight or multi-hour).",
+   "hash": "d342123e7e3d41dd",
+   "does": "Mode button for SessionType.overnight labelled 'Extended' (overnight or multi-hour); label and glyph from modeLabel/modeGlyph(.overnight).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/Record/RecordSessionSelector.swift::func RecordSessionSelector.v2ModeButton(type:label:glyph:subheading:detail:)",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/Record/RecordSessionSelector.swift::func RecordSessionSelector.modeLabel(_:)",
+    "Emuqu/Sources/Views/Record/RecordSessionSelector.swift::func RecordSessionSelector.modeGlyph(_:)"
    ],
    "reads": [],
    "writes": [],
@@ -145,17 +107,21 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Record/RecordSessionSelector.swift::func RecordSessionSelector.modeGlyph(_:)": "484b8c428d86c5a4",
+    "Emuqu/Sources/Views/Record/RecordSessionSelector.swift::func RecordSessionSelector.modeLabel(_:)": "7bc56dc68e4cd6ba",
     "Emuqu/Sources/Views/Record/RecordSessionSelector.swift::func RecordSessionSelector.v2ModeButton(type:label:glyph:subheading:detail:)": "3d67c569d599adb9"
    }
   },
   {
    "key": "var RecordSessionSelector.napModeButton",
-   "hash": "6179c31bc06a0585",
-   "does": "Mode button for SessionType.nap labelled 'Nap' (short rest, full analysis).",
+   "hash": "63cbc70fe55cb87d",
+   "does": "Mode button for SessionType.nap labelled 'Nap' (short rest, full analysis); label and glyph from modeLabel/modeGlyph(.nap).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/Record/RecordSessionSelector.swift::func RecordSessionSelector.v2ModeButton(type:label:glyph:subheading:detail:)",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/Record/RecordSessionSelector.swift::func RecordSessionSelector.modeLabel(_:)",
+    "Emuqu/Sources/Views/Record/RecordSessionSelector.swift::func RecordSessionSelector.modeGlyph(_:)"
    ],
    "reads": [],
    "writes": [],
@@ -163,7 +129,55 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Record/RecordSessionSelector.swift::func RecordSessionSelector.modeGlyph(_:)": "484b8c428d86c5a4",
+    "Emuqu/Sources/Views/Record/RecordSessionSelector.swift::func RecordSessionSelector.modeLabel(_:)": "7bc56dc68e4cd6ba",
     "Emuqu/Sources/Views/Record/RecordSessionSelector.swift::func RecordSessionSelector.v2ModeButton(type:label:glyph:subheading:detail:)": "3d67c569d599adb9"
+   }
+  },
+  {
+   "key": "func RecordSessionSelector.modeLabel(_:)",
+   "hash": "a0b8ac2968d69d61",
+   "does": "The mode button name for a session type: 'Daily' (quick), 'Extended' (overnight), 'Nap'; SessionType.displayName for breathe/workout.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.displayName"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "switch on type",
+     "effect": "one name per case"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.displayName": "e8364f253d678fdc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func RecordSessionSelector.modeGlyph(_:)",
+   "hash": "4315a5c6b2167c67",
+   "does": "The mode button glyph: waveform.circle (quick), moon.stars (overnight), bed.double (nap); SessionType.icon for breathe/workout.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.icon"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "switch on type",
+     "effect": "one glyph per case"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.icon": "0346265001d4b103"
    }
   },
   {
@@ -318,54 +332,31 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/Record/RecordSessionSelector.swift::var RecordSelectedSessionHeader.changeButton": "870a2e6c09577480",
-    "Emuqu/Sources/Views/Record/RecordSessionSelector.swift::var RecordSelectedSessionHeader.selectedLabel": "e2e2b8470cfdad0d"
+    "Emuqu/Sources/Views/Record/RecordSessionSelector.swift::var RecordSelectedSessionHeader.selectedLabel": "262233e9cc179522"
    }
   },
   {
    "key": "var RecordSelectedSessionHeader.selectedLabel",
-   "hash": "8dbaf3f5364cbb2a",
-   "does": "When a type is selected shows its icon and name, using 'Extended' for .overnight and SessionType.displayName otherwise.",
+   "hash": "e0e12272e5cf9d82",
+   "does": "When a type is selected shows the same glyph and name the picker button used (RecordSessionSelector.modeGlyph/modeLabel).",
    "entry": "SwiftUI subview",
    "calls": [
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.icon",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.displayName",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Views/Record/RecordSessionSelector.swift::func RecordSessionSelector.modeGlyph(_:)",
+    "Emuqu/Sources/Views/Record/RecordSessionSelector.swift::func RecordSessionSelector.modeLabel(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+2",
+     "at": "+1",
      "cond": "selectedSessionType non-nil",
-     "effect": "true: icon + label; false: renders nothing"
-    },
-    {
-     "at": "+5",
-     "cond": "sessionType == .overnight ? :",
-     "effect": "'Extended' for overnight; displayName for quick/nap"
+     "effect": "glyph + label; else nothing"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "The header names the selection differently from the picker button the user tapped: .quick is 'Daily' with glyph waveform.circle in the picker but 'Quick Reading' with bolt.fill in the header (SessionType.displayName/icon); .nap uses bed.double in the picker and powersleep in the header.",
-     "evidence": [
-      "Emuqu/Sources/Views/Record/RecordSessionSelector.swift:41",
-      "Emuqu/Sources/Views/Record/RecordSessionSelector.swift:42",
-      "Emuqu/Sources/Views/Record/RecordSessionSelector.swift:62",
-      "Emuqu/Sources/Views/Record/RecordSessionSelector.swift:153",
-      "Emuqu/Sources/Views/Record/RecordSessionSelector.swift:155",
-      "Emuqu/Sources/Models/SessionMetadata.swift:78",
-      "Emuqu/Sources/Models/SessionMetadata.swift:88"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.displayName": "e8364f253d678fdc",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.icon": "0346265001d4b103",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Record/RecordSessionSelector.swift::func RecordSessionSelector.modeGlyph(_:)": "484b8c428d86c5a4",
+    "Emuqu/Sources/Views/Record/RecordSessionSelector.swift::func RecordSessionSelector.modeLabel(_:)": "7bc56dc68e4cd6ba",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryGradient": "2d47496eb2a59932"
    }
   },

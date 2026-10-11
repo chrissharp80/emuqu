@@ -44,9 +44,10 @@ import Foundation
 ///
 /// 2. **Provenance attached to every value.** `TrainingLoad` carries
 ///    a `Provenance` tag identifying its source and the `asOf:` date
-///    the number was captured. The AI facts bake the "as of HH:MM"
-///    into the value (see the table); no screen or report draws
-///    `TrainingLoad.disclosure` itself.
+///    the number was computed (`TrainingMetricsCache.computedAt`). The AI
+///    facts bake the "as of HH:MM" into the value (see the table); the
+///    Holistic Daily Report draws `TrainingLoad.disclosure` in its header,
+///    and no other screen or report draws it.
 ///
 /// 3. **Documented surface→source map.** The table below is the
 ///    contract. Adding a new surface that displays training load is
@@ -67,15 +68,18 @@ import Foundation
 /// | AI `training.load.by_date(yyyy-mm-dd)`| historical day          | `TrainingMetricsCache.sampleOn(date:)`  | day stamp baked in |
 /// | Workout post-summary card            | live now                | `live()`                                | none |
 /// | Recovery Score Detail                | frozen morning          | the session's `trainingSnapshot`        | none |
-/// | Holistic Daily Report (Flo report)   | captured at render      | `liveRefreshed()`                       | none drawn |
+/// | Holistic Daily Report (Flo report)   | captured at render      | `liveRefreshed()`                       | `disclosure` in the header |
 /// | PDF Reports (overnight, workout)     | captured at render      | `liveRefreshed()`                       | none drawn |
 ///
 /// # Invalidation contract
 ///
-/// `TrainingMetricsCache` invalidates on every
-/// `.flowRecoveryArchiveChanged` notification. So
-/// the next `live()` read after a workout / session-write triggers a
-/// real HealthKit refresh + EWMA replay. The fast-exit gate in
+/// `TrainingMetricsCache` invalidates on a `.flowRecoveryArchiveChanged`
+/// notification whose archive write changed the set of archived workouts
+/// (`invalidateIfWorkoutsChanged`); an HRV-only write does not invalidate.
+/// So the next `live()` read after a workout add, edit or delete triggers a
+/// real HealthKit refresh + EWMA replay. A change only HealthKit can show
+/// (another app's workout, a new Apple resting HR) is picked up once the
+/// result is older than `unchangedMaxAgeSec`. The fast-exit gate in
 /// `refresh()` still protects the AI send path from per-turn HK
 /// fetches when nothing has changed since the last refresh.
 ///
@@ -167,9 +171,16 @@ enum TrainingLoadRegistry {
     /// guarantees the registry returns exactly what the Dashboard
     /// shows. Fall back to `sampleOn(today)` only when `current` is
     /// missing entirely (truly cold cache).
+    ///
+    /// `asOf` is when the value was computed (`computedAt`), which an
+    /// invalidation does not clear, so a value computed earlier is never
+    /// stamped as just updated. Nil without one.
     static func live() -> TrainingLoad? {
         let cache = AppDependencies.current.analysis.trainingMetricsCache
-        if let metrics = cache.snapshot() {
+        // `snapshot()` first: it schedules the refresh a cold or stale cache needs.
+        let snapshot = cache.snapshot()
+        guard let computedAt = cache.computedAt else { return nil }
+        if let metrics = snapshot {
             let foster = RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp: metrics.dailyTrimp)
             return TrainingLoad(
                 atl: metrics.atl,
@@ -177,31 +188,31 @@ enum TrainingLoadRegistry {
                 tsb: metrics.tsb,
                 acwr: metrics.acuteChronicRatio,
                 todayTrimp: metrics.todayTrimp > 0 ? metrics.todayTrimp : nil,
-                provenance: .live(asOf: cache.lastUpdated ?? Date()),
+                provenance: .live(asOf: computedAt),
                 monotony: foster?.monotony,
                 strain: foster?.strain
             )
         }
-        return dailySeriesFallback(cache: cache)
+        return dailySeriesFallback(cache: cache, computedAt: computedAt)
     }
 
     /// Today's daily-series bucket, for the cold-cache window where
-    /// `dailySeries[today]` is populated before `cache.current` is set.
-    private static func dailySeriesFallback(cache: TrainingMetricsCache) -> TrainingLoad? {
-        let today = Calendar.current.startOfDay(for: Date())
-        if let day = cache.sampleOn(date: today)
-            ?? cache.samplesSince(today.addingTimeInterval(-7 * 86_400)).first {
-            let acwr = day.ctl > 0 ? day.atl / day.ctl : nil
-            return TrainingLoad(
-                atl: day.atl,
-                ctl: day.ctl,
-                tsb: day.tsb,
-                acwr: acwr,
-                todayTrimp: day.date == today ? day.trimp : nil,
-                provenance: .live(asOf: cache.lastUpdated ?? Date())
-            )
-        }
-        return nil
+    /// `dailySeries[today]` is populated before `cache.current` is set. Only
+    /// today's: an older day's ATL/CTL are not decayed to today and would
+    /// read as live. Monotony and strain come from the series' daily TRIMP.
+    private static func dailySeriesFallback(cache: TrainingMetricsCache, computedAt: Date) -> TrainingLoad? {
+        guard let day = cache.sampleOn(date: Date()) else { return nil }
+        let foster = RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp: cache.dailySeries.mapValues { $0.trimp })
+        return TrainingLoad(
+            atl: day.atl,
+            ctl: day.ctl,
+            tsb: day.tsb,
+            acwr: day.ctl > 0 ? day.atl / day.ctl : nil,
+            todayTrimp: day.trimp,
+            provenance: .live(asOf: computedAt),
+            monotony: foster?.monotony,
+            strain: foster?.strain
+        )
     }
 
     /// Like `live()` but first awaits a cache refresh, so the value

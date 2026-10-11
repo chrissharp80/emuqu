@@ -20,7 +20,10 @@ import os
 // `.missing(.notRecorded)` with a human-readable "no HRV recording
 // active" detail.
 struct HRVLiveNamespace: FactNamespaceResolver {
-    let namespace = "hrv.live"
+    // "hrv", the first token of every hrv.live.* key: the registry's primary
+    // dispatch matches a key's head against this, so "hrv.live" never matched
+    // and these keys resolved only through the fallback scan.
+    let namespace = "hrv"
 
     private var snapshot: AssistantContext.LiveHRVSnapshot? {
         AppDependencies.current.assistant.liveHRVBroker.currentSnapshot()
@@ -204,8 +207,9 @@ struct TagsNamespace: FactNamespaceResolver {
         return Availability(hasData: true, validRange: earliest ... latest, lastUpdated: latest)
     }
 
-    private func sessionsOn(_ iso: String) -> [SessionArchiveEntry] {
-        guard let target = FactLocalDay.formatter().date(from: iso) else { return [] }
+    /// Sessions on that local day; nil when `iso` is not a yyyy-MM-dd date.
+    private func sessionsOn(_ iso: String) -> [SessionArchiveEntry]? {
+        guard let target = FactLocalDay.formatter().date(from: iso) else { return nil }
         let cal = Calendar.current
         return archive.entries.filter { cal.isDate($0.date, inSameDayAs: target) }
     }
@@ -293,7 +297,9 @@ struct TagsNamespace: FactNamespaceResolver {
     }
 
     private func resolveTagsListActive(_ param: String) -> FactValue {
-        let sessions = self.sessionsOn(param)
+        guard let sessions = self.sessionsOn(param) else {
+            return .missing(reason: .invalidParameter, detail: "'\(param)' is not a date — pass a local date as yyyy-MM-dd")
+        }
         guard !sessions.isEmpty else {
             return .missing(reason: .notRecorded, detail: "no sessions on \(param)")
         }
@@ -310,7 +316,10 @@ struct TagsNamespace: FactNamespaceResolver {
     private var tagsCorrelationTagEntry: FactEntry {
         .composite(
             key: "tags.correlation($tag)",
-            description: "Average recovery score (0–100) on sessions tagged with the named tag vs sessions without it. Returns a record with tagged_avg, untagged_avg, sample_size (tagged), and total_sessions. Use to detect tag-value correlations (e.g. 'do alcohol days reduce recovery?').",
+            description: """
+            Average recovery score (0–100) on overnight readings tagged with the named tag vs those without it, counting only readings the app trusts for HRV averages (as the dashboard does). Returns a record with \
+            tagged_avg, untagged_avg, sample_size (tagged), and total_sessions. Use to detect tag-value correlations (e.g. 'do alcohol days reduce recovery?').
+            """,
             valueType: "Record",
             dependencies: [],
             availability: { self.tagsAvailability() },
@@ -335,10 +344,12 @@ struct TagsNamespace: FactNamespaceResolver {
     }
 
     /// Stored 0–10 scores of tagged and untagged sessions, from the index.
+    /// Only overnight readings reliable for HRV aggregates count, the same
+    /// gate the dashboard's recovery figures use.
     private func taggedScores(matching param: String) -> ([Double], [Double]) {
         var tagged: [Double] = []
         var untagged: [Double] = []
-        for s in self.archive.entries {
+        for s in self.archive.entries where s.sessionType == .overnight && s.isReliableForHRVAggregates {
             guard let score = s.recoveryScore else { continue }
             let has = s.tags.contains { Self.nameMatches(param, tag: $0) }
             if has { tagged.append(score) } else { untagged.append(score) }
@@ -357,9 +368,10 @@ struct HRRNamespace: FactNamespaceResolver {
     let namespace = "hrr"
     let archive: SessionArchive
 
-    /// Sessions in period that carry HRR samples. Sorted newest first.
-    private func sessionsWithHRR(_ period: String) -> [HRVSession] {
-        guard let interval = PeriodParser.interval(for: period) else { return [] }
+    /// Sessions in period that carry HRR samples. Sorted newest first. Nil
+    /// when `period` is not one `PeriodParser` reads.
+    private func sessionsWithHRR(_ period: String) -> [HRVSession]? {
+        guard let interval = PeriodParser.interval(for: period) else { return nil }
         return archive.entries
             .filter { $0.sessionType == .workout && interval.containsBeforeEnd($0.date) }
             .sorted { $0.date > $1.date }
@@ -386,13 +398,7 @@ struct HRRNamespace: FactNamespaceResolver {
             description: "Average 1-minute HRR drop (bpm) across workouts with valid HRR captured in the period. Periods: last_7d / last_14d / last_30d / last_90d / all_time.",
             availability: { self.hrrAvailability() },
             resolve: { param, _ in
-                let sessions = self.sessionsWithHRR(param)
-                let drops = sessions.compactMap { $0.workoutMetadata?.hrrSamples?.bestAtOneMinute?.drop }
-                guard !drops.isEmpty else {
-                    return .missing(reason: .notRecorded, detail: "no 1-min HRR samples in period")
-                }
-                let avg = Double(drops.reduce(0, +)) / Double(drops.count)
-                return .double(avg)
+                self.averageDrop(param, label: "1-min") { $0.workoutMetadata?.hrrSamples?.bestAtOneMinute?.drop }
             }
         )
     }
@@ -404,29 +410,42 @@ struct HRRNamespace: FactNamespaceResolver {
             description: "Average 2-minute HRR drop (bpm) across workouts with valid HRR captured in the period.",
             availability: { self.hrrAvailability() },
             resolve: { param, _ in
-                let sessions = self.sessionsWithHRR(param)
-                let drops = sessions.compactMap { $0.workoutMetadata?.hrrSamples?.bestAtTwoMinutes?.drop }
-                guard !drops.isEmpty else {
-                    return .missing(reason: .notRecorded, detail: "no 2-min HRR samples in period")
-                }
-                let avg = Double(drops.reduce(0, +)) / Double(drops.count)
-                return .double(avg)
+                self.averageDrop(param, label: "2-min") { $0.workoutMetadata?.hrrSamples?.bestAtTwoMinutes?.drop }
             }
         )
+    }
+
+    /// Mean of the `drop` each HRR-bearing workout in `period` has (the 1-
+    /// or 2-minute reading), shared by the two average entries.
+    private func averageDrop(_ period: String, label: String, drop: (HRVSession) -> Int?) -> FactValue {
+        guard let sessions = sessionsWithHRR(period) else { return Self.unknownPeriod(period) }
+        let drops = sessions.compactMap(drop)
+        guard !drops.isEmpty else {
+            return .missing(reason: .notRecorded, detail: "no \(label) HRR samples in period")
+        }
+        return .double(Double(drops.reduce(0, +)) / Double(drops.count))
+    }
+
+    private static func unknownPeriod(_ period: String) -> FactValue {
+        .missing(reason: .invalidParameter, detail: "unknown period '\(period)' — use last_7d / last_14d / last_30d / last_90d / all_time")
     }
 
     private var hrrTrendPeriodEntry: FactEntry {
         .parameterized(
             pattern: "hrr.trend($period)",
             paramExample: "last_30d",
-            description: "HRR trend over the period — splits the window in half and returns {first_half_avg, second_half_avg, change_bpm} for the 1-minute drop. Positive change_bpm = improving recovery.",
+            description: """
+            HRR trend over the period — splits the HRR-bearing workouts in the window, oldest first, into an earlier and a later half by count (not by time, so the halves can cover different spans) and returns \
+            {first_half_avg, second_half_avg, change_bpm, sample_size} for the 1-minute drop. Positive change_bpm = improving recovery.
+            """,
             availability: { self.hrrAvailability() },
             resolve: { param, _ in self.resolveHrrTrendPeriod(param) }
         )
     }
 
     private func resolveHrrTrendPeriod(_ param: String) -> FactValue {
-        let sessions = self.sessionsWithHRR(param)
+        guard let withHRR = self.sessionsWithHRR(param) else { return Self.unknownPeriod(param) }
+        let sessions = withHRR
             .compactMap { s -> (date: Date, drop: Int)? in
                 guard let d = s.workoutMetadata?.hrrSamples?.bestAtOneMinute?.drop else { return nil }
                 return (s.startDate, d)
@@ -436,8 +455,7 @@ struct HRRNamespace: FactNamespaceResolver {
             return .missing(reason: .notYetComputed, detail: "fewer than 2 HRR-bearing workouts in period")
         }
         let midpoint = sessions.count / 2
-        let firstHalf = sessions.prefix(midpoint)
-        let secondHalf = sessions.suffix(sessions.count - midpoint)
+        let (firstHalf, secondHalf) = (sessions.prefix(midpoint), sessions.suffix(sessions.count - midpoint))
         let firstAvg = Double(firstHalf.map(\.drop).reduce(0, +)) / Double(firstHalf.count)
         let secondAvg = Double(secondHalf.map(\.drop).reduce(0, +)) / Double(secondHalf.count)
         return .record([

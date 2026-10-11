@@ -11,9 +11,12 @@ set -euo pipefail
 # `try?` is to edit `.ci/try_optional_budget.txt`, and nothing else tells the
 # difference between paying the debt and moving the goalpost.
 #
-# So: compare every `.ci/*.txt` value against the merge base. A decrease is the
-# point of the exercise. An increase fails unless the commit range explicitly
-# says why, via a trailer in any commit message:
+# So: compare every `.ci/*.txt` value against the baseline ref (on a pull
+# request, the tip of the target branch — not the merge base, so a budget
+# lowered on the target after the branch point reads as a raise here; on a
+# push, the tip before the push). A decrease is the point of the exercise. An
+# increase fails unless the commit range explicitly says why, via a trailer in
+# any commit message:
 #
 #     budget-raise-ok: .ci/shared_usage_budget.txt <reason>
 #
@@ -21,12 +24,21 @@ set -euo pipefail
 # legitimate (a vendored subsystem lands, a threshold is retuned) and those
 # should be a sentence in the history rather than an invisible edit.
 #
-# DIRECTION MATTERS. Not every `.ci/*.txt` is a ceiling: three are floors —
-# `min_coverage.txt`, `min_coverage_logic.txt`, `min_localization_coverage.txt`.
-# Compare those as though smaller were always better and gutting the
+# DIRECTION MATTERS. Not every `.ci/*.txt` is a ceiling: every `min_*` file is
+# a floor — `min_coverage.txt`, `min_coverage_logic.txt`,
+# `min_coverage_views.txt`, `min_localization_coverage.txt`,
+# `min_science_register_entries.txt` today. Compare those as though smaller were always better and gutting the
 # logic-coverage floor from 37 % to 5 % prints "ratcheted: 37 -> 5" and passes —
 # the one edit the script exists to catch, waved through with congratulations.
 # Files named `min_*` ratchet upward, and a decrease is what needs justifying.
+#
+# A value is a number, whole or decimal (`min_coverage_views.txt` is 43.5).
+# Skipping anything that is not a bare integer left that floor free to fall.
+# A budget that held a number at the baseline and is now deleted, or no longer
+# a number, is loosened too: `check_coverage.sh` falls back to far lower
+# built-in floors when its file is missing. A file that was not a number at
+# the baseline either (`scoring_constants_hash.txt`, a version and a digest) is
+# not a budget, and is listed as not compared.
 
 BASE_REF="${1:-}"
 CI_DIR="${CI_DIR:-.ci}"
@@ -126,47 +138,74 @@ is_floor() {
     [[ "$(basename "$1")" == min_* ]]
 }
 
-read_int() {
-    # Budget files hold a single integer. Anything else is treated as absent
-    # rather than guessed at.
+read_number() {
+    # Budget files hold a single non-negative number, whole or decimal.
+    # Anything else fails here; the caller decides what that means.
     local raw="$1"
     raw="$(tr -d '[:space:]' <<< "$raw")"
-    [[ "$raw" =~ ^[0-9]+$ ]] || return 1
+    [[ "$raw" =~ ^[0-9]+(\.[0-9]+)?$ ]] || return 1
     printf '%s' "$raw"
+}
+
+# Succeeds when moving from $2 (baseline) to $3 (current) loosens budget $1.
+# awk, not `(( ))`: bash arithmetic is integer-only and rejects 43.5.
+loosens() {
+    local file="$1" previous="$2" current="$3"
+    if is_floor "$file"; then
+        awk -v a="$current" -v b="$previous" 'BEGIN { exit !(a < b) }'
+    else
+        awk -v a="$current" -v b="$previous" 'BEGIN { exit !(a > b) }'
+    fi
+}
+
+# Record a loosening: echoed when a trailer acknowledges it, else a violation.
+report_loosened() {
+    local file="$1" change="$2"
+    if is_allowed "$file"; then
+        echo "  ALLOWED: $file $change (acknowledged)"
+    else
+        violations+=("$file $change")
+    fi
+}
+
+# Every budget file in the tree or at the baseline, so a deleted one is seen.
+budget_files() {
+    {
+        find "$CI_DIR" -maxdepth 1 -name '*.txt'
+        git ls-tree --name-only "$BASE_REF" -- "$CI_DIR/" | grep '\.txt$' || true
+    } | sed 's#^\./##' | sort -u
 }
 
 violations=()
 compared=0
+not_budgets=()
 
 while IFS= read -r file; do
-    current_raw="$(cat "$file")"
-    current="$(read_int "$current_raw")" || continue
-
     # A file that did not exist at the baseline is a new budget, not a raise.
     previous_raw="$(git show "${BASE_REF}:${file}" 2>/dev/null || true)"
     [[ -n "$previous_raw" ]] || continue
-    previous="$(read_int "$previous_raw")" || continue
+    if ! previous="$(read_number "$previous_raw")"; then
+        not_budgets+=("$file"); continue
+    fi
 
     compared=$((compared + 1))
-
-    (( current == previous )) && continue
-
-    if is_floor "$file"; then
-        loosened=$(( current < previous ))
-    else
-        loosened=$(( current > previous ))
+    if [[ ! -f "$file" ]]; then
+        report_loosened "$file" "${previous} -> (deleted)"; continue
+    fi
+    if ! current="$(read_number "$(cat "$file")")"; then
+        report_loosened "$file" "${previous} -> (not a number)"; continue
     fi
 
-    if (( loosened )); then
-        if is_allowed "$file"; then
-            echo "  ALLOWED: $file ${previous} -> ${current} (acknowledged)"
-        else
-            violations+=("$file ${previous} -> ${current}")
-        fi
-    else
+    if loosens "$file" "$previous" "$current"; then
+        report_loosened "$file" "${previous} -> ${current}"
+    elif loosens "$file" "$current" "$previous"; then
         echo "  ratcheted: $file ${previous} -> ${current}"
     fi
-done < <(find "$CI_DIR" -maxdepth 1 -name '*.txt' | sort)
+done < <(budget_files)
+
+if (( ${#not_budgets[@]} > 0 )); then
+    echo "  not compared (not a number at ${BASE_REF}): ${not_budgets[*]}"
+fi
 
 if (( ${#violations[@]} > 0 )); then
     echo >&2

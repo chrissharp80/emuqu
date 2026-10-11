@@ -1,16 +1,15 @@
 {
  "file": "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift",
- "hash": "9f0517d6a8672589",
+ "hash": "adae632d1e96f676",
  "role": "Pure transforms from an RR stream + GPS track into WorkoutMetadata: Banister TRIMP (Edwards fallback), HRSS-style hrTSS, distance, splits (with later α1 enrichment), Pa:Hr decoupling/efficiency factor, polyline encoding and gap-corrected HR timeline helpers.",
  "types": [
   "WorkoutAnalyzer: enum — namespace",
   "BanisterSex: enum — male/female coefficients",
   "TrackPauses: struct — paused/gap step indices",
-  "SplitRun: struct (private) — per-split distance/time accumulator",
-  "SplitTrackWalk: struct (private) — cursor mapping splits to clock windows",
+  "SplitRun: struct (private) — per-split moving distance/time and HR sum/count accumulator",
   "DecouplingResult: struct",
   "MovingHalf: struct — moving distance/time/HR of one half",
-  "HRCursor: struct (private) — forward-only HR sample walk",
+  "HRCursor: struct (private) — forward-only HR sample walk (splits and decoupling)",
   "HRWallClockSample: struct — (timestamp, hr)"
  ],
  "state": [
@@ -64,7 +63,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeDecoupling(track:rrPoints:startDate:pauses:)": "7c71a4625a60ade0",
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeDistance(track:pauses:)": "64701d6eb47a668f",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeSplits(track:rrPoints:startDate:splitDistanceMeters:pauses:)": "581dbe0fc260078f",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeSplits(track:rrPoints:startDate:splitDistanceMeters:pauses:)": "c1fe4608c2ed50f3",
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodePolyline(track:)": "f42191bee7fea21e"
    }
   },
@@ -103,58 +102,59 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.banisterTRIMP(hrs:maxHR:restHR:sex:)": "3adb0e0ea37e3f5f",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.banisterTRIMP(hrs:maxHR:restHR:sex:)": "412f3de0a63ea817",
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.edwardsTRIMPFallback(hrs:userMaxHR:)": "91070ad90b7ff62a"
    }
   },
   {
    "key": "func WorkoutAnalyzer.banisterTRIMP(hrs:maxHR:restHR:sex:)",
-   "hash": "936b883ae23a5be0",
-   "does": "Sums per-beat Banister TRIMP with sex-specific scale/weighting from TrainingConstants.TRIMP; 0 when range <= 0.",
+   "hash": "3954b996da5fb303",
+   "does": "Sums per-beat Banister TRIMP via banisterTRIMP(minutes:heartRateReserve:sex:) with each beat's minutes and HRR = (HR − restHR)/range; 0 when range <= 0.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.beatTRIMP(hr:durSec:restHR:range:scale:weighting:)"
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.banisterTRIMP(minutes:heartRateReserve:sex:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+17",
-     "cond": "sex == .male",
-     "effect": "male scale; else female"
-    },
-    {
-     "at": "+18",
-     "cond": "sex == .male",
-     "effect": "male weighting; else female"
-    },
-    {
-     "at": "+20",
+     "at": "+7",
      "cond": "maxHR - restHR <= 0",
-     "effect": "return 0"
+     "effect": "return 0; else sum over beats"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.beatTRIMP(hr:durSec:restHR:range:scale:weighting:)": "8efba4629dd34483"
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.banisterTRIMP(minutes:heartRateReserve:sex:)": "afc48af7eed18557"
    }
   },
   {
-   "key": "func WorkoutAnalyzer.beatTRIMP(hr:durSec:restHR:range:scale:weighting:)",
-   "hash": "f35f77375dfef043",
-   "does": "One beat's TRIMP: (dur/60) × HRR × scale × e^(weighting × HRR) with HRR clamped to [0,1].",
+   "key": "func WorkoutAnalyzer.banisterTRIMP(minutes:heartRateReserve:sex:)",
+   "hash": "b09292d5306ed602",
+   "does": "One stretch's Banister TRIMP: minutes × HRR × scale × e^(weighting × HRR), HRR clamped to [0,1], scale/weighting (A, b) by sex from TrainingConstants.TRIMP. The single implementation of the weighting for the per-beat sum here; HealthWorkoutSummary.calculateTrimp still reimplements it (handed off).",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "sex == .male",
+     "effect": "male scale; else female"
+    },
+    {
+     "at": "+2",
+     "cond": "sex == .male",
+     "effect": "male weighting; else female"
+    }
+   ],
    "flags": [
     {
      "kind": "duplicate",
      "sev": "low",
-     "text": "Banister per-minute weighting (scale * e^(weighting*HRR), HRR clamped 0..1) is reimplemented in HealthWorkoutSummary.calculateTrimp/banisterIntensityFactor (average-HR form, sex read from the settings singleton instead of a parameter); the constants are shared but the formula is maintained twice.",
+     "text": "Banister per-minute weighting (scale * e^(weighting*HRR), HRR clamped 0..1) is reimplemented in HealthWorkoutSummary.calculateTrimp/banisterIntensityFactor (average-HR form, sex read from the settings singleton instead of a parameter); the constants are shared but the formula is maintained twice. This function is now the shared form (minutes, HRR, sex) for HealthWorkoutSummary to call (handed off).",
      "evidence": [
-      "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift:278",
+      "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift:265",
       "Emuqu/Sources/Collection/HealthDataTypes.swift:369",
       "Emuqu/Sources/Collection/HealthDataTypes.swift:384"
      ],
@@ -245,7 +245,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.banisterTRIMP(hrs:maxHR:restHR:sex:)": "3adb0e0ea37e3f5f"
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.banisterTRIMP(hrs:maxHR:restHR:sex:)": "412f3de0a63ea817"
    }
   },
   {
@@ -310,13 +310,14 @@
   },
   {
    "key": "func WorkoutAnalyzer.computeSplits(track:rrPoints:startDate:splitDistanceMeters:pauses:)",
-   "hash": "7ff13bdf940c1ebf",
-   "does": "Walks the track accumulating moving distance/time (SplitRun) and emits a Split each time distance reaches splitDistanceMeters; the trailing partial split is not emitted.",
+   "hash": "fb1fa81caa5356a9",
+   "does": "Walks the track accumulating moving distance, moving time and the HR of moving steps (SplitRun, fed by an HRCursor over the wall-clock beats, positioned past the first fix) and emits a Split each time distance reaches splitDistanceMeters; the trailing partial split is not emitted.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.hrSamplesWithWallClock(rrPoints:startDate:)",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.SplitRun.add(step:of:pauses:)",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.split(index:track:from:to:run:hrSamples:)"
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.HRCursor.take(through:counting:)",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.SplitRun.add(step:of:pauses:beats:)",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.split(index:track:from:to:run:)"
    ],
    "reads": [],
    "writes": [],
@@ -327,79 +328,80 @@
      "effect": "[]"
     },
     {
-     "at": "+13",
+     "at": "+15",
      "cond": "for each step",
      "effect": "add to run"
     },
     {
-     "at": "+15",
+     "at": "+17",
      "cond": "run distance < split distance",
      "effect": "continue; else emit split and reset"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.SplitRun.add(step:of:pauses:)": "bb40d2cecccbcf3a",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.HRCursor.take(through:counting:)": "fedbc12036a337a7",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.SplitRun.add(step:of:pauses:beats:)": "befcb78256ff196f",
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.hrSamplesWithWallClock(rrPoints:startDate:)": "d33a2d473968cbc6",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.split(index:track:from:to:run:hrSamples:)": "218c9f45902adfdd"
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.split(index:track:from:to:run:)": "19d504fb906feb34"
    }
   },
   {
-   "key": "func WorkoutAnalyzer.SplitRun.add(step:of:pauses:)",
-   "hash": "214b5dd0c26c1847",
-   "does": "Adds step distance unless paused; adds step time unless paused or a resume gap.",
+   "key": "func WorkoutAnalyzer.SplitRun.add(step:of:pauses:beats:)",
+   "hash": "66e2362fac2a304f",
+   "does": "Consumes the beats up to this fix from the cursor (counting them only on a moving step); a paused step adds nothing; a resume gap adds distance only; a moving step adds distance, time and its beats' HR sum/count.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.HRCursor.take(through:counting:)"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+1",
-     "cond": "step paused",
-     "effect": "nothing added"
+     "cond": "step neither paused nor a gap",
+     "effect": "moving"
     },
     {
      "at": "+3",
-     "cond": "step is a gap",
-     "effect": "distance only; else distance and time"
+     "cond": "step paused",
+     "effect": "nothing added (its beats were dropped)"
+    },
+    {
+     "at": "+5",
+     "cond": "step is a resume gap",
+     "effect": "distance only; else distance, time and HR"
     }
    ],
    "flags": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.HRCursor.take(through:counting:)": "fedbc12036a337a7"
+   }
   },
   {
-   "key": "func WorkoutAnalyzer.split(index:track:from:to:run:hrSamples:)",
-   "hash": "989b33bbdda7253d",
-   "does": "Builds a Split: distance and moving duration from run, average HR between start and end fix timestamps, pace = duration/(distance/1000), smoothed elevation gain, α1 nil.",
+   "key": "func WorkoutAnalyzer.split(index:track:from:to:run:)",
+   "hash": "91036d768d50385c",
+   "does": "Builds a Split: distance, moving duration and average HR (over the moving steps' beats; nil without any) from run, pace = duration/(distance/1000), smoothed elevation gain over the split's fixes, α1 nil.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.averageHR(samples:from:to:)",
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.splitElevationGain(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+17",
+     "at": "+13",
+     "cond": "run has HR beats",
+     "effect": "mean HR; else nil"
+    },
+    {
+     "at": "+14",
      "cond": "duration > 0",
      "effect": "pace computed; else nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Split averageHR covers the whole wall-clock span between the split's first and last fix, including paused time, while its duration/pace exclude pauses — a split containing a stop averages in standing HR (decoupling already excludes paused HR).",
-     "evidence": [
-      "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift:453",
-      "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift:432",
-      "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift:630"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.averageHR(samples:from:to:)": "a342a175c8f140e7",
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.splitElevationGain(_:)": "0e43b76c4383c4f8"
    }
   },
@@ -430,7 +432,7 @@
   {
    "key": "func WorkoutAnalyzer.splitsEnrichedWithAlpha1(_:startDate:duration:)",
    "hash": "95f00bf887f5a16d",
-   "does": "Re-derives splits' α1 from metadata.samples, walking the stored polyline decoded with fixes spread evenly across duration.",
+   "does": "Re-derives splits' α1 from metadata.samples via enrichSplitsWithAlpha1; the stored polyline (decoded with fixes spread across duration) only supplies the first fix, which the reconstruction places at startDate — the windows themselves come from the splits' moving times.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)",
@@ -450,32 +452,19 @@
      "effect": "empty track → enrichment falls back to per-split durations"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "The decoded polyline carries synthetic timestamps spread uniformly over the session duration (GPXExporter.decode/fixInterval), so after α1 re-analysis each split's α1 window is the polyline's proportional time, not when the split was actually run; with uneven GPS fix rate or pauses the per-split α1 averages the wrong stretch.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift:483",
-      "Emuqu/Sources/Analysis/GPXExporter.swift:155",
-      "Emuqu/Sources/Analysis/GPXExporter.swift:169"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)": "9076ca04b3bf1372",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.enrichSplitsWithAlpha1(splits:samples:startDate:track:)": "fd191dffb2db28b7"
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)": "8bf8d7e73e673ac6",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.enrichSplitsWithAlpha1(splits:samples:startDate:track:)": "fa9ae4d41c9013b8"
    }
   },
   {
    "key": "func WorkoutAnalyzer.enrichSplitsWithAlpha1(splits:samples:startDate:track:)",
-   "hash": "ef5ed358f7957ca2",
-   "does": "Assigns each split the mean α1 of samples whose offset falls in [start, end) where end comes from walking the track by split distance; splits returned unchanged if none or no α1 samples.",
+   "hash": "43d6ef1fccc489f9",
+   "does": "Assigns each split the mean α1 of samples whose offsetSec (active seconds) falls in its window on the active clock: windows laid end to end, the first starting at the first track fix's offset from startDate (0 without a track), each lasting the split's moving durationSeconds. Paused time and paused GPS steps cannot shift them. Splits returned unchanged if none or no α1 samples.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.alphaOffsets(of:)",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.SplitTrackWalk.advance(over:track:startDate:)",
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.averageAlpha1(of:from:to:)"
    ],
    "reads": [],
@@ -492,42 +481,22 @@
      "effect": "return as-is"
     },
     {
-     "at": "+15",
-     "cond": "for each split",
-     "effect": "advance walk, average α1 in window"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "Split.distanceMeters excludes paused steps (SplitRun.add), but SplitTrackWalk.advance accumulates every track step including paused ones, so after a pause where GPS drifted/moved the walk reaches each split's target early and every later split's α1 window is shifted earlier — the splits table shows α1 from the wrong kilometre.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift:429",
-      "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift:545",
-      "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift:546",
-      "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift:508"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+9",
+     "cond": "no track (??)",
+     "effect": "first window starts at 0; else at max(0, first fix − startDate)"
     },
     {
-     "kind": "broken",
-     "sev": "med",
-     "text": "Split windows are track-fix timestamps minus startDate (wall-clock, pauses included), but WorkoutSample.offsetSec counts active seconds only (elapsedSeconds stops while paused). After the first pause every split's alpha1 window is compared against samples offset by the cumulative pause length, so averageAlpha1 is taken from the wrong part of the run (at finalize and after re-analysis).",
-     "evidence": [
-      "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift:552",
-      "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift:529",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:67",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift:261"
-     ],
-     "found": "second read"
+     "at": "+10",
+     "cond": "for each split",
+     "effect": "average α1 over [start, start + moving duration), then advance"
     }
    ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.SplitTrackWalk.advance(over:track:startDate:)": "2f9c3eaf237c2413",
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.alphaOffsets(of:)": "6e571fb9498e9bda",
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.averageAlpha1(of:from:to:)": "8c410993eceaae95",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.split(index:track:from:to:run:hrSamples:)": "218c9f45902adfdd"
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.split(index:track:from:to:run:)": "19d504fb906feb34",
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.durationSeconds(of:)": "23569ddb0336cdc7"
    }
   },
   {
@@ -565,32 +534,6 @@
    ],
    "flags": [],
    "deps": {}
-  },
-  {
-   "key": "func WorkoutAnalyzer.SplitTrackWalk.advance(over:track:startDate:)",
-   "hash": "a1cf8ae0041e17fd",
-   "does": "Advances the track cursor until cumulative raw distance >= previous cumulative + split distance; returns that fix's offset from startDate, or startOffset + split duration when the track is empty.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "more fixes and cumulative < target",
-     "effect": "consume next step"
-    },
-    {
-     "at": "+6",
-     "cond": "track empty (index invalid)",
-     "effect": "fallback to start + rounded durationSeconds; else fix timestamp offset"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.split(index:track:from:to:run:hrSamples:)": "218c9f45902adfdd",
-    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.durationSeconds(of:)": "23569ddb0336cdc7"
-   }
   },
   {
    "key": "func WorkoutAnalyzer.computeDecoupling(track:rrPoints:startDate:pauses:)",
@@ -798,8 +741,8 @@
   },
   {
    "key": "func WorkoutAnalyzer.scaledInt(_:by:)",
-   "hash": "cfa488fec2e46125",
-   "does": "Non-trapping Double→Int fixed-point scaling: non-finite → 0, out-of-range → Int.min/Int.max.",
+   "hash": "105a203732dfb96e",
+   "does": "Non-trapping Double→Int fixed-point scaling: non-finite → 0; otherwise rounded and clamped to ±Int.max/8 (2⁶⁰), so the encoders' previous-value subtraction and one-bit left shift cannot overflow.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -808,33 +751,10 @@
     {
      "at": "+1",
      "cond": "value not finite",
-     "effect": "0"
-    },
-    {
-     "at": "+3",
-     "cond": "scaled outside Int range",
-     "effect": "clamp"
-    },
-    {
-     "at": "+4",
-     "cond": "scaled < 0",
-     "effect": "Int.min; else Int.max"
+     "effect": "0; else clamp to ±2⁶⁰ and convert"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Doc claims an encoder that 'cannot crash regardless of what reaches it', but a clamped Int.max/Int.min feeds the delta subtraction `scaled - prev` / `lat - prevLat`, which traps on overflow when the previous value has the opposite sign (e.g. finite altitude 1e300 after a below-sea-level fix).",
-     "evidence": [
-      "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift:712",
-      "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift:720",
-      "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift:745",
-      "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift:732"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -858,7 +778,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encode(value:)": "4718fd027f110005",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.scaledInt(_:by:)": "e028febc9f7cea88"
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.scaledInt(_:by:)": "58bdaa506462c0d7"
    }
   },
   {
@@ -882,7 +802,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encode(value:)": "4718fd027f110005",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.scaledInt(_:by:)": "e028febc9f7cea88"
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.scaledInt(_:by:)": "58bdaa506462c0d7"
    }
   },
   {
@@ -959,24 +879,6 @@
    "deps": {
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0"
    }
-  },
-  {
-   "key": "func WorkoutAnalyzer.averageHR(samples:from:to:)",
-   "hash": "b0410a86b828a8cd",
-   "does": "Mean HR of samples with timestamp in [from, to]; nil if none.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "window empty",
-     "effect": "nil"
-    }
-   ],
-   "flags": [],
-   "deps": {}
   }
  ],
  "deps": {}

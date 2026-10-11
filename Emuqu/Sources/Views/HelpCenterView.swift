@@ -144,16 +144,20 @@ struct HelpCenterView<Header: View>: View {
 
     // MARK: - Search Results
 
+    /// The corpus is localized and scanned once per render (`searchResults`
+    /// rebuilds every category and lowercases every article), then the one
+    /// result list feeds the empty check, the count and the links.
     private var searchResultsView: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            if searchResults.isEmpty {
+        let results = searchResults
+        return VStack(alignment: .leading, spacing: 12) {
+            if results.isEmpty {
                 noResultsPlaceholder
             } else {
-                Text("\(searchResults.count) results", bundle: LanguageManager.appBundle)
+                Text("\(results.count) results", bundle: LanguageManager.appBundle)
                     .font(.subheadline)
                     .foregroundColor(AppTheme.textTertiary)
 
-                searchResultLinks
+                searchResultLinks(results)
             }
         }
     }
@@ -175,8 +179,8 @@ struct HelpCenterView<Header: View>: View {
         .padding(.top, 60)
     }
 
-    private var searchResultLinks: some View {
-        ForEach(searchResults) { article in
+    private func searchResultLinks(_ results: [HelpArticle]) -> some View {
+        ForEach(results) { article in
             articleLink(article)
         }
     }

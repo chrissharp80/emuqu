@@ -31,28 +31,27 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
-    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.pollForSleepData(series:effectiveStartDate:totalBeats:isBackgroundRefinement:sleepSchedule:prefetchedSleepData:statusCallback:)": "eccc4573a72bc99f",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.pollForSleepData(series:effectiveStartDate:totalBeats:isBackgroundRefinement:sleepSchedule:prefetchedSleepData:statusCallback:)": "1205007f930cbba9",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
    "key": "func MorningProcessingService.pollForSleepData(series:effectiveStartDate:totalBeats:isBackgroundRefinement:sleepSchedule:prefetchedSleepData:statusCallback:)",
-   "hash": "3064be7b3d64cfed",
-   "does": "Computes the recording end from series duration (else now()), returns prefetched/cached sleep when ready and plausible, otherwise polls HealthKit, applies RR/Watch-HR estimates, and clamps a negative sleep-start offset to 0.",
+   "hash": "80fb07b582487fdd",
+   "does": "Computes the recording end as effectiveStartDate + the last beat's endMs (else now()), returns prefetched/cached sleep when ready and plausible, otherwise polls HealthKit, applies RR/Watch-HR estimates, and clamps a negative sleep-start offset to 0.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.readySleepData(prefetched:effectiveStartDate:recordingEnd:isBackgroundRefinement:)",
     "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.pollHealthKitSleep(series:effectiveStartDate:recordingEnd:totalBeats:isBackgroundRefinement:statusCallback:)",
-    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.applySleepEstimates(to:series:effectiveStartDate:sleepSchedule:)",
-    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs"
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.applySleepEstimates(to:series:effectiveStartDate:sleepSchedule:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+9",
-     "cond": "series.durationMs > 0",
-     "effect": "recordingEnd = effectiveStart + durationMs (last.endMs - first.t_ms); else now()"
+     "cond": "series has a last point",
+     "effect": "recordingEnd = effectiveStart + last.endMs; else now()"
     },
     {
      "at": "+12",
@@ -65,22 +64,10 @@
      "effect": "set to 0; otherwise unchanged"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "recordingEnd uses RRSeries.durationMs (last.endMs - first.t_ms, a first-to-last span) added to effectiveStartDate, which is short by first.t_ms when the first beat is not at 0; ReanalysisService+Sleep.swift:129-131 documents that the recording runs to the last beat's end for exactly this reason. The plausibility window for prefetched/cached sleep is shortened accordingly.",
-     "evidence": [
-      "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift:48",
-      "Emuqu/Sources/Models/RRModels.swift:77",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:129"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs": "fc1fd164e934dda1",
-    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.applySleepEstimates(to:series:effectiveStartDate:sleepSchedule:)": "30864de341a2b936",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.applySleepEstimates(to:series:effectiveStartDate:sleepSchedule:)": "80523643994e6dd9",
     "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.pollHealthKitSleep(series:effectiveStartDate:recordingEnd:totalBeats:isBackgroundRefinement:statusCallback:)": "01f01a5535f4967d",
     "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.readySleepData(prefetched:effectiveStartDate:recordingEnd:isBackgroundRefinement:)": "758f705c6d43df97"
    }
@@ -243,11 +230,11 @@
   },
   {
    "key": "func MorningProcessingService.applySleepEstimates(to:series:effectiveStartDate:sleepSchedule:)",
-   "hash": "23ade4de69ec8a68",
-   "does": "When no sleep start and source is not .healthKit, applies RR-based HR sleep estimate (.hrEstimated); then if still no fetched sleep data, applies Apple Watch passive-HR estimate over start..overnightWindowEnd (.healthKitHREstimated).",
+   "hash": "69f3ffc82f7d10aa",
+   "does": "When no sleep start and source is not .healthKit, applies the RR-based sleep estimate through the injected healthKit.estimateSleepFromRR (.hrEstimated); then if still no fetched sleep data, applies Apple Watch passive-HR estimate over start..overnightWindowEnd (.healthKitHREstimated).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:)",
+    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.estimateSleepFromRR(rrPoints:recordingStart:)",
     "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift::func MorningProcessingService.applyEstimate(_:source:effectiveStartDate:to:)",
     "dyn:HealthKitServiceProtocol.estimateSleepFromHealthKitHR(windowStart:windowEnd:) → Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift:160 → Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift:45|EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.estimateSleepFromHealthKitHR(windowStart:windowEnd:minimumSamples:minimumSleepMinutes:)",
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)"
@@ -268,22 +255,11 @@
      "effect": "return; else apply Watch-HR estimate"
     }
    ],
-   "flags": [
-    {
-     "kind": "coupling",
-     "sev": "low",
-     "text": "The RR-based estimate is called as the concrete static HealthKitManager.estimateSleepFromHR rather than through the injected healthKit protocol, so tests injecting MockHealthKitService cannot stub this fallback and always run the real estimator.",
-     "evidence": [
-      "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift:193",
-      "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift:59"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:)": "c16e3d979adbaf49",
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "6fcc761d41125b66",
-    "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift::func MorningProcessingService.applyEstimate(_:source:effectiveStartDate:to:)": "79f0f89f4f7e769a"
+    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.estimateSleepFromRR(rrPoints:recordingStart:)": "d7907a319cf846fe",
+    "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift::func MorningProcessingService.applyEstimate(_:source:effectiveStartDate:to:)": "6c7693c2dbb2d284"
    }
   },
   {

@@ -9,7 +9,7 @@
   "mem:TrainingLoadCard.acrBelow=0.8/acrInRange=1.3/acrAbove=1.5 (static zone edges)",
   "mem:TrainingLoadCard.gaugeMin=0.5/gaugeMax=1.7 (static gauge span)"
  ],
- "toplevel": "Static lets define ACR zone edges 0.8/1.3/1.5 and gauge span 0.5-1.7 shared by zone text and bands.",
+ "toplevel": "Static lets define the gauge band edges 0.8/1.3/1.5 (ACWRBand's, its maintenance and in-range bands sharing one colour) and the gauge span 0.5-1.7; the zone words come from ACWRBand.",
  "flags": [],
  "units": [
   {
@@ -27,7 +27,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift::var TrainingLoadCard.acrGauge": "ce19defa53d4b9b8",
+    "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift::var TrainingLoadCard.acrGauge": "bdbcb433378bd6c6",
     "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift::var TrainingLoadCard.loadPills": "a776e8e82bff6634",
     "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift::var TrainingLoadCard.trainingLoadHeader": "dafa3e4bc0a94d4e",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e"
@@ -53,12 +53,13 @@
   },
   {
    "key": "var TrainingLoadCard.acrGauge",
-   "hash": "fac88fb9bfbbc36e",
-   "does": "Shows the ACR gauge with an accessibility label stating the ratio and zone when acuteChronicRatio exists.",
+   "hash": "e3b0a09075e1c8ef",
+   "does": "Shows the ACR gauge with an accessibility label stating the ratio and its ACWRBand label as the zone when acuteChronicRatio exists.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift::func TrainingLoadCard.acrGaugeColumn(_:)",
-    "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift::func TrainingLoadCard.acrZone(_:)",
+    "Emuqu/Sources/Collection/TrainingMetrics.swift::init ACWRBand(ratio:)",
+    "Emuqu/Sources/Collection/TrainingMetrics.swift::var ACWRBand.label",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
    ],
@@ -73,10 +74,11 @@
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Collection/TrainingMetrics.swift::init ACWRBand(ratio:)": "ab23d40ded8191dc",
+    "Emuqu/Sources/Collection/TrainingMetrics.swift::var ACWRBand.label": "9ea37e9b11a3009c",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift::func TrainingLoadCard.acrGaugeColumn(_:)": "298dd5ea104c7fb8",
-    "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift::func TrainingLoadCard.acrZone(_:)": "9f880aea3256cc29"
+    "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift::func TrainingLoadCard.acrGaugeColumn(_:)": "298dd5ea104c7fb8"
    }
   },
   {
@@ -94,50 +96,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift::func TrainingLoadCard.acrGaugeTrack(acr:width:)": "e28427aad0183737",
-    "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift::var TrainingLoadCard.acrZoneLabels": "3354cd7d32019368"
-   }
-  },
-  {
-   "key": "func TrainingLoadCard.acrZone(_:)",
-   "hash": "62eff2ba0fc7b5ff",
-   "does": "Zone name for an ACR: <0.8 below range, ≤1.3 in range, ≤1.5 above range, else sharp increase.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "acr < 0.8",
-     "effect": "'below range'"
-    },
-    {
-     "at": "+2",
-     "cond": "acr <= 1.3",
-     "effect": "'in range'"
-    },
-    {
-     "at": "+3",
-     "cond": "acr <= 1.5",
-     "effect": "'above range'; above → 'sharp increase'"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "acrZone re-implements the ACR band edges (0.8/1.3/1.5) that ACWRBand.init(ratio:) already defines (and which also has a 0.8-1.0 maintenance band), with different wording ('sharp increase' vs 'Sharp increase', 'above range' vs 'Above your usual'); the two can drift.",
-     "evidence": [
-      "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift:57",
-      "Emuqu/Sources/Collection/TrainingMetrics.swift:58"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift::var TrainingLoadCard.acrZoneLabels": "da37c46f56fc7781"
    }
   },
   {
@@ -227,30 +186,18 @@
   },
   {
    "key": "var TrainingLoadCard.acrZoneLabels",
-   "hash": "1b8bf5399334bbac",
-   "does": "Three labels under the four bands: Below, In range, Sharp jump.",
+   "hash": "d9b730573a2d837c",
+   "does": "Four labels, one per coloured band, in ACWRBand's words: Below your usual, In range, Above your usual, Sharp increase.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Collection/TrainingMetrics.swift::var ACWRBand.label"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Four bands are labelled with three words: the 1.3-1.5 'above range' band has no label and the end label says 'Sharp jump' while the accessibility zone text says 'sharp increase'.",
-     "evidence": [
-      "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift:111",
-      "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift:83",
-      "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift:60"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Collection/TrainingMetrics.swift::var ACWRBand.label": "9ea37e9b11a3009c",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "7646093d377bac7c"
    }
   },

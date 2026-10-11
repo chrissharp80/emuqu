@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Models/UserSettings+Model.swift",
- "hash": "048479b0c08321f8",
+ "hash": "b8350cdc021d266c",
  "role": "Declares the UserSettings value type: every stored preference with in-memory defaults, derived values (effective max HR/LTHR/resting HR/weight/FTP, sleep schedule, merge gap, comeback/break/overreach state, population RMSSD), CodingKeys, the PerformanceFlagKey UserDefaults mirror, HealthProfileField and the iCloud-backup strip/restore helpers.",
  "types": [
   "UserSettings: struct — Codable/Equatable settings document",
@@ -18,51 +18,8 @@
   "ud:perf.enableWatchConnectivity",
   "UserSettings.currentSchemaVersion = 1 (static)"
  ],
- "toplevel": "Stored-property initializers set the in-memory defaults (sessionMergeMode .defaultGap, customMergeGapHours 4.5, sleepSplitGapMinutes 20, enablePeriodicCoachUpdates true, cadence 300, enableSleepIntegration true, peakingDetectionEnabled true, battery/sync/coach alerts true, preserveClipboard true, temperatureUnit .regionDefault, routingMode .manual, watchDisplayOnlyMode true, hasFixedTempAsymmetry true, keepScreenOn/AI/voice/watch true, defaultCaptureMode 'both', others false/nil). dailyReportFixedTime and expectedBedtime are full Date instants built from hour/minute components in the current time zone.",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "med",
-   "text": "expectedBedtime and dailyReportFixedTime are stored as absolute instants (year-1 date built in the then-current time zone, encoded ISO-8601) but read back as hour/minute in Calendar.current; after the user changes time zone, the bedtime driving sleepSchedule and the fixed report time shift by the zone difference.",
-   "evidence": [
-    "Emuqu/Sources/Models/UserSettings+Model.swift:862",
-    "Emuqu/Sources/Models/UserSettings+Model.swift:389",
-    "Emuqu/Sources/Models/UserSettings+Model.swift:756",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift:264"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "maxHR doc says the fallback is '220 − age', but effectiveMaxHR uses Tanaka 208 − 0.7·age via MaxHeartRate.effective.",
-   "evidence": [
-    "Emuqu/Sources/Models/UserSettings+Model.swift:93",
-    "Emuqu/Sources/Analysis/MaxHeartRate.swift:22"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "trialStartDate doc says it is 'Set once after onboarding completes (first-time users only)', but the only writer is SettingsManager.mirrorTrialStart driven by StoreKit's trial transaction.",
-   "evidence": [
-    "Emuqu/Sources/Models/UserSettings+Model.swift:590",
-    "Emuqu/Sources/Models/SettingsManager.swift:433"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "comebackModeStartDate doc says an expired date is 'cleared by the next dashboard load'; the clearing writers are LoadTrajectoryLoader and the Modes settings page.",
-   "evidence": [
-    "Emuqu/Sources/Models/UserSettings+Model.swift:342",
-    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift:285"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "Stored-property initializers set the in-memory defaults (sessionMergeMode .defaultGap, customMergeGapHours 4.5, sleepSplitGapMinutes 20, enablePeriodicCoachUpdates true, cadence 300, enableSleepIntegration true, peakingDetectionEnabled true, battery/sync/coach alerts true, preserveClipboard true, temperatureUnit .regionDefault, routingMode .manual, watchDisplayOnlyMode true, hasFixedTempAsymmetry true, keepScreenOn/AI/voice/watch true, defaultCaptureMode 'both', dailyReportFixedMinuteOfDay 7*60, others false/nil). Bedtime and the fixed report time are stored as wall-clock minutes after midnight (expectedBedtimeMinuteOfDay, dailyReportFixedMinuteOfDay), so a time-zone change keeps their clock time; expectedBedtime / dailyReportFixedTime are computed Date views of them. CodingKeys carries both the minute keys and the legacy Date keys.",
+ "flags": [],
  "units": [
   {
    "key": "var UserSettings.birthday",
@@ -99,6 +56,24 @@
    ],
    "flags": [],
    "deps": {}
+  },
+  {
+   "key": "var UserSettings.expectedBedtime",
+   "hash": "39b42df90cdb9f6e",
+   "does": "Computed get/set Date view of expectedBedtimeMinuteOfDay for the bedtime picker: get builds a Date with that hour/minute in the current calendar (wallClockDate); set stores the new Date's current-calendar hour*60+minute (minuteOfDay).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.wallClockDate(minuteOfDay:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.minuteOfDay(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.minuteOfDay(_:)": "61b8d9160e060807",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.wallClockDate(minuteOfDay:)": "989165a00adbbb31"
+   }
   },
   {
    "key": "var UserSettings.bodyWeightKg",
@@ -156,59 +131,34 @@
      "effect": "return it; else derive from max HR with a 120 floor"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Comment says derived max is 150–220 so LTHR lands at 133–158; MaxHeartRate clamps the derived max to 130–220 (default 180), giving 120–193.",
-     "evidence": [
-      "Emuqu/Sources/Models/UserSettings+Model.swift:114",
-      "Emuqu/Sources/Analysis/MaxHeartRate.swift:65"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade"
    }
   },
   {
    "key": "var UserSettings.resolvedDefaultEmailRecipient",
-   "hash": "3bea02d0bcaaf960",
-   "does": "First non-empty of legacy defaultEmailRecipient, recovery recipient, training recipient; nil when none.",
+   "hash": "7442e375eee50658",
+   "does": "First non-empty of recovery recipient, training recipient, legacy defaultEmailRecipient (nil after any decode); nil when none.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "privacy",
-     "sev": "med",
-     "text": "The legacy generic recipient (not editable anywhere in the UI; decode keeps it forever) has first precedence, so a legacy user who changes their recovery/training recipient still gets the old address pre-filled in the AI per-message mailer, the assistant email.compose fallback, and the recovery/training mailers whenever their own category field is empty. MorningResultsView's comment claims the order is recovery -> training -> legacy, the reverse of the code.",
-     "evidence": [
-      "Emuqu/Sources/Models/UserSettings+Model.swift:230",
-      "Emuqu/Sources/Assistant/Views/AssistantChatView.swift:328",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift:229",
-      "Emuqu/Sources/Views/MorningResultsView.swift:475",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift:260"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
    "key": "var UserSettings.resolvedDefaultEmailCC",
-   "hash": "3da58cdb64a09b1b",
-   "does": "First non-empty CC string among legacy, recovery, training CC, split on commas, trimmed, empties dropped.",
+   "hash": "26290131d6bddce8",
+   "does": "First non-empty CC string among recovery, training, legacy CC, split on commas, trimmed, empties dropped.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+1",
+     "at": "+3",
      "cond": "?? — no non-empty CC configured",
      "effect": "uses '' → returns []"
     }
@@ -336,22 +286,22 @@
    }
   },
   {
-   "key": "let UserSettings.dailyReportFixedTime",
-   "hash": "77df78c1d00d3bd3",
-   "does": "Initializer closure for dailyReportFixedTime: 07:00 built from components in Calendar.current, or now if that fails.",
+   "key": "var UserSettings.dailyReportFixedTime",
+   "hash": "1550b112cddc1911",
+   "does": "Computed get/set Date view of dailyReportFixedMinuteOfDay (default 07:00) for the fixed-delivery picker and the morning scheduler: get builds a Date with that hour/minute in the current calendar; set stores the new Date's current-calendar hour*60+minute.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.wallClockDate(minuteOfDay:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.minuteOfDay(_:)"
+   ],
    "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+4",
-     "cond": "?? — Calendar.date(from:) returned nil",
-     "effect": "Date() (current instant)"
-    }
-   ],
+   "branches": [],
    "flags": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.minuteOfDay(_:)": "61b8d9160e060807",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.wallClockDate(minuteOfDay:)": "989165a00adbbb31"
+   }
   },
   {
    "key": "var UserSettings.isIntentionalOverreachInEffect",
@@ -439,24 +389,13 @@
   },
   {
    "key": "var UserSettings.sleepSchedule",
-   "hash": "2ebeb11c08756296",
-   "does": "SleepSchedule from expectedBedtime's hour/minute in Calendar.current and typicalSleepHours.",
+   "hash": "aadc266f2f6daec5",
+   "does": "SleepSchedule from expectedBedtimeMinuteOfDay (hour = /60, minute = %60) and typicalSleepHours.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+4",
-     "cond": "?? — hour component missing",
-     "effect": "22"
-    },
-    {
-     "at": "+5",
-     "cond": "?? — minute component missing",
-     "effect": "0"
-    }
-   ],
+   "branches": [],
    "flags": [],
    "deps": {}
   },
@@ -489,33 +428,13 @@
    "deps": {}
   },
   {
-   "key": "var UserSettings.typicalSleepMinutes",
-   "hash": "3d25b2fbfbb7ee61",
-   "does": "typicalSleepHours × 60.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "typicalSleepMinutes has no reference anywhere in the repo, app or tests.",
-     "evidence": [
-      "Emuqu/Sources/Models/UserSettings+Model.swift:827"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
-  },
-  {
    "key": "var UserSettings.age",
-   "hash": "7a87f58973edba80",
-   "does": "Whole years from birthday to now in Calendar.current; nil when no birthday.",
+   "hash": "bb5b63b8e739d896",
+   "does": "Whole years from birthday to now via MaxHeartRate.age(from:to:calendar:) with Calendar.current; nil when no birthday.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.age(from:to:calendar:)"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
@@ -525,20 +444,54 @@
      "effect": "nil; else years component"
     }
    ],
-   "flags": [
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.age(from:to:calendar:)": "2e6eb44b6beb64cf",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "848cd8a572666b81"
+   }
+  },
+  {
+   "key": "func UserSettings.minuteOfDay(_:)",
+   "hash": "a124e9be6912e01b",
+   "does": "Minutes after midnight of a Date's hour and minute in Calendar.current (missing components count as 0).",
+   "entry": null,
+   "calls": [
+    "ext:Calendar.dateComponents"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
     {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Re-derives age with Calendar.current, duplicating MaxHeartRate.age(from:to:calendar:) which exists to take an explicit calendar.",
-     "evidence": [
-      "Emuqu/Sources/Models/UserSettings+Model.swift:835",
-      "Emuqu/Sources/Analysis/MaxHeartRate.swift:79"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+2",
+     "cond": "?? — hour or minute component missing",
+     "effect": "0 for that part"
     }
    ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "848cd8a572666b81"
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.hour(from:)": "49d2f1a114e03f25"
+   }
+  },
+  {
+   "key": "func UserSettings.wallClockDate(minuteOfDay:)",
+   "hash": "8c1a05cc9f1ed78d",
+   "does": "Builds a Date (year 1) whose hour and minute in Calendar.current are minuteOfDay/60 and minuteOfDay%60; Date() if the calendar cannot build it.",
+   "entry": null,
+   "calls": [
+    "ext:Calendar.date(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "?? — calendar could not build the date",
+     "effect": "Date() (current instant)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.minuteOfDay(_:)": "61b8d9160e060807"
    }
   },
   {
@@ -587,19 +540,13 @@
   },
   {
    "key": "init UserSettings()",
-   "hash": "c79dd6229e6dff86",
-   "does": "Designated init: empty customTags, 8 h sleep, 22:00 bedtime (now if calendar fails), consolidatedRecovery window, onboarding not completed, iCloud off; other fields take their declaration defaults.",
+   "hash": "bde09013e3ef07e7",
+   "does": "Designated init: empty customTags, 8 h sleep, 22:00 bedtime (expectedBedtimeMinuteOfDay 1320), consolidatedRecovery window, onboarding not completed, iCloud off; other fields take their declaration defaults.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+3",
-     "cond": "?? — 22:00 date could not be built",
-     "effect": "Date()"
-    }
-   ],
+   "branches": [],
    "flags": [],
    "deps": {}
   },
@@ -679,7 +626,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.age": "ca00f16b8dca855b",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.age": "1087428d4318dc8f",
     "Emuqu/Sources/Models/UserSettings.swift::var FitnessLevel.rmssdBaselineMultiplier": "34a0336981dca76c"
    }
   },

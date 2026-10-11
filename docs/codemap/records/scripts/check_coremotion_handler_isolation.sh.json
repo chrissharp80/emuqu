@@ -7,19 +7,8 @@
   "dir:Emuqu",
   "dir:EmuquWatch Watch App"
  ],
- "toplevel": "cd to repo root. Roots = args or Emuqu and 'EmuquWatch Watch App'; exit 2 if no Swift file found. Python strips // comments (string-aware), finds `.startRelativeAltitudeUpdates(` etc. and `.startUpdates(`/`.queryPedometerData(`; looks in a 400-char window for the first `{`; no `{` -> skipped; queue APIs with `to:` -> ok; body starting `@Sendable` -> ok; else violation (exit 1). Wired: ci.yml (manual only) and Makefile coremotion-isolation-guard; NOT run by gates.yml on push.",
+ "toplevel": "cd to repo root. Roots = args or Emuqu and 'EmuquWatch Watch App'; exit 2 if no Swift file found. Python strips // comments (string-aware), finds `.startRelativeAltitudeUpdates(` etc. and `.startUpdates(`/`.queryPedometerData(`; looks in a 400-char window for the first `{`; no `{` -> skipped; queue APIs with `to:` -> ok; body starting `@Sendable` -> ok; else violation (exit 1). Wired: gates.yml 'Source hygiene guards' (make coremotion-isolation-guard, push and pull_request), ci.yml and Makefile.",
  "flags": [
-  {
-   "kind": "fragile",
-   "sev": "med",
-   "text": "Not executed by the push workflow gates.yml (its make target list omits coremotion-isolation-guard); it only runs in manual ci.yml or local `make ci`, although it guards a crash that ended a user's walk. check_gates_wired.sh only inspects ci.yml so it does not notice.",
-   "evidence": [
-    ".github/workflows/gates.yml:60",
-    "Makefile:50",
-    "scripts/check_gates_wired.sh:17"
-   ],
-   "found": "first read, upheld on second"
-  },
   {
    "kind": "fragile",
    "sev": "low",

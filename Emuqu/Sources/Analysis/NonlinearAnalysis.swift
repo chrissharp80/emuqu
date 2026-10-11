@@ -186,19 +186,23 @@ enum NonlinearAnalyzer {
         guard rr.count >= m + 2 else { return nil }
         let tolerance = r * sampleStandardDeviation(rr)
         let entropyValues = entropySubsample(rr)
-        let countM = countTemplateMatches(entropyValues, templateLength: m, tolerance: tolerance)
-        let countM1 = countTemplateMatches(entropyValues, templateLength: m + 1, tolerance: tolerance)
+        // Both lengths compare the same N − m templates (Richman & Moorman),
+        // so A is not counted over one template fewer than B.
+        let templates = entropyValues.count - m
+        let countM = countTemplateMatches(entropyValues, templateLength: m, templateCount: templates, tolerance: tolerance)
+        let countM1 = countTemplateMatches(entropyValues, templateLength: m + 1, templateCount: templates, tolerance: tolerance)
         guard countM > 0, countM1 > 0 else { return nil }
         return -log(Double(countM1) / Double(countM))
     }
 
-    /// Count matching template pairs using Chebyshev distance
-    private static func countTemplateMatches(_ data: [Double], templateLength: Int, tolerance: Double) -> Int {
-        let n = data.count
-        guard n > templateLength else { return 0 }
+    /// Count matching template pairs, among the first `templateCount`
+    /// templates of `templateLength`, using Chebyshev distance. Zero when
+    /// the templates would run past the data.
+    private static func countTemplateMatches(_ data: [Double], templateLength: Int, templateCount: Int, tolerance: Double) -> Int {
+        guard templateCount > 0, templateCount + templateLength - 1 <= data.count else { return 0 }
         var count = 0
-        for i in 0 ..< (n - templateLength) {
-            count += ((i + 1) ..< (n - templateLength)).count { j in
+        for i in 0 ..< templateCount {
+            count += ((i + 1) ..< templateCount).count { j in
                 templatesMatch(data, i, j, templateLength: templateLength, tolerance: tolerance)
             }
         }

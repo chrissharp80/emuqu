@@ -58,8 +58,8 @@
   },
   {
    "key": "§ Scripts > Quality / CI scripts > `run_tests_with_coverage.sh`",
-   "hash": "fedfd77d0ee4afed",
-   "does": "Claims run_tests_with_coverage.sh runs tests with coverage and evaluates the coverage gate, with env defaults SCHEME=Emuqu, PROJECT=Emuqu.xcodeproj, RESULT_BUNDLE=build/TestResults.xcresult, MIN_COVERAGE optional override (committed .ci floors otherwise), DESTINATION override, MAX_TEST_WORKERS=3. Verified: run_tests_with_coverage.sh:6-9,77 set those defaults and lines 304-308 call check_coverage.sh with or without MIN_COVERAGE.",
+   "hash": "29c1d9a8129afdd0",
+   "does": "Claims run_tests_with_coverage.sh runs tests with coverage and evaluates the coverage gate, with env defaults SCHEME=Emuqu, PROJECT=Emuqu.xcodeproj, RESULT_BUNDLE=build/TestResults.xcresult, MIN_COVERAGE optional and only able to raise the overall floor (check_coverage.sh floor() takes the max; a missing committed floor file is an error), DESTINATION override, MAX_TEST_WORKERS=3. Verified: run_tests_with_coverage.sh sets those defaults and calls check_coverage.sh with or without MIN_COVERAGE.",
    "entry": null,
    "calls": [
     "scripts/run_tests_with_coverage.sh::fn run_tests"
@@ -86,36 +86,30 @@
   },
   {
    "key": "§ Scripts > Quality / CI scripts > `check_budget_monotonicity.sh`",
-   "hash": "e3ac311e05bcb3d3",
-   "does": "Claims check_budget_monotonicity.sh fails any diff that raises a value in .ci/*.txt unless a `budget-raise-ok: .ci/<file>.txt <why>` trailer exists, and needs fetch-depth 0. Code also treats min_* files as floors (decrease fails) and skips non-integer files.",
+   "hash": "5f5932967901fac0",
+   "does": "Claims check_budget_monotonicity.sh fails any diff that loosens a .ci/*.txt value against the baseline (ceiling up, min_* floor down, numeric budget deleted or no longer a number), accepts whole or decimal values, lists non-numeric baseline files (scoring_constants_hash.txt) as not compared, requires a `budget-raise-ok: .ci/<file>.txt <why>` trailer for a legitimate loosening, and needs fetch-depth 0. Matches the code.",
    "entry": null,
    "calls": [
     "scripts/check_budget_monotonicity.sh::fn no_baseline",
     "scripts/check_budget_monotonicity.sh::fn is_allowed",
     "scripts/check_budget_monotonicity.sh::fn is_floor",
-    "scripts/check_budget_monotonicity.sh::fn read_int"
+    "scripts/check_budget_monotonicity.sh::fn read_number",
+    "scripts/check_budget_monotonicity.sh::fn loosens",
+    "scripts/check_budget_monotonicity.sh::fn report_loosened",
+    "scripts/check_budget_monotonicity.sh::fn budget_files"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "README says any raise of a value in .ci/*.txt fails; non-integer files are skipped, so .ci/min_coverage_views.txt (43.5) can be changed freely, and deleting a budget file is never compared.",
-     "evidence": [
-      "scripts/README.md:45",
-      "scripts/check_budget_monotonicity.sh:143",
-      ".ci/min_coverage_views.txt:1"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
+    "scripts/check_budget_monotonicity.sh::fn budget_files": "c70ca1ffaca60b15",
     "scripts/check_budget_monotonicity.sh::fn is_allowed": "a002d0e35987ee73",
     "scripts/check_budget_monotonicity.sh::fn is_floor": "313191d94c7788a1",
+    "scripts/check_budget_monotonicity.sh::fn loosens": "9da7cc84bf21dbde",
     "scripts/check_budget_monotonicity.sh::fn no_baseline": "4d98f6bae9009dcc",
-    "scripts/check_budget_monotonicity.sh::fn read_int": "f177c3dac57c9863"
+    "scripts/check_budget_monotonicity.sh::fn read_number": "d8d0aa6b0f8126bc",
+    "scripts/check_budget_monotonicity.sh::fn report_loosened": "005070da3ab1465d"
    }
   },
   {

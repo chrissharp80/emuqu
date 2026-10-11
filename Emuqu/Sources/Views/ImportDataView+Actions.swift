@@ -13,6 +13,8 @@ extension ImportDataView {
         flowHRVResult = nil
         flowNewSessions = []
         eliteNewSessions = []
+        importRecordingDate = nil
+        importedSleep = nil
         importStatusMessage = ""
         switch result {
         case let .success(urls):
@@ -29,12 +31,13 @@ extension ImportDataView {
     enum ParsedImportFile {
         case flowHRV(RRDataImporter.FlowHRVMultiSessionResult)
         case eliteHRV(RRDataImporter.EliteHRVSummaryResult)
-        case standardRR
+        case standardRR(RRDataImporter.ImportResult)
     }
 
     /// Read the picked file and hand it to whichever parser its shape calls
-    /// for. The read, the format check and the parse all run off the main
-    /// actor, so a multi-megabyte export doesn't freeze the screen.
+    /// for. The read, the format check, the parse and the archive check run
+    /// off the main actor, so a multi-megabyte export doesn't freeze the
+    /// screen.
     private func loadFile(at url: URL) async {
         do {
             updateStatus(String(localized: "Opening file: \(url.lastPathComponent)", bundle: LanguageManager.appBundle))
@@ -43,9 +46,9 @@ extension ImportDataView {
                 try Self.parseFile(at: url, importer: importer)
             }.value
             switch parsed {
-            case .flowHRV(let result): showFlowHRV(result)
-            case .eliteHRV(let result): showEliteHRV(result)
-            case .standardRR: try await parseStandardRR(at: url)
+            case .flowHRV(let result): await showFlowHRV(result)
+            case .eliteHRV(let result): await showEliteHRV(result)
+            case .standardRR(let result): showStandardRR(result)
             }
         } catch {
             log("ERROR: \(error.localizedDescription)")
@@ -57,8 +60,11 @@ extension ImportDataView {
         }
     }
 
+    /// One read of the file (`RRDataImporter.readFile`, which holds the
+    /// security scope), then whichever parser its shape calls for. A plain RR
+    /// file is parsed from the same text rather than read a second time.
     nonisolated private static func parseFile(at url: URL, importer: RRDataImporter) throws -> ParsedImportFile {
-        let content = try readTextContents(of: url)
+        let content = try importer.readFile(at: url)
         let fileName = url.lastPathComponent
         if importer.isFlowHRVMultiSession(content) {
             return .flowHRV(try importer.parseFlowHRVMultiSession(content, fileName: fileName))
@@ -66,89 +72,107 @@ extension ImportDataView {
         if importer.isEliteHRVSummary(content) {
             return .eliteHRV(try importer.parseEliteHRVSummary(content, fileName: fileName))
         }
-        return .standardRR
+        return .standardRR(try importer.importContent(content, fileName: fileName))
     }
 
-    /// The file's UTF-8 text, with the security scope held for the read.
-    nonisolated private static func readTextContents(of url: URL) throws -> String {
-        guard url.startAccessingSecurityScopedResource() else {
-            debugLog("[Import] ERROR: Cannot access file - security scope denied")
-            throw RRDataImporter.ImportError.fileNotFound
-        }
-        defer { url.stopAccessingSecurityScopedResource() }
-        let data: Data
-        do {
-            data = try Data(contentsOf: url)
-        } catch {
-            debugLog("[Import] ERROR: Failed to read file data: \(error.localizedDescription)")
-            throw RRDataImporter.ImportError.unreadableFile
-        }
-        guard let content = String(data: data, encoding: .utf8) else {
-            debugLog("[Import] ERROR: Cannot decode file as UTF-8 text")
-            throw RRDataImporter.ImportError.unreadableFile
-        }
-        debugLog("[Import] Read \(data.count) bytes")
-        return content
-    }
-
-    /// Emuqu's own multi-session RR export.
-    private func showFlowHRV(_ flowResult: RRDataImporter.FlowHRVMultiSessionResult) {
+    /// Emuqu's own multi-session RR export. The count on screen is the
+    /// sessions the button will import, not every session in the file.
+    private func showFlowHRV(_ flowResult: RRDataImporter.FlowHRVMultiSessionResult) async {
         log("Detected Emuqu multi-session RR export format")
         log("SUCCESS: Found \(flowResult.sessions.count) sessions with raw RR data")
         log("Total RR intervals: \(flowResult.sessions.reduce(0) { $0 + $1.beatCount })")
-        flowNewSessions = newFlowSessions(flowResult)
+        let newSessions = await newFlowSessions(flowResult)
+        flowNewSessions = newSessions
         flowHRVResult = flowResult
         isImporting = false
-        importStatusMessage = String(localized: "Ready to import \(flowResult.sessions.count) sessions", bundle: LanguageManager.appBundle)
+        importStatusMessage = String(localized: "Ready to import \(newSessions.count) sessions", bundle: LanguageManager.appBundle)
     }
 
     /// The archive check runs once here, not on every render of the preview.
-    private func showEliteHRV(_ eliteResult: RRDataImporter.EliteHRVSummaryResult) {
+    /// The count on screen is the sessions the button will import.
+    private func showEliteHRV(_ eliteResult: RRDataImporter.EliteHRVSummaryResult) async {
         log("Detected Elite HRV summary format")
         log("SUCCESS: Parsed \(eliteResult.sessions.count) sessions")
-        eliteNewSessions = eliteResult.sessions.filter { !collector.archive.sessionExists(for: $0.date) }
+        let newSessions = await newEliteSessions(eliteResult)
+        eliteNewSessions = newSessions
         eliteHRVResult = eliteResult
         isImporting = false
-        importStatusMessage = String(localized: "Ready to import \(eliteResult.sessions.count) sessions", bundle: LanguageManager.appBundle)
+        importStatusMessage = String(localized: "Ready to import \(newSessions.count) sessions", bundle: LanguageManager.appBundle)
     }
 
-    /// A plain single-session RR file — the importer sniffs the exact format.
-    private func parseStandardRR(at url: URL) async throws {
+    /// The Elite HRV sessions the archive holds no copy of, by the rule a
+    /// single save applies (`SessionArchive.holdsCopy`: same type,
+    /// overlapping span), worked out off the main actor.
+    private func newEliteSessions(
+        _ eliteResult: RRDataImporter.EliteHRVSummaryResult
+    ) async -> [RRDataImporter.EliteHRVSummaryResult.SessionSummary] {
+        let archive = collector.archive
+        let importer = importer
+        let fileName = eliteResult.originalFileName
+        let summaries = eliteResult.sessions
+        return await Task.detached(priority: .userInitiated) {
+            summaries.filter { !archive.holdsCopy(of: importer.createAnalyzedSession(from: $0, originalFileName: fileName)) }
+        }.value
+    }
+
+    /// A plain single-session RR file, already parsed with the read.
+    private func showStandardRR(_ importedResult: RRDataImporter.ImportResult) {
         log("Detected standard RR data format")
-        updateStatus(String(localized: "Parsing RR intervals...", bundle: LanguageManager.appBundle))
-        let importedResult = try await importer.importFile(at: url)
         log("SUCCESS: Found \(importedResult.beatCount) RR intervals")
         log("Duration: \(String(format: "%.1f", locale: LanguageManager.appLocale, importedResult.durationMinutes)) minutes")
         log("Format: \(importedResult.sourceFormat.rawValue)")
-        await MainActor.run {
-            importResult = importedResult
-            isImporting = false
-            importStatusMessage = String(localized: "File loaded - \(importedResult.beatCount) beats", bundle: LanguageManager.appBundle)
-        }
+        importResult = importedResult
+        isImporting = false
+        importStatusMessage = String(localized: "File loaded - \(importedResult.beatCount) beats", bundle: LanguageManager.appBundle)
     }
 
-    /// Reuses the same pipeline as live recordings.
+    /// Analysed by the live pipeline (`pipelineAnalysis`). A file that does
+    /// not say when it was recorded is dated by the user
+    /// (`importRecordingDate`, which the preview asks for before Analyze is
+    /// enabled), never by the time of import.
     func analyzeImportedData() async {
-        guard let result = importResult else { return }
-        await MainActor.run { isAnalyzing = true }
+        guard let result = importResult, let startDate = result.recordingDate ?? importRecordingDate else { return }
+        isAnalyzing = true
         updateStatus(String(localized: "Creating session from imported data...", bundle: LanguageManager.appBundle))
         log("Source file: \(result.originalFileName), RR intervals: \(result.beatCount)")
-        var session = importer.createSession(from: result)
+        var session = importer.createSession(from: result, startingAt: startDate)
         log("Session created with \(session.rrSeries?.points.count ?? 0) points")
         guard let series = session.rrSeries else {
             await failAnalysis(String(localized: "Analysis failed - no RR data", bundle: LanguageManager.appBundle), log: "ERROR: No RR series in session")
             return
         }
-        let flags = detectAndLogArtifacts(in: series)
-        session.artifactFlags = flags
-        let window = WindowSelector().findBestWindow(in: series, flags: flags)
-        guard var analysisResult = await runAnalysis(series: series, flags: flags, window: window) else { return }
-        if let window { Self.attachWindowMetadata(to: &analysisResult, window: window, series: series) }
+        session.artifactFlags = await detectAndLogArtifacts(in: series)
+        updateStatus(String(localized: "Running HRV analysis...", bundle: LanguageManager.appBundle))
+        guard let analysisResult = await pipelineAnalysis(of: session, sleep: ImportSleepWindow.Offsets()) else {
+            await failAnalysis(String(localized: "Analysis failed - insufficient clean data", bundle: LanguageManager.appBundle), log: "ERROR: analysis failed")
+            return
+        }
         session.analysisResult = analysisResult
         session.state = .complete
-        session.recoveryScore = nil // the window's figure is a selection weight, not a 0–10 score
+        session.recoveryScore = nil // scored when saved, against the baseline, not here
         logAnalysisSuccess(result: analysisResult)
         await presentResults(session)
+    }
+
+    /// The live recording pipeline (`HRVAnalysisPipeline`) on an imported
+    /// recording, so an imported night carries what a live night of the same
+    /// data would: PNS/SNS, readiness and nocturnal HR, the window's
+    /// metadata (consolidation included) and the overnight HR stats.
+    ///
+    /// An overnight picks its window within its sleep, when known; any other
+    /// reading, and an overnight with no window to pick, is analysed whole.
+    /// The pipeline is not main-actor isolated, so the analysis runs off the
+    /// main actor. Nil when there is not enough clean data.
+    private func pipelineAnalysis(of session: HRVSession, sleep: ImportSleepWindow.Offsets) async -> HRVAnalysisResult? {
+        let pipeline = collector.analysisPipeline
+        let ansConfig = collector.ansConfig(for: session)
+        if session.sessionType == .overnight, let windowed = await pipeline.analyzeWithAutoWindow(
+            session: session, sleepStartMs: sleep.startMs, wakeTimeMs: sleep.wakeMs,
+            trainingContext: nil, ansConfig: ansConfig, baselineStats: collector.scoringBaselineStats(for: session)
+        ) {
+            return windowed
+        }
+        return await pipeline.analyzeFullSession(session: session, peakCapacity: nil, trainingContext: nil, ansConfig: ansConfig)
     }
 
     /// Pre-load recent sessions off the main thread, then show the results
@@ -175,19 +199,28 @@ extension ImportDataView {
     }
 
     /// Surface an analysis failure to the user and drop out of the spinner.
+    /// The progress line is cleared, so the error card is not shown beside a
+    /// stale "Running HRV analysis...".
     private func failAnalysis(_ message: String, log line: String) async {
         log(line)
         await MainActor.run {
             errorMessage = message
             isAnalyzing = false
+            importStatusMessage = ""
         }
+    }
+
+    /// The artifact flags stored on an imported session, detected off the
+    /// main actor.
+    private static func detectArtifacts(in series: RRSeries) async -> [ArtifactFlags] {
+        await Task.detached(priority: .userInitiated) { ArtifactDetector().detectArtifacts(in: series) }.value
     }
 
     /// Detect artifacts and report the rate — a high one is worth flagging in
     /// the import log even though it doesn't stop the analysis.
-    private func detectAndLogArtifacts(in series: RRSeries) -> [ArtifactFlags] {
+    private func detectAndLogArtifacts(in series: RRSeries) async -> [ArtifactFlags] {
         updateStatus(String(localized: "Detecting artifacts...", bundle: LanguageManager.appBundle))
-        let flags = ArtifactDetector().detectArtifacts(in: series)
+        let flags = await Self.detectArtifacts(in: series)
         let artifactCount = flags.filter(\.isArtifact).count
         // `flags.count` is zero for an empty series, which would make this a
         // 0/0 Double division — NaN, formatted into the user-visible log as
@@ -205,66 +238,6 @@ extension ImportDataView {
         return flags
     }
 
-    /// The same analysis pipeline overnight recordings use. Nil (with the
-    /// error already surfaced) when there isn't enough clean data.
-    ///
-    /// `findBestWindow` analyses all the data on a short recording, so the
-    /// fallback bounds are the whole series.
-    private func runAnalysis(
-        series: RRSeries,
-        flags: [ArtifactFlags],
-        window: WindowSelector.RecoveryWindow?
-    ) async -> HRVAnalysisResult? {
-        updateStatus(String(localized: "Running HRV analysis...", bundle: LanguageManager.appBundle))
-        let windowStart = window?.startIndex ?? 0
-        let windowEnd = window?.endIndex ?? series.points.count
-        let timeDomain = TimeDomainAnalyzer.computeTimeDomain(
-            series, flags: flags, windowStart: windowStart, windowEnd: windowEnd)
-        let nonlinear = NonlinearAnalyzer.computeNonlinear(
-            series, flags: flags, windowStart: windowStart, windowEnd: windowEnd)
-        guard let timeDomain, let nonlinear else {
-            let which = timeDomain == nil ? "Time domain" : "Nonlinear"
-            await failAnalysis(String(localized: "Analysis failed - insufficient clean data", bundle: LanguageManager.appBundle), log: "ERROR: \(which) analysis failed")
-            return nil
-        }
-        return Self.assembleResult(
-            series: series, flags: flags, windowStart: windowStart, windowEnd: windowEnd,
-            timeDomain: timeDomain, nonlinear: nonlinear,
-            frequencyDomain: FrequencyDomainAnalyzer.computeFrequencyDomain(
-                series, flags: flags, windowStart: windowStart, windowEnd: windowEnd
-            )
-        )
-    }
-
-    /// Fold the per-domain results, stress metrics, and window artifact rate
-    /// into one `HRVAnalysisResult`.
-    private static func assembleResult(
-        series: RRSeries,
-        flags: [ArtifactFlags],
-        windowStart: Int,
-        windowEnd: Int,
-        timeDomain: TimeDomainMetrics,
-        nonlinear: NonlinearMetrics,
-        frequencyDomain: FrequencyDomainMetrics?
-    ) -> HRVAnalysisResult {
-        let cleanRR = (windowStart ..< windowEnd)
-            .filter { !flags[$0].isArtifact }
-            .map { Double(series.points[$0].rr_ms) }
-        let windowArtifactCount = flags[windowStart ..< windowEnd].filter(\.isArtifact).count
-        let artifactPercentage = Double(windowArtifactCount) / Double(windowEnd - windowStart) * 100
-        return HRVAnalysisResult(
-            windowStart: windowStart, windowEnd: windowEnd,
-            timeDomain: timeDomain, frequencyDomain: frequencyDomain, nonlinear: nonlinear,
-            ansMetrics: ANSMetrics(
-                stressIndex: StressAnalyzer.computeStressIndex(cleanRR),
-                pnsIndex: nil, snsIndex: nil, readinessScore: nil,
-                respirationRate: RespirationAnalyzer.estimateRespirationRate(cleanRR),
-                nocturnalHRDip: nil, daytimeRestingHR: nil, nocturnalMedianHR: nil
-            ),
-            artifactPercentage: artifactPercentage, cleanBeatCount: cleanRR.count, analysisDate: Date()
-        )
-    }
-
     private func logAnalysisSuccess(result: HRVAnalysisResult) {
         log("SUCCESS: Analysis complete")
         log("RMSSD: \(String(format: "%.1f", locale: LanguageManager.appLocale, result.timeDomain.rmssd)) ms")
@@ -276,7 +249,8 @@ extension ImportDataView {
     /// pipeline could not score; the screen shows those messages as written
     /// rather than as a generic save failure.
     func saveImportedSession() async {
-        guard let session = importedSession else { return }
+        guard var session = importedSession else { return }
+        if let sleep = importedSleep { applyMeasuredSleep(sleep, to: &session) }
         do {
             try await collector.saveImportedSession(session)
             await MainActor.run {
@@ -289,6 +263,19 @@ extension ImportDataView {
                 showingResults = false
             }
         }
+    }
+
+    /// Apple Health's measured sleep, which the results screen handed over
+    /// while the reading was unsaved, written onto the reading Done saves:
+    /// the snapshot, and its bounds as offsets into the recording (a bound
+    /// that cannot be represented is left out, as on import).
+    private func applyMeasuredSleep(_ sleep: SleepData, to session: inout HRVSession) {
+        let offsets = ImportSleepWindow.offsets(
+            sleepStart: sleep.sleepStart, sleepEnd: sleep.sleepEnd, recordingStart: session.startDate, note: { log($0) }
+        )
+        session.sleepSnapshot = sleep
+        session.sleepStartMs = offsets.startMs
+        session.sleepEndMs = offsets.wakeMs
     }
 
     private static func saveFailureMessage(_ error: Error) -> String {
@@ -371,28 +358,28 @@ extension ImportDataView {
         }
     }
 
-    /// Run the full HRV analysis pipeline on a single imported session.
-    /// Returns the analyzed session on success, nil on failure.
+    /// Run the live HRV analysis pipeline on a single imported session.
+    /// Only an overnight reads Apple Health sleep: its window is chosen within
+    /// it. A workout, nap or quick reading keeps its exported type and is
+    /// analysed whole. Returns the analyzed session on success, nil on failure.
     func analyzeImportedSession(
         _ sessionData: RRDataImporter.FlowHRVMultiSessionResult.SessionRRData,
         originalFileName: String,
         healthKit: HealthKitManager
     ) async -> HRVSession? {
-        let sleep = await sleepBounds(for: sessionData, healthKit: healthKit)
         var session = importer.createSessionFromFlowHRVData(sessionData, originalFileName: originalFileName)
         guard let series = session.rrSeries else {
             log("  FAILED: No RR series")
             return nil
         }
-        let flags = ArtifactDetector().detectArtifacts(in: series)
-        session.artifactFlags = flags
-        let window = WindowSelector().findBestWindow(
-            in: series, flags: flags, sleepStartMs: sleep.startMs, wakeTimeMs: sleep.wakeMs)
-        logWindow(window)
-        guard var analysisResult = importedAnalysis(series: series, flags: flags, window: window) else {
+        var sleep = ImportSleepWindow.Offsets()
+        if session.sessionType == .overnight { sleep = await sleepBounds(for: sessionData, healthKit: healthKit) }
+        session.artifactFlags = await Self.detectArtifacts(in: series)
+        guard let analysisResult = await pipelineAnalysis(of: session, sleep: sleep) else {
+            log("  FAILED: not enough clean data to analyse")
             return nil
         }
-        if let w = window { Self.attachWindowMetadata(to: &analysisResult, window: w, series: series) }
+        logWindow(analysisResult)
         session.analysisResult = analysisResult
         session.state = .complete
         session.recoveryScore = nil
@@ -408,17 +395,17 @@ extension ImportDataView {
     private func sleepBounds(
         for sessionData: RRDataImporter.FlowHRVMultiSessionResult.SessionRRData,
         healthKit: HealthKitManager
-    ) async -> (startMs: Int64?, wakeMs: Int64?) {
+    ) async -> ImportSleepWindow.Offsets {
         let sessionStartDate = sessionData.date
         let sessionEndDate = sessionStartDate
             .addingTimeInterval(Double(sessionData.rrIntervals.reduce(0, +)) / 1000.0)
-        guard let sleepData = try? await healthKit.fetchSleepData(
-            for: sessionStartDate, recordingEnd: sessionEndDate
-        ) else {
-            log("  Apple Health ERROR: could not read sleep data")
-            return (nil, nil)
+        do {
+            let sleepData = try await healthKit.fetchSleepData(for: sessionStartDate, recordingEnd: sessionEndDate)
+            return offsets(of: sleepData, from: sessionStartDate)
+        } catch {
+            log("  Apple Health ERROR: could not read sleep data (\(error.localizedDescription)) - using full recording as sleep period")
+            return ImportSleepWindow.Offsets()
         }
-        return offsets(of: sleepData, from: sessionStartDate)
     }
 
     /// Convert HealthKit's absolute sleep boundaries into offsets into the
@@ -431,7 +418,7 @@ extension ImportDataView {
     private func offsets(
         of sleepData: SleepData,
         from sessionStartDate: Date
-    ) -> (startMs: Int64?, wakeMs: Int64?) {
+    ) -> ImportSleepWindow.Offsets {
         let window = ImportSleepWindow.offsets(
             sleepStart: sleepData.sleepStart,
             sleepEnd: sleepData.sleepEnd,
@@ -447,58 +434,16 @@ extension ImportDataView {
         if window.startMs == nil, window.wakeMs == nil {
             log("  Apple Health: NO SLEEP DATA for this date - using full recording as sleep period")
         }
-        return (window.startMs, window.wakeMs)
+        return window
     }
 
-    private func logWindow(_ window: WindowSelector.RecoveryWindow?) {
-        guard let w = window else {
-            log("  WARNING: No organized recovery window found - recovery score will be nil")
+    /// Which slice the pipeline read, from the result's window metadata.
+    private func logWindow(_ result: HRVAnalysisResult) {
+        guard let position = result.windowRelativePosition else {
+            log("  Window: \(result.windowSelectionReason ?? "whole recording")")
             return
         }
-        log("  Window found: \(w.selectionReason), position: \(String(format: "%.0f", locale: LanguageManager.appLocale, (w.relativePosition ?? 0) * 100))%")
-    }
-
-    /// The three analysis domains for the selected window, folded into one
-    /// result. Nil (logged) when there isn't enough clean data.
-    private func importedAnalysis(
-        series: RRSeries,
-        flags: [ArtifactFlags],
-        window: WindowSelector.RecoveryWindow?
-    ) -> HRVAnalysisResult? {
-        let windowStart = window?.startIndex ?? 0
-        let windowEnd = window?.endIndex ?? series.points.count
-        let timeDomain = TimeDomainAnalyzer.computeTimeDomain(
-            series, flags: flags, windowStart: windowStart, windowEnd: windowEnd)
-        let nonlinear = NonlinearAnalyzer.computeNonlinear(
-            series, flags: flags, windowStart: windowStart, windowEnd: windowEnd)
-        guard let timeDomain, let nonlinear else {
-            log("  FAILED: \(timeDomain == nil ? "Time domain" : "Nonlinear") analysis failed")
-            return nil
-        }
-        return Self.assembleResult(
-            series: series, flags: flags, windowStart: windowStart, windowEnd: windowEnd,
-            timeDomain: timeDomain, nonlinear: nonlinear,
-            frequencyDomain: FrequencyDomainAnalyzer.computeFrequencyDomain(
-                series, flags: flags, windowStart: windowStart, windowEnd: windowEnd
-            )
-        )
-    }
-
-    /// Copy the selected window's provenance onto the result so the UI can
-    /// explain why this slice of the night was chosen.
-    private static func attachWindowMetadata(
-        to result: inout HRVAnalysisResult,
-        window w: WindowSelector.RecoveryWindow,
-        series: RRSeries
-    ) {
-        result.windowStartMs = series.points[w.startIndex].t_ms
-        result.windowEndMs = series.points[w.endIndex - 1].endMs
-        result.windowMeanHR = w.meanHR
-        result.windowHRStability = w.hrStability
-        result.windowSelectionReason = w.selectionReason
-        result.windowRelativePosition = w.relativePosition
-        result.windowClassification = w.windowClassification.rawValue
-        result.isOrganizedRecovery = w.windowClassification == .organizedRecovery
+        log("  Window found: \(result.windowSelectionReason ?? ""), position: \(String(format: "%.0f", locale: LanguageManager.appLocale, position * 100))%")
     }
 
     /// Emuqu's own export carries raw RR, so every session is re-analysed
@@ -509,7 +454,7 @@ extension ImportDataView {
             return
         }
         logImportInventory(flowResult)
-        let newSessions = newFlowSessions(flowResult)
+        let newSessions = await newFlowSessions(flowResult)
         guard !newSessions.isEmpty else {
             log("ERROR: No new sessions to import - all filtered as duplicates")
             await MainActor.run { importStatusMessage = String(localized: "All sessions already imported", bundle: LanguageManager.appBundle) }
@@ -533,17 +478,22 @@ extension ImportDataView {
         log("Archive has \(collector.archive.entries.count) entries")
     }
 
-    /// Filter to the sessions the archive doesn't already hold.
+    /// Filter to the sessions the archive holds no copy of, by the rule a
+    /// single save applies (`SessionArchive.holdsCopy`: same type,
+    /// overlapping span), so a workout or nap near an overnight never hides
+    /// it. Worked out off the main actor.
     private func newFlowSessions(
         _ flowResult: RRDataImporter.FlowHRVMultiSessionResult
-    ) -> [RRDataImporter.FlowHRVMultiSessionResult.SessionRRData] {
+    ) async -> [RRDataImporter.FlowHRVMultiSessionResult.SessionRRData] {
         log("=== DUPLICATE CHECK ===")
-        let newSessions = flowResult.sessions.filter { session in
-            let exists = collector.archive.sessionExists(for: session.date)
-            log("Check \(session.sessionDate): exists=\(exists)")
-            return !exists
-        }
-        log("New sessions after filter: \(newSessions.count)")
+        let archive = collector.archive
+        let importer = importer
+        let fileName = flowResult.originalFileName
+        let sessions = flowResult.sessions
+        let newSessions = await Task.detached(priority: .userInitiated) {
+            sessions.filter { !archive.holdsCopy(of: importer.createSessionFromFlowHRVData($0, originalFileName: fileName)) }
+        }.value
+        log("New sessions after filter: \(newSessions.count) of \(sessions.count)")
         return newSessions
     }
 
@@ -557,7 +507,7 @@ extension ImportDataView {
         updateStatus(String(localized: "Preparing to import \(newSessions.count) sessions with full HRV analysis...", bundle: LanguageManager.appBundle))
         var analyzedSessions: [HRVSession] = []
         var failedCount = 0
-        let healthKit = AppDependencies.current.collection.healthKitManager
+        let healthKit = collector.healthKit
         for (index, sessionData) in newSessions.enumerated() {
             await MainActor.run { batchImportProgress = (index + 1, newSessions.count) }
             log("Analyzing[\(index)]: \(sessionData.sessionDate) with \(sessionData.beatCount) beats")

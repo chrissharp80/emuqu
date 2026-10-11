@@ -17,7 +17,6 @@ struct OvernightHRVChartCanvas: View {
 
     @State private var touchLocation: CGPoint?
     @State private var isDragging = false
-    @State private var selectedTimestampMs: Int64?
     // Pinned location: persists after finger lifts so the "Analyze Here" button stays tappable
     @State private var pinnedLocation: CGPoint?
 
@@ -104,8 +103,10 @@ struct OvernightHRVChartCanvas: View {
     }
 
     /// Pin the location so the tooltip + button stay visible after the lift.
+    /// A drag `scrub` rejected throughout (a vertical page scroll that began
+    /// on the chart) never set `isDragging`, so it leaves no pin behind.
     private func pin(_ value: DragGesture.Value) {
-        pinnedLocation = value.location
+        if isDragging { pinnedLocation = value.location }
         isDragging = false
         touchLocation = nil
     }
@@ -313,14 +314,14 @@ struct OvernightHRVChartCanvas: View {
             totalPoints = points.count
             self.hasManualWindow = hasManualWindow
             minY = 0
-            maxY = max(stats.peakRMSSD * 1.2, 100)
+            maxY = Self.axisTop(stats)
             yRange = maxY - minY
             firstMs = stats.chartStartMs
             totalDurationMs = stats.chartEndMs - stats.chartStartMs
             // Prefer wall-clock window bounds; fall back to sample indices when
             // the stats carry no distinct window.
             let bounds = Self.windowBounds(
-                stats: stats, size: size, totalPoints: totalPoints,
+                stats: stats, size: size, points: points,
                 startIndex: effectiveWindowStartIndex, endIndex: effectiveWindowEndIndex
             )
             windowStartX = bounds.startX
@@ -328,25 +329,38 @@ struct OvernightHRVChartCanvas: View {
             windowIsFullRecording = bounds.isFullRecording
         }
 
+        /// The y-axis top: 20% above the highest plotted rolling RMSSD (not
+        /// only the 30–70% band peak, which samples outside the band can
+        /// exceed), and at least 100 ms.
+        private static func axisTop(_ stats: OvernightStats) -> Double {
+            let plottedMax = max(stats.peakRMSSD, stats.rollingRMSSD.map(\.rmssd).max() ?? 0)
+            return max(plottedMax * 1.2, 100)
+        }
+
+        /// The window's x range, from its ms bounds, else from the `t_ms` of
+        /// its first and last beats: the x axis is a time viewport (widened by
+        /// HealthKit sleep, gappy on merged nights), so beat indices are not
+        /// proportional to x.
         private static func windowBounds(
-            stats: OvernightStats, size: CGSize, totalPoints: Int, startIndex: Int, endIndex: Int
+            stats: OvernightStats, size: CGSize, points: [RRPoint], startIndex: Int, endIndex: Int
         ) -> (startX: CGFloat, endX: CGFloat, isFullRecording: Bool) {
             let firstMs = stats.chartStartMs
             let totalDurationMs = stats.chartEndMs - stats.chartStartMs
-            if totalDurationMs > 0, stats.windowStartMs != stats.windowEndMs {
-                let startFraction = CGFloat(stats.windowStartMs - firstMs) / CGFloat(totalDurationMs)
-                let endFraction = CGFloat(stats.windowEndMs - firstMs) / CGFloat(totalDurationMs)
-                return (max(0, startFraction) * size.width,
-                        min(1, endFraction) * size.width,
-                        (endFraction - startFraction) > 0.8)
-            }
-            let indexFraction = CGFloat(endIndex - startIndex) / CGFloat(totalPoints)
-            return (CGFloat(startIndex) / CGFloat(totalPoints) * size.width,
-                    CGFloat(endIndex) / CGFloat(totalPoints) * size.width,
-                    indexFraction > 0.8)
+            guard totalDurationMs > 0, !points.isEmpty else { return (0, 0, true) }
+            let last = points.count - 1
+            let (startMs, endMs) = stats.windowStartMs != stats.windowEndMs
+                ? (stats.windowStartMs, stats.windowEndMs)
+                : (points[min(max(startIndex, 0), last)].t_ms, points[min(max(endIndex - 1, 0), last)].t_ms)
+            let startFraction = CGFloat(startMs - firstMs) / CGFloat(totalDurationMs)
+            let endFraction = CGFloat(endMs - firstMs) / CGFloat(totalDurationMs)
+            return (max(0, startFraction) * size.width,
+                    min(1, endFraction) * size.width,
+                    (endFraction - startFraction) > OvernightChartDrawing.fullRecordingWindowFraction)
         }
 
-        /// Horizontal position of a wall-clock offset, clamped to the viewport.
+        /// Horizontal position of a `t_ms` offset in the viewport. Not
+        /// clamped: a value outside the viewport maps outside 0…width, and
+        /// callers that need it inside clamp themselves.
         func x(forMs ms: Int64) -> CGFloat {
             guard totalDurationMs > 0 else { return 0 }
             return CGFloat(ms - firstMs) / CGFloat(totalDurationMs) * size.width
@@ -478,21 +492,17 @@ struct OvernightHRVChartCanvas: View {
         return (points[startIndex].t_ms, points[endIndex].t_ms)
     }
 
-    /// Dotted lines at 30% / 70% of the session's stored sleep period
-    /// (`sleepStartMs` / `sleepEndMs`). Not drawn when none is stored. The
-    /// chart's own peak marker searches the same fractions of the HealthKit
-    /// sleep span or, without one, of the whole recording, so the two can
-    /// differ slightly.
+    /// Dotted lines at 30% / 70% of the night's sleep window: the band the
+    /// peak marker was searched in (`OvernightStats.peakSearchBandMs`, from
+    /// HealthKit sleep, else the stored sleep period). Not drawn when the
+    /// night has no known sleep boundaries.
     private func drawSleepBandMarkers(_ context: inout GraphicsContext, _ geo: ChartGeometry) {
-        guard let sleepStart = session.sleepStartMs,
-              let sleepEnd = session.sleepEndMs,
+        guard let band = stats.peakSearchBandMs, band.lateMs > band.earlyMs,
               geo.totalDurationMs > 0 else { return }
-        let sleepSpanMs = sleepEnd - sleepStart
-        guard sleepSpanMs > 0 else { return }
         let bandColor = Color.gray.opacity(0.5)
         let dashStyle = StrokeStyle(lineWidth: 1, dash: [4, 4])
-        for (fraction, label) in [(0.30, "30%"), (0.70, "70%")] {
-            let x = geo.x(forMs: sleepStart + Int64(Double(sleepSpanMs) * fraction))
+        for (markMs, label) in [(band.earlyMs, "30%"), (band.lateMs, "70%")] {
+            let x = geo.x(forMs: markMs)
             context.stroke(verticalLine(atX: x, height: geo.size.height), with: .color(bandColor), style: dashStyle)
             let text = Text(String(localized: String.LocalizationValue(label), bundle: LanguageManager.appBundle))
                 .font(.caption2.weight(.medium))
@@ -523,19 +533,21 @@ struct OvernightHRVChartCanvas: View {
     }
 
     /// Split the rolling-RMSSD series into contiguous runs, breaking wherever
-    /// more than 5 minutes passed between samples.
+    /// more than 5 minutes passed between samples. The gap is measured on the
+    /// wall clock where the beats carry one: a streamed Bluetooth dropout
+    /// does not advance `t_ms` (cumulative RR time), so `t_ms` alone never
+    /// shows it. Positions stay on the `t_ms` axis.
     private func hrvSegments(_ geo: ChartGeometry) -> [[CGPoint]] {
         let gapThresholdMs: Int64 = 300_000 // 5 min = segment break
         var segments: [[CGPoint]] = [[]]
-        var lastPlotMs: Int64 = -1
+        var lastClockMs: Int64?
         for (index, rmssd) in stats.rollingRMSSD {
             guard index >= 0, index < geo.points.count, geo.totalDurationMs > 0 else { continue }
-            let timeMs = geo.points[index].t_ms
-            if lastPlotMs >= 0, timeMs - lastPlotMs > gapThresholdMs { segments.append([]) }
-            segments[segments.count - 1].append(
-                CGPoint(x: geo.x(forMs: timeMs), y: geo.y(forRMSSD: rmssd))
-            )
-            lastPlotMs = timeMs
+            let point = geo.points[index]
+            let clockMs = point.wallClockMs ?? point.t_ms
+            if let lastClockMs, clockMs - lastClockMs > gapThresholdMs { segments.append([]) }
+            segments[segments.count - 1].append(CGPoint(x: geo.x(forMs: point.t_ms), y: geo.y(forRMSSD: rmssd)))
+            lastClockMs = clockMs
         }
         return segments
     }

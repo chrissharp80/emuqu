@@ -16,20 +16,7 @@
   "hk:restingHeartRate ExternalUUID '<uuid>-rhr'"
  ],
  "toplevel": "Static timeout constants; HealthKitManager forwards to these via HealthKitManager+HeartRateForwarding.swift.",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "Cleanup windows differ between the two series exporters: minute-HR cleanup starts at sessionStart while the SDNN cleanup starts at sessionStart-1h, and removeExportedRestingHeartRate searches only the exact instant `date` while exportRestingHeartRate writes/replaces over ±12 h, so a prior RHR exported at a different end date is not removed when the session stops qualifying.",
-   "evidence": [
-    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift:475",
-    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift:206",
-    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift:420",
-    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift:430"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "func HeartRateHealthQueries.runBoundedQuery(timeout:makeQuery:)",
@@ -584,8 +571,8 @@
   },
   {
    "key": "func HeartRateHealthQueries.removeExportedRestingHeartRate(at:sessionId:)",
-   "hash": "ab81397c37394de7",
-   "does": "Deletes this session's '<uuid>-rhr' sample found at exactly `date` (1 s window). Called by HealthKitManager+SleepTrends.swift:374 when the session no longer exports an RHR.",
+   "hash": "17202f3c3995fd08",
+   "does": "Deletes this session's '<uuid>-rhr' sample found within ±restingHeartRateNightSpan (12 h) of `date` — the span the export writes over — so one exported under a different end date is removed too. Called by HealthKitManager+SleepTrends exportRHRMetric when the session no longer exports an RHR.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable",
@@ -634,8 +621,8 @@
   },
   {
    "key": "func HeartRateHealthQueries.exportHeartRateSeries(from:sessionStart:sessionId:)",
-   "hash": "89d4f0e6f2f21b43",
-   "does": "Builds minute-level HR samples from RR and replaces this session's prior '-hr-' series found between sessionStart and max(last sample end, sessionStart+24h). Called by HealthKitManager+SleepTrends.swift:349.",
+   "hash": "23be638e8acfb388",
+   "does": "Builds minute-level HR samples from RR and replaces this session's prior '-hr-' series found between sessionStart-1h and max(last sample end, sessionStart+24h) — the same window as the SDNN cleanup. Called by HealthKitManager+SleepTrends exportHRMetrics.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable",
@@ -663,7 +650,7 @@
      "effect": "false: return"
     },
     {
-     "at": "+13",
+     "at": "+14",
      "cond": "samples.last?.endDate ?? sessionStart",
      "effect": "no samples: cleanup to sessionStart+24h"
     }

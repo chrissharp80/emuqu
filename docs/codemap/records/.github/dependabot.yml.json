@@ -4,19 +4,8 @@
  "role": "Dependabot config: github-actions and swift ecosystems at \"/\", monthly, open-pull-requests-limit 0 (version-update PRs disabled; security updates and alerts unaffected).",
  "types": [],
  "state": [],
- "toplevel": "Two update entries, both with limit 0 so no version PRs are opened. Commit prefixes ci / deps.",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "The swift ecosystem entry points at directory \"/\" but the repo has no Package.swift (dependencies live only in Emuqu.xcodeproj/.../Package.resolved, as the comment itself says); Dependabot swift version updates read Package.swift manifests, so this entry has no manifest to update. Inert today only because the limit is 0; raising the limit for a \"deliberate sweep\" as the comment instructs would not produce Swift PRs.",
-   "evidence": [
-    ".github/dependabot.yml:16-17",
-    ".github/dependabot.yml:28-36"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "Two update entries, both with limit 0 so no version PRs are opened. Commit prefixes ci / deps. The header's deliberate-sweep instruction now says it covers the GitHub Actions only. The swift entry's comment says Dependabot's Swift updater reads Package.swift manifests and the repo has none (packages are pinned in the Xcode project's Package.resolved), so raising that limit opens no PRs; Swift packages are swept in Xcode (File → Packages → Update to Latest Package Versions), then `make sbom`, the in-app acknowledgements brought in line (`make sbom-guard`), and `make ci`. The swift entry itself stays inert.",
+ "flags": [],
  "units": [],
  "deps": {}
 }

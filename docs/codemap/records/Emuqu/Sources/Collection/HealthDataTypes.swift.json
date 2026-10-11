@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Collection/HealthDataTypes.swift",
- "hash": "26a62bde5fa103ea",
+ "hash": "9c3463bb87147166",
  "role": "Data types for HealthKit reads/writes lifted out of HealthKitManager: workout summary with training-load math (TRIMP, intensity, hard-workout test), biometric profile, and the HealthKit error enum (aliased as HealthKitManager.HealthKitError).",
  "types": [
   "HealthWorkoutSummary: struct (Codable) — one workout with load computations",
@@ -14,20 +14,7 @@
   "mem:HealthWorkoutSummary.hardMinimumMinutes (20)"
  ],
  "toplevel": "Static constants above; HealthWorkoutSummary Codable via explicit CodingKeys (persisted inside TrainingMetrics by TrainingMetricsCache).",
- "flags": [
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "HealthStoreError.notAuthorized and .noSleepData are never thrown anywhere in the repo (only their errorDescription cases reference them).",
-   "evidence": [
-    "Emuqu/Sources/Collection/HealthDataTypes.swift:464",
-    "Emuqu/Sources/Collection/HealthDataTypes.swift:465",
-    "Emuqu/Sources/Collection/HealthDataTypes.swift:484",
-    "Emuqu/Sources/Collection/HealthDataTypes.swift:486"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)",
@@ -231,18 +218,17 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.summary(from:archive:)": "eccf1799eaa2e1fb",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.entries(from:to:)": "c85ce67badfb610a",
-    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.summary(from:archive:)": "72ea88a1209e1f26",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.entries(from:to:)": "c85ce67badfb610a"
    }
   },
   {
    "key": "func HealthWorkoutSummary.summary(from:archive:)",
-   "hash": "08db23a254c1e787",
-   "does": "Lightweight-decodes the session, requires workoutMetadata, clamps duration, drops <60 s, and builds a summary with avg HR = session.meanHR ?? mean of sample HRs, max HR from samples, precomputed load from TrainingLoadPrecedence.stored, wasRecovered = partialDataReason != nil.",
+   "hash": "58e3246aa07de537",
+   "does": "Lightweight-decodes the session (retrieveLightweightOrLog — a read failure is logged with the session id and counted by the archive), requires workoutMetadata, clamps duration, drops <60 s, and builds a summary with avg HR = session.meanHR ?? mean of sample HRs, max HR from samples, precomputed load from TrainingLoadPrecedence.stored, wasRecovered = partialDataReason != nil.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)",
     "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.clampedDuration(samples:entry:)",
     "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)",
     "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.activityTypeFromSport(_:)",
@@ -256,8 +242,8 @@
    "branches": [
     {
      "at": "+4",
-     "cond": "retrieveLightweight succeeds (try?) and workoutMetadata non-nil",
-     "effect": "false: nil — decode errors swallowed, workout silently absent from training load"
+     "cond": "session readable and workoutMetadata non-nil",
+     "effect": "false: nil — a read failure is logged by the archive; the workout is left out of training load"
     },
     {
      "at": "+7",
@@ -275,24 +261,14 @@
      "effect": "no meanHR: sample mean (nil when no sample HR)"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "`try? archive.retrieveLightweight` discards every decode or decrypt error without logging, so an unreadable workout session is silently left out of ATL/CTL/TSB and recent-workout lists.",
-     "evidence": [
-      "Emuqu/Sources/Collection/HealthDataTypes.swift:231"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.activityTypeFromSport(_:)": "c4f5f96d0e2a9d71",
     "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.clampedDuration(samples:entry:)": "dea5ef8c86a1bc7a",
     "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.mean(_:)": "2b400a00e6229c7b",
     "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)": "38d3af3b87efbcd7",
     "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)": "4072cd48894182bc",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)": "0bbfc03c60fb225a"
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
    }
   },
   {
@@ -628,7 +604,7 @@
   },
   {
    "key": "var HealthStoreError.errorDescription",
-   "hash": "7b92576eddeaa393",
+   "hash": "fb34ab8752839b47",
    "does": "Localized message for each HealthStoreError case.",
    "entry": "LocalizedError witness read by Error.localizedDescription wherever these errors are shown/logged.",
    "calls": [
@@ -644,21 +620,11 @@
     },
     {
      "at": "+4",
-     "cond": ".notAuthorized",
-     "effect": "'access not authorized' (case never thrown)"
-    },
-    {
-     "at": "+6",
-     "cond": ".noSleepData",
-     "effect": "'No sleep data found' (case never thrown)"
-    },
-    {
-     "at": "+8",
      "cond": ".typeUnavailable(name)",
      "effect": "type name message"
     },
     {
-     "at": "+10",
+     "at": "+6",
      "cond": ".queryTimedOut(name)",
      "effect": "timed-out message"
     }

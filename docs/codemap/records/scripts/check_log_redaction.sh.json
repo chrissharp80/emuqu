@@ -1,26 +1,14 @@
 {
  "file": "scripts/check_log_redaction.sh",
- "hash": "33310112e1f6b8c5",
+ "hash": "b9de2addd97b6ec0",
  "role": "CI gate: log-call lines (debugLog, logger.*, os_log, NSLog, print, ...) must not interpolate PII/credential names, latitude/longitude, or raw RR/beat series.",
  "types": [],
  "state": [
   "dir:Emuqu/Sources",
   "dir:EmuquWatch Watch App"
  ],
- "toplevel": "cd to repo root; sources preflight. SOURCE_ROOTS = args or Emuqu/Sources + watch app. tmp via gate_mktemp (|| exit). find|xargs awk writes every line matching LOG_CALL not carrying (or preceded by) `log-redaction-ok` to tmp; errors suppressed (`|| true`). report() greps tmp for PII_PATTERN, GEO_PATTERN, RAW_SERIES_PATTERN; any -> remediation text + exit 1; else clean with scanned count.",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "Line-based: an interpolation on a continuation line of a multi-line log call is not seen; RAW_SERIES_PATTERN only matches a bare `\\(rr)`-style identifier, not `\\(self.rrIntervals)` or `\\(session.rr)`. A missing root makes find fail silently and the gate reports clean with fewer sites.",
-   "evidence": [
-    "scripts/check_log_redaction.sh:47",
-    "scripts/check_log_redaction.sh:63",
-    "scripts/check_log_redaction.sh:72"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "cd to repo root; sources preflight. SOURCE_ROOTS = args or Emuqu/Sources + watch app; a missing root -> exit 2. tmp via gate_mktemp (|| exit). Python writes one line per log call (LOG_CALL not preceded by a word character; the whole call found by string/interpolation-aware paren matching and joined onto one line) as file:line:call, skipping // lines and calls with `log-redaction-ok` on any of their lines or the line above; a Python failure -> exit 2. report() greps tmp for PII_PATTERN, GEO_PATTERN, RAW_SERIES_PATTERN (bare or member-path rr/rrValues/rrSeries/beats/rrIntervals, bare samples); any -> remediation text + exit 1; else clean with scanned count.",
+ "flags": [],
  "units": [
   {
    "key": "fn report",

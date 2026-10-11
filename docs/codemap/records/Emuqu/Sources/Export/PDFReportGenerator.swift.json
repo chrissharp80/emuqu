@@ -1,21 +1,21 @@
 {
  "file": "Emuqu/Sources/Export/PDFReportGenerator.swift",
- "hash": "13164dab266e43e5",
+ "hash": "50b2f738ce4c8f01",
  "role": "The HRV recovery-report PDF generator: defines the report style/section option set, the sleep/sleep-trend/vitals input structs, page config, the bundled ReportInputs, and generateReport() which renders page 1, the optional charts page and the optional deep-dive pages with UIGraphicsPDFRenderer.",
  "types": [
   "PDFReportGenerator: class — owns Config + settingsProvider; extended by +Pages/+Helpers/+SectionForwarding/+Summary/+OvernightForwarding/+DeepDiveForwarding",
   "PDFReportGenerator.ReportStyle: enum — summary | comprehensive depth",
   "PDFReportGenerator.ReportSections: struct (OptionSet) — 8 section bits, presets all/summaryPreset/sleepPreset, picker labels",
   "PDFReportGenerator.SleepData: struct — night sleep figures for the report, built from Emuqu.SleepData",
-  "PDFReportGenerator.SleepTrendData: struct — multi-night sleep averages + trend, built from HealthKitManager.SleepTrendStats",
+  "PDFReportGenerator.SleepTrendData: typealias of AnalysisSleepTrendInput — multi-night sleep averages + trend, built from HealthKitManager.SleepTrendStats",
   "PDFReportGenerator.Config: struct — Letter page size, margins, fonts, three colours",
   "PDFReportGenerator.VitalsData: struct — resp rate/SpO2/wrist temp deviation/RHR from RecoveryVitals",
-  "PDFReportGenerator.ReportInputs: struct — everything one render reads",
+  "PDFReportGenerator.ReportInputs: struct — everything one render reads, including the merged training context, the session's frozen context and today's live load snapshot",
   "PDFReportGenerator.ReportHealthContext: struct — the 8 health-context inputs grouped"
  ],
  "state": [
   "mem:PDFReportGenerator.ReportSections.{hrvSummary..deepDive,all,summaryPreset,sleepPreset} (static lets, bits 1<<0..1<<7)",
-  "mem:PDFReportGenerator.SleepData.empty / SleepTrendData.empty / VitalsData.empty (static lets)",
+  "mem:PDFReportGenerator.SleepData.empty / SleepTrendData.empty (AnalysisSleepTrendInput.empty) / VitalsData.empty (static lets)",
   "mem:PDFReportGenerator.config (let), mem:PDFReportGenerator.settingsProvider (let closure, default reads AppDependencies.current.app.settingsManager.settingsSnapshot)"
  ],
  "toplevel": "Config stored-property initialisers fix page size 612x792 (US Letter), 40pt margins, system fonts 22/14/11/10/8 and mono 9, primary blue (0.2,0.4,0.8), secondary green (0.3,0.7,0.4), accent red (0.9,0.3,0.3). VitalsData.wristTemperatureLacksBaseline defaults false. ReportSections conforms to OptionSet+Sendable. File-scope private helpers reportInputs/mergedTrainingContext/reportRendererFormat are listed as units.",
@@ -23,12 +23,10 @@
   {
    "kind": "duplicate",
    "sev": "low",
-   "text": "PDFReportGenerator.SleepTrendData and SleepData duplicate AnalysisSleepTrendInput / AnalysisSleepInput field-for-field, including the identical HealthKit mapping and trend switch; two structs must be kept in sync.",
+   "text": "PDFReportGenerator.SleepData duplicates AnalysisSleepInput's fields and its HealthKit mapping (init(from:)) and adds sleepStart/sleepEnd and two formatted strings; the shared fields must be kept in sync by hand. (SleepTrendData is now a typealias of AnalysisSleepTrendInput.)",
    "evidence": [
-    "Emuqu/Sources/Export/PDFReportGenerator.swift:125",
-    "Emuqu/Sources/Export/PDFReportGenerator.swift:146",
-    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift:65",
-    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift:89",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift:72",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift:109",
     "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift:51"
    ],
    "found": "first read, upheld on second"
@@ -128,68 +126,6 @@
    }
   },
   {
-   "key": "init PDFReportGenerator.SleepTrendData(averageSleepMinutes:averageDeepSleepMinutes:averageEfficiency:trend:nightsAnalyzed:)",
-   "hash": "8d39d0d593618078",
-   "does": "Memberwise initializer for SleepTrendData (averages, efficiency, trend, nights). Used by .empty.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [],
-   "deps": {}
-  },
-  {
-   "key": "init PDFReportGenerator.SleepTrendData(from:)",
-   "hash": "0260eef84f329a8a",
-   "does": "Builds SleepTrendData from optional HealthKitManager.SleepTrendStats, copying averages/efficiency/nights and translating the trend enum case-by-case.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "healthKit is nil",
-     "effect": "nil → self = .empty; else copy fields"
-    },
-    {
-     "at": "+11",
-     "cond": "hk.trend == .improving",
-     "effect": "trend = .improving"
-    },
-    {
-     "at": "+12",
-     "cond": "hk.trend == .declining",
-     "effect": "trend = .declining"
-    },
-    {
-     "at": "+13",
-     "cond": "hk.trend == .stable",
-     "effect": "trend = .stable"
-    },
-    {
-     "at": "+14",
-     "cond": "hk.trend == .insufficient",
-     "effect": "trend = .insufficient"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Comment says SleepTrendStats reports 0 when no night's wake was measured, but averageMeasuredEfficiency returns nil in that case; the comment is stale (the code's pass-through of nil is correct).",
-     "evidence": [
-      "Emuqu/Sources/Export/PDFReportGenerator.swift:153",
-      "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift:144",
-      "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift:147"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
-  },
-  {
    "key": "init PDFReportGenerator(config:settingsProvider:)",
    "hash": "0a2c569a4a904b51",
    "does": "Stores the page Config and a settings provider closure; the default closure reads AppDependencies.current.app.settingsManager.settingsSnapshot each time it is called (age/sex/temperature unit for the report).",
@@ -255,7 +191,7 @@
   {
    "key": "func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)",
    "hash": "f3760422e08fb568",
-   "does": "Public entry: renders the full HRV report PDF for a session and returns its Data. Requires an analysisResult; bundles the health context and inputs (artifact flags, merged live/frozen training context), creates a Letter UIGraphicsPDFRenderer with Emuqu document info, and draws all pages.",
+   "does": "Public entry: renders the full HRV report PDF for a session and returns its Data. Requires an analysisResult; bundles the health context and inputs (artifact flags, merged live/frozen training context, the session's frozen context, and — for today's session only — the caller's live load snapshot for the advice gate and summary), creates a Letter UIGraphicsPDFRenderer with Emuqu document info, and draws all pages.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Export/PDFReportGenerator.swift::func reportInputs(session:result:flags:health:liveLoadSnapshot:style:sections:)",
@@ -275,19 +211,19 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections": "ec5286f15186db1c",
-    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.drawReportPages(_:in:pageRect:)": "8f254f1ad719cbc1",
-    "Emuqu/Sources/Export/PDFReportGenerator.swift::func reportInputs(session:result:flags:health:liveLoadSnapshot:style:sections:)": "10ea33b7250b533f",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.drawReportPages(_:in:pageRect:)": "3046d8e5dd5d1c66",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func reportInputs(session:result:flags:health:liveLoadSnapshot:style:sections:)": "56f8212550ba3480",
     "Emuqu/Sources/Export/PDFReportGenerator.swift::func reportRendererFormat()": "11e1d35c7e6e39c1"
    }
   },
   {
    "key": "func PDFReportGenerator.drawReportPages(_:in:pageRect:)",
-   "hash": "3614cef29f0f33aa",
-   "does": "Draws page 1 always, page 2 (visualizations) only when charts are selected and raw RR data exists, then the deep-dive pages plus analysis summary only for comprehensive style with deepDive selected. Threads a running page number.",
+   "hash": "bcc916fccf5c8efc",
+   "does": "Draws page 1 always, page 2 (visualizations, for the session's series) only when charts are selected and raw RR data exists, then the deep-dive pages plus analysis summary only for comprehensive style with deepDive selected. Threads a running page number.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.drawPage1_SummaryAndMetrics(_:pageNumber:in:pageRect:)",
-    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.drawPage2_Visualizations(_:pageNumber:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.drawPage2_Visualizations(_:series:pageNumber:in:pageRect:)",
     "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.drawDeepDivePages(_:pageNumber:in:pageRect:)"
    ],
    "reads": [],
@@ -295,7 +231,7 @@
    "branches": [
     {
      "at": "+4",
-     "cond": "sections contains .charts AND hasRawData AND series != nil",
+     "cond": "sections contains .charts AND hasRawData AND series non-nil (bound and passed to page 2)",
      "effect": "true → draws the charts page (overnight HR, Poincaré, PSD, tachogram, quality, window); false → no page 2"
     },
     {
@@ -308,44 +244,64 @@
    "deps": {
     "Emuqu/Sources/Export/PDFReportGenerator+DeepDiveForwarding.swift::var PDFReportGenerator.deepDive": "478fbdd48f8d3d63",
     "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.drawDeepDivePages(_:pageNumber:in:pageRect:)": "d033ebf968abe77e",
-    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.drawPage1_SummaryAndMetrics(_:pageNumber:in:pageRect:)": "54f5654310db451a",
-    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.drawPage2_Visualizations(_:pageNumber:in:pageRect:)": "185b95f7c1738f48",
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.drawPage1_SummaryAndMetrics(_:pageNumber:in:pageRect:)": "84550a2c796a4b8d",
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.drawPage2_Visualizations(_:series:pageNumber:in:pageRect:)": "32487705848280fa",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.hasRawData": "0ed6faa0cdc6c34f"
    }
   },
   {
    "key": "func PDFReportGenerator.drawImportedDataNote(yPosition:session:in:pageRect:)",
-   "hash": "bda901ea288c73bf",
-   "does": "Draws a light-blue rounded box with an info emoji and the imported-data note (height grows with wrapped text, min 50pt) at yPosition+10; returns the y below the box +15.",
+   "hash": "fc5ea5f3c0176b1b",
+   "does": "Draws a light-blue rounded box with an info emoji and the imported-data note (height grows with wrapped text, min 50pt) at yPosition+10; returns the y below the box +15 (the total importedDataNoteHeight reports, which the caller reserves with ensureSpace first).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.importedDataNote(session:)",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.importedNoteTextHeight(_:contentWidth:)",
     "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)",
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func NSAttributedString.pdfDraw(in:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func NSAttributedString.pdfDraw(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func NSAttributedString.pdfDraw(in:)": "9025a4c33d5fb3c1",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.importedDataNote(session:)": "b32272ff1b99920a",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.importedNoteTextHeight(_:contentWidth:)": "94635ee146176ac2"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.importedDataNoteHeight(session:pageRect:)",
+   "hash": "a034b917a3cc1278",
+   "does": "Total vertical space drawImportedDataNote advances: 10 above + max(50, wrapped note height + 20) box + 15 below, at the page's content width.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.importedDataNote(session:)",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.importedNoteTextHeight(_:contentWidth:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.importedDataNote(session:)": "b32272ff1b99920a",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.importedNoteTextHeight(_:contentWidth:)": "94635ee146176ac2"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.importedNoteTextHeight(_:contentWidth:)",
+   "hash": "1d53a72512972f42",
+   "does": "Wrapped height (ceil) of the imported-data note at contentWidth - 50, the width it is drawn at.",
+   "entry": null,
+   "calls": [
     "ext:NSAttributedString.boundingRect"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "The imported-data note box (min 50pt, grows with text) is drawn at the current y with no ensureSpace call before it, unlike the tags/notes block just above; when page-1 sections already reach the bottom, the box is drawn over the footer/disclaimer or off the page.",
-     "evidence": [
-      "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift:97",
-      "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift:101",
-      "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift:102",
-      "Emuqu/Sources/Export/PDFReportGenerator.swift:364"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func NSAttributedString.pdfDraw(in:)": "9025a4c33d5fb3c1",
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
-    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.importedDataNote(session:)": "b32272ff1b99920a"
-   }
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "func PDFReportGenerator.importedDataNote(session:)",
@@ -373,8 +329,8 @@
   },
   {
    "key": "func reportInputs(session:result:flags:health:liveLoadSnapshot:style:sections:)",
-   "hash": "a8d725903658d989",
-   "does": "Assembles ReportInputs: session.rrSeries as series, explicit flags else session.artifactFlags else [], hasRawData = series has points, the health context fields, merged training context, style and sections.",
+   "hash": "922acdc82cb035ac",
+   "does": "Assembles ReportInputs: session.rrSeries as series, explicit flags else session.artifactFlags else [], hasRawData = series has points, the health context fields, the merged training context, the session's frozen context (trainingSnapshot ?? result.trainingContext), and — only when the session ended today — the caller's live load snapshot as adviceLiveLoad; style and sections.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Export/PDFReportGenerator.swift::func mergedTrainingContext(frozen:live:session:)"
@@ -383,21 +339,26 @@
    "writes": [],
    "branches": [
     {
-     "at": "+11",
+     "at": "+12",
      "cond": "flags argument nil / session.artifactFlags nil",
      "effect": "flags ?? session.artifactFlags ?? [] — no production caller passes flags (generateReportURL omits it), so session flags are used, and an empty array when the session has none"
     },
     {
-     "at": "+12",
+     "at": "+13",
      "cond": "series is nil",
      "effect": "hasRawData = false when no series; else true only if series.points non-empty"
+    },
+    {
+     "at": "+22",
+     "cond": "session did not end today",
+     "effect": "adviceLiveLoad is nil, so the summary and advice gate read the frozen load"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.recentSessions(limit:)": "21d596f047675431",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
     "Emuqu/Sources/Export/PDFReportGenerator.swift::func mergedTrainingContext(frozen:live:session:)": "773538766336d24d",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "245c2d41dcd0a692",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "3d86c57d7f933cf7",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.compositeRecoveryScore": "b00af62d5eb939c7",
     "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleepTrend": "221b4360b3045fb2"
    }

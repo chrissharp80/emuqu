@@ -132,7 +132,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "38964b4b43ab8c9f",
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.arrhythmiaReply": "f5e6232a8ab78620",
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.injuryReply": "c502663f6adb75fd",
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.selfHarmReply": "83e46a4441edf3a9",
@@ -141,8 +141,8 @@
   },
   {
    "key": "func MedicalQueryGuard.classify(_:)",
-   "hash": "5cac196ee510051c",
-   "does": "Trims the text and tests the compiled groups in order selfHarm, emergency (symptom), injury, rhythm, general concern (symptom), returning the first matching Trigger or nil; no text normalization (case-insensitive regex only).",
+   "hash": "1aaac3c2f48f8ee5",
+   "does": "Trims the text, folds typographic apostrophes (U+2018, U+2019, U+02BC) to ASCII ' so iOS Smart Punctuation input matches patterns written with ', then tests the compiled groups in order selfHarm, emergency (symptom), injury, rhythm, general concern (symptom), returning the first matching Trigger or nil; matching is case-insensitive regex.",
    "entry": null,
    "calls": [],
    "reads": [
@@ -155,76 +155,37 @@
    "writes": [],
    "branches": [
     {
-     "at": "+2",
+     "at": "+3",
      "cond": "trimmed text empty",
      "effect": "true: nil (proceed); false: run patterns"
     },
     {
-     "at": "+14",
+     "at": "+15",
      "cond": "any self-harm pattern matches",
      "effect": "return .selfHarm"
     },
     {
-     "at": "+15",
+     "at": "+16",
      "cond": "any emergency pattern matches",
      "effect": "return .symptom"
     },
     {
-     "at": "+16",
+     "at": "+17",
      "cond": "any injury pattern matches",
      "effect": "return .injury"
     },
     {
-     "at": "+17",
+     "at": "+18",
      "cond": "any rhythm pattern matches",
      "effect": "return .rhythm"
     },
     {
-     "at": "+18",
+     "at": "+19",
      "cond": "any general-concern (danger judgement) pattern matches",
      "effect": "return .symptom; else nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "high",
-     "text": "Input is not normalized for typographic apostrophes, and the breathlessness pattern \"can'?t\\\\s+breathe\" only accepts ASCII ' — iOS Smart Punctuation types ’ (the lexicon itself notes this at line 645), so a typed \"I can’t breathe\" matches nothing and is sent to the cloud LLM instead of getting the emergency reply; the test covers only the ASCII form.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/MedicalQueryGuard.swift:159",
-      "Emuqu/Sources/Assistant/MedicalTermLexicon.swift:545",
-      "Emuqu/Sources/Assistant/MedicalTermLexicon.swift:645",
-      "EmuquTests/MedicalQueryGuardTests.swift:74"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "French risk-judgement pattern \"dois[- ]je\\\\s+m'inqui[ée]ter\" also requires an ASCII apostrophe, so the iOS-typed \"dois-je m’inquiéter\" proceeds to the model.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/MedicalTermLexicon.swift:617",
-      "Emuqu/Sources/Assistant/MedicalQueryGuard.swift:176"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "docs say the input guard does not refuse general physiology questions (they reach the model, which is told to answer them factually), but the emergency and injury groups contain bare nouns with no first-person shape: 'faint' (also the adjective), 'blood clot', 'ictus', 'тромб', 'sprain', 'concussion', 'bleeding', 'ambulance'; 'is a faint HR trace normal?', 'what causes a blood clot?' or 'how long does a sprain take to heal?' get a canned symptom/injury refusal and never reach the model.",
-     "evidence": [
-      "docs/FLO_ARCHITECTURE.md:360",
-      "docs/FLO_ARCHITECTURE.md:372",
-      "Emuqu/Sources/Assistant/MedicalTermLexicon.swift:568",
-      "Emuqu/Sources/Assistant/MedicalTermLexicon.swift:238",
-      "Emuqu/Sources/Assistant/MedicalTermLexicon.swift:251",
-      "Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift:49",
-      "Emuqu/Sources/Assistant/MedicalQueryGuard.swift:173",
-      "Emuqu/Sources/Assistant/MedicalQueryGuard.swift:174"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {}
   }
  ],

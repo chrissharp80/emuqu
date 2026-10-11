@@ -50,22 +50,30 @@ struct CustomTagsPage: View {
         .accessibilityLabel(Text("Tag: \(tag.displayName)", bundle: LanguageManager.appBundle))
     }
 
+    /// The tags are looked up before any is removed: removing one shifts the
+    /// rest, so resolving each index after a removal would hit the wrong tag.
     private func deleteTags(at offsets: IndexSet) {
-        for index in offsets {
-            settingsManager.removeCustomTag(settingsManager.settings.customTags[index])
+        let tags = offsets.map { settingsManager.settings.customTags[$0] }
+        for tag in tags {
+            settingsManager.removeCustomTag(tag)
         }
     }
 
+    /// The sheet refuses a name an existing tag (system or custom) already
+    /// shows, so two tags never read the same.
     private var addTagSheet: some View {
         AddTagSheet(
             tagName: $newTagName,
             tagColor: $newTagColor,
-            onSave: { saveNewTag() }
+            onSave: { saveNewTag() },
+            existingTagNames: settingsManager.settings.allTags.map(\.displayName)
         )
     }
 
+    /// Stored trimmed, as the sheet validated it.
     private func saveNewTag() {
-        let tag = ReadingTag(name: newTagName, colorHex: newTagColor.hexString)
+        let name = newTagName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let tag = ReadingTag(name: name, colorHex: newTagColor.hexString)
         settingsManager.addCustomTag(tag)
         newTagName = ""
         newTagColor = .blue
@@ -121,14 +129,34 @@ struct DataSettingsPage: View {
         guard !isForceSyncing else { return }
         isForceSyncing = true
         let before = syncManager.uploadedCount
+        let lastSyncBefore = syncManager.lastSyncDate
         Task {
             await syncManager.performFullSync()
             await MainActor.run {
                 isForceSyncing = false
-                forceSyncMessage = forceSyncSummary(newlyUploaded: syncManager.uploadedCount - before)
+                forceSyncMessage = forceSyncOutcome(newlyUploaded: syncManager.uploadedCount - before, lastSyncBefore: lastSyncBefore)
                 showingForceSyncAlert = true
             }
         }
+    }
+
+    /// `performFullSync` returns without syncing, and without setting an
+    /// error, when iCloud's schema is unavailable this launch or another
+    /// full sync is still running. Only a sync that completed stamps
+    /// `lastSyncDate`, so an unchanged stamp with no error means this tap
+    /// synced nothing, and the alert says so instead of "Up to date".
+    @MainActor
+    private func forceSyncOutcome(newlyUploaded delta: Int, lastSyncBefore: Date?) -> String {
+        if syncManager.schemaUnavailable {
+            return String(localized: "iCloud unavailable", bundle: LanguageManager.appBundle)
+        }
+        if case .error = syncManager.syncState {
+            return forceSyncSummary(newlyUploaded: delta)
+        }
+        guard syncManager.lastSyncDate != lastSyncBefore else {
+            return String(localized: "Syncing…", bundle: LanguageManager.appBundle)
+        }
+        return forceSyncSummary(newlyUploaded: delta)
     }
 
     @MainActor
@@ -578,18 +606,22 @@ struct DataSettingsPage: View {
     /// settings out for whatever's in the cloud. The cloud is the
     /// last-writer-wins store — if multiple devices have edited
     /// settings recently, this restores from the most recent push.
+    ///
+    /// Uses the view's own dependencies, as backup does, so an environment
+    /// override reaches both.
     func restoreSettingsFromCloud() {
         guard !isRestoringSettings else { return }
         isRestoringSettings = true
+        let settingsSync = dependencies.storage.cloudKitSettingsSync
         Task {
-            let message = await Self.restoreSettingsMessage()
+            let message = await Self.restoreSettingsMessage(from: settingsSync)
             await MainActor.run { finishSettingsRestore(message) }
         }
     }
 
-    private static func restoreSettingsMessage() async -> String {
+    private static func restoreSettingsMessage(from settingsSync: CloudKitSettingsSync) async -> String {
         do {
-            let cloudDate = try await AppDependencies.current.storage.cloudKitSettingsSync.restoreFromCloud()
+            let cloudDate = try await settingsSync.restoreFromCloud()
             let formatter = DateFormatter()
             formatter.locale = LanguageManager.appLocale
             formatter.dateStyle = .medium
@@ -609,13 +641,11 @@ struct DataSettingsPage: View {
         showingSettingsBackupAlert = true
     }
 
+    /// The scan runs on the main actor, where `RRCollector` lives; a detached
+    /// task would only hop straight back to it.
     func refreshDeletedCount() {
-        let collectorRef = collector
         Task {
-            let count = await Task.detached {
-                await collectorRef.checkForDeletedSessions().count
-            }.value
-            await MainActor.run { deletedSessionCount = count }
+            deletedSessionCount = collector.checkForDeletedSessions().count
         }
     }
 

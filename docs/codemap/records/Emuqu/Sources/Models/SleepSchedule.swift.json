@@ -35,54 +35,36 @@
   },
   {
    "key": "func SleepSchedule.overnightWindowStart(relativeTo:)",
-   "hash": "55e07c933ee2ab0c",
-   "does": "Overnight window anchor: bedtime − 2 h on date's calendar day, moved back a day if after date, then forward a day if more than 18 h before date.",
+   "hash": "cb5ea54f1c76b438",
+   "does": "Overnight window anchor: bedtime − 2 h on the wall clock (minutes since midnight minus 120, on the previous day when negative) on date's calendar day, moved back a day if after date, then forward a day if more than 18 h before date.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+3",
-     "cond": "calendar date(bySettingHour:) nil (??)",
-     "effect": "uses dayStart"
-    },
-    {
-     "at": "+5",
-     "cond": "start > date",
-     "effect": "start moved back one day"
-    },
-    {
      "at": "+6",
-     "cond": "date arithmetic nil (??)",
-     "effect": "keeps start"
+     "cond": "anchor minute negative (bedtime before 02:00)",
+     "effect": "anchor on the previous calendar day (?? dayStart if date arithmetic fails)"
     },
     {
      "at": "+8",
-     "cond": "date − start > 18 h",
-     "effect": "start moved forward one day (can be after date)"
+     "cond": "calendar date(bySettingHour:) nil (??)",
+     "effect": "uses anchorDay"
     },
     {
      "at": "+9",
-     "cond": "date arithmetic nil (??)",
-     "effect": "keeps start"
-    }
-   ],
-   "flags": [
+     "cond": "start > date",
+     "effect": "start moved back one day (?? keeps start)"
+    },
     {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "bedtime-2h is computed as an absolute -7200 s after setting the wall-clock bedtime, so for AM bedtimes (about 02:00-05:00) on a DST-transition night the anchor is one hour off wall-clock bedtime-2h.",
-     "evidence": [
-      "Emuqu/Sources/Models/SleepSchedule.swift:58",
-      "Emuqu/Sources/Models/SleepSchedule.swift:59"
-     ],
-     "found": "second read"
+     "at": "+12",
+     "cond": "date − start > 18 h",
+     "effect": "start moved forward one day (can be after date; ?? keeps start)"
     }
    ],
-   "deps": {
-    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
-   }
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "func SleepSchedule.overnightWindowEnd(relativeTo:)",
@@ -99,7 +81,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.firstWake(after:)": "ea72b5c90b6465f3",
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb"
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "e588edb386542ebf"
    }
   },
   {
@@ -164,7 +146,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(forNightStartingAt:)": "4a8f97c3e296dfd5",
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb"
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "e588edb386542ebf"
    }
   },
   {
@@ -181,7 +163,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "e588edb386542ebf",
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.wake(before:)": "1744802e92b59604"
    }
   },
@@ -198,7 +180,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb"
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "e588edb386542ebf"
    }
   },
   {
@@ -245,7 +227,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "e588edb386542ebf",
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.wake(before:)": "1744802e92b59604"
    }
   },
@@ -275,7 +257,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "6fcc761d41125b66",
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb"
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "e588edb386542ebf"
    }
   },
   {
@@ -293,7 +275,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(forNightStartingAt:)": "4a8f97c3e296dfd5",
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb"
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "e588edb386542ebf"
    }
   },
   {
@@ -311,8 +293,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.firstWake(after:)": "ea72b5c90b6465f3",
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
-    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "e588edb386542ebf"
    }
   }
  ],

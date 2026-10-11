@@ -3,6 +3,21 @@ import Foundation
 /// Detects causes based on HRV metrics (without user tags)
 /// Single Responsibility: only handles metric-based cause detection
 final class MetricBasedCauseDetector: CauseDetectionStrategy {
+    /// Stress index above which very low HRV reads as the strongest
+    /// single-night pattern ("Very Low HRV with High Stress Index").
+    private static let highStressIndex = 250.0
+    /// Stress index above which reduced HRV reads as "Low HRV with Elevated
+    /// Stress Index".
+    private static let lowHRVStressIndex = 220.0
+    /// Stress index above which low HRV without a sympathetic shift reads as
+    /// the fluid/fasting pattern.
+    private static let dehydrationStressIndex = 180.0
+    /// DFA α1 above which low HRV and low pNN50 read as accumulated load.
+    private static let trainingLoadDFAAlpha1 = 1.1
+    /// The decline walk counts consecutive nights; an older reading more than
+    /// this far before the newer one is a gap, and the walk stops there.
+    private static let maxNightGap: TimeInterval = 36 * 3_600
+
     func detectCauses(in context: CauseDetectionContext) -> [DetectedCause] {
         // Skip for good readings
         if context.isGoodReading || context.isExcellentReading {
@@ -24,7 +39,7 @@ final class MetricBasedCauseDetector: CauseDetectionStrategy {
 
     private func detectPossibleIllness(in context: CauseDetectionContext) -> [DetectedCause] {
         // Skip if the user already tagged illness.
-        guard !context.selectedTags.contains(where: { $0.name == ReadingTag.illness.name }) else { return [] }
+        guard !context.selectedTags.containsSystemTag(ReadingTag.illness) else { return [] }
         let signals = detectIllnessPattern(in: context)
         if let cause = strongIllnessCause(context: context, signals: signals) { return [cause] }
         if let cause = moderateIllnessCause(context: context, signals: signals) { return [cause] }
@@ -77,7 +92,7 @@ final class MetricBasedCauseDetector: CauseDetectionStrategy {
         signals illnessSignals: IllnessSignals
     ) -> DetectedCause? {
         // Very low HRV with high stress.
-        if context.rmssd < HRVThresholds.rmssdLow, context.stressIndex > 250 {
+        if context.rmssd < HRVThresholds.rmssdLow, context.stressIndex > Self.highStressIndex {
             return immuneResponseCause()
         }
         // Elevated HR with high stress.
@@ -86,7 +101,7 @@ final class MetricBasedCauseDetector: CauseDetectionStrategy {
             return elevatedRestingHRCause(signals: illnessSignals)
         }
         // Low HRV with elevated stress.
-        guard context.rmssd < HRVThresholds.rmssdReduced, context.stressIndex > 220 else { return nil }
+        guard context.rmssd < HRVThresholds.rmssdReduced, context.stressIndex > Self.lowHRVStressIndex else { return nil }
         return DetectedCause(
             cause: String(localized: "Low HRV with Elevated Stress Index", bundle: NarrativeLanguage.bundle),
             confidence: .moderate,
@@ -128,33 +143,45 @@ final class MetricBasedCauseDetector: CauseDetectionStrategy {
             .filter { $0.state == .complete && $0.analysisResult != nil }
             .sorted { $0.startDate > $1.startDate }
         guard sortedSessions.count >= 2 else { return none }
-        let declines = consecutiveDeclines(from: context.rmssd, in: sortedSessions)
+        let declines = consecutiveDeclines(from: context.rmssd, at: context.session.startDate, in: sortedSessions)
         let hr = hrElevation(context: context)
+        // When the severe detector reports "Elevated HR + Low HRV", the same
+        // resting-HR rise is not reported again here.
+        let reportedAsSevere = SevereCauseDetector.elevatedHRWithLowHRV(in: context) != nil
         return IllnessSignals(
             consecutiveDeclines: declines.count,
             totalDeclinePercent: declines.totalPercent,
-            hrElevated: hr.elevated,
+            hrElevated: hr.elevated && !reportedAsSevere,
             hrIncrease: hr.increase
         )
     }
 
     /// `sortedSessions` is NEWEST-first, so this walks backwards in time from
-    /// tonight's `current` reading.
+    /// tonight's `current` reading (started at `currentDate`). Each step must
+    /// be the night before: an older reading more than `maxNightGap` before
+    /// the newer one ends the walk, so readings days apart are not counted as
+    /// "consecutive days".
     /// `newer` holds the more-recent morning already seen; `rmssd` is the
     /// older morning of the current iteration. A genuine illness signal is HRV
     /// FALLING as we approach today — i.e. the newer day is below the older day
     /// (newer < older × 0.95). The reversed test, `rmssd < newer × 0.95`, asks
     /// the opposite (older below newer) and so fires "Likely getting sick" on a
     /// RISING trend while missing real declines.
-    private func consecutiveDeclines(from current: Double, in sortedSessions: [HRVSession]) -> (count: Int, totalPercent: Double) {
+    private func consecutiveDeclines(
+        from current: Double, at currentDate: Date, in sortedSessions: [HRVSession]
+    ) -> (count: Int, totalPercent: Double) {
         var consecutiveDeclines = 0
         var totalDeclinePercent = 0.0
         var newer = current
-        for rmssd in sortedSessions.prefix(6).compactMap(\.rmssd) {
-            guard newer < rmssd * HRVThresholds.illnessDeclineThreshold else { break }
+        var newerDate = currentDate
+        for night in sortedSessions.prefix(6) {
+            guard let rmssd = night.rmssd,
+                  newerDate.timeIntervalSince(night.startDate) <= Self.maxNightGap,
+                  newer < rmssd * HRVThresholds.illnessDeclineThreshold else { break }
             consecutiveDeclines += 1
             totalDeclinePercent += ((rmssd - newer) / rmssd) * 100
             newer = rmssd
+            newerDate = night.startDate
         }
         return (consecutiveDeclines, totalDeclinePercent)
     }
@@ -177,7 +204,7 @@ final class MetricBasedCauseDetector: CauseDetectionStrategy {
         var causes: [DetectedCause] = []
 
         // Skip if user already tagged stress
-        if context.selectedTags.contains(where: { $0.name == ReadingTag.stressed.name }) {
+        if context.selectedTags.containsSystemTag(ReadingTag.stressed) {
             return causes
         }
 
@@ -200,7 +227,7 @@ final class MetricBasedCauseDetector: CauseDetectionStrategy {
 
         // Skip if the user tagged poor sleep (another cause covers it) or
         // last night's sleep data shows good sleep.
-        if context.selectedTags.contains(where: { $0.name == ReadingTag.poorSleep.name }) || context.isGoodSleep {
+        if context.selectedTags.containsSystemTag(ReadingTag.poorSleep) || context.isGoodSleep {
             return causes
         }
 
@@ -222,13 +249,13 @@ final class MetricBasedCauseDetector: CauseDetectionStrategy {
         var causes: [DetectedCause] = []
 
         // Skip if user tagged post-exercise
-        if context.selectedTags.contains(where: { $0.name == ReadingTag.postExercise.name }) {
+        if context.selectedTags.containsSystemTag(ReadingTag.postExercise) {
             return causes
         }
 
         if context.rmssd < HRVThresholds.rmssdGood,
            context.pnn50 < HRVThresholds.pnn50Low,
-           context.dfaAlpha1 > 1.1 {
+           context.dfaAlpha1 > Self.trainingLoadDFAAlpha1 {
             causes.append(DetectedCause(
                 cause: String(localized: "Accumulated Training Load", bundle: NarrativeLanguage.bundle),
                 confidence: .lowModerate,
@@ -246,7 +273,7 @@ final class MetricBasedCauseDetector: CauseDetectionStrategy {
         var causes: [DetectedCause] = []
 
         if context.rmssd < HRVThresholds.rmssdGood,
-           context.stressIndex > 180,
+           context.stressIndex > Self.dehydrationStressIndex,
            context.lfHfRatio < HRVThresholds.lfHfOptimalUpper {
             causes.append(DetectedCause(
                 cause: String(localized: "Dehydration or Fasting", bundle: NarrativeLanguage.bundle),

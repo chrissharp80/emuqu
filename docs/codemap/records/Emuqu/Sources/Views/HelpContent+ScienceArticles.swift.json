@@ -14,19 +14,7 @@
   "mem:HelpScienceCatalog.ansReadinessExplanation (private static let string, line 855)"
  ],
  "toplevel": "Static lets build the sleep (sleep-score, sleep-latency, sleep-stages, extended-sleep), training (elevation-accuracy, training-metrics, acwr-zones) and vitals (vitals-overview) categories at first access. Copy claims spot-checked: elevation 15-sample smoother/2 m threshold (BarometricAltitudeProcessor.swift:113-114), OpenTopoData 100 points/%.4f (~11 m) rounding/15 m threshold (TopoElevationService.swift:89-90,235); Readiness 1-10 explanation matches StressAnalyzer.computeReadinessScore thresholds (Constants.swift:580-662).",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "The Readiness explanation says RMSSD is judged 'within 15% of your usual level', but computeReadinessScore compares against the baseline multiplied by a VO2max fitness multiplier when VO2max is known, so a reader with VO2max data is compared to a scaled baseline, not their usual level.",
-   "evidence": [
-    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift:856",
-    "Emuqu/Sources/Analysis/StressAnalysis.swift:145",
-    "Emuqu/Sources/Analysis/StressAnalysis.swift:158"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "func HelpScienceCatalog.hrvScience(forAge:)",
@@ -78,16 +66,17 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::var HelpScienceCatalog.dfaRangeSections": "f508f204129b6106",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::var HelpScienceCatalog.dfaRangeSections": "f6616bc9386f52ae",
     "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.heading(_:)": "96313fd993bfcc52"
    }
   },
   {
    "key": "var HelpScienceCatalog.dfaRangeSections",
-   "hash": "875cee1fd46fac21",
-   "does": "Returns the resting-range keyValue table (0.75-1.0 reference, 0.60-0.75, ~0.5, >1.0, <0.5) and the note that the 0.75 anchor is an exercise finding, followed by dfaLiveExerciseNotes.",
+   "hash": "4cbc04895be1e8ce",
+   "does": "Returns the 'Typical resting ranges' heading, dfaRestingRangeTable and the note that the 0.75 anchor is an exercise finding, followed by dfaLiveExerciseNotes.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::var HelpScienceCatalog.dfaRestingRangeTable",
     "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::var HelpScienceCatalog.dfaLiveExerciseNotes"
    ],
    "reads": [],
@@ -95,10 +84,22 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.DescribedDetail.note(_:)": "a76e785a36f0e4e6",
     "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::var HelpScienceCatalog.dfaLiveExerciseNotes": "1a4cdf9ebbd2f4eb",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::var HelpScienceCatalog.dfaRestingRangeTable": "accf190d6089a5d1",
     "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.heading(_:)": "96313fd993bfcc52"
    }
+  },
+  {
+   "key": "var HelpScienceCatalog.dfaRestingRangeTable",
+   "hash": "774a4d8e5aab3783",
+   "does": "The one keyValue table of the five DFA α1 resting bands (0.75-1.0 reference, 0.60-0.75, ~0.5, >1.0, <0.5), shown both in the DFA α1 article and in the metrics guide's DFA section.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "var HelpScienceCatalog.dfaLiveExerciseNotes",
@@ -127,7 +128,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.hrvInfluences(forAge:)": "2c4b904ba8b16171",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.hrvInfluences(forAge:)": "135a85dccf711cb3",
     "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.bullets(_:)": "9359f2a9d37fe082",
     "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.heading(_:)": "96313fd993bfcc52"
    }
@@ -135,7 +136,7 @@
   {
    "key": "func HelpScienceCatalog.hrvInfluences(forAge:)",
    "hash": "e008efcc00c01bee",
-   "does": "Returns the seven 'what affects HRV' bullets; the age bullet is a formatted (pre-translated, U+2060-marked) sentence quoting the reader's age when known, else the generic 'Age (HRV naturally decreases with age)'.",
+   "does": "Returns the seven 'what affects HRV' bullets; the age bullet is a formatted (translated and filled by HelpLocalization.format, which remembers it so the localized pass leaves it alone) sentence quoting the reader's age when known, else the generic 'Age (HRV naturally decreases with age)'.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.format(_:_:)"
@@ -151,13 +152,13 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.format(_:_:)": "a1b3ba8dcf2bda33"
+    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.format(_:_:)": "27f088fa1d544f70"
    }
   },
   {
    "key": "func HelpScienceCatalog.rmssdContext(forAge:)",
-   "hash": "2711176fc650ad1d",
-   "does": "Picks the first RMSSD band whose upperBound exceeds age (falling back to the last band) and returns a copy with its context translated and {age} substituted via HelpLocalization.format.",
+   "hash": "df39ae4c649c0d47",
+   "does": "Picks the first of the bands before the last whose upperBound exceeds age, else the open-ended last band (70+), and returns a copy with its context translated and {age} substituted via HelpLocalization.format.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.format(_:_:)"
@@ -167,26 +168,14 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "no band has age < upperBound (?? last band)",
-     "effect": "returns the 70+ band; since the last band's upperBound is Int.max this fallback is taken only for age == Int.max"
+     "cond": "no earlier band has age < upperBound (?? last band)",
+     "effect": "returns the 70+ band (every age ≥ 70)"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "The `?? rmssdAgeBands[count-1]` fallback can only fire for age == Int.max because the last band's upperBound is Int.max; it is effectively dead.",
-     "evidence": [
-      "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift:534",
-      "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift:546"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "1f1571698d506b97",
-    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.upperBound": "cc499f4494650948",
-    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.format(_:_:)": "a1b3ba8dcf2bda33"
+    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.format(_:_:)": "27f088fa1d544f70"
    }
   },
   {
@@ -212,7 +201,7 @@
    "deps": {
     "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.genericRMSSDSections()": "b909d3f23834c446",
     "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.personalizedRMSSDSections(forAge:)": "d2554a05136abea4",
-    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.format(_:_:)": "a1b3ba8dcf2bda33"
+    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.format(_:_:)": "27f088fa1d544f70"
    }
   },
   {
@@ -263,11 +252,11 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "1f1571698d506b97",
-    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.rmssdContext(forAge:)": "bcd8e16f4d9504a0",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.rmssdContext(forAge:)": "23465ee34edfc2ab",
     "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.rmssdMovers()": "4146d9d5cb3ad8aa",
     "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.rmssdOpening()": "d3d31c181f883d3f",
-    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.format(_:_:)": "a1b3ba8dcf2bda33",
-    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.string(_:)": "f15cd7bae82ff838"
+    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.format(_:_:)": "27f088fa1d544f70",
+    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.string(_:)": "0277394aa70cf404"
    }
   },
   {
@@ -310,14 +299,14 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.dfaAlpha1Section()": "0e952318dea3519b",
-    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.heartRateSection()": "210b7d1e45a940c3",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.dfaAlpha1Section()": "136c97c6d124d814",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.heartRateSection()": "f6d121d217efa449",
     "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.hfPowerSection()": "83ef9207f3e101ea",
     "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.lfPowerSection()": "a4290f647935fc7f",
     "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.lfhfRatioSection()": "09a1a8550309d570",
     "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.pnn50Section()": "0964cce69178839b",
     "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.poincareSection()": "256d511e9d2a17ff",
-    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.readinessSection()": "e96096ce27bf3c5c",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.readinessSection()": "ab20e481163806e3",
     "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.sdnnSection()": "966e770769a0ee90",
     "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.stressIndexSection()": "3910fbc1802cb8f3"
    }
@@ -352,8 +341,8 @@
   },
   {
    "key": "func HelpScienceCatalog.heartRateSection()",
-   "hash": "56a62ce6c8f53463",
-   "does": "Returns the heart-rate heading, Mean/Min/Max HR table, the statement that overnight HR vs baseline moves the recovery score by up to 10 points, a watch-pattern note and a divider.",
+   "hash": "6ee1b21e5558d460",
+   "does": "Returns the heart-rate heading, Mean/Min/Max HR table, the statement that overnight HR vs baseline moves the HRV part of the recovery score by up to 10 points (less on the final score once sleep data weights it), a watch-pattern note and a divider.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -363,18 +352,15 @@
     {
      "kind": "spec-mismatch",
      "sev": "low",
-     "text": "Copy says overnight heart rate moves the recovery score by up to 10 points, but the ±10 RHR adjustment is applied inside the Tier-1 HRV component, which Tier 2/3 multiply by the HRV weight (0.7/0.6/0.8), so on a night with sleep data its effect on the final score is at most 6-8 points.",
+     "text": "The corrected sentence ('moves the HRV part of the recovery score by up to 10 points … the effect on the final number is smaller') has no Help.xcstrings entry yet (catalog handoff from fix batch b22): HelpLocalizationTests fail and other languages show it in English until the table is updated.",
      "evidence": [
-      "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift:698",
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift:72",
-      "Emuqu/Sources/Utilities/Constants+RecoveryScore.swift:20",
-      "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift:77"
+      "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift:701",
+      "Emuqu/Help.xcstrings"
      ],
      "found": "second read"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.DescribedDetail.note(_:)": "a76e785a36f0e4e6",
     "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.heading(_:)": "96313fd993bfcc52"
    }
   },
@@ -437,26 +423,18 @@
   },
   {
    "key": "func HelpScienceCatalog.dfaAlpha1Section()",
-   "hash": "cba2bf8d829b019f",
-   "does": "Returns the short DFA α1 section with the same five resting ranges as the DFA article and a tip pointing to that article, then a divider.",
+   "hash": "b0c76102d33cbd7c",
+   "does": "Returns the short DFA α1 section: heading, description, the shared dfaRestingRangeTable and a tip pointing to the DFA article, then a divider.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::var HelpScienceCatalog.dfaRestingRangeTable"
+   ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Repeats the five DFA α1 resting ranges of dfaRangeSections as a second hand-written table with differently worded values; an edit to one range table does not update the other.",
-     "evidence": [
-      "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift:819",
-      "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift:424"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::var HelpScienceCatalog.dfaRestingRangeTable": "accf190d6089a5d1",
     "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.heading(_:)": "96313fd993bfcc52"
    }
   },
@@ -477,8 +455,8 @@
   },
   {
    "key": "func HelpScienceCatalog.readinessSection()",
-   "hash": "c534b9f5a7d5e4ff",
-   "does": "Returns the Readiness (1-10) vs Recovery Score (0-100) heading, explanation table (Readiness text from ansReadinessExplanation) and the disagreement tip.",
+   "hash": "c56d0c8d8ed951de",
+   "does": "Returns the Readiness (1-10) vs Recovery Score (0-100) heading, explanation table (Readiness text from ansReadinessExplanation) and the disagreement tip (Readiness sees only HRV and recent training; Recovery Score adds sleep and vitals).",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -488,12 +466,10 @@
     {
      "kind": "spec-mismatch",
      "sev": "low",
-     "text": "The disagreement tip says 'Readiness only sees HRV', contradicting the Readiness explanation shown in the same table (line 858: recent hard training lifts it) and computeReadinessScore, which adds a training-load adjustment and scales the baseline by VO2max.",
+     "text": "The corrected tip ('Readiness sees only HRV and your recent training') has no Help.xcstrings entry yet (catalog handoff from fix batch b22): HelpLocalizationTests fail and other languages show it in English until the table is updated.",
      "evidence": [
-      "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift:876",
-      "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift:858",
-      "Emuqu/Sources/Analysis/StressAnalysis.swift:153",
-      "Emuqu/Sources/Analysis/StressAnalysis.swift:145"
+      "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift:884",
+      "Emuqu/Help.xcstrings"
      ],
      "found": "second read"
     }

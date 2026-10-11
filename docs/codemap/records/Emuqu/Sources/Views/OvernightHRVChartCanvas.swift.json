@@ -1,26 +1,16 @@
 {
  "file": "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift",
- "hash": "530207c389dc6e3f",
+ "hash": "95bb28ce20b6eaec",
  "role": "Canvas-based overnight HRV (rolling RMSSD) chart with organized-recovery zones, auto and manual analysis windows, 30/70% sleep markers, peak marker, drag-to-scrub tooltip and an 'Analyze Here' pin that calls back for manual-window reanalysis. Also hosts the OvernightChartsView #Preview.",
  "types": [
   "OvernightHRVChartCanvas: struct — SwiftUI view drawing the HRV chart and handling scrub/pin gestures",
   "OvernightHRVChartCanvas.ChartGeometry: struct (private) — per-frame shared geometry, conforms to OvernightChartViewport"
  ],
  "state": [
-  "mem:OvernightHRVChartCanvas.touchLocation/isDragging/selectedTimestampMs/pinnedLocation (@State, view-local)"
+  "mem:OvernightHRVChartCanvas.touchLocation/isDragging/pinnedLocation (@State, view-local)"
  ],
  "toplevel": "Stored lets: xAxisHeight=20, rmssdAreaGradient (sage 0.3→0.05). @State selectedTimestampMs is declared but never read or written. #Preview at line 581 builds OvernightChartsView with an empty HRVSession and a fixed HRVAnalysisResult. File header comment points to OvernightChartsView+Charts.swift for the stat card, tooltip and HR canvas (that file exists).",
- "flags": [
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "@State selectedTimestampMs is declared and never used anywhere in the file.",
-   "evidence": [
-    "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift:20"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "var OvernightHRVChartCanvas.effectiveWindowStartIndex",
@@ -134,7 +124,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.pin(_:)": "54c3918461ffda1e",
+    "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.pin(_:)": "a96314efbefb6f67",
     "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.scrub(_:)": "a18e0f4c2748eb67"
    }
   },
@@ -165,27 +155,26 @@
   },
   {
    "key": "func OvernightHRVChartCanvas.pin(_:)",
-   "hash": "96a766858649cd7c",
-   "does": "On drag end, pins the final location and clears the live touch.",
-   "entry": "DragGesture.onEnded",
+   "hash": "114b8eead1b7d546",
+   "does": "On drag end, pins the final location only when the drag was accepted as a scrub (isDragging) — a vertical page scroll rejected throughout leaves no pin — then clears the live touch.",
+   "entry": "DragGesture onEnded",
    "calls": [],
-   "reads": [],
-   "writes": [
-    "mem:OvernightHRVChartCanvas.touchLocation/isDragging/selectedTimestampMs/pinnedLocation"
+   "reads": [
+    "mem:OvernightHRVChartCanvas.isDragging"
    ],
-   "branches": [],
-   "flags": [
+   "writes": [
+    "mem:OvernightHRVChartCanvas.pinnedLocation",
+    "mem:OvernightHRVChartCanvas.isDragging",
+    "mem:OvernightHRVChartCanvas.touchLocation"
+   ],
+   "branches": [
     {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "pin() pins value.location even when every onChanged was rejected as vertical scroll, so a vertical page scroll that starts on the chart leaves a pinned tooltip behind.",
-     "evidence": [
-      "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift:100",
-      "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift:108"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+1",
+     "cond": "isDragging",
+     "effect": "pin the location; else keep the previous pin"
     }
    ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -372,7 +361,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.ChartGeometry.x(forMs:)": "970c66e7858206e3"
+    "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.ChartGeometry.x(forMs:)": "415dfce002fe02c2"
    }
   },
   {
@@ -418,7 +407,7 @@
    "deps": {
     "Emuqu/Sources/Models/RRModels.swift::func RRSeries.absoluteTimeWallClock(at:)": "b828c96564df6c4f",
     "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartFormatters.clockTimeFormatter": "74dd30b7b246e519",
-    "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.ChartGeometry.x(forMs:)": "970c66e7858206e3",
+    "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.ChartGeometry.x(forMs:)": "415dfce002fe02c2",
     "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.nearestRollingSample(toMs:points:)": "baded58d51e53bc9"
    }
   },
@@ -491,8 +480,8 @@
     "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.drawManualWindow(_:_:)": "e99c290d1bb67446",
     "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.drawOrganizedRecoveryZones(_:_:)": "7f9b1cd39dabe679",
     "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.drawPeakMarker(_:_:)": "47486695625cf6c5",
-    "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.drawSleepBandMarkers(_:_:)": "79d21c649135dd40",
-    "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::init OvernightHRVChartCanvas.ChartGeometry(size:stats:points:effectiveWindowStartIndex:effectiveWindowEndIndex:hasManualWindow:)": "448cb796656caf58",
+    "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.drawSleepBandMarkers(_:_:)": "87fcc32f62c2db15",
+    "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::init OvernightHRVChartCanvas.ChartGeometry(size:stats:points:effectiveWindowStartIndex:effectiveWindowEndIndex:hasManualWindow:)": "e3ce9cb54879a976",
     "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::var OvernightHRVChartCanvas.effectiveWindowEndIndex": "e3cc9215d554df13",
     "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::var OvernightHRVChartCanvas.effectiveWindowStartIndex": "56240c8cc4ee51c7",
     "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::var OvernightHRVChartCanvas.manualWindowEndIndex": "82093b8b57a68fe5",
@@ -501,11 +490,12 @@
   },
   {
    "key": "init OvernightHRVChartCanvas.ChartGeometry(size:stats:points:effectiveWindowStartIndex:effectiveWindowEndIndex:hasManualWindow:)",
-   "hash": "e59877e05279136f",
-   "does": "Failable geometry: nil without rolling RMSSD or points; sets y range 0..max(1.2×peak,100), chart start/duration and window x bounds.",
+   "hash": "2738d9828823efde",
+   "does": "Failable geometry: nil without rolling RMSSD or points; sets y range 0..axisTop (covers every plotted sample), chart start/duration and window x bounds (windowBounds).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.ChartGeometry.windowBounds(stats:size:totalPoints:startIndex:endIndex:)"
+    "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.ChartGeometry.axisTop(_:)",
+    "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.ChartGeometry.windowBounds(stats:size:points:startIndex:endIndex:)"
    ],
    "reads": [],
    "writes": [],
@@ -516,31 +506,30 @@
      "effect": "nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "The y-axis top is max(stats.peakRMSSD*1.2, 100), but peakRMSSD is the maximum inside the 30-70% search band only (findPeakHRV); rolling RMSSD outside the band that exceeds 1.2x the band peak and 100 ms is plotted above the canvas top and clipped, and the max label (drawAxisLabels) understates the plotted range.",
-     "evidence": [
-      "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift:316",
-      "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift:357",
-      "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift:563",
-      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:468",
-      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:469"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.ChartGeometry.windowBounds(stats:size:totalPoints:startIndex:endIndex:)": "3aa39493fd2b9511",
+    "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.ChartGeometry.axisTop(_:)": "d6e89536d2500184",
+    "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.ChartGeometry.windowBounds(stats:size:points:startIndex:endIndex:)": "b90111b07433f938",
     "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::var OvernightHRVChartCanvas.effectiveWindowEndIndex": "e3cc9215d554df13",
     "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::var OvernightHRVChartCanvas.effectiveWindowStartIndex": "56240c8cc4ee51c7"
    }
   },
   {
-   "key": "func OvernightHRVChartCanvas.ChartGeometry.windowBounds(stats:size:totalPoints:startIndex:endIndex:)",
-   "hash": "15af67e18d7b3680",
-   "does": "Window x bounds from wall-clock window ms when the chart has duration and start≠end, else from indices / totalPoints; flags windows covering >80%.",
+   "key": "func OvernightHRVChartCanvas.ChartGeometry.axisTop(_:)",
+   "hash": "50a2982ed1e55543",
+   "does": "The y-axis top: max(highest of peakRMSSD and every rolling RMSSD sample × 1.2, 100) ms, so no plotted sample is clipped and the max label states the plotted range.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func OvernightHRVChartCanvas.ChartGeometry.windowBounds(stats:size:points:startIndex:endIndex:)",
+   "hash": "f29f9d5a4c30d73b",
+   "does": "The auto window's x range on the time viewport: from stats.windowStartMs/EndMs when they differ, else from the t_ms of the window's first and last beats (indices clamped); start ≥ 0, end ≤ width; isFullRecording when it spans more than OvernightChartDrawing.fullRecordingWindowFraction (0.8). (0, 0, true) with no viewport or beats.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -548,8 +537,18 @@
    "branches": [
     {
      "at": "+5",
-     "cond": "duration > 0 and windowStartMs != windowEndMs",
-     "effect": "ms-based fractions (start clamped ≥0, end ≤1); else index fractions"
+     "cond": "no viewport or no points",
+     "effect": "(0, 0, true)"
+    },
+    {
+     "at": "+7",
+     "cond": "windowStartMs != windowEndMs",
+     "effect": "ms bounds; else beat t_ms"
+    },
+    {
+     "at": "+14",
+     "cond": "span > 0.8",
+     "effect": "isFullRecording"
     }
    ],
    "flags": [],
@@ -570,18 +569,7 @@
      "effect": "0"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Doc comment says 'clamped to the viewport' but the function returns unclamped values; callers clamp themselves (drawOrganizedRecoveryZones, drawManualWindow) and drawPeakMarker/hrvSegments do not.",
-     "evidence": [
-      "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift:349",
-      "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift:352"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -626,7 +614,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b",
-    "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.ChartGeometry.x(forMs:)": "970c66e7858206e3"
+    "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.ChartGeometry.x(forMs:)": "415dfce002fe02c2"
    }
   },
   {
@@ -669,7 +657,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.ChartGeometry.x(forMs:)": "970c66e7858206e3",
+    "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.ChartGeometry.x(forMs:)": "415dfce002fe02c2",
     "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.drawAutoWindowLabel(_:_:)": "49db1c6a41aca7f9",
     "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.verticalLine(atX:height:)": "31b37afaafa0b059",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
@@ -740,7 +728,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.ChartGeometry.x(forMs:)": "970c66e7858206e3",
+    "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.ChartGeometry.x(forMs:)": "415dfce002fe02c2",
     "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.drawManualWindowLabel(_:_:startX:endX:mStart:mEnd:)": "37acbd7aa5afa8d7",
     "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.verticalLine(atX:height:)": "31b37afaafa0b059",
     "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::var OvernightHRVChartCanvas.manualWindowEndIndex": "82093b8b57a68fe5",
@@ -796,8 +784,8 @@
   },
   {
    "key": "func OvernightHRVChartCanvas.drawSleepBandMarkers(_:_:)",
-   "hash": "55a8d9b75e77b4e8",
-   "does": "Dotted 30% and 70% lines (with labels) across the stored session sleep period.",
+   "hash": "5da1d035908d8bd2",
+   "does": "Dotted 30% and 70% lines (with labels) at stats.peakSearchBandMs — the band the peak marker was searched in (HealthKit sleep, else stored sleep); nothing when the stats carry no band.",
    "entry": "Canvas render closure in chartCanvas (each redraw)",
    "calls": [
     "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.ChartGeometry.x(forMs:)",
@@ -808,24 +796,19 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "no stored sleepStartMs/sleepEndMs or zero duration",
+     "cond": "no band, empty band, or no viewport",
      "effect": "return"
     },
     {
      "at": "+5",
-     "cond": "sleep span <= 0",
-     "effect": "return"
-    },
-    {
-     "at": "+8",
-     "cond": "loop over 30%/70%",
+     "cond": "loop over the two edges",
      "effect": "one line each"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.ChartGeometry.x(forMs:)": "970c66e7858206e3",
+    "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.ChartGeometry.x(forMs:)": "415dfce002fe02c2",
     "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.verticalLine(atX:height:)": "31b37afaafa0b059"
    }
   },
@@ -858,13 +841,13 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.hrvSegments(_:)": "fb684953e0075a08"
+    "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.hrvSegments(_:)": "07d4289af38ae5cf"
    }
   },
   {
    "key": "func OvernightHRVChartCanvas.hrvSegments(_:)",
-   "hash": "639a66cf958131c8",
-   "does": "Splits rolling RMSSD into segments where consecutive samples are >5 min apart by t_ms.",
+   "hash": "70822a41792c69c3",
+   "does": "Splits rolling RMSSD into segments where consecutive samples are more than 5 min apart on the wall clock (wallClockMs, t_ms where a beat has none — a streamed dropout does not advance t_ms); points are positioned by t_ms.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.ChartGeometry.x(forMs:)",
@@ -884,28 +867,16 @@
      "effect": "skip"
     },
     {
-     "at": "+7",
+     "at": "+8",
      "cond": "gap > 5 min since last sample",
      "effect": "start a new segment"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Gap detection uses t_ms (cumulative RR time), which does not advance across BLE dropouts, so a streamed recording gap never breaks the line; only gaps visible in t_ms (merged segments) do.",
-     "evidence": [
-      "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift:533",
-      "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift:534",
-      "Emuqu/Sources/Models/RRModels.swift:9"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.ChartGeometry.x(forMs:)": "970c66e7858206e3",
-    "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.ChartGeometry.y(forRMSSD:)": "8ab3d6fb3b04e16e",
-    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)": "c275ddb86778fcf0"
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0",
+    "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.ChartGeometry.x(forMs:)": "415dfce002fe02c2",
+    "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.ChartGeometry.y(forRMSSD:)": "8ab3d6fb3b04e16e"
    }
   },
   {
@@ -923,7 +894,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.ChartGeometry.x(forMs:)": "970c66e7858206e3",
+    "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.ChartGeometry.x(forMs:)": "415dfce002fe02c2",
     "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.ChartGeometry.y(forRMSSD:)": "8ab3d6fb3b04e16e",
     "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.verticalLine(atX:height:)": "31b37afaafa0b059",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
@@ -954,7 +925,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.ChartGeometry.x(forMs:)": "970c66e7858206e3"
+    "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.ChartGeometry.x(forMs:)": "415dfce002fe02c2"
    }
   }
  ],

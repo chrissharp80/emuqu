@@ -12,7 +12,7 @@
   {
    "kind": "duplicate",
    "sev": "med",
-   "text": "Session-detail trend rows compare tonight's RMSSD/HR with an arithmetic mean of prior reliable overnights, while TrendComparisonCard (Recovery detail, same morning flow) compares against the geometric ln(RMSSD) baseline / resting-HR baseline and its comment says the figure must be identical to the hero's '+x% vs your average'. The two screens show different 'vs average' percentages for the same night; TrendComparisonCard also needs >=2 nights and does not exclude the current or later nights, this one needs 1 and excludes them.",
+   "text": "Session-detail trend rows compare RMSSD/HR with the scoring baseline only when baselineStats is passed; the only production constructor (MorningResultsView.hrvDetailLink) does not pass it, so they still use an arithmetic mean of prior reliable overnights, while TrendComparisonCard (same morning flow) uses the geometric ln(RMSSD) / mean-HR baseline and says its figure must match the hero's '+x% vs your average'. Until the caller passes baselineStats the two screens show different 'vs average' percentages; stress/readiness averages also differ in which nights count (prior-only here, all overnights and >= 2 there).",
    "evidence": [
     "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift:355",
     "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift:356",
@@ -381,7 +381,7 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.metricSectionHeader(title:icon:)": "10cec03d37df520b",
     "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.dataQualityGrid": "592c01e068ff0bc6",
-    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.dataQualityNote": "a7de2e008be374a0"
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.dataQualityNote": "0ef95118ebebdf2a"
    }
   },
   {
@@ -408,11 +408,11 @@
   },
   {
    "key": "var SessionHRVDetailView.dataQualityNote",
-   "hash": "a7d74aae1713f868",
-   "does": "Caption explaining metrics come from an N-minute analysis window rather than the whole recording of K beats; shown only when the result's window is shorter than the series.",
+   "hash": "2cf1106e8c66bfb9",
+   "does": "Caption explaining metrics come from an N-minute analysis window rather than the whole recording of K beats; shown whenever the window (end exclusive) spans fewer points than the series and its length is known.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.analysisWindowMinutes",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.analysisWindowMinutes(in:)",
     "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)"
    ],
    "reads": [
@@ -421,46 +421,42 @@
    "writes": [],
    "branches": [
     {
-     "at": "+2",
-     "cond": "session.rrSeries exists AND analysisWindowMinutes non-nil AND (windowEnd - windowStart) < points.count - 1",
-     "effect": "true: caption text; false: nothing. windowEnd is exclusive (FrequencyDomainAnalysis.swift:136), so a full-series window has span == count; a window exactly one beat short (span == count-1) also shows no note"
+     "at": "+1",
+     "cond": "series exists, window shorter than the series and its minutes known",
+     "effect": "caption; else nothing"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "windowEnd is exclusive, so a full-series window has span == points.count; the test `span < count - 1` hides the note for a window exactly one beat shorter than the recording, contradicting the doc comment that the note shows whenever the window is shorter than the recording. The note is also hidden when windowStartMs/windowEndMs are nil even if the window is short.",
-     "evidence": [
-      "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift:171",
-      "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift:176",
-      "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift:184",
-      "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift:136",
-      "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift:92"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)": "0eaf9ea6f219f5b6",
-    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.analysisWindowMinutes": "3a088fe31b239fee",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.analysisWindowMinutes(in:)": "812f704cce0450a4",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
    }
   },
   {
-   "key": "var SessionHRVDetailView.analysisWindowMinutes",
-   "hash": "643d546648b3a800",
-   "does": "Window length in whole minutes from result.windowStartMs/windowEndMs, rounded, minimum 1.",
-   "entry": null,
+   "key": "func SessionHRVDetailView.analysisWindowMinutes(in:)",
+   "hash": "c7ffc2e0ce8a3e8c",
+   "does": "Window length in whole minutes (min 1): from windowStartMs/windowEndMs when present and ordered, else from the series beat timestamps at the window ends (last beat t_ms + rr_ms minus first t_ms); nil when neither is usable.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+1",
-     "cond": "windowStartMs and windowEndMs both non-nil and end > start",
-     "effect": "true: returns max(1, round((end-start)/60000)); false: returns nil (note hidden)"
+     "cond": "recorded window timestamps usable",
+     "effect": "minutes from them"
+    },
+    {
+     "at": "+4",
+     "cond": "window indices outside the series",
+     "effect": "nil"
+    },
+    {
+     "at": "+8",
+     "cond": "span positive",
+     "effect": "minutes; else nil"
     }
    ],
    "flags": [],
@@ -481,7 +477,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.trendBody": "c3a3fa51befe50f6",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.trendBody": "fa3f6c0129e330ee",
     "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.trendHeader": "97b615dc681a097d",
     "Emuqu/Sources/Views/Theme.swift::func View.zenCard()": "d0ad0fd7fe9ef4fb"
    }
@@ -527,7 +523,7 @@
     {
      "kind": "duplicate",
      "sev": "med",
-     "text": "Session-detail trend rows compare tonight's RMSSD/HR with an arithmetic mean of prior reliable overnights, while TrendComparisonCard (Recovery detail, same morning flow) compares against the geometric ln(RMSSD) baseline / resting-HR baseline and its comment says the figure must be identical to the hero's '+x% vs your average'. The two screens show different 'vs average' percentages for the same night; TrendComparisonCard also needs >=2 nights and does not exclude the current or later nights, this one needs 1 and excludes them.",
+     "text": "Session-detail trend rows compare RMSSD/HR with the scoring baseline only when baselineStats is passed; the only production constructor (MorningResultsView.hrvDetailLink) does not pass it, so they still use an arithmetic mean of prior reliable overnights, while TrendComparisonCard (same morning flow) uses the geometric ln(RMSSD) / mean-HR baseline and says its figure must match the hero's '+x% vs your average'. Until the caller passes baselineStats the two screens show different 'vs average' percentages; stress/readiness averages also differ in which nights count (prior-only here, all overnights and >= 2 there).",
      "evidence": [
       "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift:355",
       "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift:356",
@@ -542,15 +538,16 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.computeTrendStats()": "da2c0a1fa5947f97",
-    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.trendRows(_:)": "fb3410493ef1a142",
-    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.trendEmptyState": "5f4cd4a2aa9e90c7"
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.computeTrendStats()": "cd89dfeb94ddecf7",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.trendRows(_:)": "acd30eded0464904",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.trendEmptyState": "5f4cd4a2aa9e90c7",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.BaselineStats.hasData": "58b3b540d9784f0e"
    }
   },
   {
    "key": "func SessionHRVDetailView.trendRows(_:)",
    "hash": "5ea5db146bb63b41",
-   "does": "Stacks HRV, resting-HR, stress and readiness trend rows.",
+   "does": "Stacks HRV, mean-HR, stress and readiness trend rows.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.hrvTrendRow(_:)",
@@ -565,7 +562,7 @@
    "deps": {
     "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.hrvTrendRow(_:)": "a6af1ba66bd46428",
     "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.readinessTrendRow(_:)": "c3e025cbb87c6cfd",
-    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.restingHRTrendRow(_:)": "5f5b48cda1ac3917",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.restingHRTrendRow(_:)": "e9f70259a5d45ba0",
     "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.stressTrendRow(_:)": "8bc8ab81225670a5"
    }
   },
@@ -590,8 +587,8 @@
   },
   {
    "key": "func SessionHRVDetailView.restingHRTrendRow(_:)",
-   "hash": "f7f47929b89fcfc3",
-   "does": "Trend row labelled 'Resting HR' comparing result.timeDomain.meanHR with stats.avgHR (mean of prior nights' meanHR), lower is better.",
+   "hash": "5a76b2f4b8dc99de",
+   "does": "Trend row labelled 'Mean HR' comparing result.timeDomain.meanHR with stats.avgHR (the mean-HR baseline, else prior nights' mean), lower is better.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.trendRow(metric:current:average:unit:higherIsBetter:)"
@@ -601,19 +598,7 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Row is labelled 'Resting HR' but both current and average values are whole-window mean HR (timeDomain.meanHR / HRVSession.meanHR), not a resting/minimum HR.",
-     "evidence": [
-      "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift:242",
-      "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift:243",
-      "Emuqu/Sources/Models/SessionMetadata.swift:661"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.trendRow(metric:current:average:unit:higherIsBetter:)": "f3176360f6f16ce8"
@@ -822,12 +807,13 @@
   },
   {
    "key": "func SessionHRVDetailView.computeTrendStats()",
-   "hash": "61b4adc47ab05dce",
-   "does": "Filters recentSessions to prior reliable overnights and returns TrendStats with arithmetic means of RMSSD, meanHR, stress index and readiness.",
+   "hash": "7c8ee05d557f4041",
+   "does": "Filters recentSessions to prior reliable overnights; returns TrendStats whose RMSSD reference is hrvBaseline (geometric scoring baseline) and HR reference baselineStats.meanHRBaseline when baselineStats was passed, else the arithmetic means of those nights; stress and readiness are the nights' arithmetic means.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.isPriorReliableOvernight(_:)",
     "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.mean(_:)",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.hrvBaseline",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.rmssd",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex",
@@ -838,25 +824,25 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "no session passes isPriorReliableOvernight",
-     "effect": "returns hasData=false with zeros/nils"
+     "cond": "no prior reliable overnight",
+     "effect": "hasData=false with zeros/nils"
     },
     {
      "at": "+8",
-     "cond": "mean(rmssdValues) is nil",
-     "effect": "avgRMSSD falls back to 0 (only when rmssdValues empty, which also makes hasData false)"
+     "cond": "baseline known",
+     "effect": "baseline; else mean, else 0"
     },
     {
      "at": "+9",
-     "cond": "mean of meanHR values is nil",
-     "effect": "avgHR falls back to 0; cannot happen when valid non-empty since analysisResult != nil guarantees meanHR"
+     "cond": "HR baseline known",
+     "effect": "meanHRBaseline; else mean, else 0"
     }
    ],
    "flags": [
     {
      "kind": "duplicate",
      "sev": "med",
-     "text": "Session-detail trend rows compare tonight's RMSSD/HR with an arithmetic mean of prior reliable overnights, while TrendComparisonCard (Recovery detail, same morning flow) compares against the geometric ln(RMSSD) baseline / resting-HR baseline and its comment says the figure must be identical to the hero's '+x% vs your average'. The two screens show different 'vs average' percentages for the same night; TrendComparisonCard also needs >=2 nights and does not exclude the current or later nights, this one needs 1 and excludes them.",
+     "text": "Session-detail trend rows compare RMSSD/HR with the scoring baseline only when baselineStats is passed; the only production constructor (MorningResultsView.hrvDetailLink) does not pass it, so they still use an arithmetic mean of prior reliable overnights, while TrendComparisonCard (same morning flow) uses the geometric ln(RMSSD) / mean-HR baseline and says its figure must match the hero's '+x% vs your average'. Until the caller passes baselineStats the two screens show different 'vs average' percentages; stress/readiness averages also differ in which nights count (prior-only here, all overnights and >= 2 there).",
      "evidence": [
       "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift:355",
       "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift:356",
@@ -876,7 +862,8 @@
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.rmssd": "64652e57c90f256a",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
     "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.isPriorReliableOvernight(_:)": "1de86cadd5c4f1dd",
-    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.mean(_:)": "2ecaf8ac9e533da2"
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.mean(_:)": "2ecaf8ac9e533da2",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.hrvBaseline": "8abb9f4ca10fe916"
    }
   },
   {

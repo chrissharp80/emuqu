@@ -57,35 +57,22 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/TagsAndNotesCard.swift::func TagsAndNotesCard.sectionLabel(icon:title:)": "0035b5429829f7c7",
-    "Emuqu/Sources/Views/TagsAndNotesCard.swift::var TagsAndNotesCard.chipRow": "a47ed09639f72bfa"
+    "Emuqu/Sources/Views/TagsAndNotesCard.swift::var TagsAndNotesCard.chipRow": "9956b5a3462d8500"
    }
   },
   {
    "key": "var TagsAndNotesCard.chipRow",
-   "hash": "8b1590d4b036d077",
-   "does": "HStack of one chip per ReadingTag.systemTags.",
+   "hash": "59f97a6ec1e0378b",
+   "does": "HStack of one chip per stripTags entry (system tags, the user's custom tags, then any other selected tag).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.systemTags",
+    "Emuqu/Sources/Views/TagsAndNotesCard.swift::var TagsAndNotesCard.stripTags",
     "Emuqu/Sources/Views/TagsAndNotesCard.swift::func TagsAndNotesCard.chip(for:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "Chip row lists only ReadingTag.systemTags and has no 'more tags' entry, so user custom tags (UserSettings.customTags) cannot be applied on the morning screen, and a custom tag already on the session (vm.selectedTags = Set(session.tags)) is invisible and cannot be removed here. ReadingTagSelector adds a moreTagsButton and TagPickerSheet shows a customTagsSection.",
-     "evidence": [
-      "Emuqu/Sources/Views/TagsAndNotesCard.swift:50",
-      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:356",
-      "Emuqu/Sources/Views/ReadingTagSelector.swift:39",
-      "Emuqu/Sources/Views/RecordViewHelpers.swift:46",
-      "Emuqu/Sources/Models/UserSettings+Model.swift:18"
-     ],
-     "found": "second read"
-    },
     {
      "kind": "duplicate",
      "sev": "low",
@@ -100,8 +87,30 @@
     }
    ],
    "deps": {
+    "Emuqu/Sources/Views/TagsAndNotesCard.swift::func TagsAndNotesCard.chip(for:)": "e3128dedd62f0235",
+    "Emuqu/Sources/Views/TagsAndNotesCard.swift::var TagsAndNotesCard.stripTags": "bb1977b34ab594cd"
+   }
+  },
+  {
+   "key": "var TagsAndNotesCard.stripTags",
+   "hash": "c58c7b159871d470",
+   "does": "ReadingTag.systemTags followed by the user's custom tags from settings (AppDependencies.current settingsManager), then any selected tag in neither list (e.g. a since-deleted custom tag) sorted by name, so every tag can be applied and every selection shows and can be removed.",
+   "entry": "Read by chipRow.",
+   "calls": [
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.systemTags",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
     "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.systemTags": "825e2f48504e4c5e",
-    "Emuqu/Sources/Views/TagsAndNotesCard.swift::func TagsAndNotesCard.chip(for:)": "e3128dedd62f0235"
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
    }
   },
   {

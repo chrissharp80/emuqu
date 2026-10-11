@@ -22,56 +22,38 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Type doc says the conversion is 'needed in two places — ImportSleepWindow ... and RRCollector', but MillisecondOffset is used from 24 production files (SessionMerger, RRModels, OvernightChartsView, MorningProcessingService, ReanalysisService, SessionRecoveryService, DemoSessionSeeder, PolarManager+Streaming, ...).",
-     "evidence": [
-      "Emuqu/Sources/Utilities/MillisecondOffset.swift:5",
-      "Emuqu/Sources/Storage/SessionMerger.swift:295",
-      "Emuqu/Sources/Models/RRModels.swift:213"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.milliseconds(from:)": "2b65afbfdcc375f7"
    }
   },
   {
    "key": "func MillisecondOffset.between(_:and:fallback:)",
-   "hash": "9194ab494923218c",
-   "does": "Rounded ms between two dates, or the caller's fallback when unrepresentable.",
+   "hash": "325e94c5c9307904",
+   "does": "Rounded ms between two dates; when unrepresentable, logs a warning-level debugLog naming the fallback and returns the caller's fallback.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)"
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+1",
-     "cond": "unrepresentable",
-     "effect": "returns fallback (callers pass 0, e.g. SessionMerger.swift:295)"
-    }
-   ],
-   "flags": [
+     "cond": "representable",
+     "effect": "returns the rounded ms"
+    },
     {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "The type's stated rationale is that nil 'lets the caller say it does not know' instead of inventing a plausible value, yet 50 of 53 production call sites use between(_:and:fallback: 0), so a corrupt/out-of-range date silently becomes a 0 ms offset (e.g. imported beats rebased at offset 0 in SessionMerger, sleep boundaries at recording start in OvernightChartsView+Stats).",
-     "evidence": [
-      "Emuqu/Sources/Utilities/MillisecondOffset.swift:17",
-      "Emuqu/Sources/Utilities/MillisecondOffset.swift:36",
-      "Emuqu/Sources/Storage/SessionMerger.swift:295",
-      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:309"
-     ],
-     "found": "second read"
+     "at": "+2",
+     "cond": "unrepresentable",
+     "effect": "logs a warning ('[MillisecondOffset] interval not representable … using fallback') and returns fallback (callers pass 0, e.g. SessionMerger.swift:295)"
     }
    ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)": "5ba3ca6486738e50"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)": "eed24a8b84f4db4d"
    }
   },
   {

@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift",
  "hash": "770b9067541e3f30",
- "role": "Pure post-hoc elevation gain/loss computation from a buffer of raw CMAltimeter relative-altitude samples: 15-sample symmetric moving average then 2 m hysteresis over the smoothed series.",
+ "role": "Pure post-hoc elevation gain/loss computation from a buffer of time-stamped altitude samples (CMAltimeter relative altitude, or GPS fixes per split): a 15-second symmetric moving average over the timestamps, then 2 m hysteresis over the smoothed series.",
  "types": [
   "BarometricAltitudeProcessor: enum — namespace for process/movingAverage",
   "BarometricAltitudeProcessor.Result: struct — gainMeters, lossMeters, smoothedSampleCount",
@@ -13,11 +13,11 @@
  "units": [
   {
    "key": "func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)",
-   "hash": "0f3821ae2d24bd31",
-   "does": "Returns gain/loss for time-ordered barometric samples: if fewer samples than the smoother window returns zeros; otherwise smooths altitudes with movingAverage, feeds each smoothed level after the first into a HysteresisAccumulator (threshold default 2.0 m), commits the trailing run with finish(), and returns gain, loss and smoothed count. Timestamps are ignored (window is sample-count, not time).",
+   "hash": "220eb8dcacd41624",
+   "does": "Returns gain/loss for time-ordered altitude samples: if fewer samples than smootherWindow returns zeros; otherwise smooths with movingAverage over a smootherWindow-second window read from the timestamps (so the time constant holds at any sample rate), feeds each smoothed level after the first into a HysteresisAccumulator (threshold default 2.0 m), commits the trailing run with finish(), and returns gain, loss and smoothed count.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.movingAverage(_:window:)",
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.movingAverage(_:windowSeconds:)",
     "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::init BarometricAltitudeProcessor.HysteresisAccumulator(threshold:start:)",
     "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.HysteresisAccumulator.add(_:)",
     "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.HysteresisAccumulator.finish()"
@@ -41,25 +41,11 @@
      "effect": "adds each to the hysteresis accumulator"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Smoothing window and hysteresis are defined in sample counts, not seconds, and timestamps are ignored. Callers feed it the CMAltimeter buffer (WorkoutRecorder+Lifecycle.swift:178, WorkoutRecoveryService.swift:452) and also per-split GPS altitude from CLLocation fixes (WorkoutAnalyzer.swift:466, window min(15, fixes.count)); any delivery rate other than 1 Hz changes the effective time constant the doc relies on.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift:72",
-      "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift:119",
-      "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift:466",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift:178",
-      "Emuqu/Sources/Services/WorkoutRecoveryService.swift:452"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.HysteresisAccumulator.add(_:)": "02e24277c3ec8217",
     "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.HysteresisAccumulator.finish()": "51a9e22199e6bbd3",
-    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.movingAverage(_:window:)": "a43f2e4739ab3bd5",
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.movingAverage(_:windowSeconds:)": "2c48c7da0d6da5c4",
     "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::init BarometricAltitudeProcessor.HysteresisAccumulator(threshold:start:)": "d2d26ff5933b09da"
    }
   },
@@ -179,28 +165,33 @@
    }
   },
   {
-   "key": "func BarometricAltitudeProcessor.movingAverage(_:window:)",
-   "hash": "d45ea9d6eb219e4d",
-   "does": "Centred moving average with the window clamped at the array ends (endpoint-preserving). Returns input unchanged when shorter than window or window <= 1. O(n·window).",
+   "key": "func BarometricAltitudeProcessor.movingAverage(_:windowSeconds:)",
+   "hash": "5f85cf4092ef5d5e",
+   "does": "Time-based symmetric moving average: each altitude becomes the mean of the samples whose timestamps lie within ±(windowSeconds/2) whole seconds of its own (two-pointer running sum, O(n)); the window holds what exists at the ends. Returns the raw altitudes when there are fewer samples than windowSeconds or windowSeconds <= 1. Expects time-ordered samples.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+1",
-     "cond": "values.count >= window and window > 1",
-     "effect": "false: returns values unsmoothed; true: smooths"
+     "at": "+5",
+     "cond": "values.count < windowSeconds or windowSeconds <= 1",
+     "effect": "returns the raw altitudes"
     },
     {
-     "at": "+4",
-     "cond": "for each index i",
-     "effect": "computes the mean of values[max(0,i-half)...min(n-1,i+half)]"
+     "at": "+11",
+     "cond": "for each sample",
+     "effect": "advance the right edge while within +half, drop left samples older than −half, append the mean"
     },
     {
-     "at": "+8",
-     "cond": "for j in lo...hi",
-     "effect": "sums the window values"
+     "at": "+12",
+     "cond": "hi < count and times[hi] <= t_i + half",
+     "effect": "add the entering sample"
+    },
+    {
+     "at": "+13",
+     "cond": "times[lo] < t_i − half",
+     "effect": "remove the leaving sample"
     }
    ],
    "flags": [],

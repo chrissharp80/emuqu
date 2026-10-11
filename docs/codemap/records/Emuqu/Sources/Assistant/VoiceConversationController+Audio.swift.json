@@ -10,20 +10,7 @@
   "notif:AVAudioSession.interruptionNotification (observed; token stored in mem:VoiceConversationController.interruptionObserver)"
  ],
  "toplevel": "Static system sound id 1057 ('Tink').",
- "flags": [
-  {
-   "kind": "hack",
-   "sev": "low",
-   "text": "Mechanical rename left 'controller.' inside comments and a user-visible log string ('tearing down voice as a safety controller.stop', 'the user can controller.speak again'), making logs and docs misleading.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:358",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:324",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:385",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:473"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "func VoiceAudioPipeline.announceVoiceChatStart()",
@@ -60,7 +47,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.handleAudioInterruption(typeRaw:)": "bfe992ea5b255b2c",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.handleAudioInterruption(typeRaw:)": "3f1c946d0cda0930",
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.removeInterruptionObserver()": "ec53aacbf9b9aa78",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.audio": "94d9d4e86ac71296"
    }
@@ -91,17 +78,19 @@
   },
   {
    "key": "func VoiceAudioPipeline.handleAudioInterruption(typeRaw:)",
-   "hash": "65e391b13d6b6c6f",
-   "does": "On .began cancels the recognition task and ends the request (both nilled); on .ended calls controller.stop() (full teardown, user must re-tap).",
+   "hash": "f85e7a2418507a5a",
+   "does": "On .began logs that voice will end with the interruption and pauses (pauseForInterruption: silence watchdog stopped, recognition task and request dropped); on .ended calls controller.stop() (full teardown, user must re-tap; .shouldResume is deliberately not honoured).",
    "entry": "NotificationCenter AVAudioSession.interruptionNotification observer (installed by installInterruptionObserver)",
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.pauseForInterruption()",
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.stop()"
    ],
    "reads": [
     "notif:AVAudioSession.interruptionNotification"
    ],
    "writes": [
+    "mem:VoiceConversationController.silenceTimer",
     "mem:VoiceConversationController.recognitionTask",
     "mem:VoiceConversationController.recognitionRequest",
     "mem:VoiceConversationController.state"
@@ -115,58 +104,41 @@
     {
      "at": "+6",
      "cond": "case .began",
-     "effect": "recognition task/request cancelled; silence timer and state untouched"
+     "effect": "pauseForInterruption; state untouched"
     },
     {
-     "at": "+12",
+     "at": "+9",
      "cond": "case .ended",
      "effect": "controller.stop() — voice torn down"
     },
     {
-     "at": "+15",
+     "at": "+12",
      "cond": "@unknown default",
      "effect": "ignored"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "On .began the 0.2 s silence timer keeps running in .listening; if the app keeps executing during the interruption, the 30 s max-turn cap or empty-transcript path calls startFreshRecognitionTask while the session is interrupted.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:79",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:195",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:344"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "The .began log says 'will attempt recovery on end' but .ended deliberately tears down instead.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:80",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:87"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "The section comment says on .ended with .shouldResume the code re-activates the session, restarts the engine and opens a fresh recognition request; the handler instead calls controller.stop() unconditionally (shouldResume is never read).",
-     "evidence": [
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:39",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:40",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:41",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:87"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.stop()": "6da990bdd4545968",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.pauseForInterruption()": "d8e6f49701c1a735",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.stop()": "b1ec5dbd5132a84f",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
+  },
+  {
+   "key": "func VoiceAudioPipeline.pauseForInterruption()",
+   "hash": "0e26bd88d4376e86",
+   "does": "Interruption .began: invalidates the silence timer (so the max-turn / empty-transcript paths can't start a recognition task while the session is interrupted), cancels and drops the recognition task, ends and drops the recognition request.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:VoiceConversationController.silenceTimer",
+    "mem:VoiceConversationController.recognitionTask",
+    "mem:VoiceConversationController.recognitionRequest"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "func VoiceAudioPipeline.teardownAudioPipeline()",
@@ -189,7 +161,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.deactivateAudioSession(isRetry:)": "b936c6f731cac9ad",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.stopAudioEngineSafely()": "ed8053e94fbabc01",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.stopAudioEngineSafely()": "25be281b7566b783",
     "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.release(_:)": "00b2c416245f74ae",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a"
@@ -197,37 +169,36 @@
   },
   {
    "key": "func VoiceAudioPipeline.stopAudioEngineSafely()",
-   "hash": "c6ca33e834fd5a18",
-   "does": "Removes the input-node tap via FRSafeRemoveTap and, if the engine is running, stops it via FRSafeAudioEngineStop; both shim errors are discarded.",
+   "hash": "804bf3c6455268ff",
+   "does": "Removes the input-node tap via FRSafeRemoveTap and, if the engine is running, stops it via FRSafeAudioEngineStop; a shim that reports failure has its error logged as a warning.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeRemoveTap",
-    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeAudioEngineStop"
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeAudioEngineStop",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+4",
-     "cond": "audioEngine.isRunning",
-     "effect": "false: return after tap removal; true: engine stopped"
-    }
-   ],
-   "flags": [
+     "at": "+3",
+     "cond": "removeTap failed",
+     "effect": "log warning"
+    },
     {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "NSErrors from FRSafeRemoveTap/FRSafeAudioEngineStop are captured into locals and never logged.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:118",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:119",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:121",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:122"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+6",
+     "cond": "audioEngine.isRunning",
+     "effect": "false: return after tap removal; true: stop the engine"
+    },
+    {
+     "at": "+8",
+     "cond": "engine stop failed",
+     "effect": "log warning"
     }
    ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
     "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeAudioEngineStop": "16e5d0538860dce2",
     "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeRemoveTap": "e092b86f3fe2a08e"
    }
@@ -393,17 +364,18 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.commitTurnIfSettled()": "0c21b7bd7b561604",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.hitMaxTurnDuration()": "9cafd6c68dafdefc",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.restartedStalledRecognizer()": "2339c5bfa4bb298e",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.hitMaxTurnDuration()": "55ff3e689643afb9",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.restartedStalledRecognizer()": "2b0166869ded5af0",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.checkForBargeIn()": "edd1e2225b0aa2ea"
    }
   },
   {
    "key": "func VoiceAudioPipeline.hitMaxTurnDuration()",
-   "hash": "b6f81d1ad879251b",
-   "does": "If turnStartedAt is set and maxTurnDurationSec has elapsed, logs and calls finalizeUserTurn, returning true; else false.",
+   "hash": "4704b3ce2aaa1ef6",
+   "does": "If turnStartedAt is set, the turn is not a silent turn on a live mic (isSilentTurnOnLiveMic) and maxTurnDurationSec has elapsed, logs and calls finalizeUserTurn, returning true; else false. A silent user on a live mic is left to the 45 s long-idle recognizer restart instead of being finalised empty every 30 s (which counted toward the empty-transcript give-up); a dead mic still finalises.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.isSilentTurnOnLiveMic()",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.finalizeUserTurn()"
    ],
@@ -414,20 +386,21 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "turn started and elapsed >= maxTurnDurationSec",
+     "cond": "turn started, not silent-on-live-mic, and elapsed >= maxTurnDurationSec",
      "effect": "true: finalize, return true; false: return false"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.finalizeUserTurn()": "9b86e704dcce060c",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.finalizeUserTurn()": "8056f102fac792ed",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.isSilentTurnOnLiveMic()": "c001644a5f13b711",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
    "key": "func VoiceAudioPipeline.restartedStalledRecognizer()",
-   "hash": "d030b36e44f87456",
-   "does": "With no transcript growth yet this turn and no prior first-partial restart: after firstPartialTimeoutSec with >=2 s voice, restarts recognition once (count++); else after longIdleRestartSec with <0.5 s voice, restarts recognition and resets turnStartedAt.",
+   "hash": "a89d4ae28c87f034",
+   "does": "With no transcript growth yet this turn: once per turn (no prior first-partial restart), after firstPartialTimeoutSec with >=2 s voice, restarts recognition (count++); otherwise after longIdleRestartSec with <0.5 s voice, restarts recognition and resets turnStartedAt — regardless of an earlier first-partial restart, and reachable now that a silent turn on a live mic is not cut at 30 s.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
@@ -445,12 +418,12 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "turn started, no transcript growth, no first-partial restart yet",
+     "cond": "turn started and no transcript growth",
      "effect": "false: return false"
     },
     {
-     "at": "+5",
-     "cond": "elapsed >= firstPartialTimeoutSec and voice >= 2 s",
+     "at": "+4",
+     "cond": "no first-partial restart yet AND elapsed >= firstPartialTimeoutSec AND voice >= 2 s",
      "effect": "true: restart, increment counter, return true"
     },
     {
@@ -459,40 +432,27 @@
      "effect": "false: return false; true: restart and reset clock"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Long-idle restart is also gated on firstPartialRestartsThisTurn == 0 (line 226), so after one first-partial restart the ~60 s recogniser self-termination guard no longer runs for that turn.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:226",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:234"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "unreachable-branch",
-     "sev": "med",
-     "text": "The long-idle restart (line 234, elapsed >= longIdleRestartSec = 45 s) can never run: silenceTimerTick checks hitMaxTurnDuration first, which finalizes at maxTurnDurationSec = 30 s, and the empty-transcript path then resets turnStartedAt. A silent user therefore gets an empty finalize every 30 s, each incrementing consecutiveEmptyReArms (reset only by a non-empty transcript or beginUserTurn), so voice tears itself down after ~3 min ('I'm not picking up what you're saying') with mic buffers, or ~90 s ('Couldn't hear you') without; the 45 s restart described in the comment does not exist in practice.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:195",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:196",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:205",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:234",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:328",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:340",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:353",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:357",
-      "Emuqu/Sources/Assistant/VoiceConversationController.swift:348",
-      "Emuqu/Sources/Assistant/VoiceConversationController.swift:383"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.startFreshRecognitionTask()": "94106eb87646cd75",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.startFreshRecognitionTask()": "10bad226e064553d",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
+  },
+  {
+   "key": "func VoiceAudioPipeline.isSilentTurnOnLiveMic()",
+   "hash": "c20db1328a44d4f9",
+   "does": "True when the mic is delivering buffers since the current recognition task started but the user hasn't spoken this turn: under 0.5 s of voice and no transcript growth.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:VoiceConversationController.buffersSinceTaskStart",
+    "mem:VoiceConversationController.totalVoiceSecondsThisTurn",
+    "mem:VoiceConversationController.lastTranscriptGrowthAt"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "func VoiceAudioPipeline.commitTurnIfSettled()",
@@ -524,14 +484,14 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.finalizeUserTurn()": "9b86e704dcce060c",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.finalizeUserTurn()": "8056f102fac792ed",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
    "key": "func VoiceAudioPipeline.finalizeUserTurn()",
-   "hash": "c14146bf4741aadb",
-   "does": "Only in .listening: stops the silence timer, then either completes finalisation immediately (Apple STT) or, when WhisperKit is selected for this session and its model is ready, awaits the WhisperKit path in a Task.",
+   "hash": "2b404dd18678ea4b",
+   "does": "Only in .listening: stops the silence timer, then either completes finalisation immediately (Apple STT) or, when WhisperKit is selected for this session and its model is ready, marks the turn as handed over (turnStartedAt = nil) and awaits the WhisperKit path in a Task; a second finalize while that transcription runs (turnStartedAt already nil) is ignored.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
@@ -542,10 +502,12 @@
    "reads": [
     "mem:VoiceConversationController.state",
     "mem:VoiceConversationController.useWhisperKitForCurrentSession",
-    "mem:WhisperKitSTTBridge.modelReady"
+    "mem:WhisperKitSTTBridge.modelReady",
+    "mem:VoiceConversationController.turnStartedAt"
    ],
    "writes": [
-    "mem:VoiceConversationController.silenceTimer"
+    "mem:VoiceConversationController.silenceTimer",
+    "mem:VoiceConversationController.turnStartedAt"
    ],
    "branches": [
     {
@@ -556,13 +518,18 @@
     {
      "at": "+8",
      "cond": "WhisperKit selected and model ready",
-     "effect": "false: completeFinalizeUserTurn; true: async WhisperKit transcription"
+     "effect": "false: completeFinalizeUserTurn; true: continue"
+    },
+    {
+     "at": "+12",
+     "cond": "turnStartedAt nil (already being transcribed)",
+     "effect": "log and ignore; else clear it and start the async WhisperKit transcription"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.completeFinalizeUserTurn()": "f3612b4d92c7ea25",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.finalizeUserTurnViaWhisperKit()": "64e15def8a983365",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.finalizeUserTurnViaWhisperKit()": "de27b813814dca1a",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.audio": "94d9d4e86ac71296",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc",
@@ -607,18 +574,7 @@
      "effect": "false: return (voice closed or turn already sent)"
     }
    ],
-   "flags": [
-    {
-     "kind": "race",
-     "sev": "low",
-     "text": "The silence timer is invalidated before the await (line 273-274) and state stays .listening during WhisperKit transcription, so nothing else commits but another finalizeUserTurn caller (Control.swift:22 tap, Speech.swift:188) can start a second WhisperKit transcription concurrently; only the post-await state check guards the double send.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:279",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:302"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.transcribeAndReset()": "ff19fc4ecee92710",
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.completeFinalizeUserTurn()": "f3612b4d92c7ea25",
@@ -668,14 +624,14 @@
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.armSilenceTimer()": "4e5e7dd079105b1b",
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.emptyTranscriptGiveUpMessage(micIsAlive:)": "bf084d965e7e6650",
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.drainPendingTriggersIfIdle()": "bf0438cde040823b",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.stop()": "6da990bdd4545968",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.startFreshRecognitionTask()": "94106eb87646cd75",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.stop()": "b1ec5dbd5132a84f",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.startFreshRecognitionTask()": "10bad226e064553d",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
    "key": "func VoiceAudioPipeline.emptyTranscriptGiveUpMessage(micIsAlive:)",
-   "hash": "314aeff54c4c63b2",
+   "hash": "5588cb9766ba5169",
    "does": "Returns a localized give-up message when the mic is dead (no buffers) for >=3 consecutive empty turns or when the recogniser is confused (buffers present) for >=6; else nil.",
    "entry": null,
    "calls": [
@@ -737,7 +693,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.dispatchTranscript(_:)": "e915caa03343e1dc",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.dispatchTranscript(_:)": "e6d1fcefaa6d0832",
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.droppedAsEcho(_:)": "54ed1ccd243bd3a5",
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.handleEmptyTranscript()": "cb74c27a89bb10fb",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
@@ -776,7 +732,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Chat/AssistantInbox.swift::func AssistantInbox.flashTransientNotice(_:)": "97698c695bd1a5f4",
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.isMedicalRefusalEcho(_:)": "3a34c8643efc305a",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.reArmListening()": "764c9f0013c6f219",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.reArmListening()": "9c56f565b5b4f182",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.looksLikeEcho(of:)": "19ae607f1c8b4c42",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
@@ -812,34 +768,31 @@
   },
   {
    "key": "func VoiceAudioPipeline.dispatchTranscript(_:)",
-   "hash": "0078082341867143",
-   "does": "Sends the transcript via AssistantViewModel.send(fromVoice:true) and routes the outcome: dispatched → speak instant turn or open the speaking window; queued → handleQueuedSend; rejected → handleRejectedSend; requiresConsent → handleConsentRequired.",
+   "hash": "3949e204182f66e0",
+   "does": "Notes the turn count, sends the transcript via AssistantViewModel.send(fromVoice:true) and routes the outcome: dispatched → speak an instant (non-streamed) answer, or treat a dispatch that started no stream (provider unavailable / consent held) like the matching rejection, or open the speaking window; queued → handleQueuedSend; rejected → handleRejectedSend; requiresConsent → handleConsentRequired.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.spokeInstantTurn()",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.spokeInstantTurn(turnsBefore:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.handledUnstartedDispatch()",
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.handleQueuedSend()",
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.handleRejectedSend(_:)",
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.handleConsentRequired(_:)",
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.beginSpeakingWindow()"
    ],
    "reads": [
-    "mem:ProviderRegistry.activeProvider"
+    "mem:ProviderRegistry.activeProvider",
+    "mem:AssistantViewModel.turns"
    ],
    "writes": [
     "mem:AssistantViewModel.turns"
    ],
    "branches": [
     {
-     "at": "+5",
-     "cond": "case .dispatched",
-     "effect": "instant turn spoken directly, else falls through to beginSpeakingWindow"
-    },
-    {
      "at": "+6",
-     "cond": "spokeInstantTurn()",
-     "effect": "true: return"
+     "cond": "case .dispatched",
+     "effect": "instant turn spoken, or unstarted dispatch handled, then return; else falls through to beginSpeakingWindow"
     },
     {
      "at": "+8",
@@ -857,88 +810,76 @@
      "effect": "handleConsentRequired, return"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "send() returns .dispatched even when AssistantViewModel.dispatch() returns early without starting a stream (routed provider unavailable, Routing.swift:234; routed provider lacks consent, Routing.swift:238). isStreaming stays false and the last turn is the user's (or, after the consent gate removes it, the previous assistant reply — see :458). In the first case spokeInstantTurn returns false, beginSpeakingWindow sets .speaking, and the finishing observer (ObservationLoop default initial:false) never fires because isStreaming never changes, so voice stays in .speaking until the user taps.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:445",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:646",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:389",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:390",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:234",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:238",
-      "Emuqu/Sources/Utilities/ObservationLoop.swift:34"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "9b3d0ecd257813a4",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "d5db8fac7d0f3243",
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.beginSpeakingWindow()": "3dec95e12e6443b7",
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.handleConsentRequired(_:)": "a26ba8b53fabc75d",
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.handleQueuedSend()": "d7d6bb2cfe112e9c",
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.handleRejectedSend(_:)": "c1c8c8534e2e132c",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.spokeInstantTurn()": "a5011a00004d7426",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.handledUnstartedDispatch()": "a439d8ccbfdbf879",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.spokeInstantTurn(turnsBefore:)": "b873ca94c5871ffc",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
-   "key": "func VoiceAudioPipeline.spokeInstantTurn()",
-   "hash": "605933df75d0ae41",
-   "does": "If the view model is not streaming and the last turn is a non-empty assistant turn (canned refusal / deterministic answer), speaks it directly via speakCompletedTurn and returns true.",
+   "key": "func VoiceAudioPipeline.spokeInstantTurn(turnsBefore:)",
+   "hash": "048b5e92ed8842e6",
+   "does": "True after speaking a complete answer this send appended without a stream (medical-guard refusal, DeterministicIntent answer): exactly a user turn and a non-empty assistant turn were added since turnsBefore. Recognised by the count, not isStreaming, so a refusal appended while another reply streams is still spoken, and the previous reply left at the end by a consent-gated dispatch is not repeated.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.speakCompletedTurn(_:)"
    ],
    "reads": [
-    "mem:AssistantViewModel.isStreaming",
     "mem:AssistantViewModel.turns"
    ],
    "writes": [],
    "branches": [
     {
-     "at": "+1",
-     "cond": "not streaming and last turn is a non-empty assistant turn",
-     "effect": "true: speakCompletedTurn, true; false: false"
+     "at": "+2",
+     "cond": "two turns added and the last is a non-empty assistant turn",
+     "effect": "speak it, return true; else false."
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "The medical guard runs in send() before the isStreaming check, so a refusal is appended and .dispatched returned while another stream is still in flight (voice is .listening during a queued send, handleQueuedSend). spokeInstantTurn then returns false (isStreaming true), beginSpeakingWindow points activeAssistantIndex at the refusal turn, which never gets a speakableTextCursor, so the refusal is never spoken and voice re-arms when the other stream ends.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:377",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:387",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:459",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:552",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:669",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:492"
-     ],
-     "found": "second read"
-    },
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "'Instant turn' is inferred from 'not streaming and last turn is a non-empty assistant turn'. When dispatch() stops at the consent gate it removes the user turn (Routing.swift:380-381), so the last turn is the previous assistant reply and voice speaks that old answer again; the user is not told consent is needed.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:459",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:465",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:238",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:380",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:381"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.speakCompletedTurn(_:)": "b9a7c57a3b412f88",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func VoiceAudioPipeline.handledUnstartedDispatch()",
+   "hash": "8d4371cfd787caa7",
+   "does": "After a .dispatched send that appended no complete answer: when no stream is running, the dispatch stopped before streaming — a held consent request goes to handleConsentRequired (voice stops, the user is told to accept in the Flo tab), otherwise (routed provider unavailable, error set) handleRejectedSend(.rejectedNoProvider); returns true. False while a stream runs.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.handleConsentRequired(_:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.handleRejectedSend(_:)"
+   ],
+   "reads": [
+    "mem:AssistantViewModel.isStreaming",
+    "mem:AssistantViewModel.pendingConsentRequest"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a stream is running",
+     "effect": "return false"
+    },
+    {
+     "at": "+2",
+     "cond": "a consent request is held",
+     "effect": "handleConsentRequired; else handleRejectedSend(.rejectedNoProvider)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.handleConsentRequired(_:)": "a26ba8b53fabc75d",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.handleRejectedSend(_:)": "c1c8c8534e2e132c"
    }
   },
   {
@@ -998,7 +939,8 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.reArmListening()": "764c9f0013c6f219",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorMessage(from:)": "bc3a2c0e8f35a1b9",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.reArmListening()": "9c56f565b5b4f182",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
@@ -1021,15 +963,15 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.stop()": "6da990bdd4545968",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.stop()": "b1ec5dbd5132a84f",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
    "key": "func VoiceAudioPipeline.reArmListening()",
-   "hash": "ed00efd9da8b6976",
-   "does": "Clears transcript and VAD accumulators, starts a fresh recognition task, re-arms the timer, sets .listening and drains pending coach triggers.",
+   "hash": "9cc769c91fd99877",
+   "does": "Clears transcript and VAD accumulators, stamps a new turn start (so the max-turn clock and the WhisperKit hand-over marker restart), starts a fresh recognition task, re-arms the timer, sets .listening and drains pending coach triggers.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.startFreshRecognitionTask()",
@@ -1041,14 +983,15 @@
     "mem:VoiceConversationController.partialTranscript",
     "mem:VoiceConversationController.lastVoiceDetectedAt",
     "mem:VoiceConversationController.totalVoiceSecondsThisTurn",
-    "mem:VoiceConversationController.state"
+    "mem:VoiceConversationController.state",
+    "mem:VoiceConversationController.turnStartedAt"
    ],
    "branches": [],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.armSilenceTimer()": "4e5e7dd079105b1b",
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.drainPendingTriggersIfIdle()": "bf0438cde040823b",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.startFreshRecognitionTask()": "94106eb87646cd75"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.startFreshRecognitionTask()": "10bad226e064553d"
    }
   },
   {
@@ -1205,7 +1148,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.finishResponseFromAssistant()": "4b2e3832924f8c9b",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.speakUpToCursor(turns:cursors:)": "8876a34085ae03e3",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.speakUpToCursor(turns:cursors:)": "72524ecc97067f92",
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.streamEdge(of:)": "be1f737f3a4ec3c6",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.cancelAssistantObservers()": "e52ce7610c1a76ac",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.audio": "94d9d4e86ac71296",
@@ -1215,8 +1158,8 @@
   },
   {
    "key": "func VoiceAudioPipeline.speakUpToCursor(turns:cursors:)",
-   "hash": "9be5329afa47daef",
-   "does": "Takes the active assistant turn's text up to the published speakable cursor (Characters), feeds the unspoken delta to the chunker and speaks any completed sentence; updates spokenCharCursor and currentResponseText.",
+   "hash": "078d3b6f48398a44",
+   "does": "Takes the active assistant turn's text up to the published speakable cursor (Characters). A cursor below what was already spoken (the view model rewound a round whose sentences were spoken before a tool call) pulls spokenCharCursor back to it, so the next round is spoken from its start. Feeds the unspoken delta to the chunker and speaks any completed sentence; updates spokenCharCursor and currentResponseText.",
    "entry": "Observation change delivery (ObservationLoop onChange from observeAssistantStreaming)",
    "calls": [
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.speak(_:voice:scripted:)"
@@ -1246,18 +1189,23 @@
     },
     {
      "at": "+6",
-     "cond": "safeLen > spokenCharCursor",
-     "effect": "false: return (no new safe text, incl. rewinds)"
+     "cond": "safeLen < spokenCharCursor (rewind)",
+     "effect": "spokenCharCursor = safeLen"
     },
     {
-     "at": "+12",
+     "at": "+7",
+     "cond": "safeLen > spokenCharCursor",
+     "effect": "false: return (no new safe text)"
+    },
+    {
+     "at": "+13",
      "cond": "chunker returned a sentence",
      "effect": "true: controller.speak(chunk)"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.speak(_:voice:scripted:)": "fe4979f15855666c"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.speak(_:voice:scripted:)": "bf6a0dfba3dadc28"
    }
   },
   {
@@ -1295,17 +1243,16 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.finalize()": "dd0ee2d1995fab40",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.speakErrorRecoveryLineIfNeeded()": "09e705d92249bc4b",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.speakErrorRecoveryLineIfNeeded()": "cfa37c3c8d945116",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.finishResponseSpeech()": "a38ffc2b914175af",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.speak(_:voice:scripted:)": "fe4979f15855666c",
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.cancelAssistantObservers()": "e52ce7610c1a76ac",
-    "Emuqu/Sources/Collection/BreathingAudioManager.swift::let BreathingAudioManager.synthesizer": "58a5207252b45a36"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.speak(_:voice:scripted:)": "bf6a0dfba3dadc28",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.cancelAssistantObservers()": "e52ce7610c1a76ac"
    }
   },
   {
    "key": "func VoiceAudioPipeline.speakErrorRecoveryLineIfNeeded()",
-   "hash": "3f0a020d46b63334",
-   "does": "If the view model has an errorMessage, nothing was spoken and the synthesizer is idle, speaks a scripted 'Couldn't reach the AI. Try again.' in the app-language voice and clears errorMessage.",
+   "hash": "0b32c6cf03807a88",
+   "does": "If the view model has an errorMessage, nothing was spoken and the synthesizer is idle, speaks a scripted 'Couldn't reach the AI. Try again.' in the app-language voice; errorMessage is left set so the chat banner keeps the real reason.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
@@ -1317,32 +1264,19 @@
     "mem:AssistantViewModel.errorMessage",
     "mem:VoiceConversationController.currentResponseText"
    ],
-   "writes": [
-    "mem:AssistantViewModel.errorMessage"
-   ],
+   "writes": [],
    "branches": [
     {
      "at": "+2",
      "cond": "errorMessage set, no response text, synthesizer idle",
-     "effect": "false: return; true: speak recovery line and clear error"
+     "effect": "false: return; true: speak recovery line"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "Clears assistantViewModel.errorMessage after speaking a generic line, so the real error text (e.g. auth/quota) disappears from the chat banner and the user only hears 'Couldn't reach the AI'.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:737",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:733"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.speak(_:voice:scripted:)": "fe4979f15855666c",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorMessage(from:)": "bc3a2c0e8f35a1b9",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.speak(_:voice:scripted:)": "bf6a0dfba3dadc28",
     "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.appLanguageVoice()": "840eae12a70d0f17",
-    "Emuqu/Sources/Collection/BreathingAudioManager.swift::let BreathingAudioManager.synthesizer": "58a5207252b45a36",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }

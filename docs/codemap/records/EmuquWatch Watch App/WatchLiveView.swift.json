@@ -1,6 +1,6 @@
 {
  "file": "EmuquWatch Watch App/WatchLiveView.swift",
- "hash": "4ce493005563e1f9",
+ "hash": "1c15aa7583e7baac",
  "role": "The whole Watch UI: a vertical-paged TabView (Start / Live metrics / Pause-Stop) that becomes a CompletionScreen after a workout ends, plus sport and zone pickers.",
  "types": [
   "WatchLiveView: struct (View) — root, page selection",
@@ -20,7 +20,7 @@
   "mem:StartScreen.selectedSport (@State, default run)",
   "mem:StartScreen.selectedZone (@State, default No target)"
  ],
- "toplevel": "Global lets sportOptions and zoneOptions (94-122) are built with String(localized:) at first use. The Start screen offers only 5 of the 10 iPhone sports.",
+ "toplevel": "Global lets sportOptions and zoneOptions (94-122) are built with String(localized:) at first use. The Start screen offers only 5 of the 10 iPhone sports. zoneOptions is now 'No target' plus plain 'Zone 1'…'Zone 5' (as iOS HRZone names them), built with (1...5).map.",
  "flags": [],
  "units": [
   {
@@ -187,7 +187,7 @@
     "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.sportRow": "41e18accd57b2b61",
     "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.startButton": "093ac25d9386450b",
     "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.statusText": "d1c70d88b0f2ff37",
-    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.strapPairingRow": "88726c8e6a1eadbe",
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.strapPairingRow": "d1a6d0d78a57c8c7",
     "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.targetRow": "015e35c6ad872981",
     "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.voiceChatButton": "86cf3ce2f1e08a69"
    }
@@ -360,16 +360,6 @@
    ],
    "flags": [
     {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "hasSavedStrap is a computed read of UserDefaults, not published state, so the row's visibility only refreshes when some observed property re-renders StartScreen.",
-     "evidence": [
-      "EmuquWatch Watch App/WatchLiveView.swift:251",
-      "EmuquWatch Watch App/WatchStrapConnector.swift:252"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
      "kind": "spec-mismatch",
      "sev": "low",
      "text": "USERS_MANUAL says pair from Watch app -> Strap -> Scan, but the pairing row is hidden in display-only mode (the default) unless a strap is already saved, so a new user has no pairing entry.",
@@ -386,7 +376,7 @@
     "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.directStrapButtonTint": "8883ea630ce2813b",
     "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.strapPairingLabel": "88b46c19a139a2ae",
     "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayOnlyMode": "1a34b86867962727",
-    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.hasSavedStrap": "89d099d8821999c6"
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.hasSavedStrap": "fbad0ed2294343c8"
    }
   },
   {
@@ -472,15 +462,17 @@
    "deps": {
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
     "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.voiceChatIcon": "cd45a8b2a3e29bba",
-    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.voiceChatLabel": "9ad6647a55f481d5"
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.voiceChatLabel": "c2653b8752433a57"
    }
   },
   {
    "key": "var StartScreen.voiceChatLabel",
-   "hash": "402a07af8daea9c5",
-   "does": "Talk button text: \"Starting…\" while in flight, else a word for the iPhone voice state, default \"Talk to AI\".",
+   "hash": "1e95c3bb422d0b00",
+   "does": "Button text: \"Starting…\" while a request is in flight, else WatchSessionManager.voiceChatStateWord(voiceChatStateLabel) or \"Talk to AI\" for idle/unknown.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.voiceChatStateWord(_:)"
+   ],
    "reads": [
     "mem:WatchSessionManager.voiceChatRequestInFlight",
     "mem:WatchSessionManager.voiceChatStateLabel"
@@ -490,52 +482,18 @@
     {
      "at": "+1",
      "cond": "voiceChatRequestInFlight",
-     "effect": "true: \"Starting…\""
+     "effect": "\"Starting…\""
     },
     {
-     "at": "+3",
-     "cond": "starting",
-     "effect": "\"Connecting…\""
-    },
-    {
-     "at": "+4",
-     "cond": "listening",
-     "effect": "\"Listening\""
-    },
-    {
-     "at": "+5",
-     "cond": "thinking",
-     "effect": "\"Thinking…\""
-    },
-    {
-     "at": "+6",
-     "cond": "speaking",
-     "effect": "\"Speaking\""
-    },
-    {
-     "at": "+7",
-     "cond": "alert",
-     "effect": "\"Alert\""
-    },
-    {
-     "at": "+8",
-     "cond": "default",
+     "at": "+2",
+     "cond": "voiceChatStateWord returns nil",
      "effect": "\"Talk to AI\""
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same token→word mapping as WatchSessionManager.voiceChatStateWord.",
-     "evidence": [
-      "EmuquWatch Watch App/WatchLiveView.swift:296",
-      "EmuquWatch Watch App/WatchSessionManager.swift:307"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.voiceChatStateWord(_:)": "2cbf896ee505ce79"
+   }
   },
   {
    "key": "var StartScreen.voiceChatIcon",
@@ -681,18 +639,7 @@
      "effect": "true; else false"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Comment says ConnectionState carries associated values \"so == won't compile\"; WatchStrapConnector.ConnectionState is declared Equatable, so the stated reason for this helper is false.",
-     "evidence": [
-      "EmuquWatch Watch App/WatchLiveView.swift:344",
-      "EmuquWatch Watch App/WatchStrapConnector.swift:54"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad"
    }
@@ -719,7 +666,7 @@
    ],
    "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.strapIsConnected": "ea33d18d7dc77724",
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.strapIsConnected": "45cfd7d6262559b7",
     "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayOnlyMode": "1a34b86867962727"
    }
   },
@@ -894,19 +841,7 @@
     "mem:StartScreen.selectedZone"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Zone labels name Zone 5 \"VO₂ max\" (and zones 1-4 Recovery/Aerobic/Tempo/Threshold), which the iOS HRZone deliberately avoids: \"Zone 5 ≠ VO₂ Max zone until the user provides lab-tested calibration ... without the app over-claiming\".",
-     "evidence": [
-      "EmuquWatch Watch App/WatchLiveView.swift:121",
-      "Emuqu/Sources/Views/HRZone.swift:52",
-      "Emuqu/Sources/Views/HRZone.swift:55"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -1027,7 +962,7 @@
    "deps": {
     "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.alphaAndDistanceRow": "b6a70a09e1e13711",
     "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.elevationRow": "14af590632fc10b2",
-    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.heartRateRow": "915f7220de8de035",
+    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.heartRateRow": "7411ddce7294218d",
     "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.paceAndTimeRow": "44dce006ac9bebe6",
     "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.topBar": "fe101ebdf3a61292"
    }
@@ -1054,34 +989,22 @@
      "effect": "nil: \"—\"; else formatted bpm"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "The big number can be the direct-strap bpm (displayedHeartRate) while its colour and \"% max\" sub-label come from the iPhone-relayed hrPercentOfMax of a different source and time, so the colour/percent can disagree with the number shown.",
-     "evidence": [
-      "EmuquWatch Watch App/WatchLiveView.swift:560",
-      "EmuquWatch Watch App/WatchLiveView.swift:563",
-      "EmuquWatch Watch App/WatchLiveView.swift:576",
-      "EmuquWatch Watch App/WatchSessionManager.swift:161"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3",
-    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.heartRateSubLabel": "ff8a1d87ce51083c",
-    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.hrColor": "c1f5a72b98f377b4",
+    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.heartRateSubLabel": "4b5db96559c04cb5",
+    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.hrColor": "97cae96781c7017f",
     "EmuquWatch Watch App/WatchScaledFont.swift::func View.watchScaledFont(size:weight:design:monospacedDigit:relativeTo:)": "3efbee99094eff6c",
     "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayedHeartRate": "9809b375764d8eb6"
    }
   },
   {
    "key": "var LiveMetricsScreen.heartRateSubLabel",
-   "hash": "37d85a7f32ca11f6",
-   "does": "\"N% max\" when percent-of-max exists, else \"peak N\" when peak > 0, else nothing.",
+   "hash": "380bf7d01cfd1768",
+   "does": "\"<pct>% max\" in hrColor when displayedPercentOfMax exists (the shown number is the iPhone's), else \"peak <n>\" when peakHR > 0, else nothing.",
    "entry": null,
    "calls": [
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayedPercentOfMax",
     "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.hrColor"
    ],
    "reads": [
@@ -1104,7 +1027,8 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.peakHR": "6e06787e1d321c6d",
-    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.hrColor": "c1f5a72b98f377b4"
+    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.hrColor": "97cae96781c7017f",
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayedPercentOfMax": "fac1c963a25f1987"
    }
   },
   {
@@ -1187,7 +1111,7 @@
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.targetZone": "c3e90b3ab0e837fa",
     "EmuquWatch Watch App/WatchLiveView.swift::func LiveMetricsScreen.metricCell(label:value:alignment:)": "7b9a871867eee0fe",
     "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.cadenceDisplay": "eed74cca263dc17d",
-    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.elevationDisplay": "f9db4c8f5b0f9565"
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.elevationDisplay": "0f55ddad743b69ff"
    }
   },
   {
@@ -1221,10 +1145,13 @@
   },
   {
    "key": "var LiveMetricsScreen.hrColor",
-   "hash": "c231148e679de00f",
-   "does": "HR colour by percent of max: blue <60, green 60-69, yellow 70-79, orange 80-89, red ≥90; primary when unknown.",
+   "hash": "319c7af78c98e582",
+   "does": "Zone colour from WatchMessageDecoding.heartRateZone(displayedPercentOfMax): 1 blue, 2 green, 3 yellow, 4 orange, 5 red; .primary below 50 % or when a direct-strap reading is shown.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayedPercentOfMax",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.heartRateZone(percentOfMax:)"
+   ],
    "reads": [
     "mem:WatchSessionManager.hrPercentOfMax"
    ],
@@ -1232,49 +1159,31 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "hrPercentOfMax non-nil",
-     "effect": "nil: .primary"
+     "cond": "displayedPercentOfMax and a zone exist",
+     "effect": "false: .primary"
     },
     {
      "at": "+3",
-     "cond": "..<60",
-     "effect": "blue"
-    },
-    {
-     "at": "+4",
-     "cond": "60..<70",
-     "effect": "green"
-    },
-    {
-     "at": "+5",
-     "cond": "70..<80",
-     "effect": "yellow"
-    },
-    {
-     "at": "+6",
-     "cond": "80..<90",
-     "effect": "orange"
-    },
-    {
-     "at": "+7",
-     "cond": "default (>=90)",
-     "effect": "red"
+     "cond": "zone 1–5",
+     "effect": "blue/green/yellow/orange/red"
     }
    ],
    "flags": [
     {
      "kind": "duplicate",
      "sev": "low",
-     "text": "Re-implements the iOS HRZone.classify %-of-max buckets; diverges below 50%: iOS returns no zone (neutral colour) while the Watch colours it blue as zone 1.",
+     "text": "Zone buckets restated from iOS HRZone.classify (via WatchMessageDecoding.heartRateZone); the divergence below 50 % is fixed, but nothing pins the two tables together until the handed-off test lands.",
      "evidence": [
-      "EmuquWatch Watch App/WatchLiveView.swift:635",
-      "Emuqu/Sources/Views/HRZone.swift:37",
-      "Emuqu/Sources/Views/HRZone.swift:47"
+      "EmuquWatch Watch App/WatchMessageDecoding.swift:460",
+      "Emuqu/Sources/Views/HRZone.swift:37"
      ],
-     "found": "second read"
+     "found": "second read; partly fixed b38"
     }
    ],
-   "deps": {}
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.heartRateZone(percentOfMax:)": "13a56b3658a5be39",
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayedPercentOfMax": "fac1c963a25f1987"
+   }
   },
   {
    "key": "func LiveMetricsScreen.metricCell(label:value:alignment:)",
@@ -1362,43 +1271,47 @@
   },
   {
    "key": "var PauseStopScreen.body",
-   "hash": "1194291516c985cf",
-   "does": "Pause/Stop page: header, Resume when paused else Pause, divider, End, status line.",
+   "hash": "208f25b684826b82",
+   "does": "Header, the pause/resume and End controls (disabled while no workout is recording), and the status line.",
    "entry": "SwiftUI body",
    "calls": [
     "EmuquWatch Watch App/WatchLiveView.swift::var PauseStopScreen.header",
-    "EmuquWatch Watch App/WatchLiveView.swift::var PauseStopScreen.resumeButton",
-    "EmuquWatch Watch App/WatchLiveView.swift::var PauseStopScreen.pauseButton",
-    "EmuquWatch Watch App/WatchLiveView.swift::var PauseStopScreen.endButton"
+    "EmuquWatch Watch App/WatchLiveView.swift::var PauseStopScreen.controls"
    ],
    "reads": [
     "mem:WatchSessionManager.isPaused",
     "mem:WatchSessionManager.statusLine"
    ],
    "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchLiveView.swift::var PauseStopScreen.controls": "0169b821e8357f83",
+    "EmuquWatch Watch App/WatchLiveView.swift::var PauseStopScreen.header": "d8846c284966b126"
+   }
+  },
+  {
+   "key": "var PauseStopScreen.controls",
+   "hash": "29288a5c1642b644",
+   "does": "Resume when paused else Pause, a divider, and End.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchLiveView.swift::var PauseStopScreen.resumeButton",
+    "EmuquWatch Watch App/WatchLiveView.swift::var PauseStopScreen.pauseButton",
+    "EmuquWatch Watch App/WatchLiveView.swift::var PauseStopScreen.endButton"
+   ],
+   "reads": [],
+   "writes": [],
    "branches": [
     {
-     "at": "+3",
+     "at": "+2",
      "cond": "isPaused",
-     "effect": "true: resumeButton; false: pauseButton"
+     "effect": "resume else pause button"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "The page is always present (WatchLiveView.swift:30-36) and its Pause and End buttons are not gated on isRecording, so with no workout they still send pause/stop requests; with the iPhone unreachable an End is queued for 60 s and blocks other queued taps.",
-     "evidence": [
-      "EmuquWatch Watch App/WatchLiveView.swift:706",
-      "EmuquWatch Watch App/WatchLiveView.swift:753",
-      "EmuquWatch Watch App/WatchSessionManager.swift:493"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "EmuquWatch Watch App/WatchLiveView.swift::var PauseStopScreen.endButton": "94563d88ee8e6ad1",
-    "EmuquWatch Watch App/WatchLiveView.swift::var PauseStopScreen.header": "d8846c284966b126",
     "EmuquWatch Watch App/WatchLiveView.swift::var PauseStopScreen.pauseButton": "de70bf56ff039d68",
     "EmuquWatch Watch App/WatchLiveView.swift::var PauseStopScreen.resumeButton": "cce56c2d4a5b49e6"
    }
@@ -1429,13 +1342,13 @@
    ],
    "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchLiveView.swift::var PauseStopScreen.headerTitle": "7bb32b1fee92758f"
+    "EmuquWatch Watch App/WatchLiveView.swift::var PauseStopScreen.headerTitle": "900d6b9e99c4f639"
    }
   },
   {
    "key": "var PauseStopScreen.headerTitle",
-   "hash": "5c1d3db9f7ca1801",
-   "does": "\"Recording\" when not paused, else \"Auto-paused\" or \"Paused\".",
+   "hash": "12309409b3b82a4c",
+   "does": "\"Waiting for workout\" when not recording; else \"Recording\", or \"Auto-paused\"/\"Paused\" when paused.",
    "entry": null,
    "calls": [],
    "reads": [
@@ -1446,13 +1359,18 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "isPaused",
-     "effect": "false: \"Recording\""
+     "cond": "!isRecording",
+     "effect": "\"Waiting for workout\""
     },
     {
      "at": "+2",
+     "cond": "!isPaused",
+     "effect": "\"Recording\""
+    },
+    {
+     "at": "+3",
      "cond": "autoPaused",
-     "effect": "true: \"Auto-paused\"; false: \"Paused\""
+     "effect": "\"Auto-paused\" else \"Paused\""
     }
    ],
    "flags": [],
@@ -1525,7 +1443,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
     "EmuquWatch Watch App/WatchLiveView.swift::func PauseStopScreen.buttonLabel(icon:title:)": "2bf0ee650473830f",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.requestStopWorkout()": "83e9c47829c8a022",
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.requestStopWorkout()": "642fe097d25509c1",
     "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.noteWristStop(phoneReachable:)": "4747cd9e2c600e21"
    }
   },
@@ -1558,13 +1476,13 @@
    "flags": [],
    "deps": {
     "EmuquWatch Watch App/WatchLiveView.swift::var CompletionScreen.saveAndDoneButton": "68fd9a9a402c8dd3",
-    "EmuquWatch Watch App/WatchLiveView.swift::var CompletionScreen.savedHeader": "4e79319d3c3d9b17"
+    "EmuquWatch Watch App/WatchLiveView.swift::var CompletionScreen.savedHeader": "b4fe6dc45a241b1b"
    }
   },
   {
    "key": "var CompletionScreen.savedHeader",
-   "hash": "f0c831ac2ffeabe5",
-   "does": "Checkmark seal, \"Workout saved\" and \"Your workout is archived on the iPhone…\" text.",
+   "hash": "7218886a353100fb",
+   "does": "Stop icon, \"Workout stopped\" and \"Tap Save & Done to dismiss the summary on both devices.\" — no claim that the iPhone saved it (it stops before finalizing).",
    "entry": null,
    "calls": [
     "EmuquWatch Watch App/WatchScaledFont.swift::func View.watchScaledFont(size:weight:design:monospacedDigit:relativeTo:)"
@@ -1575,15 +1493,12 @@
    "flags": [
     {
      "kind": "broken",
-     "sev": "med",
-     "text": "Claims the workout is saved/archived as soon as isRecording flips false, but the iPhone sends that stop from tearDownLiveWorkoutServices before it gathers RR data, finalizes and archives (WorkoutRecorder+Stop.swift:56 vs 59-65); if finalize/archive fails or the phone app is killed in between, the Watch has told the user it is saved.",
+     "sev": "low",
+     "text": "The new body text key 'Tap Save & Done to dismiss the summary on both devices.' is not yet in Localizable.xcstrings (handoff b38); until it is, it shows in English in every language.",
      "evidence": [
-      "EmuquWatch Watch App/WatchLiveView.swift:804",
-      "EmuquWatch Watch App/WatchLiveView.swift:807",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift:56",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift:59"
+      "EmuquWatch Watch App/WatchLiveView.swift:817"
      ],
-     "found": "first read, upheld on second"
+     "found": "fix pass b38"
     }
    ],
    "deps": {

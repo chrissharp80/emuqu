@@ -18,23 +18,10 @@
   {
    "kind": "duplicate",
    "sev": "low",
-   "text": "clearLaunchModalDefaults hardcodes 'assistant.disclaimerAccepted' and 'debug_isPurchased' instead of AssistantViewModel.disclaimerKey and StoreKitManager's private debugPurchasedKey; a rename of either constant silently stops the UI-test wipe from clearing it.",
+   "text": "clearLaunchModalDefaults hardcodes 'debug_isPurchased' instead of StoreKitManager's private debugPurchasedKey; a rename of that constant silently stops the UI-test wipe from clearing it. (The assistant disclaimer key now uses AssistantViewModel.disclaimerKey.)",
    "evidence": [
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift:246",
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift:250",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:103",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift:251",
     "Emuqu/Sources/Services/StoreKitManager.swift:778"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Doc says -UITests-FreshInstall is 'set only by the OnboardingFlowUITests target', but 18 UI test files under EmuquUITests pass it (Dashboard, Settings, Fitness, Record, DataDeletion, ...).",
-   "evidence": [
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift:176",
-    "EmuquUITests/DashboardUITests.swift",
-    "EmuquUITests/RecordTabUITests.swift"
    ],
    "found": "first read, upheld on second"
   }
@@ -202,7 +189,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.bundle": "ef79d682d1c86be9"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.bundle": "8ec08418ac4cb8d4"
    }
   },
   {
@@ -297,7 +284,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.bundle": "ef79d682d1c86be9"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.bundle": "8ec08418ac4cb8d4"
    }
   },
   {
@@ -327,8 +314,8 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func InterruptedWorkoutAutoRecovery.waitUntilDone(_:limit:)": "a9dc1f078d105b30",
-    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingStatePublic()": "c3879d679c388d48",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.bundle": "ef79d682d1c86be9",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingStatePublic()": "d4c2ed7a89afe6e4",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.bundle": "8ec08418ac4cb8d4",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "129adb95a00b9a83"
    }
   },
@@ -424,10 +411,10 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/StrapPairingStore.swift::func StrapPairingStore.removeAll()": "a0d3f27a38f3b132",
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.clearLaunchModalDefaults()": "7a8711a0fe464dd7",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.clearLaunchModalDefaults()": "4a1a1fc15c6c43b7",
     "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.removeStoredSessionData()": "dfd57598bf17ecd6",
     "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.removeStoredSettingsFiles()": "c2839ebd56cea7c8",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.resetForUITesting()": "cf830dd4199620c7"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.resetForUITesting()": "92b3365fb37d96e0"
    }
   },
   {
@@ -487,15 +474,15 @@
   },
   {
    "key": "func EmuquApp.clearLaunchModalDefaults()",
-   "hash": "c530dbe965bf2171",
-   "does": "Removes four launch-gating UserDefaults keys and synchronizes.",
+   "hash": "7ccd1bd32e60b457",
+   "does": "Removes four launch-gating UserDefaults keys (health disclaimer, last trial reminder, AssistantViewModel.disclaimerKey, debug_isPurchased) and synchronizes.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [
     "ud:hasAcceptedHealthDisclaimer",
     "ud:lastTrialReminderDate",
-    "ud:assistant.disclaimerAccepted",
+    "ud:AssistantViewModel.disclaimerKey (assistant.disclaimerAccepted)",
     "ud:debug_isPurchased"
    ],
    "branches": [

@@ -144,14 +144,18 @@ enum RecoveryScoreConstants {
         static let readinessAtBreak4: Double = 30.0
         static let readinessAtBreak5: Double = 10.0
 
-        /// ACWR modifier thresholds for readiness
+        /// ACWR modifier thresholds for readiness. Only the overreaching
+        /// threshold is read; `acwrDetrainingThreshold` has no callers.
         static let acwrOverreachingThreshold: Double = 1.3
         static let acwrDetrainingThreshold: Double = 0.8
         /// ACWR overreaching penalty base + slope
         static let acwrOverreachingPenaltyBase: Double = 0.05
         static let acwrOverreachingPenaltySlope: Double = 0.50
         static let acwrOverreachingPenaltyCap: Double = 0.40
-        /// ACWR detraining penalty slope and cap
+        /// ACWR detraining penalty slope and cap. Not read: no code applies a
+        /// detraining penalty to readiness. They stay, with
+        /// `acwrDetrainingThreshold`, because `check_scoring_governance.sh`
+        /// hashes these numbers and removing them is a scoring-version change.
         static let acwrDetrainingPenaltySlope: Double = 0.20
         static let acwrDetrainingPenaltyCap: Double = 0.10
 
@@ -209,7 +213,9 @@ enum RecoveryScoreConstants {
         static let moderateThreshold: Double = 4.5
         static let fatiguedThreshold: Double = 2.0
 
-        /// ACWR thresholds for readiness message
+        /// ACWR thresholds for readiness message. Only `acwrSevere` is read;
+        /// `acwrElevated` and `acwrAboveAverage` have no callers and stay
+        /// because `check_scoring_governance.sh` hashes these numbers.
         static let acwrSevere: Double = 1.8
         static let acwrElevated: Double = 1.5
         static let acwrAboveAverage: Double = 1.3
@@ -235,7 +241,10 @@ enum RecoveryScoreConstants {
         /// 0.64 factor (see HealthWorkoutSummary.calculateTrimp) so it sits
         /// at the same physiological load in this app's load units.
         static let strainThreshold: Double = 1600.0
-        /// Monotony modifier values
+        /// Monotony modifier values. Not read: no code scales a score by
+        /// monotony (the monotony warning uses `monotonyThreshold` and
+        /// `strainThreshold`). They stay because `check_scoring_governance.sh`
+        /// hashes these numbers and removing them is a scoring-version change.
         static let severeMonotonyModifier: Double = 0.75
         static let moderateMonotonyModifier: Double = 0.85
         static let mildMonotonyModifier: Double = 0.93

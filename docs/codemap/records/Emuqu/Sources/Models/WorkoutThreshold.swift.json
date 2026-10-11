@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Models/WorkoutThreshold.swift",
- "hash": "685b9b46ac5ae751",
+ "hash": "94ac46908afac327",
  "role": "User-declared workout cue model: WorkoutThreshold (metric, gt/lt condition, value, debounce, cooldown, cue text) with a regex plain-text parser (English + app language via CueLexicon), per-tick breach evaluation and default spoken cue text.",
  "types": [
   "WorkoutThreshold: struct (Codable, Identifiable, Hashable) — one cue + parser + evaluator",
@@ -13,45 +13,11 @@
  "state": [
   "mem:WorkoutThreshold.number (static regex for a decimal with . or ,)",
   "mem:CueLexicon.english (static word table)",
-  "mem:CueLexicon.byLanguage (static word tables for de, fr, es, it, pt, nl, sv, da, nb, fi, is, ru, ar, ja, ko, zh)"
+  "mem:CueLexicon.byLanguage (static word tables for de, fr, es, it, pt, nl, sv, da, nb, fi, is, ru, ar, ja, ko, zh)",
+  "mem:WorkoutThreshold.oneShotCooldownSec = 999_999 (static; the cooldown that makes milestone cues fire once per workout)"
  ],
  "toplevel": "Encodable and Hashable/Equatable are synthesized over CodingKeys (id, metric, condition, value, debounceSec, cooldownSec, userCue, naturalLanguageText). Static lexicon tables are built lazily on first parse.",
- "flags": [
-  {
-   "kind": "broken",
-   "sev": "low",
-   "text": "parsePlainText routes any 'N%'/'N percent' phrase that is not FTP- or climb-related to parseGrade, so a cue like 'tell me when I'm over 90% of max HR' (parseHeartRate needs a number after the keyword and rejects a percent) is saved as a gradePercent > 90 cue that effectively never fires, with no rejection shown to the user.",
-   "evidence": [
-    "Emuqu/Sources/Models/WorkoutThreshold.swift:289",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift:275",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift:325"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "broken",
-   "sev": "low",
-   "text": "'every' only affects elapsed-time cues; 'every 5 km' parses through parseDistance into a one-shot milestone (cooldown 999_999 s), so the user hears it once at 5 km rather than each 5 km.",
-   "evidence": [
-    "Emuqu/Sources/Models/WorkoutThreshold.swift:228",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift:241",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift:150"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Header examples 'stay above zone 2 power' and 'keep pace slower than 9:00/mi' cannot be entered: parsePlainText (the only production constructor, WorkoutPreflightView.swift:936) builds only heartRateBPM, powerPercentFTP, elevationGainMeters, gradePercent, elapsedSec and distanceMeters; heartRateZone, powerWatts, paceSecPerKm, alpha1 and cadenceSPM thresholds are created only in tests.",
-   "evidence": [
-    "Emuqu/Sources/Models/WorkoutThreshold.swift:6",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift:7",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift:324",
-    "Emuqu/Sources/Views/WorkoutPreflightView.swift:936"
-   ],
-   "found": "second read"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "init WorkoutThreshold(id:metric:condition:value:debounceSec:cooldownSec:userCue:naturalLanguageText:)",
@@ -152,8 +118,8 @@
   },
   {
    "key": "func WorkoutThreshold.milestone(metric:value:cue:)",
-   "hash": "b47d23fadb215c92",
-   "does": "One-shot milestone: greaterThan `value`, debounce 0, cooldown 999_999 s, with the user's text as cue.",
+   "hash": "0abff642174d850a",
+   "does": "One-shot milestone: greaterThan `value`, debounce 0, cooldown oneShotCooldownSec (999_999 s, longer than any workout, so it fires once), with the user's text as cue.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/WorkoutThreshold.swift::init WorkoutThreshold(id:metric:condition:value:debounceSec:cooldownSec:userCue:naturalLanguageText:)"
@@ -161,17 +127,7 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "hack",
-     "sev": "low",
-     "text": "'Fires once' is implemented as a magic cooldown of 999_999 s (~11.6 days) rather than a one-shot state; correct for any real workout but encodes the intent in a magic number.",
-     "evidence": [
-      "Emuqu/Sources/Models/WorkoutThreshold.swift:150"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.value(_:)": "63eb4feb3e8d33cc",
     "Emuqu/Sources/Models/WorkoutThreshold.swift::init WorkoutThreshold(id:metric:condition:value:debounceSec:cooldownSec:userCue:naturalLanguageText:)": "45b24a5fded2bc1c"
@@ -351,17 +307,18 @@
     "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.CueText.words(_:leading:)": "854910a9fd3170da",
     "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.allCaptures(_:in:)": "658db60705166e1f",
     "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.captures(_:in:)": "8cce256368cb1acf",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.milestone(metric:value:cue:)": "be8e5f30c59370b4",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.milestone(metric:value:cue:)": "10c9b7b9c5d7bfa7",
     "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.value(_:)": "63eb4feb3e8d33cc",
     "Emuqu/Sources/Models/WorkoutThreshold.swift::init WorkoutThreshold(id:metric:condition:value:debounceSec:cooldownSec:userCue:naturalLanguageText:)": "45b24a5fded2bc1c"
    }
   },
   {
    "key": "func WorkoutThreshold.parseDistance(_:)",
-   "hash": "898fe3947069ae1d",
-   "does": "First '<number> <mile|km|metre word>' → one-shot distanceMeters milestone (miles × 1609.344, km × 1000).",
+   "hash": "78eaa2a8a1124918",
+   "does": "Rejects text mentioning 'every'/'each' (a distance cue cannot repeat per distance); otherwise first '<number> <mile|km|metre word>' → one-shot distanceMeters milestone (miles × 1609.344, km × 1000).",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.CueText.mentions(_:)",
     "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.CueText.words(_:leading:)",
     "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.captures(_:in:)",
     "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.value(_:)",
@@ -371,30 +328,37 @@
    "writes": [],
    "branches": [
     {
-     "at": "+3",
+     "at": "+1",
+     "cond": "text mentions the every concept",
+     "effect": "nil (caller rejects the text)"
+    },
+    {
+     "at": "+4",
      "cond": "no number+distance-unit match or unparsable number",
      "effect": "nil"
     },
     {
-     "at": "+4",
+     "at": "+5",
      "cond": "unit text matches none of the unit patterns",
      "effect": "scale ?? 1 (metres)"
     }
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.CueText.mentions(_:)": "3ac6b6ea0463c01b",
     "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.CueText.words(_:leading:)": "854910a9fd3170da",
     "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.captures(_:in:)": "8cce256368cb1acf",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.milestone(metric:value:cue:)": "be8e5f30c59370b4",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.milestone(metric:value:cue:)": "10c9b7b9c5d7bfa7",
     "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.value(_:)": "63eb4feb3e8d33cc"
    }
   },
   {
    "key": "func WorkoutThreshold.parseKShorthand(_:)",
-   "hash": "0f903a5f2e169f1d",
-   "does": "'10k' shorthand (digits + k not followed by m) → distance milestone at n×1000 m.",
+   "hash": "d229841e05ea1c0b",
+   "does": "Rejects text mentioning 'every'/'each'; otherwise '10k' shorthand (digits + k not followed by m) → distance milestone at n×1000 m.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.CueText.mentions(_:)",
     "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.captures(_:in:)",
     "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.milestone(metric:value:cue:)"
    ],
@@ -402,15 +366,21 @@
    "writes": [],
    "branches": [
     {
-     "at": "+2",
+     "at": "+1",
+     "cond": "text mentions the every concept",
+     "effect": "nil"
+    },
+    {
+     "at": "+3",
      "cond": "no match or number unparsable",
      "effect": "nil"
     }
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.CueText.mentions(_:)": "3ac6b6ea0463c01b",
     "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.captures(_:in:)": "8cce256368cb1acf",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.milestone(metric:value:cue:)": "be8e5f30c59370b4"
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.milestone(metric:value:cue:)": "10c9b7b9c5d7bfa7"
    }
   },
   {
@@ -449,7 +419,7 @@
     "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.CueText.mentions(_:)": "3ac6b6ea0463c01b",
     "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.CueText.words(_:leading:)": "854910a9fd3170da",
     "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.captures(_:in:)": "8cce256368cb1acf",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.milestone(metric:value:cue:)": "be8e5f30c59370b4",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.milestone(metric:value:cue:)": "10c9b7b9c5d7bfa7",
     "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.value(_:)": "63eb4feb3e8d33cc"
    }
   },
@@ -490,10 +460,11 @@
   },
   {
    "key": "func WorkoutThreshold.parseGrade(_:)",
-   "hash": "9581b52ac6f9b08f",
-   "does": "First '<number> <percent word>' → gradePercent cue with inferred condition, debounce 10, cooldown 180.",
+   "hash": "2cef3edc8144d566",
+   "does": "Rejects text mentioning a heart-rate or bpm word (a % of heart rate is not a grade); otherwise first '<number> <percent word>' → gradePercent cue with inferred condition, debounce 10, cooldown 180.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.CueText.mentions(_:)",
     "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.CueText.words(_:leading:)",
     "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.captures(_:in:)",
     "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.value(_:)",
@@ -504,13 +475,19 @@
    "writes": [],
    "branches": [
     {
-     "at": "+2",
+     "at": "+1",
+     "cond": "text mentions heartRate or beatsPerMinute words",
+     "effect": "nil (caller rejects the text)"
+    },
+    {
+     "at": "+3",
      "cond": "no number+percent match",
      "effect": "nil"
     }
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.CueText.mentions(_:)": "3ac6b6ea0463c01b",
     "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.CueText.words(_:leading:)": "854910a9fd3170da",
     "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.captures(_:in:)": "8cce256368cb1acf",
     "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.value(_:)": "63eb4feb3e8d33cc",
@@ -579,12 +556,12 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parseDistance(_:)": "d9052ac514049075",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parseDistance(_:)": "2bf7e99c1fa2c937",
     "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parseElapsed(_:)": "60e225df6f88b775",
     "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parseElevation(_:)": "ab6f808aa0df3a1d",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parseGrade(_:)": "924a8ba5c437d9a3",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parseGrade(_:)": "ea48b87a9f8eba1a",
     "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parseHeartRate(_:)": "9d6d377985f26009",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parseKShorthand(_:)": "f9e55204d41de825",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parseKShorthand(_:)": "7693daec8001bcc4",
     "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parsePowerFTP(_:)": "c97e2d3b53f8ee42",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
    }

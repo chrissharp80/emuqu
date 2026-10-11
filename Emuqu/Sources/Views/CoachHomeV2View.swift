@@ -35,10 +35,10 @@ struct CoachHomeV2View: View {
     /// per cascade × three cascades = 630 ms of main-thread disk
     /// I/O just from opening the tab. The keyboard's safeArea
     /// change re-evaluates `body` and pays the same cost on every
-    /// focus event. So we precompute the strings async and feed
-    /// them through `@State`; body just reads two strings.
-    @State private var recoveryChipText: String?
-    @State private var workoutChipText: String?
+    /// focus event. So we precompute the chip data async and feed
+    /// it through `@State`; body only formats two short strings.
+    @State private var recoveryChipData: RecoveryChipData?
+    @State private var workoutChipData: WorkoutChipData?
 
     enum ContextChipKind: Hashable {
         case recovery
@@ -88,8 +88,8 @@ struct CoachHomeV2View: View {
             .sheet(isPresented: $showingPromptSheet) {
                 CoachSuggestedPromptsSheet(categories: suggestedPromptsCategorized) { prompt in
                     showingPromptSheet = false
-                    dependencies.assistant.assistantInbox.pendingDraft = prompt
-                    dependencies.assistant.assistantInbox.requestOpen()
+                    assistantInbox.pendingDraft = prompt
+                    assistantInbox.requestOpen()
                 }
                 .presentationDetents([.medium, .large])
             }
@@ -175,7 +175,12 @@ struct CoachHomeV2View: View {
     private var contextChipStrip: some View {
         let _ = dependencies.app.keyboardPerfSignpost.event("CoachHomeV2View.contextChipStrip")
         return ScrollView(.horizontal, showsIndicators: false) {
-            contextChips
+            // Re-rendered once a minute so the "2 hr. ago" part stays current
+            // while the tab stays open; the loader below only reruns when the
+            // archive changes.
+            TimelineView(.everyMinute) { context in
+                contextChips(now: context.date)
+            }
         }
         .background(AppTheme.background)
         // Refresh on archive change. The id ties this
@@ -188,13 +193,13 @@ struct CoachHomeV2View: View {
         }
     }
 
-    private var contextChips: some View {
+    private func contextChips(now: Date) -> some View {
         HStack(spacing: 8) {
-            if let recoveryChipText {
-                chipButton(label: recoveryChipText, kind: .recovery)
+            if let recoveryChipData {
+                chipButton(label: recoveryChipData.label(now: now), kind: .recovery)
             }
-            if let workoutChipText {
-                chipButton(label: workoutChipText, kind: .lastWorkout)
+            if let workoutChipData {
+                chipButton(label: workoutChipData.label(now: now), kind: .lastWorkout)
             }
             ForEach(modeChips, id: \.self) { mode in
                 chipButton(label: mode, kind: .modeFlag(mode))
@@ -225,51 +230,80 @@ struct CoachHomeV2View: View {
     // MARK: - Context-chip data
 
     /// Async loader for the context chips. Uses
-    /// `recentSessionsAsync(limit:)` which deserializes on a
-    /// detached `Task`, off the main thread, and uses the
-    /// lightweight retrieval path (skips rrSeries). One round-trip
-    /// for both chips so we don't double-walk the archive index.
+    /// `recentSessionsAsync(limit:before:type:)`, which deserializes on a
+    /// detached `Task`, off the main thread, through the lightweight
+    /// retrieval path (skips rrSeries). Each chip reads only its own session
+    /// type, so a run of workouts or spot-checks cannot push the last good
+    /// night out of the window, nor a run of nights the last workout.
     private func loadChipData() async {
-        let recent = await collector.recentSessionsAsync(limit: 8)
-        let recovery = Self.recoveryChip(recent, baselineNights: collector.baselineTracker.daysCollected)
-        let workout = Self.workoutChip(recent)
+        let nights = await collector.recentSessionsAsync(limit: Self.chipSessionLimit, before: .distantFuture, type: .overnight)
+        let workouts = await collector.recentSessionsAsync(limit: Self.chipSessionLimit, before: .distantFuture, type: .workout)
+        let recovery = Self.recoveryChip(nights, baselineNights: collector.baselineTracker.daysCollected)
+        let workout = Self.workoutChip(workouts)
         await MainActor.run {
-            self.recoveryChipText = recovery
-            self.workoutChipText = workout
+            self.recoveryChipData = recovery
+            self.workoutChipData = workout
         }
     }
 
-    /// The coach chip must show the latest RELIABLE overnight
-    /// recovery, not merely `recent.first` (which could be a workout, a quick
-    /// spot-check, or an untrustworthy `.insufficient`/`.preSleep` partial).
-    /// Mirrors the dashboard's `latestOvernightComplete`. That night can be
-    /// days old, so the chip names when it was recorded instead of "today".
-    /// Like the dashboard ring, it shows no score until the baseline is in
+    /// Newest sessions of each type the chips look through.
+    private static let chipSessionLimit = 8
+
+    /// The coach chip must show the latest RELIABLE overnight recovery, picked
+    /// exactly as the dashboard hero picks it
+    /// (`DashboardSessionPolicy.latestOvernightComplete`: the most recent
+    /// night's longest reliable, analysed overnight), so a split night shows
+    /// the same score in both places. That night can be days old, so the chip
+    /// names when it was recorded instead of "today". Like the dashboard ring,
+    /// it shows no score until the baseline is in
     /// (`ScoreAppearancePolicy.showsScore`).
-    private static func recoveryChip(_ recent: [HRVSession], baselineNights: Int) -> String? {
-        guard ScoreAppearancePolicy.showsScore(baselineNights: baselineNights) else { return nil }
-        guard let latest = recent.first(where: {
-            $0.sessionType == .overnight && $0.isReliableForHRVAggregates && $0.recoveryScore != nil
-        }), let score = latest.recoveryScore else { return nil }
-        let scaled = ScoreVerdict.safeDisplayScore(score * 10)
-        let when = relativeWhen(latest.startDate)
-        return String(localized: "Recovery \(scaled) · \(when)", bundle: LanguageManager.appBundle)
+    private static func recoveryChip(_ nights: [HRVSession], baselineNights: Int) -> RecoveryChipData? {
+        guard ScoreAppearancePolicy.showsScore(baselineNights: baselineNights),
+              let latest = DashboardSessionPolicy.latestOvernightComplete(in: nights, calendar: .current),
+              let score = latest.recoveryScore else { return nil }
+        return RecoveryChipData(score: ScoreVerdict.safeDisplayScore(score * 10), recordedAt: latest.startDate)
     }
 
-    private static func relativeWhen(_ date: Date) -> String {
+    nonisolated private static func relativeWhen(_ date: Date, now: Date) -> String {
         let f = RelativeDateTimeFormatter()
         f.locale = LanguageManager.appLocale
         f.unitsStyle = .abbreviated
-        return f.localizedString(for: date, relativeTo: Date())
+        return f.localizedString(for: date, relativeTo: now)
     }
 
-    private static func workoutChip(_ recent: [HRVSession]) -> String? {
-        guard let last = recent.first(where: { $0.sessionType == .workout && $0.workoutMetadata != nil }),
+    /// A workout with no distance is "indoor" only for a sport that has no
+    /// GPS; an outdoor sport whose distance was not recorded (location
+    /// denied) shows "—".
+    private static func workoutChip(_ workouts: [HRVSession]) -> WorkoutChipData? {
+        guard let last = workouts.first(where: { $0.workoutMetadata != nil }),
               let meta = last.workoutMetadata else { return nil }
         let dist = meta.distanceMeters.map { UnitsPreferenceStore.current.formatDistance(meters: $0) }
-            ?? String(localized: "indoor", bundle: LanguageManager.appBundle)
-        let when = relativeWhen(last.startDate)
-        return String(localized: "Last workout: \(meta.sport.localizedName) · \(dist) · \(when)", bundle: LanguageManager.appBundle)
+            ?? (meta.sport.usesGPS ? "—" : String(localized: "indoor", bundle: LanguageManager.appBundle))
+        return WorkoutChipData(sportName: meta.sport.localizedName, distance: dist, recordedAt: last.startDate)
+    }
+
+    /// The recovery chip's score and when its night was recorded; the
+    /// relative time is formatted at render so it does not go stale.
+    private struct RecoveryChipData: Equatable {
+        let score: Int
+        let recordedAt: Date
+
+        func label(now: Date) -> String {
+            let when = CoachHomeV2View.relativeWhen(recordedAt, now: now)
+            return String(localized: "Recovery \(score) · \(when)", bundle: LanguageManager.appBundle)
+        }
+    }
+
+    /// The last-workout chip's parts; the relative time is formatted at render.
+    private struct WorkoutChipData: Equatable {
+        let sportName: String
+        let distance: String
+        let recordedAt: Date
+
+        func label(now: Date) -> String {
+            let when = CoachHomeV2View.relativeWhen(recordedAt, now: now)
+            return String(localized: "Last workout: \(sportName) · \(distance) · \(when)", bundle: LanguageManager.appBundle)
+        }
     }
 
     private var modeChips: [String] {

@@ -82,13 +82,14 @@ final class MorningResultsViewModel {
     /// persist both. The card only appears when the recording could not supply
     /// HRV, so the score stands the baseline in for the HRV factor and blends
     /// the rating into it (`ScoringWeights.PerceivedReadiness`, 70/30).
+    /// A nil value clears the rating and is persisted the same way.
     func updatePerceivedReadiness(_ value: Double?) {
-        var updated = displaySession
+        let shown = displaySession
+        var updated = shown
         updated.perceivedReadiness = value
         applyPerceivedReadinessScore(to: &updated)
         reanalyzedSession = updated
-        guard let value else { return }
-        persistPerceivedReadiness(value, scored: updated)
+        persistPerceivedReadiness(value, scored: updated, revertTo: shown)
     }
 
     /// Re-score an unreliable night with its perceived-readiness answer, using
@@ -103,7 +104,7 @@ final class MorningResultsViewModel {
             RecoveryScoreCalculator.ScoreInputs(
                 hrvReadiness: analysis.ansMetrics?.readinessScore, rmssd: analysis.timeDomain.rmssd,
                 meanHR: analysis.timeDomain.meanHR, dfaAlpha1: analysis.nonlinear.dfaAlpha1,
-                baselineStats: baselineStats, sleepData: session.sleepSnapshot ?? healthKitSleep,
+                baselineStats: baselineStats, sleepData: session.sleepSnapshot,
                 vitals: ReanalysisService.scoringVitals(of: session, result: analysis),
                 typicalSleepHours: settings.typicalSleepHours
             ),
@@ -118,22 +119,63 @@ final class MorningResultsViewModel {
         )
     }
 
-    /// Write the rating and the score it produced to the archive, off main.
-    private func persistPerceivedReadiness(_ value: Double, scored: HRVSession) {
+    /// Write the rating, and the score it gives the archived copy, to the
+    /// archive. The copy is read off main and re-scored here from its own
+    /// inputs; the write then changes only the rating and score fields under
+    /// the archive lock, so a sleep or score update that landed meanwhile is
+    /// kept. On success the screen shows that copy; on failure it goes back to
+    /// what it showed before, so it never shows a rating the archive lacks.
+    private func persistPerceivedReadiness(_ value: Double?, scored: HRVSession, revertTo previous: HRVSession) {
         let sessionId = session.id
-        Task.detached {
-            let archive = AppDependencies.current.storage.sessionArchive
-            do {
-                var stored = try archive.retrieve(sessionId) ?? scored
-                stored.perceivedReadiness = value
-                stored.recoveryScore = scored.recoveryScore
-                stored.scoreBreakdown = scored.scoreBreakdown
-                stored.frozenReadiness = scored.frozenReadiness
-                try archive.archive(stored, skipSameNightMerge: false, requestingReupload: true)
-                debugLog("[MorningResultsVM] Persisted perceivedReadiness=\(String(format: "%.2f", value))")
-            } catch {
-                debugLog("[MorningResultsVM] Failed to persist perceivedReadiness: \(error)")
+        Task {
+            let archived = await Task.detached { Self.loadArchived(sessionId) }.value
+            var rescored = archived.session ?? scored
+            rescored.perceivedReadiness = value
+            applyPerceivedReadinessScore(to: &rescored)
+            let toWrite = rescored
+            let isArchived = archived.session != nil
+            let readable = archived.readable
+            let saved = await Task.detached {
+                readable && Self.writePerceivedReadiness(toWrite, isArchived: isArchived)
+            }.value
+            guard reanalyzedSession?.perceivedReadiness == value else { return }
+            if saved { adoptArchivedSession(toWrite) } else { reanalyzedSession = previous }
+        }
+    }
+
+    /// The archived copy of the session (nil when it is not archived yet), and
+    /// whether the archive could be read at all.
+    nonisolated private static func loadArchived(_ id: UUID) -> (session: HRVSession?, readable: Bool) {
+        do {
+            let stored = try AppDependencies.current.storage.sessionArchive.retrieve(id)
+            return (stored, true)
+        } catch {
+            debugLog("[MorningResultsVM] Could not read session to persist perceivedReadiness: \(error)", level: .warning)
+            return (nil, false)
+        }
+    }
+
+    /// Store the rating and score fields of `rescored`: in place on the
+    /// archived copy (`SessionArchive.update`), or by archiving `rescored`
+    /// whole when the session is not archived yet. False when the write threw.
+    nonisolated private static func writePerceivedReadiness(_ rescored: HRVSession, isArchived: Bool) -> Bool {
+        let archive = AppDependencies.current.storage.sessionArchive
+        do {
+            if isArchived {
+                try archive.update(rescored.id) { stored in
+                    stored.perceivedReadiness = rescored.perceivedReadiness
+                    stored.recoveryScore = rescored.recoveryScore
+                    stored.scoreBreakdown = rescored.scoreBreakdown
+                    stored.frozenReadiness = rescored.frozenReadiness
+                }
+            } else {
+                try archive.archive(rescored, skipSameNightMerge: false, requestingReupload: true)
             }
+            debugLog("[MorningResultsVM] Persisted perceivedReadiness=\(rescored.perceivedReadiness.map { String(format: "%.2f", $0) } ?? "nil")")
+            return true
+        } catch {
+            debugLog("[MorningResultsVM] Failed to persist perceivedReadiness: \(error)", level: .warning)
+            return false
         }
     }
 
@@ -173,19 +215,22 @@ final class MorningResultsViewModel {
     /// No frozen score yet (pre-acceptance) — calculate live. Includes the
     /// ANS-balance term so this live number matches the score the acceptance
     /// path freezes; otherwise the hero number visibly jumps on "Accept".
+    /// Scored as of the session's own date, as the perceived-readiness
+    /// re-score is, so a past night's live score does not depend on the day
+    /// the report is opened.
     private var liveRecoveryScore: Double {
         let trainingContext = displaySession.trainingSnapshot ?? displayResult.trainingContext
-        return RecoveryScoreCalculator.calculate(
+        let composite = RecoveryScoreCalculator.calculateWithBreakdown(
             RecoveryScoreCalculator.ScoreInputs(
                 hrvReadiness: displayResult.ansMetrics?.readinessScore, rmssd: displayResult.timeDomain.rmssd,
                 meanHR: displayResult.timeDomain.meanHR, dfaAlpha1: displayResult.nonlinear.dfaAlpha1,
                 baselineStats: baselineStats, sleepData: healthKitSleep, vitals: recoveryVitals,
                 typicalSleepHours: settings.typicalSleepHours
             ),
-            trainingContext: trainingContext,
-            config: scoringConfig,
-            ansBalance: liveAnsBalance
-        )
+            trainingContext: trainingContext, config: scoringConfig,
+            ansBalance: liveAnsBalance, referenceDate: sessionReferenceDate
+        ).compositeScore
+        return ScoreVerdict.clampedDisplayScore(composite)
     }
 
     /// ANS-balance term (pns − sns) for pre-acceptance live scoring, matching
@@ -213,7 +258,8 @@ final class MorningResultsViewModel {
     /// Re-score from what's on screen right now. Prefers frozen snapshots when
     /// available so the breakdown matches the frozen composite score — the
     /// snapshot contains user adjustments (excluded segments) and is the
-    /// scoring source of truth.
+    /// scoring source of truth. Scored as of the session's own date, like
+    /// `liveRecoveryScore`.
     private func liveBreakdown() -> RecoveryScoreCalculator.ScoreBreakdown {
         let trainingContext = displaySession.trainingSnapshot ?? displayResult.trainingContext
         let effectiveSleep = displaySession.sleepSnapshot ?? healthKitSleep
@@ -227,7 +273,8 @@ final class MorningResultsViewModel {
             ),
             trainingContext: trainingContext,
             config: scoringConfig,
-            ansBalance: liveAnsBalance
+            ansBalance: liveAnsBalance,
+            referenceDate: sessionReferenceDate
         )
     }
 
@@ -235,6 +282,8 @@ final class MorningResultsViewModel {
     /// have been computed with different baseline stats, so the live composite
     /// can diverge. Pin the breakdown composite to the frozen score so the
     /// message and factor display are consistent with the displayed number.
+    /// The pinned composite came from no recorded algorithm version, so the
+    /// breakdown says `unversioned` rather than this build's version.
     private func pinnedToFrozenScore(
         _ live: RecoveryScoreCalculator.ScoreBreakdown
     ) -> RecoveryScoreCalculator.ScoreBreakdown {
@@ -246,7 +295,8 @@ final class MorningResultsViewModel {
             tier: live.tier,
             factors: live.factors,
             penalties: live.penalties,
-            spo2PenaltyApplied: live.spo2PenaltyApplied
+            spo2PenaltyApplied: live.spo2PenaltyApplied,
+            scoringVersion: ScoringVersion.unversioned
         )
     }
 
@@ -273,21 +323,44 @@ final class MorningResultsViewModel {
     /// Hash of everything `summaryGenerator` reads that can change while the
     /// report is open, including the language it is written in, so switching
     /// the app language regenerates the summary instead of showing the old one.
+    /// `recentSessions` is a `let` and cannot change, so it is left out.
     private func summaryKey(readiness: LiveReadiness?) -> Int {
         var hasher = Hasher()
         hasher.combine(AnalysisSummaryCache.fingerprint(for: displaySession))
         hasher.combine(NarrativeLanguage.isEnglish)
         hasher.combine(LanguageManager.appLocale.identifier)
         hasher.combine(selectedTags)
-        hasher.combine(healthKitSleep?.nightSleepMinutes)
-        hasher.combine(healthKitSleep?.deepSleepMinutes)
-        hasher.combine(sleepTrendStats?.averageSleepMinutes)
-        hasher.combine(sleepTrendStats?.nightsAnalyzed)
+        combineSleepInputs(into: &hasher)
         hasher.combine(baselineStats?.lnRmssdMean)
         hasher.combine(baselineStats?.meanHRBaseline)
         hasher.combine(readiness?.score)
         hasher.combine(readiness?.todayTrimp)
+        combineLiveLoad(adviceLiveLoad, into: &hasher)
         return hasher.finalize()
+    }
+
+    /// Every sleep and sleep-trend field the generator reads, as it reads them.
+    private func combineSleepInputs(into hasher: inout Hasher) {
+        let sleep = AnalysisSleepInput(from: healthKitSleep)
+        hasher.combine(sleep.totalSleepMinutes)
+        hasher.combine(sleep.inBedMinutes)
+        hasher.combine(sleep.deepSleepMinutes)
+        hasher.combine(sleep.remSleepMinutes)
+        hasher.combine(sleep.awakeMinutes)
+        hasher.combine(sleep.sleepEfficiency)
+        hasher.combine(sleepTrendStats?.averageSleepMinutes)
+        hasher.combine(sleepTrendStats?.nightsAnalyzed)
+    }
+
+    /// The live training load the advice gate reads (nil for a past night).
+    private func combineLiveLoad(_ load: TrainingLoadRegistry.TrainingLoad?, into hasher: inout Hasher) {
+        hasher.combine(load?.atl)
+        hasher.combine(load?.ctl)
+        hasher.combine(load?.tsb)
+        hasher.combine(load?.acwr)
+        hasher.combine(load?.todayTrimp)
+        hasher.combine(load?.monotony)
+        hasher.combine(load?.strain)
     }
 
     /// `liveLoadSnapshot` feeds the cumulative-load gate the live
@@ -443,13 +516,31 @@ final class MorningResultsViewModel {
                 recordingEnd: recoveryWindow.end,
                 rrPoints: session.rrSeries?.points
             )
-            guard let resolved = await resolveSleep(sleep, window: recoveryWindow) else { return }
+            guard let resolved = await resolveSleep(sleep, window: recoveryWindow) else {
+                endSleepLoadingAfterWait()
+                return
+            }
             healthKitSleep = resolved
             isSleepLoading = false
             storeSleepBoundariesIfMeasured(sleep)
         } catch {
             debugLog("[MorningResultsVM] Sleep fetch failed: \(error)")
             isSleepLoading = false
+        }
+    }
+
+    /// How long the sleep card keeps its spinner while today's night has no
+    /// sleep yet, waiting for the Watch to sync, before it shows "--".
+    private static let liveSleepWaitNanoseconds: UInt64 = 60 * 1_000_000_000
+
+    /// Stop the spinner after `liveSleepWaitNanoseconds` unless sleep arrived
+    /// meanwhile. A later refetch (the view's sleep-data and device-fetch
+    /// observers) still fills the card when the Watch syncs.
+    private func endSleepLoadingAfterWait() {
+        Task { [weak self] in
+            await sleepQuietly(Self.liveSleepWaitNanoseconds, context: "morningResultsLiveSleepWait")
+            guard let self, self.healthKitSleep == nil else { return }
+            self.isSleepLoading = false
         }
     }
 
@@ -522,31 +613,48 @@ final class MorningResultsViewModel {
     /// Filtered by session id internally so unrelated archive churn
     /// (other sessions edited, trash empties, etc.) doesn't churn
     /// this view.
+    ///
+    /// Only the latest request is applied: each bump takes a new generation,
+    /// and a retrieve that finishes after a later bump was made is dropped, so
+    /// an older copy never replaces a newer one.
     func applyExternalArchiveUpdate() {
         let sessionId = session.id
-        // Decode off the main actor. This fires on EVERY archive
+        let shown = displaySession
+        archiveUpdateGeneration &+= 1
+        let generation = archiveUpdateGeneration
+        // Decode and compare off the main actor. This fires on EVERY archive
         // signal bump while the Recovery Report sheet is open (dashboard
         // re-analyze, sleep refresh, any other-session edit), and the full
         // retrieve (disk + AES-GCM decrypt + JSON decode) is too heavy for main.
         Task { [weak self] in
-            let stored = await Task.detached { try? AppDependencies.current.storage.sessionArchive.retrieve(sessionId) }.value
-            guard let self, let stored else { return }
-            // Skip the update if nothing material changed — avoids needless
-            // re-renders.
-            if Self.reportsSame(stored, self.displaySession) { return }
+            let stored = await Task.detached { Self.changedArchivedCopy(sessionId, comparedWith: shown) }.value
+            guard let self, let stored, generation == self.archiveUpdateGeneration else { return }
             self.adoptArchivedSession(stored)
             debugLog("[MorningResultsVM] external archive update applied — recoveryScore=\(stored.recoveryScore.map { String(format: "%.1f", $0) } ?? "nil") frozenReadiness=\(stored.frozenReadiness.map { String(format: "%.1f", $0) } ?? "nil")")
         }
     }
 
-    /// Compares the fields the report actually reads.
-    private static func reportsSame(_ lhs: HRVSession, _ rhs: HRVSession) -> Bool {
-        lhs.recoveryScore == rhs.recoveryScore
-            && lhs.frozenReadiness == rhs.frozenReadiness
-            && lhs.scoreBreakdown?.compositeScore == rhs.scoreBreakdown?.compositeScore
-            && lhs.sleepSnapshot?.nightSleepMinutes == rhs.sleepSnapshot?.nightSleepMinutes
-            && lhs.trainingSnapshot?.tsb == rhs.trainingSnapshot?.tsb
-            && lhs.vitalsSnapshot?.respiratoryRate == rhs.vitalsSnapshot?.respiratoryRate
+    /// Bumped by each `applyExternalArchiveUpdate`; a finished retrieve is
+    /// applied only while its generation is still the latest.
+    @ObservationIgnored private var archiveUpdateGeneration = 0
+
+    /// The archived copy when it differs from what the report shows; nil when
+    /// it is unchanged, gone, or unreadable (logged).
+    nonisolated private static func changedArchivedCopy(_ id: UUID, comparedWith shown: HRVSession) -> HRVSession? {
+        guard let stored = AppDependencies.current.storage.sessionArchive.retrieveOrLog(id) else { return nil }
+        return reportsSame(stored, shown) ? nil : stored
+    }
+
+    /// Whether two copies are identical in every stored field, compared by
+    /// their sorted-key encodings: any field the report shows (feeling badge,
+    /// tags, rating, analysis, every snapshot field) counts as a change. A copy
+    /// that fails to encode counts as changed.
+    nonisolated private static func reportsSame(_ lhs: HRVSession, _ rhs: HRVSession) -> Bool {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .sortedKeys
+        guard let lhsData = attempt("morningResults.encodeArchived", { try encoder.encode(lhs) }),
+              let rhsData = attempt("morningResults.encodeShown", { try encoder.encode(rhs) }) else { return false }
+        return lhsData == rhsData
     }
 
     /// Show the archived copy, including the sleep and vitals it was scored

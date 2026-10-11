@@ -1,38 +1,17 @@
 {
  "file": "Emuqu/Sources/Views/RecordView+Actions.swift",
- "hash": "29e0cc3fd94cfdc5",
- "role": "RecordView actions and derived flags (battery bands, start/pause/resume/stop/retry/accept/reject, quick streaming start/stop, session-active flags), plus the RecoveredWorkoutReviewCard trim/save/discard view for a crash-recovered workout and a #Preview.",
+ "hash": "d8ca7b83c25b8b81",
+ "role": "RecordView actions and derived flags (battery bands, start/pause/resume/stop/retry/accept/reject, quick streaming start/stop, session-active flags), the RecordingKeepAwake helper (screen kept on around a strap download when opted in), plus the RecoveredWorkoutReviewCard trim/save/discard view for a crash-recovered workout and a #Preview.",
  "types": [
   "RecordView: extension — actions, battery flags, isSessionActive / isActivelyRecording",
+  "RecordingKeepAwake: enum — keep-awake bracket shared by Stop, Retry and Recover",
   "RecoveredWorkoutReviewCard: struct — View; slider to trim a recovered workout's end, Save/Discard"
  ],
  "state": [
   "mem:RecoveredWorkoutReviewCard.endMinutes (@State)"
  ],
  "toplevel": "#Preview block (lines 244-250) builds RecordView(selectedTab: .constant(.record)) with a fresh RRCollector() and the shared SettingsManager in the environment; preview only.",
- "flags": [
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "applyKeepAwake is a copy of RecordPanels.applyRecoveryKeepAwake (same guard and UIApplication.isIdleTimerDisabled write), and stopInternalRecording/performRetryFetch repeat the same keep-awake read/apply/defer block as RecordPanels.performDeviceRecovery.",
-   "evidence": [
-    "Emuqu/Sources/Views/RecordView+Actions.swift:160",
-    "Emuqu/Sources/Views/RecordView+Panels.swift:605",
-    "Emuqu/Sources/Views/RecordView+Panels.swift:593"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "acceptSession duplicates RecordView.saveMorningReading (persist tags, collector.acceptSession, log on error, clear tags/notes) except saveMorningReading also resets selectedSessionType to nil; the two Save paths leave different picker state.",
-   "evidence": [
-    "Emuqu/Sources/Views/RecordView+Actions.swift:193",
-    "Emuqu/Sources/Views/RecordView+Results.swift:131"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "var RecordView.isBatteryCritical",
@@ -313,7 +292,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "ee98ca364404b3d4",
-    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.stopInternalRecording()": "e8e7f6e5686cc351",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.stopInternalRecording()": "6e1f2cb38d9dd2f3",
     "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.stopOvernightAndApplyOutcome()": "fcfefd6805e324c4"
    }
   },
@@ -339,51 +318,37 @@
   },
   {
    "key": "func RecordView.stopInternalRecording()",
-   "hash": "e93949c1fbc2e9b7",
-   "does": "Optionally keeps the screen awake (user setting), awaits collector.stopSession() (download from strap), applies the outcome with navigation to Dashboard on success; on throw sets fetchFailed. Restores the idle timer in a deferred main-actor Task.",
+   "hash": "618555e13b49622e",
+   "does": "Main actor. Inside RecordingKeepAwake.during, awaits collector.stopSession() (download from strap) and applies the outcome with navigation to Dashboard on success; on throw (strap not connected, which stopSession does not record) sets sessionState.lastError (alert + Retry card reason) and fetchFailed.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.shouldKeepScreenOnDuringRecording",
-    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.applyKeepAwake(_:disabled:)",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordingKeepAwake.during(_:)",
     "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift::func RRCollector.stopSession()",
     "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.stopSession()",
     "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.applyStopOutcome(_:navigateOnSuccess:)"
    ],
    "reads": [
-    "ud:UserSettings.keepScreenOnDuringRecording (via SettingsManager.settings)"
+    "ud:UserSettings.keepScreenOnDuringRecording (via RecordingKeepAwake)"
    ],
    "writes": [
     "mem:RecordView.fetchFailed",
+    "mem:SessionState.lastError",
     "mem:UIApplication.isIdleTimerDisabled"
    ],
    "branches": [
     {
-     "at": "+7",
+     "at": "+5",
      "cond": "catch from stopSession",
-     "effect": "fetchFailed = true. stopSession throws only CollectorError.notConnected (RRCollector+DeviceRecording.swift:87), which is not written to lastError, so the Retry card shows the generic text although the comment says the error is surfaced via lastError"
+     "effect": "lastError = error; fetchFailed = true"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Catch comment says 'Error surfaced via sessionState.lastError', but the only throw from stopSession is notConnected and nothing assigns it to lastError; the RetryFetchCard then shows its generic copy instead of a 'not connected' reason.",
-     "evidence": [
-      "Emuqu/Sources/Views/RecordView+Actions.swift:126",
-      "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift:87"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.stopSession()": "4f7ffc19d99f72c5",
     "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift::func RRCollector.stopSession()": "055081bee048577b",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.shouldKeepScreenOnDuringRecording": "7adf5536ceedbcb9",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.applyKeepAwake(_:disabled:)": "f4b1b93b07c28a3e",
-    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.applyStopOutcome(_:navigateOnSuccess:)": "0ea1e29440d58d49"
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.applyStopOutcome(_:navigateOnSuccess:)": "0ea1e29440d58d49",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordingKeepAwake.during(_:)": "dca166090c784a3a"
    }
   },
   {
@@ -430,82 +395,43 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.performRetryFetch()": "60868be76c449a59"
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.performRetryFetch()": "e8f977eee8449e49"
    }
   },
   {
    "key": "func RecordView.performRetryFetch()",
-   "hash": "54d488329b535e56",
-   "does": "Keeps the screen awake if opted in, sets isRetrying, re-runs the strap download via collector.retryFetchRecording() with errors swallowed by try?, then finishRetry.",
+   "hash": "42560dd9ec9a4dd5",
+   "does": "Main actor. Sets isRetrying, then inside RecordingKeepAwake.during re-runs the strap download via collector.retryFetchRecording() and finishRetry(session); a throw (strap disconnected before the retry started) sets sessionState.lastError and finishRetry(nil).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.shouldKeepScreenOnDuringRecording",
-    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.applyKeepAwake(_:disabled:)",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordingKeepAwake.during(_:)",
     "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.retryFetchRecording()",
     "Emuqu/Sources/Collection/RRCollector+Recovery.swift::func SessionRecoveryCoordinator.retryFetchRecording()",
     "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.finishRetry(_:)"
    ],
    "reads": [
-    "ud:UserSettings.keepScreenOnDuringRecording (via SettingsManager.settings)"
+    "ud:UserSettings.keepScreenOnDuringRecording (via RecordingKeepAwake)"
    ],
    "writes": [
     "mem:RecordView.isRetrying",
-    "mem:UIApplication.isIdleTimerDisabled"
-   ],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "try? discards the error from retryFetchRecording (CollectorError.notConnected), so a retry that cannot even start just ends with the same generic card; the Retry button is disabled when disconnected, which limits this to a disconnect between tap and call.",
-     "evidence": [
-      "Emuqu/Sources/Views/RecordView+Actions.swift:154"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::func SessionRecoveryCoordinator.retryFetchRecording()": "d19aadfb389a61dc",
-    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.retryFetchRecording()": "6a035806d3377bc2",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.shouldKeepScreenOnDuringRecording": "7adf5536ceedbcb9",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.applyKeepAwake(_:disabled:)": "f4b1b93b07c28a3e",
-    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.finishRetry(_:)": "0acd89dd109da480"
-   }
-  },
-  {
-   "key": "func RecordView.applyKeepAwake(_:disabled:)",
-   "hash": "6f6826e02207e6b8",
-   "does": "Sets UIApplication.isIdleTimerDisabled only when the user opted into keep-awake.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [
+    "mem:SessionState.lastError",
     "mem:UIApplication.isIdleTimerDisabled"
    ],
    "branches": [
     {
-     "at": "+2",
-     "cond": "keepAwake",
-     "effect": "false: returns without touching the idle timer; true: writes isIdleTimerDisabled = disabled"
+     "at": "+8",
+     "cond": "catch from retryFetchRecording",
+     "effect": "lastError = error; finishRetry(nil) (card stays, isRetrying cleared)"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "applyKeepAwake is a copy of RecordPanels.applyRecoveryKeepAwake (same guard and UIApplication.isIdleTimerDisabled write), and stopInternalRecording/performRetryFetch repeat the same keep-awake read/apply/defer block as RecordPanels.performDeviceRecovery.",
-     "evidence": [
-      "Emuqu/Sources/Views/RecordView+Actions.swift:160",
-      "Emuqu/Sources/Views/RecordView+Panels.swift:605",
-      "Emuqu/Sources/Views/RecordView+Panels.swift:593"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::func SessionRecoveryCoordinator.retryFetchRecording()": "d19aadfb389a61dc",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.retryFetchRecording()": "6a035806d3377bc2",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.finishRetry(_:)": "0acd89dd109da480",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordingKeepAwake.during(_:)": "dca166090c784a3a"
+   }
   },
   {
    "key": "func RecordView.finishRetry(_:)",
@@ -560,56 +486,40 @@
   },
   {
    "key": "func RecordView.stopStreaming()",
-   "hash": "437bf780cfbc4a28",
-   "does": "Task: awaits collector.stopStreamingSession(); when a session came back and the user picked tags or wrote notes, writes them to the archive (notes nil when empty).",
+   "hash": "6030a36782663645",
+   "does": "Task: awaits collector.stopStreamingSession(); for a complete (archived) reading, writes the picked tags/notes through persistTagsAndNotes (morning tag added 04:00-09:59, currentSession updated in memory as well as the archive). A failed or nil reading gets none.",
    "entry": "Stop-now button in StreamingProgressPanel and RRCollector.onStreamingComplete when the countdown expires (StreamingLiveView.swift:36)",
    "calls": [
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.stopStreamingSession()",
     "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.stopStreamingSession()",
-    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.writeTagsToArchive(_:tags:notes:)"
+    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.persistTagsAndNotes(for:)"
    ],
    "reads": [
     "mem:RecordView.selectedTags",
     "mem:RecordView.sessionNotes"
    ],
    "writes": [
-    "archive:SessionArchive.updateTags"
+    "archive:SessionArchive.updateTags",
+    "mem:SessionState.currentSession"
    ],
    "branches": [
     {
      "at": "+3",
-     "cond": "session non-nil",
-     "effect": "nil: return, nothing written"
-    },
-    {
-     "at": "+4",
-     "cond": "selectedTags non-empty || sessionNotes non-empty",
-     "effect": "false: return; true: writeTagsToArchive(session.id, tags, notes or nil)"
+     "cond": "session non-nil and state == .complete",
+     "effect": "false: return, nothing written; true: persistTagsAndNotes(for: session)"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "stopStreaming writes the raw selectedTags straight to the archive, bypassing persistTagsAndNotes, so a quick reading that ends between 04:00 and 10:00 never gets the automatic .morning tag that every other save path adds (tagsToSave), and currentSession's in-memory tags/notes are not updated (applyTagsInMemory is skipped).",
-     "evidence": [
-      "Emuqu/Sources/Views/RecordView+Actions.swift:189",
-      "Emuqu/Sources/Views/RecordView+Results.swift:155",
-      "Emuqu/Sources/Views/RecordView+Results.swift:174"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.stopStreamingSession()": "acb4f2d2d409ba19",
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.stopStreamingSession()": "be73d91403ece112",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.stopStreamingSession()": "0515ef495eff3e89",
-    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.writeTagsToArchive(_:tags:notes:)": "005c3e40bf61c250"
+    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.persistTagsAndNotes(for:)": "5713c469fe1f8006"
    }
   },
   {
    "key": "func RecordView.acceptSession()",
-   "hash": "8b7248d55afe2986",
-   "does": "Task: persists tags/notes onto the current session, accepts it in the collector (error logged only), then clears tags and notes.",
+   "hash": "5e18b21b422572eb",
+   "does": "Save for a reading awaiting acceptance (Save button, morning sheet Done, Continue to Dashboard): Task persists tags/notes onto the current session, accepts it in the collector (error logged only), then clears tags, notes and selectedSessionType.",
    "entry": "Save button in RecordView.acceptanceButtons (RecordView+Sections.swift:34)",
    "calls": [
     "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.persistTagsAndNotes(for:)",
@@ -623,7 +533,8 @@
    "writes": [
     "archive:SessionArchive.updateTags",
     "mem:RecordView.selectedTags",
-    "mem:RecordView.sessionNotes"
+    "mem:RecordView.sessionNotes",
+    "mem:RecordView.selectedSessionType"
    ],
    "branches": [
     {
@@ -637,23 +548,12 @@
      "effect": "error logged here; a runAcceptance failure was already written to lastError by the pipeline (RRCollector+Acceptance.swift:15) so the Error alert shows; noSessionToAccept is not surfaced; tags/notes are cleared either way (already applied to currentSession in memory)"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "acceptSession duplicates RecordView.saveMorningReading (persist tags, collector.acceptSession, log on error, clear tags/notes) except saveMorningReading also resets selectedSessionType to nil; the two Save paths leave different picker state.",
-     "evidence": [
-      "Emuqu/Sources/Views/RecordView+Actions.swift:193",
-      "Emuqu/Sources/Views/RecordView+Results.swift:131"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.acceptSession()": "7e9ea7e8d0cd3f8d",
     "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.acceptSession()": "800c03c657c5beae",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.persistTagsAndNotes(for:)": "6e96678f241ddc07"
+    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.persistTagsAndNotes(for:)": "5713c469fe1f8006"
    }
   },
   {
@@ -728,6 +628,54 @@
    }
   },
   {
+   "key": "func RecordingKeepAwake.during(_:)",
+   "hash": "fefa8a65bd29a460",
+   "does": "Main actor. Reads settings.shouldKeepScreenOnDuringRecording, disables the idle timer when opted in, awaits the work closure, then restores the idle timer (again only when opted in).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.shouldKeepScreenOnDuringRecording",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordingKeepAwake.apply(_:disabled:)",
+    "closure:work"
+   ],
+   "reads": [
+    "ud:UserSettings.keepScreenOnDuringRecording (via SettingsManager.settings)"
+   ],
+   "writes": [
+    "mem:UIApplication.isIdleTimerDisabled"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.shouldKeepScreenOnDuringRecording": "7adf5536ceedbcb9",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordingKeepAwake.apply(_:disabled:)": "c2f1b06da18fb9ba"
+   }
+  },
+  {
+   "key": "func RecordingKeepAwake.apply(_:disabled:)",
+   "hash": "47ede1d1a01480d7",
+   "does": "Sets UIApplication.isIdleTimerDisabled only when the user opted in, so an opt-out session never clears a workout that holds the timer disabled.",
+   "entry": null,
+   "calls": [
+    "ext:UIApplication.isIdleTimerDisabled"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:UIApplication.isIdleTimerDisabled"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "keepAwake",
+     "effect": "false: return without touching the idle timer"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
    "key": "init RecoveredWorkoutReviewCard(review:onSave:onDiscard:)",
    "hash": "e79dd070e6740a6c",
    "does": "Stores review and closures; seeds the slider @State endMinutes with max(1, round(durationSec/60)).",
@@ -752,6 +700,22 @@
    "branches": [],
    "flags": [],
    "deps": {}
+  },
+  {
+   "key": "var RecoveredWorkoutReviewCard.keptMinutes",
+   "hash": "24b5effa30ef9c7b",
+   "does": "Whole minutes the save keeps: chosenEndSec / 60 rounded, at least 1. The slider can sit past a recording under 90 s, so the summary reads this rather than the slider.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Actions.swift::var RecoveredWorkoutReviewCard.chosenEndSec"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecordView+Actions.swift::var RecoveredWorkoutReviewCard.chosenEndSec": "c19fd2841d82e73e"
+   }
   },
   {
    "key": "var RecoveredWorkoutReviewCard.chosenEndSec",
@@ -831,7 +795,7 @@
     "Emuqu/Sources/Views/RecordView+Actions.swift::var RecoveredWorkoutReviewCard.actionRow": "31352c18fb774c48",
     "Emuqu/Sources/Views/RecordView+Actions.swift::var RecoveredWorkoutReviewCard.header": "5a0cae8786db80fa",
     "Emuqu/Sources/Views/RecordView+Actions.swift::var RecoveredWorkoutReviewCard.maxMinutes": "d8d9f057790e7d85",
-    "Emuqu/Sources/Views/RecordView+Actions.swift::var RecoveredWorkoutReviewCard.summaryLine": "71b8256b4633f00f",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::var RecoveredWorkoutReviewCard.summaryLine": "f1d0196558d7770e",
     "Emuqu/Sources/Views/RecordView+Actions.swift::var RecoveredWorkoutReviewCard.trimHint": "415538b3876a31e0"
    }
   },
@@ -854,33 +818,22 @@
   },
   {
    "key": "var RecoveredWorkoutReviewCard.summaryLine",
-   "hash": "bf146eb587426101",
-   "does": "'<sport> · <endMinutes> min<distance> · avg HR <avgHR>' caption. Distance and avg HR are for the full untrimmed recording, not the trimmed span.",
+   "hash": "36baf042c1b082fa",
+   "does": "'<sport> · <keptMinutes> min<distance> · avg HR <avgHR>' caption. Distance and avg HR are for the full untrimmed recording, not the trimmed span.",
    "entry": "SwiftUI subview",
    "calls": [
+    "Emuqu/Sources/Views/RecordView+Actions.swift::var RecoveredWorkoutReviewCard.keptMinutes",
     "Emuqu/Sources/Views/RecordView+Actions.swift::var RecoveredWorkoutReviewCard.distanceText",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "For a recording under 90 s, maxMinutes is 2 while the untrimmed value is 1, so the slider can be dragged to 2 and the summary reads '2 min' although chosenEndSec then saves the recording's own (shorter) duration.",
-     "evidence": [
-      "Emuqu/Sources/Views/RecordView+Actions.swift:274",
-      "Emuqu/Sources/Views/RecordView+Actions.swift:281",
-      "Emuqu/Sources/Views/RecordView+Actions.swift:282",
-      "Emuqu/Sources/Views/RecordView+Actions.swift:324"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/RecordView+Actions.swift::var RecoveredWorkoutReviewCard.distanceText": "556e9926aafc143a",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::var RecoveredWorkoutReviewCard.keptMinutes": "ee7740a431d1263c",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
    }
   },

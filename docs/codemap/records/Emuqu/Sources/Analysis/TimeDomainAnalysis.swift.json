@@ -9,27 +9,14 @@
   "mem:TimeDomainAnalyzer.localMedianWindow (static let 10)",
   "mem:TimeDomainAnalyzer.recordingBreakToleranceMs (static let 2000)"
  ],
- "toplevel": "Two private static constants: localMedianWindow=10 (mirrors WindowSelection.Config.localMedianWindow) and recordingBreakToleranceMs=2000.",
- "flags": [
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "ectopicKeepMask/isWithinLocalMedian re-implement WindowSelector.ectopicKeepMask (sorted sliding window) with a separate constant (localMedianWindow=10 vs config.localMedianWindow, HRVThresholds.ectopicThresholdPercent vs config.ectopicThresholdPercent); nothing ties the two if the selector config changes.",
-   "evidence": [
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift:143",
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift:152",
-    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift:48",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:46"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "Two private static constants: localMedianWindow=10 (the one ectopic gate's neighbourhood; the window selector calls ectopicKeepMask itself) and recordingBreakToleranceMs=2000.",
+ "flags": [],
  "units": [
   {
    "key": "func TimeDomainAnalyzer.rmssd(fromCleanRRs:)",
    "hash": "8b1febdc20a34ae9",
-   "does": "RMSSD over a pre-cleaned RR array: sqrt(mean of squared successive diffs), nil for <2 beats or non-finite result.",
-   "entry": null,
+   "does": "RMSSD over a pre-cleaned RR array as given: sqrt(mean of squared successive diffs), nil for <2 beats or non-finite result. The pure Task Force formula with no ectopic gate or adjacency check — the reference the RMSSD estimators are validated against (RMSSDEstimatorTests, HRVReferenceValidationTests, ScoringCharacterizationTests, docs/hrv-reference-data.md); computeTimeDomain does not call it.",
+   "entry": "XCTest and the HRV reference-data validation (docs/hrv-reference-data.md): a test-side reference implementation by design",
    "calls": [
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.finiteOrNil(_:)"
    ],
@@ -47,29 +34,7 @@
      "effect": "accumulates squared diffs"
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Only tests call rmssd(fromCleanRRs:) (grep: EmuquTests/RMSSDEstimatorTests, ScoringCharacterizationTests, HRVReferenceValidationTests). Its doc claims it is used by computeTimeDomain, the live chart and PDF sections; none of them call it (computeTimeDomain uses rootMeanSquare of adjacentDifferences).",
-     "evidence": [
-      "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift:8",
-      "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift:16",
-      "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift:246"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Doc says 'Shared helper used by the canonical computeTimeDomain path AND by the live-chart / PDF-sections call sites'; computeTimeDomain (208-253) never calls it.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift:9",
-      "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift:230"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.finiteOrNil(_:)": "6e844c5f4bcbd17e"
    }
@@ -309,14 +274,14 @@
   },
   {
    "key": "func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)",
-   "hash": "1d2e5f72ed641990",
-   "does": "Canonical time-domain metrics for points[windowStart..<windowEnd]: drops flagged artifacts, requires ≥10 clean beats, takes successive diffs only between originally adjacent, ectopic-gate-kept, non-break beats (falling back to ungated adjacent pairs), returns TimeDomainMetrics with HR stats; nil on bad bounds or insufficient data.",
+   "hash": "e6d017411015e854",
+   "does": "Canonical time-domain metrics for points[windowStart..<windowEnd]: drops flagged artifacts, requires ≥10 clean beats, takes successive diffs only between originally adjacent, ectopic-gate-kept, non-break beats (falling back to ungated adjacent pairs), returns TimeDomainMetrics with HR stats (computed with the window's clean RR); nil on bad bounds or insufficient data.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.beatsAfterRecordingBreak(in:range:)",
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.successiveDifferences(of:originalIndices:breaks:)",
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.metrics(cleanRR:diffs:hrStats:)",
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeHRStatistics(series:flags:windowStart:windowEnd:)"
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeHRStatistics(series:flags:windowStart:windowEnd:cleanRR:)"
    ],
    "reads": [],
    "writes": [],
@@ -340,10 +305,9 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.beatsAfterRecordingBreak(in:range:)": "705ef065c9683ac6",
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeHRStatistics(series:flags:windowStart:windowEnd:)": "7c72c210409bd511",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeHRStatistics(series:flags:windowStart:windowEnd:cleanRR:)": "1a859548dc25dece",
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.metrics(cleanRR:diffs:hrStats:)": "d7b17e8c1de6d93f",
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.successiveDifferences(of:originalIndices:breaks:)": "f1761667b0fd7d3c",
-    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)": "c275ddb86778fcf0"
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.successiveDifferences(of:originalIndices:breaks:)": "f1761667b0fd7d3c"
    }
   },
   {
@@ -518,44 +482,14 @@
    }
   },
   {
-   "key": "func TimeDomainAnalyzer.computeHRStatistics(series:flags:windowStart:windowEnd:)",
-   "hash": "bd9d18147c825c23",
-   "does": "HR stats for the window: device-reported HR if any; else rolling 10 s RR windows; else mean-RR fallback.",
+   "key": "func TimeDomainAnalyzer.computeHRStatistics(series:flags:windowStart:windowEnd:cleanRR:)",
+   "hash": "3412633e77d066de",
+   "does": "HR stats for the window: sensor-reported HR when every clean beat carries it (storedHRStatistics); else rolling ~10 s RR windows; else a flat HR from the mean of cleanRR (never empty: computeTimeDomain requires ≥10 clean beats).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.storedHRStatistics(series:flags:windowStart:windowEnd:)",
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rollingWindowHRSamples(series:flags:windowStart:windowEnd:)",
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.meanRRFallback(series:flags:windowStart:windowEnd:)",
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.statistics(of:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+6",
-     "cond": "stored HR stats available",
-     "effect": "true → return them"
-    },
-    {
-     "at": "+10",
-     "cond": "rolling samples non-empty",
-     "effect": "false → meanRRFallback; true → statistics"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.meanRRFallback(series:flags:windowStart:windowEnd:)": "2e89e52f38074db2",
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rollingWindowHRSamples(series:flags:windowStart:windowEnd:)": "c0f6804bf63e9e66",
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.statistics(of:)": "4dc8ce7439211f3b",
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.storedHRStatistics(series:flags:windowStart:windowEnd:)": "fb16b7e8d11dd12c"
-   }
-  },
-  {
-   "key": "func TimeDomainAnalyzer.storedHRStatistics(series:flags:windowStart:windowEnd:)",
-   "hash": "c4caadd81f1f08f1",
-   "does": "Stats of sensor-reported HR on non-artifact points in the window; nil if no point has hr or all such are artifacts.",
-   "entry": null,
-   "calls": [
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.meanRRFallback(cleanRR:)",
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.statistics(of:)"
    ],
    "reads": [],
@@ -563,41 +497,51 @@
    "branches": [
     {
      "at": "+7",
-     "cond": "any point in window has hr",
-     "effect": "false → nil"
+     "cond": "stored HR stats available",
+     "effect": "true → return them"
     },
     {
-     "at": "+9",
-     "cond": "loop over window",
-     "effect": "each index"
+     "at": "+11",
+     "cond": "rolling samples non-empty",
+     "effect": "false → meanRRFallback(cleanRR:); true → statistics"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.meanRRFallback(cleanRR:)": "cdf1ae8303776b45",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rollingWindowHRSamples(series:flags:windowStart:windowEnd:)": "746593a27e452bf9",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.statistics(of:)": "4dc8ce7439211f3b",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.storedHRStatistics(series:flags:windowStart:windowEnd:)": "b971c3634d35c3be"
+   }
+  },
+  {
+   "key": "func TimeDomainAnalyzer.storedHRStatistics(series:flags:windowStart:windowEnd:)",
+   "hash": "2f51afa8f98a8d37",
+   "does": "Stats of sensor-reported HR over the window's non-artifact beats, only when every one of them carries hr; nil when any clean beat lacks it (a merged night whose internal-recording beats have no hr), or when there is no clean beat with hr. The caller then derives HR from all the clean beats' RR.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.statistics(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "loop over non-artifact beats",
+     "effect": "counts them"
     },
     {
      "at": "+10",
-     "cond": "not artifact and hr present",
+     "cond": "beat has hr",
      "effect": "value appended"
     },
     {
-     "at": "+14",
-     "cond": "hrValues non-empty",
-     "effect": "false → nil"
+     "at": "+12",
+     "cond": "hrValues non-empty and every clean beat had hr",
+     "effect": "false → nil; true → statistics"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "storedHRStatistics switches to sensor HR when ANY point in the window has hr (line 370), then averages only the points that have it. In a DataSourceSelector-merged night, internal-recording beats carry hr=nil and only streamed gap-fill beats carry hr, so a window with a few gap-fill beats reports meanHR/min/max from those few beats instead of the whole window; that meanHR feeds the recovery score's resting-HR z-score (comment at 358-360).",
-     "evidence": [
-      "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift:370",
-      "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift:373",
-      "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift:377",
-      "Emuqu/Sources/Collection/DataSourceSelector.swift:274",
-      "Emuqu/Sources/Collection/DataSourceSelector.swift:286",
-      "Emuqu/Sources/Models/RRModels.swift:15"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.statistics(of:)": "4dc8ce7439211f3b"
    }
@@ -605,7 +549,7 @@
   {
    "key": "func TimeDomainAnalyzer.rollingWindowHRSamples(series:flags:windowStart:windowEnd:)",
    "hash": "5e1f215fe4928210",
-   "does": "Collects HR from successive ~10 s windows, stepping start by min(5 beats, window length).",
+   "does": "Collects HR from successive ~10 s windows, each started min(5 beats, window length) after the last; the step is in beats, so overlap is about 50% only near 60 bpm (as the doc now says).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.tenSecondWindowHR(series:flags:from:to:)"
@@ -629,18 +573,7 @@
      "effect": "true → step 5 beats; false → jump to j"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Doc claims 10-second windows at 50% overlap; the step is 5 BEATS, so overlap is 50% only at ~60 bpm (at 50 bpm ~58%, at 90 bpm ~33%).",
-     "evidence": [
-      "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift:381",
-      "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift:394"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.tenSecondWindowHR(series:flags:from:to:)": "af276904011c2b24"
    }
@@ -681,41 +614,18 @@
    }
   },
   {
-   "key": "func TimeDomainAnalyzer.meanRRFallback(series:flags:windowStart:windowEnd:)",
-   "hash": "4e8514f43dac63c7",
-   "does": "Flat HR stats from 60000/mean clean RR; 60 bpm sentinel when no clean beats.",
+   "key": "func TimeDomainAnalyzer.meanRRFallback(cleanRR:)",
+   "hash": "8c0f90a690caa833",
+   "does": "Flat HR stats from 60000 / mean of cleanRR (sd 0, min = max = mean). No sentinel: the caller guarantees a non-empty cleanRR.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "ext:Accelerate.vDSP_meanvD"
+   ],
    "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+7",
-     "cond": "beat not artifact",
-     "effect": "appended"
-    },
-    {
-     "at": "+10",
-     "cond": "cleanRR non-empty",
-     "effect": "false → 60 bpm sentinel (sd 0)"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "The 60 bpm sentinel (the value the storedHRStatistics doc says must not be fabricated) is unreachable: the only caller path (computeTimeDomain) already guarantees ≥10 clean beats.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift:227",
-      "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift:436",
-      "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift:358"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)": "c275ddb86778fcf0"
-   }
+   "branches": [],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "func TimeDomainAnalyzer.statistics(of:)",

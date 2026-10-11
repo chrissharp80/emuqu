@@ -78,6 +78,11 @@ enum SleepRefreshPolicy {
     /// total delta ≥ 20 min, a material onset shift, OR a source upgrade from an
     /// HR guess to Apple (the last always rescores — Apple's authoritative window
     /// must replace the estimate's, regardless of total minutes).
+    ///
+    /// `firstSnapshot` means the first sleep this session gets: no prior
+    /// sleep minutes AND some fresh ones. A prior empty snapshot met by
+    /// another empty reading is not a first fill, so a repeated empty HK
+    /// sync does not force an update and rescore each time.
     static func sleepRefreshVerdict(
         session: HRVSession,
         fresh: SleepData
@@ -86,7 +91,7 @@ enum SleepRefreshPolicy {
         let newMinutes = fresh.nightSleepMinutes
         let priorEnd = session.sleepSnapshot?.sleepEnd ?? .distantPast
         let endMovedLater = (fresh.sleepEnd ?? .distantPast).timeIntervalSince(priorEnd) > 60
-        let firstSnapshot = priorMinutes == 0
+        let firstSnapshot = priorMinutes == 0 && newMinutes > 0
         let onsetMovedMin = onsetMoveMinutes(session: session, fresh: fresh)
         let onsetMovedMaterially = onsetMovedMin >= 15 // beyond typical SOL; shifts the HRV band
         let sourceUpgradedToWatch = isSourceUpgradeToWatch(session: session, fresh: fresh)
@@ -144,14 +149,16 @@ enum SleepRefreshPolicy {
     /// card shows the corrected Apple data — when Apple Watch sleep synced
     /// ~90s LATE and this auto-rescore fired, the display corrected to 343 min
     /// but the score was still computed from a bogus "117 min awake" onset.
-    /// Mirrors `ReanalysisService.updateSessionSleepBoundaries`.
+    /// Mirrors `ReanalysisService.updateSessionSleepBoundaries`. Both
+    /// boundaries are clamped at 0: a sleep end before the session began must
+    /// not become a negative offset, any more than a start may.
     static func applyFreshSleep(_ fresh: SleepData, to session: inout HRVSession) {
         session.sleepSnapshot = fresh
         if let freshStart = fresh.sleepStart {
             session.sleepStartMs = max(0, MillisecondOffset.between(freshStart, and: session.startDate, fallback: 0))
         }
         if let freshEnd = fresh.sleepEnd {
-            session.sleepEndMs = MillisecondOffset.between(freshEnd, and: session.startDate, fallback: 0)
+            session.sleepEndMs = max(0, MillisecondOffset.between(freshEnd, and: session.startDate, fallback: 0))
         }
         // A single-segment night drops any older multi-segment array so it
         // can't disagree with the snapshot just written.
@@ -178,7 +185,7 @@ enum SleepRefreshPolicy {
             session.sleepStartMs = max(0, MillisecondOffset.between(s, and: session.startDate, fallback: 0))
         }
         if session.sleepEndMs == nil, let e = resolvedSleep.sleepEnd {
-            session.sleepEndMs = MillisecondOffset.between(e, and: session.startDate, fallback: 0)
+            session.sleepEndMs = max(0, MillisecondOffset.between(e, and: session.startDate, fallback: 0))
         }
     }
 }

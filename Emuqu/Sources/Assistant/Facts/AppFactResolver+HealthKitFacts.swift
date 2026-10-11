@@ -46,13 +46,14 @@ struct AppHealthKitNamespace: FactNamespaceResolver {
             return .missing(reason: .notRecorded, detail: "HealthKit not available on this device")
         }
         let now = Date()
-        let fetched = await fetchedHeartRateSamples(since: now.addingTimeInterval(-24 * 60 * 60))
-        if case let .failure(error)? = fetched {
-            return .missing(reason: .notRecorded, detail: "HealthKit query failed: \(error.localizedDescription)")
-        }
-        // A timeout yields nil, handled by the guard below as "no samples".
         let samples: [HeartRateSample]
-        if case let .success(fetchedSamples)? = fetched { samples = fetchedSamples } else { samples = [] }
+        switch await fetchedHeartRateSamples(since: now.addingTimeInterval(-24 * 60 * 60)) {
+        case let .success(fetchedSamples)?: samples = fetchedSamples
+        case let .failure(error)?:
+            return .missing(reason: .notRecorded, detail: "HealthKit query failed: \(error.localizedDescription)")
+        case nil:
+            return .missing(reason: .notYetComputed, detail: "HealthKit didn't answer within 3 s — this says nothing about whether there are samples; try again")
+        }
         guard let last = samples.max(by: { $0.date < $1.date }) else {
             return .missing(reason: .notRecorded, detail: "no HR samples in the last 24 hours")
         }
@@ -64,7 +65,7 @@ struct AppHealthKitNamespace: FactNamespaceResolver {
     }
 
     // 3 s ceiling. A thrown HealthKit error reports the query failure; a
-    // timeout returns nil, which the caller treats as "no samples".
+    // timeout returns nil, which the caller reports as a timeout.
     @MainActor private func fetchedHeartRateSamples(
         since dayAgo: Date
     ) async -> Result<[HeartRateSample], Error>? {
@@ -99,13 +100,22 @@ struct AppHealthKitNamespace: FactNamespaceResolver {
         guard AppDependencies.current.collection.healthKitManager.isHealthKitAvailable else {
             return .missing(reason: .notRecorded, detail: "HealthKit not available on this device")
         }
-        // 3 s ceiling; nil on timeout lands in the "rollup unavailable" envelope.
+        // 3 s ceiling; nil on timeout (or no day returned).
         let summary: HealthKitManager.DailyActivity? =
             await FactResolveTimeout.withTimeout(seconds: 3) {
                 await AppDependencies.current.collection.healthKitManager.fetchDailyActivity(days: 1).first
             }
         guard let summary else {
-            return .missing(reason: .notRecorded, detail: "today's activity rollup unavailable")
+            return .missing(reason: .notYetComputed, detail: "today's activity rollup didn't come back within 3 s — try again")
+        }
+        return activityValue(summary)
+    }
+
+    /// The sums read 0 both for a day with nothing recorded and when Emuqu
+    /// cannot read these types, so all three at 0 is not reported as data.
+    private func activityValue(_ summary: HealthKitManager.DailyActivity) -> FactValue {
+        guard summary.stepCount > 0 || summary.distanceMeters > 0 || summary.flightsClimbed > 0 else {
+            return .missing(reason: .notRecorded, detail: "Apple Health returned no steps, distance or flights for today — either nothing is recorded yet or Emuqu can't read them (Settings → Privacy & Security → Health → Emuqu); don't report 0 steps")
         }
         return .record([
             "step_count": .integer(summary.stepCount),
@@ -117,7 +127,8 @@ struct AppHealthKitNamespace: FactNamespaceResolver {
     private static let appHealthkitTodayActivityDescription = """
     Today's HealthKit activity rollup: total step count, total walking/running distance (meters), and total flights climbed (CMPedometer staircase detection — does NOT capture gradual outdoor elevation gain). All values aggregated \
     across every source HealthKit knows about (Apple Watch, iPhone, third-party apps). Use when the user asks 'how many steps today', 'how far have I walked', 'how many flights have I done' — works without an active workout. \
-    Returns notRecorded only when HealthKit itself is unavailable.
+    Returns notRecorded when HealthKit is unavailable, or when steps, distance and flights all come back 0 (nothing recorded yet today, or no read access — \
+    say so, don't report 0 steps); notYetComputed when HealthKit doesn't answer within 3 s (retry).
     """
 
     // On-demand app help lookup. The prompt carries only the compact app
@@ -129,8 +140,8 @@ struct AppHealthKitNamespace: FactNamespaceResolver {
             pattern: "app.help.lookup($topic)",
             paramExample: "recovery_score",
             description: """
-            On-demand section of the Emuqu app reference manual. Call when the user asks an app-feature, metric-explanation, or navigation question (\"what does DFA mean\", \"how do I export\", \"where's the Fitness tab\", \"what's pNN50\"). \
-            Valid topics: tabs, recovery_score, modes, hrv_session_flow, workout_flow, hr_zones, voice_coach, exports, metrics, settings, navigation, capabilities, scope, all. Returns the matching section as a plain-text string. Use \
+            On-demand section of the Emuqu app reference manual. Call when the user asks an app-feature, metric-explanation, or navigation question (\"what does DFA mean\", \"how do I export\", \"where's the Fitness tab\", \"what's TRIMP\"). \
+            Valid topics: \(AppKnowledgeBase.helpTopics.joined(separator: ", ")). Returns the matching section as a plain-text string. Use \
             'all' to get the entire reference at once (large — only when the user asks a broad 'tell me about the app' question).
             """,
             resolve: { topic, _ in

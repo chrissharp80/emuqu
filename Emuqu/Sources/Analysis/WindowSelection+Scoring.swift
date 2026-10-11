@@ -31,7 +31,7 @@ extension WindowSelector {
         /// stricter cutoff just routes around the noisier slices.
         var maxArtifactRateStrict: Double = 0.10
         /// **Fallback** maximum artifact rate. When the strict pass
-        /// yields zero organized-recovery windows (genuinely noisy
+        /// yields no organized-recovery window (genuinely noisy
         /// strap night — strap shifted, lots of motion, electrode
         /// dried out), we relax to 15% so the user gets *some* result
         /// rather than nil. The HRVDetailV2View artifact banner
@@ -39,13 +39,12 @@ extension WindowSelector {
         /// degraded, but only when the strict pass failed AND we used
         /// a fallback window above 10%.
         var maxArtifactRate: Double = 0.15
-        /// Minimum clean beats required for analysis (300 = 75% of 400)
+        /// Minimum clean beats required for analysis (300 = 75% of 400).
+        /// The ectopic gate that decides which beats are clean is
+        /// `TimeDomainAnalyzer.ectopicKeepMask` (20% from a 10-beat local
+        /// median, `HRVThresholds.ectopicThresholdPercent`), shared with the
+        /// reported RMSSD so the two cannot drift apart.
         var minCleanBeats: Int = 300
-        /// Ectopic beat detection threshold: 20% deviation from local median
-        /// Based on research: 20-25% is standard (Kubios, PMC3268104)
-        var ectopicThresholdPercent: Double = 0.20
-        /// Number of surrounding beats for local median calculation
-        var localMedianWindow: Int = 10
 
         // MARK: - Temporal Representativeness Constraints
 
@@ -87,11 +86,14 @@ extension WindowSelector {
         wakeTimeMs: Int64? = nil,
         baselineStats: BaselineTracker.RecoveryBaselineStats? = nil
     ) -> RecoveryWindow? {
+        // Clear any zones from a previous call — avoids stale data bleeding
+        // into this result if we bail out early or find no organized windows.
+        lastOrganizedZones = []
         guard let (boundaries, band) = searchBand(
-            points: series.points, sleepStartMs: sleepStartMs, wakeTimeMs: wakeTimeMs
+            points: series.points, sleepStartMs: sleepStartMs, wakeTimeMs: wakeTimeMs, verbose: true
         ) else { return nil }
         let allWindows = scanBandWithArtifactFallback(
-            series: series, flags: flags, band: band, boundaries: boundaries
+            series: series, flags: flags, band: band, boundaries: boundaries, requireOrganized: true
         )
         guard !allWindows.isEmpty else { return nil }
         return selectOrganizedWindow(from: allWindows, baselineStats: baselineStats)
@@ -100,16 +102,16 @@ extension WindowSelector {
     /// Below this the night is too short for a 30-70% band to mean anything.
     private static let minRequiredBeats = 120
 
-    /// Resolves the night's boundaries and the slice of it worth searching,
-    /// logging each step. Nil means there is nothing to search.
+    /// Resolves the night's boundaries and the slice of it worth searching.
+    /// Nil means there is nothing to search. `verbose` also logs the resolved
+    /// boundaries and the band (the organized-window search); the peak-metric
+    /// search logs its own band summary instead.
     private func searchBand(
         points: [RRPoint],
         sleepStartMs: Int64?,
-        wakeTimeMs: Int64?
+        wakeTimeMs: Int64?,
+        verbose: Bool
     ) -> (SleepBoundaries, SearchBand)? {
-        // Clear any zones from a previous call — avoids stale data bleeding
-        // into this result if we bail out early or find no organized windows.
-        lastOrganizedZones = []
         guard points.count >= Self.minRequiredBeats else {
             debugLog("[WindowSelector] Insufficient beats: \(points.count) < \(Self.minRequiredBeats)")
             return nil
@@ -120,12 +122,12 @@ extension WindowSelector {
             debugLog("[WindowSelector] No points in series")
             return nil
         }
-        logBoundaryResolution(sleepStartMs: sleepStartMs, wakeTimeMs: wakeTimeMs, boundaries: boundaries)
+        if verbose { logBoundaryResolution(sleepStartMs: sleepStartMs, wakeTimeMs: wakeTimeMs, boundaries: boundaries) }
         guard let band = findSearchBand(points: points, boundaries: boundaries) else {
             debugLog("[WindowSelector] Could not find valid indices in temporal band")
             return nil
         }
-        logSearchBandDetails(band: band, boundaries: boundaries, points: points)
+        if verbose { logSearchBandDetails(band: band, boundaries: boundaries, points: points) }
         return (boundaries, band)
     }
 
@@ -139,34 +141,35 @@ extension WindowSelector {
     /// warn the user to "redo the reading."
     ///
     /// Pass 1 (strict, <=10%) is preferred. Pass 2 (permissive, <=15%) is a
-    /// fallback only when the strict pass yields nothing — for genuinely noisy
-    /// nights (strap shifted, loose electrode) where the relaxed-then-flagged
-    /// result still beats no result at all.
+    /// fallback for genuinely noisy nights (strap shifted, loose electrode)
+    /// where the relaxed-then-flagged result still beats no result at all. It
+    /// runs when the strict pass yields no organized window
+    /// (`requireOrganized`, the recovery search) or no window at all (the
+    /// peak-metric search, which does not filter on organization). The
+    /// permissive grid accepts every window the strict one did, so falling
+    /// back only adds the 10-15% windows.
     private func scanBandWithArtifactFallback(
         series: RRSeries,
         flags: [ArtifactFlags],
         band: SearchBand,
-        boundaries: SleepBoundaries
+        boundaries: SleepBoundaries,
+        requireOrganized: Bool
     ) -> [ScoredRecoveryBlock] {
-        let strictWindows = scanWindowsInBand(
+        let strict = scanWindowsInBand(
             series: series, flags: flags, band: band, boundaries: boundaries,
             artifactRateLimit: config.maxArtifactRateStrict
         )
-        let usedStrict = !strictWindows.isEmpty
-        let allWindows: [ScoredRecoveryBlock] = usedStrict
-            ? strictWindows
-            : scanWindowsInBand(
-                series: series, flags: flags, band: band, boundaries: boundaries,
-                artifactRateLimit: config.maxArtifactRate
-            )
-        if !usedStrict, !allWindows.isEmpty {
-            debugLog("[WindowSelector] Strict 10% pass yielded zero windows — fell back to 15% permissive pass (this night is genuinely noisy)")
-        }
-        guard !allWindows.isEmpty else {
-            debugLog("[WindowSelector] No valid windows found in 30-70% band even at 15% permissive cutoff")
-            return []
-        }
-        return allWindows
+        let strictSuffices = requireOrganized ? strict.contains(where: \.isOrganizedRecovery) : !strict.isEmpty
+        guard !strictSuffices else { return strict }
+        let permissive = scanWindowsInBand(
+            series: series, flags: flags, band: band, boundaries: boundaries,
+            artifactRateLimit: config.maxArtifactRate
+        )
+        let wanted = requireOrganized ? "organized windows" : "windows"
+        debugLog(permissive.isEmpty
+            ? "[WindowSelector] No valid windows found in 30-70% band even at 15% permissive cutoff"
+            : "[WindowSelector] Strict 10% pass yielded no \(wanted) — fell back to 15% permissive pass (this night is genuinely noisy)")
+        return permissive
     }
 
     /// STEP 2: an organized-looking window no neighbour supports is noise.
@@ -182,16 +185,16 @@ extension WindowSelector {
     }
 
     /// STEPS 3-4: keep the organized windows and build a recovery window from
-    /// what survives.
+    /// what survives. The spike filter never rejects the first or last window,
+    /// so a non-empty input leaves a non-empty candidate list.
     private func selectOrganizedWindow(
         from allWindows: [ScoredRecoveryBlock],
         baselineStats: BaselineTracker.RecoveryBaselineStats?
     ) -> RecoveryWindow? {
         let filteredWindows = withoutIsolatedSpikes(allWindows)
         // STEP 3: Classify and select best organized window
-        let candidateWindows = filteredWindows.isEmpty ? allWindows : filteredWindows
-        let organizedWindows = candidateWindows.filter(\.isOrganizedRecovery)
-        let highVariabilityCount = candidateWindows.count - organizedWindows.count
+        let organizedWindows = filteredWindows.filter(\.isOrganizedRecovery)
+        let highVariabilityCount = filteredWindows.count - organizedWindows.count
         debugLog("[WindowSelector] Found \(organizedWindows.count) organized windows, \(highVariabilityCount) high-variability windows")
 
         captureOrganizedZones(organizedWindows)
@@ -202,11 +205,7 @@ extension WindowSelector {
             debugLog("[WindowSelector] Returning nil - peak capacity will be captured separately")
             return nil
         }
-        return buildRecoveryWindow(
-            from: organizedWindows,
-            sustainedWindows: filteredWindows,
-            baselineStats: baselineStats
-        )
+        return buildRecoveryWindow(from: organizedWindows, baselineStats: baselineStats)
     }
 
     /// Merge adjacent/overlapping organized windows into contiguous ranges for
@@ -219,31 +218,32 @@ extension WindowSelector {
 
     // MARK: - findBestWindow Helpers
 
+    /// Logs the boundaries as `resolveSleepBoundaries` resolved them — after
+    /// the wall-clock translation — so the logged decision is the one used.
     func logBoundaryResolution(sleepStartMs: Int64?, wakeTimeMs: Int64?, boundaries: SleepBoundaries) {
-        if let sleepStart = sleepStartMs, sleepStart >= 0 {
-            debugLog("[WindowSelector] Sleep started \(sleepStart / 60000) min after recording began (pre-sleep excluded)")
+        let startMin = boundaries.minutesIntoRecording(boundaries.actualSleepStartMs)
+        if sleepStartMs != nil {
+            debugLog("[WindowSelector] Sleep started \(startMin) min into the recording (pre-sleep excluded)")
         } else {
             debugLog("[WindowSelector] No HealthKit sleep start, using recording start")
         }
-        if let wake = wakeTimeMs, wake > boundaries.actualSleepStartMs {
-            if wake > boundaries.recordingDurationMs {
-                debugLog("[WindowSelector] Wake time (\(wake / 60000) min) extends past recording, capping at recording end")
-            } else {
-                debugLog("[WindowSelector] Using HealthKit wake time: \(wake / 60000) min from recording start")
-            }
+        if wakeTimeMs == nil {
+            debugLog("[WindowSelector] No HealthKit wake time, using recording end")
+        } else if boundaries.actualSleepEndMs < boundaries.recordingEndMs {
+            debugLog("[WindowSelector] Using HealthKit wake time: \(boundaries.minutesIntoRecording(boundaries.actualSleepEndMs)) min into the recording")
         } else {
-            debugLog("[WindowSelector] No valid HealthKit wake time, using recording end")
+            debugLog("[WindowSelector] Wake time is past the recording or not after sleep start, using recording end")
         }
         debugLog("[WindowSelector] ========== WINDOW SELECTION DEBUG ==========")
         debugLog("[WindowSelector] Recording: 0 to \(formatTime(boundaries.recordingDurationMs)) (\(boundaries.recordingDurationMs / 60000) min)")
-        debugLog("[WindowSelector] Actual sleep: \(boundaries.actualSleepStartMs / 60000) min to \(boundaries.actualSleepEndMs / 60000) min (duration: \(boundaries.actualSleepDurationMs / 60000) min)")
+        debugLog("[WindowSelector] Actual sleep: \(startMin) min to \(boundaries.minutesIntoRecording(boundaries.actualSleepEndMs)) min (duration: \(boundaries.actualSleepDurationMs / 60000) min)")
     }
 
     func logSearchBandDetails(band: SearchBand, boundaries: SleepBoundaries, points: [RRPoint]) {
         let limitEarlyMs = boundaries.actualSleepStartMs + Int64(Double(boundaries.actualSleepDurationMs) * config.minRelativePosition)
         let limitLateMs = boundaries.actualSleepStartMs + Int64(Double(boundaries.actualSleepDurationMs) * config.maxRelativePosition)
-        debugLog("[WindowSelector] 30-70% band of sleep: \(limitEarlyMs / 60000) min to \(limitLateMs / 60000) min (session-relative)")
-        debugLog("[WindowSelector] Effective search range: \(band.effectiveLimitEarlyMs / 60000) min to \(band.effectiveLimitLateMs / 60000) min (clamped to recording)")
+        debugLog("[WindowSelector] 30-70% band of sleep: \(boundaries.minutesIntoRecording(limitEarlyMs)) min to \(boundaries.minutesIntoRecording(limitLateMs)) min (recording-relative)")
+        debugLog("[WindowSelector] Effective search range: \(boundaries.minutesIntoRecording(band.effectiveLimitEarlyMs)) min to \(boundaries.minutesIntoRecording(band.effectiveLimitLateMs)) min (clamped to recording)")
 
         let (adaptiveWindowSize, _) = computeAdaptiveWindowSize(beatsAvailable: band.beatsInBand)
         let bandDurationMs = band.effectiveLimitLateMs - band.effectiveLimitEarlyMs
@@ -287,14 +287,13 @@ extension WindowSelector {
     /// fall back to RMSSD ranking.
     func buildRecoveryWindow(
         from organizedWindows: [ScoredRecoveryBlock],
-        sustainedWindows: [ScoredRecoveryBlock],
         baselineStats: BaselineTracker.RecoveryBaselineStats? = nil
     ) -> RecoveryWindow? {
         let sortedOrganized = baselineStats.map { rankByTier1Score(organizedWindows, baseline: $0) }
             ?? rankByRMSSD(organizedWindows)
         guard let finalBlock = sortedOrganized.first else { return nil }
         debugLog("[WindowSelector] STEP 4: Selected from \(organizedWindows.count) ORGANIZED windows")
-        return recoveryWindow(from: finalBlock, sustainedWindows: sustainedWindows)
+        return recoveryWindow(from: finalBlock)
     }
 
     /// Ranks by Tier 1 recovery score, then RMSSD, then position — so two
@@ -323,23 +322,17 @@ extension WindowSelector {
     /// optional Swift strings was dropping lines silently on some builds.
     ///
     /// When users report "auto picked the wrong window", this trace shows
-    /// exactly which window scored what.
+    /// which window ranked where, by its place in the night. The scores and
+    /// metrics are health values, so they are redacted here as
+    /// `logSelectedWindow` redacts them: the log is user-exportable.
     private func logWindowRanking(_ scored: [(block: ScoredRecoveryBlock, score: Double)], count: Int) {
         let sortedScored = scored.sorted { $0.score > $1.score }
         var lines: [String] = []
-        lines.append("[WindowRank] Ranking \(count) organized windows by Tier 1 score:")
+        lines.append("[WindowRank] Ranking \(count) organized windows by Tier 1 score (values redacted):")
         for (idx, entry) in sortedScored.enumerated() {
-            let b = entry.block
-            let alpha = b.dfaAlpha1.map { String(format: "%.2f", $0) } ?? "nil"
-            let lfhf = b.lfHfRatio.map { String(format: "%.2f", $0) } ?? "nil"
-            let tier1 = String(format: "%.1f", entry.score)
-            let rmssd = String(format: "%.1f", b.rmssd)
-            let sdnn = String(format: "%.1f", b.sdnn)
-            let hr = String(format: "%.0f", b.meanHR)
-            let cv = String(format: "%.1f", b.hrCV * 100)
-            let pos = String(format: "%.0f", b.relativePosition * 100)
-            let minute = Int(b.startMs / 60000)
-            lines.append("[WindowRank] #\(idx + 1) tier1=\(tier1) rmssd=\(rmssd) sdnn=\(sdnn) meanHR=\(hr) dfa=\(alpha) lfhf=\(lfhf) cv=\(cv)% pos=\(pos)% @\(minute)min")
+            let pos = String(format: "%.0f", entry.block.relativePosition * 100)
+            let minute = Int(entry.block.startMs / 60000)
+            lines.append("[WindowRank] #\(idx + 1) pos=\(pos)% @\(minute)min")
         }
         lines.append("[WindowRank] NOTE: Tier 1 above excludes ANS balance (pns-sns); composite may shift ±3 to ±6.")
         debugLog(lines.joined(separator: "\n"))
@@ -354,9 +347,11 @@ extension WindowSelector {
         return sortedOrganized
     }
 
-    private func recoveryWindow(from finalBlock: ScoredRecoveryBlock, sustainedWindows: [ScoredRecoveryBlock]) -> RecoveryWindow {
-        let isSustained = sustainedWindows.contains { $0.startIndex == finalBlock.startIndex }
-        let isConsolidated = isSustained && finalBlock.hrCV < RecoveryWindow.unstableCVThreshold
+    /// Consolidated = organized AND HR CV under the unstable threshold. Every
+    /// candidate already survived the spike filter; without a per-window
+    /// LF/HF (production) an organized block is always HR-stable too.
+    private func recoveryWindow(from finalBlock: ScoredRecoveryBlock) -> RecoveryWindow {
+        let isConsolidated = finalBlock.hrCV < RecoveryWindow.unstableCVThreshold
         logSelectedWindow(
             finalBlock: finalBlock,
             positionPercent: Int(finalBlock.relativePosition * 100),
@@ -435,8 +430,12 @@ extension WindowSelector {
         return merged
     }
 
-    /// If no organized recovery occurred, recoveryWindow will be nil but peakCapacity may exist.
-    /// This is the correct physiological answer - don't pretend recovery occurred.
+    /// The recovery window is the best organized window when the night had
+    /// one. Otherwise it is the peak-RMSSD window of the band
+    /// (`recoveryOrPeakFallback`), marked `isOrganizedRecovery == false`, so
+    /// the analysis still runs on a narrow slice; it is nil only when neither
+    /// exists. Whether recovery was organized is read from the window's
+    /// `isOrganizedRecovery`, never from the window being non-nil.
     ///
     /// `baselineStats` — when provided, organized-window ranking uses Tier 1
     /// recovery scoring instead of raw RMSSD. See `buildRecoveryWindow` for why.
@@ -560,8 +559,8 @@ extension WindowSelector {
     ) -> RecoveryWindow? {
         switch method {
         case .consolidatedRecovery:
-            // Best organized window: highest Tier 1 score against the
-            // baseline when one exists, else highest RMSSD
+            // Best organized window ranked by RMSSD (no baseline here; Tier 1
+            // ranking is `findBestWindowWithCapacity(baselineStats:)`)
             findBestWindow(in: series, flags: flags, sleepStartMs: sleepStartMs, wakeTimeMs: wakeTimeMs)
         case .peakRMSSD:
             // Find window with highest RMSSD (no organization filtering)
@@ -570,7 +569,8 @@ extension WindowSelector {
             // Find window with highest SDNN
             findPeakMetricWindow(in: series, flags: flags, sleepStartMs: sleepStartMs, wakeTimeMs: wakeTimeMs, metric: .sdnn)
         case .peakTotalPower:
-            // Find window with highest total spectral power
+            // Highest total variability, with SDNN as the proxy for total
+            // spectral power (see `selectPeakBlock`)
             findPeakMetricWindow(in: series, flags: flags, sleepStartMs: sleepStartMs, wakeTimeMs: wakeTimeMs, metric: .totalPower)
         case .custom:
             // Custom requires manual positioning - not automatic
@@ -593,64 +593,21 @@ extension WindowSelector {
         wakeTimeMs: Int64?,
         metric: OptimizationMetric
     ) -> RecoveryWindow? {
-        guard let (boundaries, band) = peakSearchBand(
-            points: series.points, sleepStartMs: sleepStartMs, wakeTimeMs: wakeTimeMs
+        guard let (boundaries, band) = searchBand(
+            points: series.points, sleepStartMs: sleepStartMs, wakeTimeMs: wakeTimeMs, verbose: false
         ) else { return nil }
         logPeakBandDetails(metric: metric, band: band)
-        let allWindows = scanPeakBand(series: series, flags: flags, band: band, boundaries: boundaries)
+        let allWindows = scanBandWithArtifactFallback(
+            series: series, flags: flags, band: band, boundaries: boundaries, requireOrganized: false
+        )
         guard !allWindows.isEmpty else { return nil }
+        // Never empty for a non-empty input: edge windows are never spikes.
         let (sustained, _) = filterIsolatedSpikes(allWindows)
-        let candidateWindows = sustained.isEmpty ? allWindows : sustained
-        guard let finalBlock = selectPeakBlock(from: candidateWindows, metric: metric) else {
+        guard let finalBlock = selectPeakBlock(from: sustained, metric: metric) else {
             debugLog("[WindowSelector] No valid windows found")
             return nil
         }
         return buildPeakRecoveryWindow(finalBlock: finalBlock, metric: metric)
-    }
-
-    private func peakSearchBand(
-        points: [RRPoint],
-        sleepStartMs: Int64?,
-        wakeTimeMs: Int64?
-    ) -> (SleepBoundaries, SearchBand)? {
-        guard points.count >= 120 else {
-            debugLog("[WindowSelector] Insufficient beats: \(points.count) < 120")
-            return nil
-        }
-        guard let boundaries = resolveSleepBoundaries(points: points, sleepStartMs: sleepStartMs, wakeTimeMs: wakeTimeMs) else {
-            debugLog("[WindowSelector] No points in series")
-            return nil
-        }
-        guard let band = findSearchBand(points: points, boundaries: boundaries) else {
-            debugLog("[WindowSelector] Could not find valid indices in temporal band")
-            return nil
-        }
-        return (boundaries, band)
-    }
-
-    /// Same two-pass strict->permissive cutoff as `findBestWindow`.
-    private func scanPeakBand(
-        series: RRSeries,
-        flags: [ArtifactFlags],
-        band: SearchBand,
-        boundaries: SleepBoundaries
-    ) -> [ScoredRecoveryBlock] {
-        // Same two-pass strict→permissive cutoff as findBestWindow.
-        let strict = scanWindowsInBand(
-            series: series, flags: flags, band: band, boundaries: boundaries,
-            artifactRateLimit: config.maxArtifactRateStrict
-        )
-        let allWindows: [ScoredRecoveryBlock] = strict.isEmpty
-            ? scanWindowsInBand(
-                series: series, flags: flags, band: band, boundaries: boundaries,
-                artifactRateLimit: config.maxArtifactRate
-            )
-            : strict
-        guard !allWindows.isEmpty else {
-            debugLog("[WindowSelector] No valid windows found in 30-70% band")
-            return []
-        }
-        return allWindows
     }
 
     // MARK: - findPeakMetricWindow Helpers
@@ -665,6 +622,10 @@ extension WindowSelector {
         debugLog("[WindowSelector] Window size: \(adaptiveWindowSize) beats (~\(String(format: "%.1f", Double(adaptiveWindowSize) / averageBPM)) min)")
     }
 
+    /// The candidate with the highest value of `metric`. Total power has no
+    /// per-window spectrum here, so it ranks by SDNN: SDNN² is the window's
+    /// total RR variance, which is what total spectral power measures, and
+    /// the reason line names SDNN as the proxy (`peakMetricDescription`).
     func selectPeakBlock(from candidates: [ScoredRecoveryBlock], metric: OptimizationMetric) -> ScoredRecoveryBlock? {
         switch metric {
         case .rmssd:
@@ -734,7 +695,7 @@ extension WindowSelector {
             debugLog("[WindowSelector] Insufficient beats for manual selection")
             return nil
         }
-        guard let (windowStartIdx, windowEndIdx) = manualWindowIndices(points: points, targetMs: targetMs) else { return nil }
+        let (windowStartIdx, windowEndIdx) = manualWindowIndices(points: points, targetMs: targetMs)
         guard let block = evaluateManualWindow(
             series: series, flags: flags,
             startIdx: windowStartIdx, endIdx: windowEndIdx,
@@ -744,16 +705,13 @@ extension WindowSelector {
         return manualRecoveryWindow(from: block)
     }
 
-    /// The `beatsPerWindow` slice centred on the tapped time, pulled back from
-    /// the end of the recording when centring would overrun it.
-    private func manualWindowIndices(points: [RRPoint], targetMs: Int64) -> (Int, Int)? {
-        // Find the index closest to target time
-        guard let targetIdx = points.firstIndex(where: { $0.t_ms >= targetMs }) else {
-            debugLog("[WindowSelector] Target time outside recording range")
-            return nil
-        }
-
-        // Center window on target
+    /// The `beatsPerWindow` slice centred on the beat closest to the tapped
+    /// time, pulled back from the end of the recording when centring would
+    /// overrun it. A tap before the first beat or past the last one lands on
+    /// that beat, so it selects the first or last window. `points` is
+    /// non-empty (the caller checked `beatsPerWindow`).
+    private func manualWindowIndices(points: [RRPoint], targetMs: Int64) -> (Int, Int) {
+        let targetIdx = closestBeatIndex(points: points, targetMs: targetMs)
         let halfWindow = config.beatsPerWindow / 2
         var windowStartIdx = max(0, targetIdx - halfWindow)
         var windowEndIdx = windowStartIdx + config.beatsPerWindow
@@ -766,6 +724,16 @@ extension WindowSelector {
 
         debugLog("[WindowSelector] Manual selection at \(formatTime(targetMs)) -> indices \(windowStartIdx)-\(windowEndIdx)")
         return (windowStartIdx, windowEndIdx)
+    }
+
+    /// Index of the beat whose `t_ms` is nearest `targetMs`: the first beat at
+    /// or after it, or the one before when that is nearer. The last beat when
+    /// the target is past the end.
+    private func closestBeatIndex(points: [RRPoint], targetMs: Int64) -> Int {
+        let after = points.firstIndex(where: { $0.t_ms >= targetMs }) ?? max(0, points.count - 1)
+        guard after > 0, after < points.count else { return after }
+        let beforeGap = targetMs - points[after - 1].t_ms
+        return beforeGap < points[after].t_ms - targetMs ? after - 1 : after
     }
 
     /// HONOR the user's explicit pick. This is the "Pick
@@ -831,7 +799,11 @@ extension WindowSelector {
 
     // MARK: - Scanning Infrastructure
 
-    /// Resolved sleep boundaries for window selection.
+    /// Resolved sleep boundaries for window selection. Every `…Ms` value
+    /// except the two durations is a position on the series' own `t_ms`
+    /// timeline (the same coordinates as `RRPoint.t_ms`), so the band, the
+    /// windows and the relative position are all compared on one origin
+    /// whatever the first beat's `t_ms` is.
     struct SleepBoundaries {
         let recordingStartMs: Int64
         let recordingEndMs: Int64
@@ -840,6 +812,11 @@ extension WindowSelector {
         let actualSleepEndMs: Int64
         var actualSleepDurationMs: Int64 {
             actualSleepEndMs - actualSleepStartMs
+        }
+
+        /// Whole minutes from the first beat to `tMs`, for the logs.
+        func minutesIntoRecording(_ tMs: Int64) -> Int64 {
+            (tMs - recordingStartMs) / 60000
         }
     }
 
@@ -891,11 +868,11 @@ extension WindowSelector {
         let recordingDurationMs = recordingEndMs - recordingStartMs
 
         let actualSleepStartMs: Int64 = sleepStartMs
-            .map { max(0, tMsOffset(forWallElapsed: $0, in: points)) } ?? 0
+            .map { max(recordingStartMs, tMsPosition(forWallElapsed: $0, in: points)) } ?? recordingStartMs
 
-        let actualSleepEndMs = sleepEndOffset(
+        let actualSleepEndMs = sleepEnd(
             wakeTimeMs: wakeTimeMs, points: points,
-            after: actualSleepStartMs, recordingDurationMs: recordingDurationMs
+            after: actualSleepStartMs, recordingEndMs: recordingEndMs
         )
         return SleepBoundaries(
             recordingStartMs: recordingStartMs,
@@ -908,32 +885,32 @@ extension WindowSelector {
 
     /// A wake boundary that lands at or before the sleep start is unusable —
     /// fall back to the end of the recording rather than an inverted band.
-    private func sleepEndOffset(
+    private func sleepEnd(
         wakeTimeMs: Int64?,
         points: [RRPoint],
         after actualSleepStartMs: Int64,
-        recordingDurationMs: Int64
+        recordingEndMs: Int64
     ) -> Int64 {
-        guard let wake = wakeTimeMs else { return recordingDurationMs }
-        let wakeOffset = tMsOffset(forWallElapsed: wake, in: points)
-        return wakeOffset > actualSleepStartMs ? min(wakeOffset, recordingDurationMs) : recordingDurationMs
+        guard let wake = wakeTimeMs else { return recordingEndMs }
+        let wakeTMs = tMsPosition(forWallElapsed: wake, in: points)
+        return wakeTMs > actualSleepStartMs ? min(wakeTMs, recordingEndMs) : recordingEndMs
     }
 
     /// Map a wall-clock offset (ms from session start) onto the recording's
-    /// cumulative-RR (`t_ms`) timeline, as a 0-based offset from the first
-    /// beat. Uses each beat's `wallClockMs`: finds the first beat at/after that
-    /// wall moment and returns its `t_ms` offset. When the series carries no
-    /// wall clock (H10 internal recording — gapless, so `t_ms` already equals
-    /// elapsed time), the offset is returned unchanged, so this is a no-op on
-    /// that path and on any gap-free streaming night.
-    func tMsOffset(forWallElapsed wallElapsedMs: Int64, in points: [RRPoint]) -> Int64 {
-        guard let first = points.first else { return wallElapsedMs }
-        guard let firstWall = first.wallClockMs else { return wallElapsedMs }
-        let targetWall = firstWall + wallElapsedMs
-        if let match = points.first(where: { ($0.wallClockMs ?? Int64.min) >= targetWall }) {
-            return match.t_ms - first.t_ms
+    /// cumulative-RR (`t_ms`) timeline, as a `t_ms` position. Uses each beat's
+    /// `wallClockMs` — milliseconds since the stream (session) started, the
+    /// same clock as the offset — and returns the `t_ms` of the first beat
+    /// received at or after that moment (the last beat when none is). Beats
+    /// without a wall clock are skipped. When the series carries no wall
+    /// clock (H10 internal recording — gapless, its `t_ms` already counts
+    /// from session start), the offset itself is the position, so this is a
+    /// no-op on that path.
+    func tMsPosition(forWallElapsed wallElapsedMs: Int64, in points: [RRPoint]) -> Int64 {
+        guard let first = points.first, first.wallClockMs != nil else { return wallElapsedMs }
+        if let match = points.first(where: { ($0.wallClockMs ?? Int64.min) >= wallElapsedMs }) {
+            return match.t_ms
         }
-        return (points.last?.t_ms ?? first.t_ms) - first.t_ms
+        return points.last?.t_ms ?? first.t_ms
     }
 
     /// Find the index range for the 30-70% sleep band, clamped to recording boundaries.

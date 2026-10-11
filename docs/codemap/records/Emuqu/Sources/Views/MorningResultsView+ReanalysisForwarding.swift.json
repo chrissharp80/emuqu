@@ -58,35 +58,6 @@
    }
   },
   {
-   "key": "func MorningResultsView.persistentWindowComparisonBanner()",
-   "hash": "022043f9bf06076c",
-   "does": "Forwards to MorningReanalysisControls.persistentWindowComparisonBanner().",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::var MorningResultsView.reanalysis",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.persistentWindowComparisonBanner()"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No caller: grep finds persistentWindowComparisonBanner() called only inside MorningReanalysisControls.windowSelectionMethodSection (Reanalysis.swift:23), which resolves to the controls' own member; no tests call this forwarder.",
-     "evidence": [
-      "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift:35",
-      "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift:23"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.persistentWindowComparisonBanner()": "c86a53bd6e11092b",
-    "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::var MorningResultsView.reanalysis": "4cba3f35c38e24f9"
-   }
-  },
-  {
    "key": "var MorningResultsView.pdfLoadingOverlay",
    "hash": "a00f65faa514cae0",
    "does": "Forwards to MorningReanalysisControls.pdfLoadingOverlay.",
@@ -105,35 +76,6 @@
    }
   },
   {
-   "key": "var MorningResultsView.provenanceView",
-   "hash": "86ae62bcd833f0e3",
-   "does": "Forwards to MorningReanalysisControls.provenanceView.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::var MorningResultsView.reanalysis",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.provenanceView"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No caller: the only use of provenanceView is inside MorningReanalysisControls (Reanalysis.swift:25); no tests reference it.",
-     "evidence": [
-      "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift:41",
-      "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift:25"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.provenanceView": "9375093bc9f60bfd",
-    "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::var MorningResultsView.reanalysis": "4cba3f35c38e24f9"
-   }
-  },
-  {
    "key": "var MorningResultsView.availableReportSections",
    "hash": "df3f90094f7fd1be",
    "does": "Forwards to MorningReanalysisControls.availableReportSections.",
@@ -147,43 +89,47 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.availableReportSections": "048fae7e88b1d1f8",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.availableReportSections": "0f9dbf3e96c49573",
     "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::var MorningResultsView.reanalysis": "4cba3f35c38e24f9"
    }
   },
   {
    "key": "func MorningResultsView.exportPDF(style:sections:)",
-   "hash": "e5929d20700c202c",
-   "does": "Forwards exportPDF(style:sections:).",
+   "hash": "b3e0dc5f4f6e71ec",
+   "does": "Forwards exportPDF(style:sections:), passing an onFailure that sets exportErrorMessage (the Export failed alert) when no PDF is produced.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::var MorningResultsView.reanalysis",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.exportPDF(style:sections:)"
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.exportPDF(style:sections:onFailure:)"
    ],
    "reads": [],
-   "writes": [],
+   "writes": [
+    "mem:MorningResultsView.exportErrorMessage"
+   ],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.exportPDF(style:sections:)": "9369d09f0f6ea36c",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.exportPDF(style:sections:onFailure:)": "d0dd0b3348608465",
     "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::var MorningResultsView.reanalysis": "4cba3f35c38e24f9"
    }
   },
   {
    "key": "func MorningResultsView.emailReport(style:sections:)",
-   "hash": "23bd7ff4d69bb140",
-   "does": "Forwards emailReport(style:sections:).",
+   "hash": "c3a3fd8c895f6abe",
+   "does": "Forwards emailReport(style:sections:), passing an onFailure that sets exportErrorMessage (the Export failed alert) when no PDF is produced.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::var MorningResultsView.reanalysis",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.emailReport(style:sections:)"
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.emailReport(style:sections:onFailure:)"
    ],
    "reads": [],
-   "writes": [],
+   "writes": [
+    "mem:MorningResultsView.exportErrorMessage"
+   ],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.emailReport(style:sections:)": "5a0a904c60a8ab92",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.emailReport(style:sections:onFailure:)": "7d7cee51a1a658dc",
     "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::var MorningResultsView.reanalysis": "4cba3f35c38e24f9"
    }
   },
@@ -206,35 +152,6 @@
    }
   },
   {
-   "key": "func MorningResultsView.reanalyzeWithMethod(_:)",
-   "hash": "83b0833e692bec7a",
-   "does": "Forwards reanalyzeWithMethod(_:).",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::var MorningResultsView.reanalysis",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.reanalyzeWithMethod(_:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No caller: grep finds reanalyzeWithMethod only here and inside MorningReanalysisControls (Reanalysis.swift:88, which resolves to the controls' own member); no tests call this forwarder.",
-     "evidence": [
-      "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift:63",
-      "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift:88"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.reanalyzeWithMethod(_:)": "4c2723207f39d23b",
-    "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::var MorningResultsView.reanalysis": "4cba3f35c38e24f9"
-   }
-  },
-  {
    "key": "func MorningResultsView.handleManualReanalysis(timestampMs:)",
    "hash": "9115d48a098d51db",
    "does": "Forwards handleManualReanalysis(timestampMs:).",
@@ -248,25 +165,27 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.handleManualReanalysis(timestampMs:)": "e453da90a1781701",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.handleManualReanalysis(timestampMs:)": "8116925c633a2075",
     "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::var MorningResultsView.reanalysis": "4cba3f35c38e24f9"
    }
   },
   {
    "key": "func MorningResultsView.exportRRData()",
-   "hash": "e15c7bca85c42207",
-   "does": "Forwards exportRRData().",
+   "hash": "48d743d9b9073108",
+   "does": "Forwards exportRRData(), with an onFailure that sets exportErrorMessage (the Export failed alert).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::var MorningResultsView.reanalysis",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.exportRRData()"
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.exportRRData(onFailure:)"
    ],
    "reads": [],
-   "writes": [],
+   "writes": [
+    "mem:MorningResultsView.exportErrorMessage"
+   ],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.exportRRData()": "7dbd46e46fbec60a",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.exportRRData(onFailure:)": "032b9ae0949734ba",
     "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::var MorningResultsView.reanalysis": "4cba3f35c38e24f9"
    }
   }

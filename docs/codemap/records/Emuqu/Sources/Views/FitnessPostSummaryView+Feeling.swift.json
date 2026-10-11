@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift",
  "hash": "99fb87be086df8b2",
- "role": "FitnessPostSummaryView extension: the 'How did that feel?' rating (save to archive), the legacy analysis-snapshot backfill, the 'How you did' narrative (snapshot or legacy on-the-fly sentences), hero card inputs, recover/retrim controls, partial-data banner, key-stat tiles, α1 band helpers for the hero, and the static route map.",
+ "role": "FitnessPostSummaryView extension: the 'How did that feel?' rating (save to archive, alert on failure), the analysis-snapshot backfill (built and written off-main, only onto the samples it was built from), the 'How you did' narrative and hero card read from the stored snapshot or — before backfill — one built on the fly by WorkoutAnalysisSnapshotBuilder, recover/retrim controls, partial-data banner, key-stat tiles, and the static route map.",
  "types": [
   "FitnessPostSummaryView: extension — feeling, snapshot backfill, narratives, hero, key stats, map",
   "FitnessPostSummaryView.PartialBannerChrome: struct (ViewModifier) — orange rounded background/border for the partial-data banner"
@@ -10,32 +10,8 @@
   "archive:SessionArchive.update (workoutFeeling/workoutFeelingNote, analysisSnapshot) via FitnessSummaryCards.updateArchived",
   "ud:fitness.unitsPreference (App Group) via UnitsPreferenceStore.current"
  ],
- "toplevel": "File-scope private func hrrSentence (line 661). No globals.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "File header says the hero, HRR banner and key-stats grid live in FitnessPostSummaryView.swift, but heroCard and keyStatsCard are declared in this file and the HRR banner is in WorkoutStatsCards.",
-   "evidence": [
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:5",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:271",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:389",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:498"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "sessionAnalysisCard doc says the narrative includes 'TRIMP relative to the user's typical load', but trimpSentence uses fixed 150/80/30 Lucia TRIMP bands with no per-user comparison (its own comment admits this).",
-   "evidence": [
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:144",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:244",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:249"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "No file-scope code. The header lists everything this file holds and points the HRR banner to WorkoutStatsCards.",
+ "flags": [],
  "units": [
   {
    "key": "var FitnessPostSummaryView.feelingSection",
@@ -80,7 +56,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.saveWorkoutFeeling(rating:note:)": "f0bc4163b06eaa89",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.saveWorkoutFeeling(rating:note:)": "3197f80b7581d653",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.skipFeeling()": "a4d056ca781768d1",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session": "cc1e3419b78fc3c4"
    }
@@ -119,8 +95,8 @@
   },
   {
    "key": "func FitnessPostSummaryView.saveWorkoutFeeling(rating:note:)",
-   "hash": "c6899ee0c9ee7701",
-   "does": "Persists rating + note on a detached task via persistFeeling; on success sets refreshedSession, exits edit mode and bumps the archive-change signal.",
+   "hash": "601b72ba7e3dd144",
+   "does": "Persists rating + note on a detached task via persistFeeling; on success sets refreshedSession, exits edit mode and bumps the archive-change signal; on failure (not in the archive, no workout metadata, or write error) keeps the prompt open and sets feelingSaveFailed, raising the \"Couldn't save how you felt. Try again.\" alert.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.persistFeeling(rating:note:id:archive:)",
@@ -132,39 +108,29 @@
    ],
    "writes": [
     "mem:FitnessPostSummaryView.refreshedSession",
+    "mem:FitnessPostSummaryView.feelingSaveFailed",
     "mem:ArchiveSignal.version",
     "notif:flowRecoveryArchiveChanged"
    ],
    "branches": [
     {
      "at": "+6",
-     "cond": "persistFeeling returned a session",
-     "effect": "true: refresh + feelingEditing=false + notify; false (not in archive or write failed): return, prompt stays open with no error shown"
+     "cond": "persistFeeling returned nil",
+     "effect": "feelingSaveFailed = true; return (prompt stays open)"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "A failed or not-found save leaves the prompt open with no message; the user is not told the rating wasn't stored.",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:55",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:74"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "1c38f37d10093863",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.persistFeeling(rating:note:id:archive:)": "b3aa570f897ed313",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.persistFeeling(rating:note:id:archive:)": "b831d45af48b45ea",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session": "cc1e3419b78fc3c4"
    }
   },
   {
    "key": "func FitnessPostSummaryView.persistFeeling(rating:note:id:archive:)",
-   "hash": "8b8af320348661ba",
-   "does": "Read-modify-write of the archived session setting workoutMetadata.workoutFeeling and workoutFeelingNote (no-op on sessions without workoutMetadata); returns the stored session, nil when not found or on error (logged).",
+   "hash": "53b18306bee2826d",
+   "does": "Read-modify-write of the archived session setting workoutMetadata.workoutFeeling and workoutFeelingNote; returns the stored session, or nil when not found, when the stored copy has no workoutMetadata (nothing could be stored), or on error (logged).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.updateArchived(_:in:_:)",
@@ -177,25 +143,16 @@
    "branches": [
     {
      "at": "+11",
+     "cond": "not found or no workout metadata",
+     "effect": "nil"
+    },
+    {
+     "at": "+13",
      "cond": "updateArchived threw (other than fileNotFound)",
      "effect": "error logged at warning and nil returned"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "When the archived session has no workoutMetadata, the optional-chained assignments are no-ops but updateArchived still rewrites the file and returns a non-nil session, so saveWorkoutFeeling exits edit mode as if saved while nothing was stored (contradicts the comment at line 61-62 that the UI never claims a save that didn't happen).",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:61",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:71",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:72",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift:712",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:55"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.updateArchived(_:in:_:)": "fd42f47f1a53c71d"
@@ -203,149 +160,143 @@
   },
   {
    "key": "func FitnessPostSummaryView.backfillAnalysisSnapshotIfNeeded()",
-   "hash": "3c16012d8c157d3d",
-   "does": "If the stored analysisSnapshot is missing or needsRebuild (older schema or different narrative language), builds a new WorkoutAnalysisSnapshot off-main from snapshotInputs and persists it.",
+   "hash": "73de245f2b87d19b",
+   "does": "If the stored analysisSnapshot is missing or needsRebuild (older schema or different narrative language) and the session has samples, builds a new WorkoutAnalysisSnapshot and writes it to the archive on one detached task (persistAnalysisSnapshot, which skips the write when the archived samples/duration changed meanwhile); when written, sets refreshedSession and bumps the archive-change signal.",
    "entry": "Spawned from primeSummary (.onAppear).",
    "calls": [
     "Emuqu/Sources/Models/WorkoutAnalysisSnapshot.swift::var WorkoutAnalysisSnapshot.needsRebuild",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.snapshotInputs()",
     "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.build(_:)",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.persistAnalysisSnapshot(_:)",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.persistAnalysisSnapshot(_:builtFrom:id:archive:)",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()",
     "ext:Task.detached"
    ],
-   "reads": [],
-   "writes": [],
+   "reads": [
+    "mem:AppDependencies.storage.sessionArchive"
+   ],
+   "writes": [
+    "mem:FitnessPostSummaryView.refreshedSession",
+    "mem:ArchiveSignal.version",
+    "archive:SessionArchive.update (analysisSnapshot)"
+   ],
    "branches": [
     {
      "at": "+2",
      "cond": "stored snapshot exists",
-     "effect": "true: needsRebuild decides; false: `??` true -> rebuild"
+     "effect": "true: needsRebuild decides; false: rebuild"
     },
     {
      "at": "+3",
-     "cond": "needsRebuild AND snapshotInputs non-nil",
-     "effect": "false: return without work (current snapshot, or no samples/duration); true: build and persist"
-    }
-   ],
-   "flags": [
+     "cond": "needsRebuild AND inputs AND non-empty samples",
+     "effect": "false: return without work"
+    },
     {
-     "kind": "race",
-     "sev": "low",
-     "text": "The snapshot is built from `session` as it was when onAppear fired (usually initialSession, before reloadFromArchive lands) and then written into whatever is in the archive at persist time without checking it changed; a retrim/re-analyze that lands during the build gets a snapshot computed from the old samples stamped with the current schema/language, so needsRebuild never triggers a rebuild for it.",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:95",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:97",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:101",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:129",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:130",
-      "Emuqu/Sources/Views/FitnessPostSummaryView.swift:382",
-      "Emuqu/Sources/Views/FitnessPostSummaryView.swift:383",
-      "Emuqu/Sources/Models/WorkoutAnalysisSnapshot.swift:104"
-     ],
-     "found": "second read"
+     "at": "+9",
+     "cond": "nothing written (stale or failed)",
+     "effect": "return without refresh/notify"
     }
    ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.build(_:)": "2857c29056b11e4c",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "1c38f37d10093863",
     "Emuqu/Sources/Models/WorkoutAnalysisSnapshot.swift::var WorkoutAnalysisSnapshot.needsRebuild": "dd53502122bf8c5f",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.persistAnalysisSnapshot(_:)": "ddc330fe0cd62904",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.snapshotInputs()": "015512ff980f0d58",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.persistAnalysisSnapshot(_:builtFrom:id:archive:)": "cf240695224acac1",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.snapshotInputs()": "e97dce658766d28c",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session": "cc1e3419b78fc3c4"
    }
   },
   {
    "key": "func FitnessPostSummaryView.snapshotInputs()",
-   "hash": "9bc53d727a4c6ae0",
-   "does": "Builds WorkoutAnalysisSnapshotBuilder.Inputs from the session (sport, duration, distance, elevation, mean HR, samples, splits, TRIMP, decoupling) and the user's max HR/weight from UserSettingsBridge.snapshot(); nil without metadata, samples or duration.",
+   "hash": "19265d6bfaa0c492",
+   "does": "Builds WorkoutAnalysisSnapshotBuilder.Inputs from the rendered session (sport, duration, distance, elevation, mean HR, samples (may be empty), splits, TRIMP, decoupling) and max HR / body weight from the injected settingsManager the view renders with; nil without workout metadata or duration.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func UserSettingsBridge.snapshot()"
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveBodyWeightKg"
    ],
    "reads": [
-    "mem:SettingsManager.settingsSnapshot"
+    "mem:SettingsManager.settings"
    ],
    "writes": [],
    "branches": [
     {
      "at": "+1",
-     "cond": "workoutMetadata, non-empty samples and duration all present",
-     "effect": "false: nil (no backfill possible); true: inputs returned"
+     "cond": "workoutMetadata and duration present",
+     "effect": "false: nil"
     },
     {
-     "at": "+16",
-     "cond": "meta.splits nil",
-     "effect": "`??` [] used"
-    }
-   ],
-   "flags": [
+     "at": "+12",
+     "cond": "samples nil",
+     "effect": "`??` []"
+    },
     {
-     "kind": "coupling",
-     "sev": "low",
-     "text": "Max HR and weight come from UserSettingsBridge.snapshot(), which reads the global AppDependencies.current.app.settingsManager, not the SettingsManager injected into this view's environment (line 38), so a view hosted with an injected SettingsManager (tests/previews) builds the snapshot from different settings than it renders with.",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:109",
-      "Emuqu/Sources/Views/ThresholdCards+Cards.swift:510",
-      "Emuqu/Sources/Views/ThresholdCards+Cards.swift:511",
-      "Emuqu/Sources/Views/FitnessPostSummaryView.swift:38"
-     ],
-     "found": "second read"
+     "at": "+13",
+     "cond": "splits nil",
+     "effect": "`??` []"
     }
    ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session": "cc1e3419b78fc3c4",
-    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.userMaxHR": "49805330e3ae7d57",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func UserSettingsBridge.snapshot()": "147cb8362c0717f8"
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveBodyWeightKg": "6aabde6ed09dc61f",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session": "cc1e3419b78fc3c4"
    }
   },
   {
-   "key": "func FitnessPostSummaryView.persistAnalysisSnapshot(_:)",
-   "hash": "55f1a16f0a719bf5",
-   "does": "Writes the snapshot into the archived session via updateArchived; on success sets refreshedSession, bumps the archive signal and logs; errors logged.",
+   "key": "func FitnessPostSummaryView.persistAnalysisSnapshot(_:builtFrom:id:archive:)",
+   "hash": "59ae179e9a233933",
+   "does": "Archive read-modify-write (off the main actor) storing the snapshot via store(_:in:ifBuiltFrom:), i.e. only onto a copy with the same samples and duration it was built from; returns the stored session when written (logged), nil when skipped, not found or on error (logged).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.updateArchived(_:in:_:)",
-    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.store(_:in:ifBuiltFrom:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
    "writes": [
-    "archive:SessionArchive.update (analysisSnapshot; iCloud re-upload)",
-    "mem:FitnessPostSummaryView.refreshedSession",
-    "mem:ArchiveSignal.version",
-    "notif:flowRecoveryArchiveChanged"
+    "archive:SessionArchive.update (analysisSnapshot; iCloud re-upload requested)"
    ],
    "branches": [
     {
-     "at": "+3",
-     "cond": "updateArchived returned a session",
-     "effect": "false (session not in archive): return silently; true: refresh + notify"
+     "at": "+11",
+     "cond": "not written (stale samples) or not found",
+     "effect": "nil"
     },
     {
-     "at": "+9",
-     "cond": "updateArchived threw",
-     "effect": "error logged at warning, nothing else"
+     "at": "+14",
+     "cond": "update threw",
+     "effect": "logged warning, nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Unlike saveWorkoutFeeling (whose comment says the archive read-modify-write must run detached so the archiveLock never blocks main), this archive.update (full decode + hash + write) runs synchronously on the main actor after the async build.",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:46",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:129"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "1c38f37d10093863",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.updateArchived(_:in:_:)": "fd42f47f1a53c71d",
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session": "cc1e3419b78fc3c4"
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.store(_:in:ifBuiltFrom:)": "8df1ea27c013a30c"
    }
+  },
+  {
+   "key": "func FitnessPostSummaryView.store(_:in:ifBuiltFrom:)",
+   "hash": "dfd7ab1c03d89916",
+   "does": "Sets stored.workoutMetadata.analysisSnapshot and returns true only when the stored samples and duration equal the builder inputs; false (nothing changed) otherwise.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "samples or duration differ",
+     "effect": "false"
+    }
+   ],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "var FitnessPostSummaryView.sessionAnalysisCard",
@@ -367,7 +318,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.generateSessionAnalysis()": "9f6f51ece14c69a3",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.generateSessionAnalysis()": "867764e62c9cb63e",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.sessionAnalysisBody(_:)": "490f8b3679399b1c"
    }
   },
@@ -407,20 +358,19 @@
   },
   {
    "key": "func FitnessPostSummaryView.generateSessionAnalysis()",
-   "hash": "bc43425a4b18808b",
-   "does": "Returns the stored snapshot's howYouDidNarrative when non-empty, else the legacy on-the-fly narrative.",
+   "hash": "4dfe52c91e01fdac",
+   "does": "The 'How you did' text: displayedAnalysis's howYouDidNarrative (stored snapshot, or the builder's on-the-fly snapshot before backfill), '' when none.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.legacyGenerateSessionAnalysis()",
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session"
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.displayedAnalysis"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+1",
-     "cond": "snapshot.howYouDidNarrative non-nil and non-empty",
-     "effect": "true: cached text; false: legacyGenerateSessionAnalysis()"
+     "cond": "no analysis or no narrative",
+     "effect": "''"
     }
    ],
    "flags": [
@@ -438,257 +388,45 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.legacyGenerateSessionAnalysis()": "6cf1588b5688bebe",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.displayedAnalysis": "6179f2ecacb7fe9d"
+   }
+  },
+  {
+   "key": "var FitnessPostSummaryView.displayedAnalysis",
+   "hash": "077620beecad8c14",
+   "does": "The stored analysisSnapshot when present (even one awaiting a rebuild); otherwise WorkoutAnalysisSnapshotBuilder.build over snapshotInputs (an O(samples) pass per evaluation, only until the backfill lands); nil without metadata or duration.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.snapshotInputs()",
+    "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.build(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "stored snapshot present",
+     "effect": "returned; else built on the fly"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.build(_:)": "2857c29056b11e4c",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.snapshotInputs()": "e97dce658766d28c",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session": "cc1e3419b78fc3c4"
-   }
-  },
-  {
-   "key": "func FitnessPostSummaryView.legacyGenerateSessionAnalysis()",
-   "hash": "c865e33b73822508",
-   "does": "Joins up to five sentences (α1 regime, decoupling, HRR, TRIMP, elevation), skipping nil ones; '' when duration < 1 min.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.alpha1RegimeSentence(samples:totalMin:)",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.decouplingSentence(meta:)",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func hrrSentence(meta:)",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.trimpSentence(meta:)",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.elevationSentence(meta:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "session.duration nil",
-     "effect": "`??` 0 -> totalMin 0"
-    },
-    {
-     "at": "+3",
-     "cond": "totalMin > 0",
-     "effect": "false: '' (card hidden); true: build sentences"
-    },
-    {
-     "at": "+5",
-     "cond": "meta.samples nil",
-     "effect": "`??` [] -> α1 sentence nil"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Legacy narrative (alpha1RegimeSentence/regimeWording, decouplingSentence, trimpSentence, elevationSentence, hrrSentence) re-implements WorkoutAnalysisSnapshotBuilder.buildHowYouDidNarrative with diverging rules: the builder guards 'the full N min' with a 90% coverage check, words TRIMP as 'Training load' with no <30 cutoff, and has no HRR sentence; the legacy one says 'TRIMP N', drops <30, and adds HRR. The same workout reads differently before and after its snapshot backfill.",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:196",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:219",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:247",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:203",
-      "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift:413",
-      "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift:446",
-      "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift:438",
-      "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift:395"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.alpha1RegimeSentence(samples:totalMin:)": "0d9dcbba40d6db65",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.decouplingSentence(meta:)": "8c111194580ce330",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.elevationSentence(meta:)": "193a1960d6270430",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.trimpSentence(meta:)": "9cccab947728a85e",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func hrrSentence(meta:)": "a8a85464a7b98745",
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session": "cc1e3419b78fc3c4"
-   }
-  },
-  {
-   "key": "func FitnessPostSummaryView.alpha1RegimeSentence(samples:totalMin:)",
-   "hash": "62e81d884b3f9cf1",
-   "does": "α1 regime sentence from band seconds (shared Alpha1ReportCards totals); nil when no α1 or zero banded time.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.alpha1BandTotals(samples:)",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.regimeWording(easy:thr:hard:totalMin:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "any sample has alpha1",
-     "effect": "false: nil"
-    },
-    {
-     "at": "+3",
-     "cond": "total banded seconds > 0",
-     "effect": "false: nil; true: regimeWording"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.alpha1BandTotals(samples:)": "0ad727e009285d3c",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.regimeWording(easy:thr:hard:totalMin:)": "367cd29a87d4b338"
-   }
-  },
-  {
-   "key": "func FitnessPostSummaryView.regimeWording(easy:thr:hard:totalMin:)",
-   "hash": "121f21e49f395c61",
-   "does": "Words the session shape from easy/threshold/hard seconds (converted to minutes).",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "thr == 0 AND hard == 0",
-     "effect": "'Solid aerobic-base effort — α1 stayed above threshold for the full <totalMin> min.'"
-    },
-    {
-     "at": "+4",
-     "cond": "easy == 0 AND thr == 0",
-     "effect": "'Hard session … <hard/60> min at α1 < 0.50'"
-    },
-    {
-     "at": "+7",
-     "cond": "hard > 0",
-     "effect": "'Mixed-intensity: easy/threshold/hard minutes'"
-    },
-    {
-     "at": "+7",
-     "cond": "otherwise (fallthrough)",
-     "effect": "'Threshold workout — <thr/60> min LT1-LT2, easy <easy/60> min'"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "The all-easy sentence claims α1 stayed above threshold 'for the full <totalMin> min' using total session duration, even when α1 readings covered only part of the session (banded seconds are ignored here).",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:219",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:214"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
-   }
-  },
-  {
-   "key": "func FitnessPostSummaryView.decouplingSentence(meta:)",
-   "hash": "36ada9e6dbaaf055",
-   "does": "Pa:Hr decoupling sentence for sessions ≥10 min: <5% strong efficiency, <8% mild drift, else significant loss.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "meta.decouplingPercent present",
-     "effect": "false: nil"
-    },
-    {
-     "at": "+1",
-     "cond": "duration (`??` 0) >= 600 s",
-     "effect": "false: nil"
-    },
-    {
-     "at": "+3",
-     "cond": "decoupling < 5",
-     "effect": "'stayed at … strong aerobic efficiency' (also for any negative value)"
-    },
-    {
-     "at": "+6",
-     "cond": "decoupling < 8",
-     "effect": "'mild drift' else 'significant efficiency loss'"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session": "cc1e3419b78fc3c4"
-   }
-  },
-  {
-   "key": "func FitnessPostSummaryView.trimpSentence(meta:)",
-   "hash": "349583d7dc37e4e8",
-   "does": "Lucia TRIMP sentence with fixed bands: ≥150 heavy, ≥80 moderate, ≥30 light, otherwise nil.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "meta.luciaTRIMP present",
-     "effect": "false: nil"
-    },
-    {
-     "at": "+2",
-     "cond": "trimp >= 150",
-     "effect": "heavy"
-    },
-    {
-     "at": "+5",
-     "cond": "trimp >= 80",
-     "effect": "moderate"
-    },
-    {
-     "at": "+8",
-     "cond": "trimp >= 30",
-     "effect": "light; below 30 -> nil"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
-   }
-  },
-  {
-   "key": "func FitnessPostSummaryView.elevationSentence(meta:)",
-   "hash": "fa256c8a2ff189b4",
-   "does": "'You climbed X.' when elevation gain ≥ 30 m, formatted in the user's units.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.units",
-    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatElevation(meters:)"
-   ],
-   "reads": [
-    "ud:fitness.unitsPreference (App Group)"
-   ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "elevationGainMeters present and >= 30",
-     "effect": "false: nil; true: sentence"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
-    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatElevation(meters:)": "e9541645225037ce",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.units": "88eb8ae49d3ff5bb"
    }
   },
   {
    "key": "var FitnessPostSummaryView.heroCard",
-   "hash": "e8a7c6482031cee1",
-   "does": "Shapes WorkoutHeroCard inputs: sport (default walk), formatted distance or '—', duration label, pace label, end date, dominant α1 band, snapshot hero narrative or legacy heroNarrative, route coordinates from the decoded track.",
+   "hash": "1803fee8013c6ebd",
+   "does": "Shapes WorkoutHeroCard inputs: sport (default walk), formatted distance or '—', duration label, pace label, end date, the dominant α1 band and hero narrative from displayedAnalysis (stored fields — no per-render sample walk once a snapshot exists), route coordinates from the decoded track.",
    "entry": "Rendered from summaryHeroCards.",
    "calls": [
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.units",
     "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.heroDurationLabel",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.heroPaceLabel(distance:)",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.heroDominantAlpha1Band(samples:)",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.heroNarrative(samples:durationSec:)",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.displayedAnalysis",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.track",
     "ext:WorkoutHeroCard"
@@ -709,41 +447,21 @@
      "effect": "`??` '—'"
     },
     {
-     "at": "+7",
-     "cond": "samples nil",
-     "effect": "`??` [] -> no dominant band"
-    },
-    {
-     "at": "+16",
-     "cond": "snapshot.heroNarrative present",
-     "effect": "used verbatim (snapshot init stores empty as nil); else `??` legacy heroNarrative"
+     "at": "+8",
+     "cond": "no analysis or unknown band raw value",
+     "effect": "nil band"
     },
     {
      "at": "+17",
-     "cond": "samples / duration nil",
-     "effect": "`??` [] and 0 -> narrative ''"
+     "cond": "no hero narrative",
+     "effect": "`??` ''"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Comments say subsequent opens are 'pure field reads — no per-render iteration over thousands of samples' and 'One field read, no sample iteration', but heroCard calls heroDominantAlpha1Band on every body pass, which runs ectopicShadows plus a full α1 walk over all samples even when the snapshot already stores dominantAlpha1BandRaw.",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:84",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:186",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:278",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:533",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:546"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "a36dafa82ad91f58",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.heroDominantAlpha1Band(samples:)": "d38d2a98bcc771ec",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.heroNarrative(samples:durationSec:)": "257b632daac52546",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.heroPaceLabel(distance:)": "b4ee2bc4e4269f61",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.displayedAnalysis": "6179f2ecacb7fe9d",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.heroDurationLabel": "7168ec784f44ad2d",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.units": "88eb8ae49d3ff5bb",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session": "cc1e3419b78fc3c4",
@@ -963,11 +681,11 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.appendBestSplitTile(_:)": "5670135f4d66fa4e",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.appendBestSplitTile(_:)": "afe59b9bc73f9aff",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.appendElevationTile(_:)": "643f24603c951a39",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.appendHeartRateTiles(_:)": "6891ad5aa186b213",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.appendLoadTile(_:)": "adeacdec2309a7bc",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.appendSecondaryLoadTile(_:)": "a5fa11e1a3082bcb"
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.appendSecondaryLoadTile(_:)": "43bde40e9064cb19"
    }
   },
   {
@@ -1070,85 +788,40 @@
   },
   {
    "key": "func FitnessPostSummaryView.loadTileSubtitle(_:meta:)",
-   "hash": "7b43f58b6603a155",
-   "does": "Subtitle: route-history extrapolation estimate when it exceeds the recorded load by >1 (named route at confidence ≥0.55), otherwise a per-source caption marking partial data.",
+   "hash": "920f689f452c02c0",
+   "does": "Per-source caption for the primary load tile, with partial-data variants: power 'Coggan · power', HR '1-hour threshold = 100 pts', METs 'METs · pace+grade', Banister, and 'est · route history' when the route estimate is the load (preferredTrainingLoad picks it on a strap dropout). The route estimate is never compared against a load on another scale.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+4",
-     "cond": "extrapolatedTRIMP and confidence present and est > load+1",
-     "effect": "route-estimate subtitle"
-    },
-    {
-     "at": "+7",
-     "cond": "routeName present and conf >= 0.55",
-     "effect": "'~N est · <route>' else '~N est for full route'"
-    },
-    {
-     "at": "+13",
+     "at": "+2",
      "cond": "case .power",
      "effect": "'Coggan · power' / '· partial HR'"
     },
     {
-     "at": "+13",
-     "cond": "partialDataReason != nil (power)",
-     "effect": "partial variant"
-    },
-    {
-     "at": "+14",
+     "at": "+3",
      "cond": "case .hr",
      "effect": "'1-hour threshold = 100 pts' or 'HR · partial'"
     },
     {
-     "at": "+14",
-     "cond": "partialDataReason != nil (hr)",
-     "effect": "partial variant"
-    },
-    {
-     "at": "+15",
+     "at": "+4",
      "cond": "case .mets",
      "effect": "'METs · pace+grade' or '· HR lost'"
     },
     {
-     "at": "+15",
-     "cond": "partialDataReason != nil (mets)",
-     "effect": "partial variant"
-    },
-    {
-     "at": "+16",
+     "at": "+5",
      "cond": "case .banister",
      "effect": "'Banister' or 'Banister · partial'"
     },
     {
-     "at": "+16",
-     "cond": "partialDataReason != nil (banister)",
-     "effect": "partial variant"
-    },
-    {
-     "at": "+17",
+     "at": "+6",
      "cond": "case .routeHistory",
      "effect": "'est · route history'"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "extrapolatedTRIMP (a Lucia-TRIMP-scale route estimate) is compared with load.value whatever its source (power TSS, HRSS or METs load), and with any confidence, so a power or HRSS workout whose route estimate exceeds its TSS by more than 1 gets the subtitle '~N est for full route' under the LOAD tile. The comment calls this the strap-dropped case, but it does not use routeEstimateReplacesHRLoad, so it also fires on normal easier runs of the route.",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:475",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:476",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:477",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:478",
-      "Emuqu/Sources/Models/WorkoutMetadata.swift:685",
-      "Emuqu/Sources/Models/WorkoutMetadata.swift:715"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
@@ -1180,33 +853,26 @@
   },
   {
    "key": "func FitnessPostSummaryView.appendSecondaryLoadTile(_:)",
-   "hash": "a9aea9bfaa093734",
-   "does": "Appends an HRSS tile (hrTSS) when stored powerTSS is non-nil.",
+   "hash": "0272eb5d2596f659",
+   "does": "Appends an HRSS tile (hrTSS) when the primary load (preferredTrainingLoad) is power-based — stored or derived at read time — so it never repeats the primary number.",
    "entry": null,
-   "calls": [],
-   "reads": [],
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.preferredTrainingLoad"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings (FTP via computedPowerTSS)"
+   ],
    "writes": [],
    "branches": [
     {
-     "at": "+6",
-     "cond": "meta.powerTSS != nil AND hrTSS present",
+     "at": "+7",
+     "cond": "primary load source is power AND hrTSS present",
      "effect": "HRSS tile appended"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Gate checks the raw stored powerTSS, but the primary tile uses computedPowerTSS (>0, derived from NP+FTP when not stored): a stored powerTSS of 0 makes hrTSS the primary LOAD and shows the same number again as HRSS, and a read-time-derived power load gets no HRSS comparison tile — contrary to the comment 'only when the power-based load is the primary'.",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:505",
-      "Emuqu/Sources/Models/WorkoutMetadata.swift:715",
-      "Emuqu/Sources/Models/WorkoutMetadata.swift:664"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.preferredTrainingLoad": "83d7dba52bc503b9",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::init FitnessPostSummaryView(session:onDone:onDelete:)": "0e4426ac20a743c7",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session": "cc1e3419b78fc3c4"
@@ -1215,7 +881,7 @@
   {
    "key": "func FitnessPostSummaryView.appendBestSplitTile(_:)",
    "hash": "41ea96dc26c05db0",
-   "does": "Appends BEST SPLIT tile from bestSplitDisplay (pace + caption) when available.",
+   "does": "Appends BEST SPLIT tile from bestSplitDisplay (fastest full split of the unit-resolved splits, with that series' unit) when available.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.bestSplitDisplay"
@@ -1229,215 +895,11 @@
      "effect": "tile appended"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "The BEST SPLIT tile reads WorkoutStatsCards.bestSplitDisplay, which uses the raw stored splits (not the unit-resolved cachedSplits the splits card renders) and picks the unit label per split (distance > 1500 m). So a partial final split can win as fastest and be labelled 'km' on a mile-bucketed workout, and km-stored splits show as 'km N' for an imperial user whose splits card lists miles. Share.swift:487-490 describes this exact per-row mislabel.",
-     "evidence": [
-      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:96",
-      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:101",
-      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:102",
-      "Emuqu/Sources/Views/FitnessPostSummaryView.swift:291",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift:487"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.bestSplitDisplay": "69aef7fa5e98dab1",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.bestSplitDisplay": "84e4b6bb41e80926",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::init FitnessPostSummaryView(session:onDone:onDelete:)": "0e4426ac20a743c7"
-   }
-  },
-  {
-   "key": "func FitnessPostSummaryView.heroDominantAlpha1Band(samples:)",
-   "hash": "90b91391900658b0",
-   "does": "Sums seconds per LiveDFAAnalyzer display band over artifact-filtered α1 readings and returns the band with most time; nil when none.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.alpha1Readings(_:)",
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.Band.display(alpha1:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "for each α1 reading",
-     "effect": "adds dt to its band"
-    },
-    {
-     "at": "+5",
-     "cond": "a max band exists with > 0 s",
-     "effect": "false: nil; true: that band (ties resolve by dictionary order)"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Re-derives the dominant α1 band that the snapshot stores as dominantAlpha1BandRaw, with different rules: the builder collapses the hard bands and breaks ties below>between>above, this uses LiveDFAAnalyzer.Band.display bands and Dictionary.max, whose tie result depends on hash order.",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:532",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:536",
-      "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift:306"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.Band.display(alpha1:)": "656fc52bf517fcc1",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.alpha1Readings(_:)": "cbdd08159835b86d"
-   }
-  },
-  {
-   "key": "func FitnessPostSummaryView.alpha1Readings(_:)",
-   "hash": "affaba79812c3345",
-   "does": "Lists α1 readings with their timed seconds (gap since previous α1 sample capped by Alpha1ReportCards.sampleSeconds), excluding those inside ectopic shadows.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.sampleSeconds(at:previous:)",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.EctopicShadow.contains(offsetSec:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+4",
-     "cond": "for each sample",
-     "effect": "iterate"
-    },
-    {
-     "at": "+5",
-     "cond": "sample.alpha1 nil",
-     "effect": "skip (continue)"
-    },
-    {
-     "at": "+8",
-     "cond": "offset inside an ectopic shadow",
-     "effect": "skip (prev still advanced); else append"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.EctopicShadow.contains(offsetSec:)": "b3336f522bf914fd",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "244ecc9ffe5baf31",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.sampleSeconds(at:previous:)": "0befeb7b3281987b"
-   }
-  },
-  {
-   "key": "func FitnessPostSummaryView.heroNarrative(samples:durationSec:)",
-   "hash": "b95851ef67100223",
-   "does": "Legacy hero narrative: '' for <1 min; 'α1 not captured' without α1; all-easy / all-hard sentences; crossing narrative when a sustained AT1 crossing exists; else minute breakdown.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.alpha1BandTotals(samples:)",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.crossingNarrative(cross:bands:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "totalMin > 0",
-     "effect": "false: ''"
-    },
-    {
-     "at": "+3",
-     "cond": "any alpha1",
-     "effect": "false: 'α1 not captured' text"
-    },
-    {
-     "at": "+7",
-     "cond": "between == 0 AND aboveAT2 == 0",
-     "effect": "aerobic-base sentence (claims 'the whole time')"
-    },
-    {
-     "at": "+10",
-     "cond": "belowAT1 == 0 AND between == 0",
-     "effect": "above-anaerobic sentence"
-    },
-    {
-     "at": "+13",
-     "cond": "firstCrossing present",
-     "effect": "crossingNarrative; else breakdown sentence"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Unlike the builder's hero narrative (guard below+btwn+above > 0), this only checks that some sample has alpha1; when every α1 reading falls in an ectopic shadow, alpha1BandTotals returns all zeros and the line 569 branch claims 'α1 stayed above threshold the whole time. Ideal Zone-2 session.' with zero measured α1 time.",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:565",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:568",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:569",
-      "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift:354"
-     ],
-     "found": "second read"
-    },
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "heroNarrative/crossingNarrative duplicate WorkoutAnalysisSnapshotBuilder.buildHeroNarrative/crossingNarrative with different wording and without its coversSession guard; the legacy text shows only until the snapshot backfill lands.",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:562",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:590",
-      "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift:347",
-      "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift:375"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.alpha1BandTotals(samples:)": "0ad727e009285d3c",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.crossingNarrative(cross:bands:)": "c6b3c6f9284adc2b"
-   }
-  },
-  {
-   "key": "func FitnessPostSummaryView.alpha1BandTotals(samples:)",
-   "hash": "752c34ec8d3a1ca8",
-   "does": "Delegates to Alpha1ReportCards.alpha1BandTotals with ectopic shadows from the same samples.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1BandTotals(samples:shadows:)",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1BandTotals(samples:shadows:)": "484f9393c91f1f3e",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "244ecc9ffe5baf31"
-   }
-  },
-  {
-   "key": "func FitnessPostSummaryView.crossingNarrative(cross:bands:)",
-   "hash": "ca45ae44459e9f85",
-   "does": "'Crossed aerobic threshold at m:ss [at N bpm]' plus hard minutes (mixed) or threshold/easy minutes.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "crossing HR present",
-     "effect": "' at N bpm' else `??` ''"
-    },
-    {
-     "at": "+4",
-     "cond": "hard minutes > 0",
-     "effect": "mixed-intensity wording; else threshold/easy wording"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },
   {
@@ -1523,45 +985,6 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d"
-   }
-  },
-  {
-   "key": "func hrrSentence(meta:)",
-   "hash": "6e4dd12e9fabbde0",
-   "does": "HRR sentence from the best ~1-minute HRR sample: drop ≥18 excellent, ≥12 normal, ≥8 sluggish, else low.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "hrrSamples.bestAtOneMinute present",
-     "effect": "false: nil"
-    },
-    {
-     "at": "+2",
-     "cond": "drop >= 18",
-     "effect": "excellent"
-    },
-    {
-     "at": "+5",
-     "cond": "drop >= 12",
-     "effect": "at/above convention"
-    },
-    {
-     "at": "+8",
-     "cond": "drop >= 8",
-     "effect": "sluggish; else low"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute": "080c4f9acef7ff40",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173"
    }
   }
  ],

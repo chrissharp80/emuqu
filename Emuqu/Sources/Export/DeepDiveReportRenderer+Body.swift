@@ -337,11 +337,14 @@ extension DeepDiveReportRenderer {
     }
 
     /// Against a known baseline the deviation is what matters (and what the
-    /// score penalises); without one, absolute breaths/min is the only read.
+    /// score penalises); without one, absolute breaths/min read on the score's
+    /// population window (`ScoringWeights.Vitals`, 12–18): above it the score
+    /// deducts, below it it dings gently.
     private static func respiratoryRateInterpretation(rr: Double, vitals: PDFReportGenerator.VitalsData, bundle: Bundle) -> String {
         guard let baseline = vitals.respiratoryRateBaseline else {
+            if rr < ScoringWeights.Vitals.respiratoryRatePopulationMinBPM { return String(localized: "Low", bundle: bundle) }
             if rr <= 16 { return String(localized: "Normal range", bundle: bundle) }
-            return rr <= 20
+            return rr <= ScoringWeights.Vitals.respiratoryRatePopulationMaxBPM
                 ? String(localized: "Upper normal", bundle: bundle)
                 : String(localized: "Elevated", bundle: bundle)
         }
@@ -437,10 +440,11 @@ private func timeAwakeRow(sleep: PDFReportGenerator.SleepData, bundle: Bundle) -
 
 /// Light sleep (core). `totalSleepMinutes` already EXCLUDES awake time
 /// (it is deep+rem+core), so subtracting awake again would double-count it and
-/// make deep/rem/light sum to less than 100 (matches +Sections.swift).
+/// make deep/rem/light sum to less than 100 (matches +Sections.swift). Both
+/// deep and REM must be measured: a missing stage counted as 0 would be
+/// reported as light sleep.
 private func lightSleepRow(sleep: PDFReportGenerator.SleepData, bundle: Bundle) -> DeepDiveReportRenderer.DeepDiveMetric? {
-    let deep = sleep.deepSleepMinutes ?? 0
-    let rem = sleep.remSleepMinutes ?? 0
+    guard let deep = sleep.deepSleepMinutes, let rem = sleep.remSleepMinutes else { return nil }
     let light = sleep.totalSleepMinutes - deep - rem
     guard light > 0 else { return nil }
     let lightPct = sleep.totalSleepMinutes > 0 ? Double(light) / Double(sleep.totalSleepMinutes) * 100 : 0

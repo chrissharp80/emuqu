@@ -1,11 +1,11 @@
 {
  "file": "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift",
- "hash": "a28b652d0ae6984d",
+ "hash": "71e3e113968d15e2",
  "role": "Pure builder turning a workout's samples/splits/metadata inputs into a persistable WorkoutAnalysisSnapshot (α1 band seconds and stats, HR zone seconds, moving time, energy/economy, fastest/slowest split, localized hero and how-you-did narratives).",
  "types": [
   "WorkoutAnalysisSnapshotBuilder: enum — namespace",
   "Inputs: struct — builder inputs",
-  "SamplePass: struct (private) — single-pass accumulators",
+  "SamplePass: struct (private) — single-pass accumulators (α1 stats, zone seconds, METs, step count, moving seconds)",
   "Derived: struct (private) — pass results",
   "EnergyEconomy: struct (private)",
   "Alpha1BandMinutes: struct — band seconds for narrative"
@@ -59,11 +59,12 @@
   },
   {
    "key": "func WorkoutAnalysisSnapshotBuilder.scan(samples:userMaxHR:)",
-   "hash": "2321ef2ba046e8ff",
-   "does": "Computes ectopic shadows, walks samples accumulating per-sample stats with dt = max(1, offset gap) (first sample's dt = its own offset), then takes α1 band totals and first crossing from Alpha1ReportCards.alpha1BandTotals.",
+   "hash": "702ee0dfafbbb34a",
+   "does": "Computes ectopic shadows, walks samples accumulating per-sample stats with dt = Alpha1ReportCards.sampleSeconds (the gap since the previous sample, at least 1 and capped at 5 s; 1 for the first sample) — the same crediting as the α1 bands and the PDF's zone table — then takes α1 band totals and first crossing from Alpha1ReportCards.alpha1BandTotals.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.sampleSeconds(at:previous:)",
     "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.accumulate(_:dt:maxHR:shadows:into:)",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1BandTotals(samples:shadows:)"
    ],
@@ -73,35 +74,35 @@
     {
      "at": "+5",
      "cond": "for each sample",
-     "effect": "accumulate with dt"
+     "effect": "accumulate with the capped dt"
     }
    ],
    "flags": [
     {
      "kind": "duplicate",
      "sev": "med",
-     "text": "HR-zone seconds are computed three ways with different crediting: this scan credits the first sample its whole offset and every gap in full (dt = max(1, offset - last)), ThresholdCards.hrZoneSeconds does the same, but the PDF's WorkoutPDFRenderer.hrZoneSeconds credits the first sample 1 s and caps gaps at maxCreditedGapSec = 5. After a sample gap (e.g. capWorkoutSampleMemory dropping the head of a >12 h workout, or a stall) the stored snapshot's hrZoneSeconds/movingTimeSec and the PDF zone table disagree.",
+     "text": "HR-zone seconds are still computed two ways: this scan and the PDF's WorkoutPDFRenderer.hrZoneSeconds now both credit the first sample 1 s and cap gaps at 5 s (Alpha1ReportCards.sampleSeconds / creditedSeconds), but the on-screen ThresholdCards.hrZoneSeconds credits every gap in full (dt = max(1, offset - prev), first sample its whole offset). After a sample gap (capWorkoutSampleMemory dropping the head of a >12 h workout, or a stall) the zone card on screen disagrees with the stored snapshot and the PDF. Fix needs ThresholdCards+Cards.swift to use Alpha1ReportCards.sampleSeconds (handed off).",
      "evidence": [
-      "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift:79",
+      "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift:87",
       "Emuqu/Sources/Views/ThresholdCards+Cards.swift:457",
       "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift:340",
-      "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift:345",
       "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:601"
      ],
      "found": "second read"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.accumulate(_:dt:maxHR:shadows:into:)": "71a5f0529b442297",
+    "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.accumulate(_:dt:maxHR:shadows:into:)": "4a7b1b718b27834f",
     "Emuqu/Sources/Collection/METLookup.swift::func METLookup.bands(for:)": "7595b67c8748b5ce",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1BandTotals(samples:shadows:)": "484f9393c91f1f3e",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "244ecc9ffe5baf31"
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1BandTotals(samples:shadows:)": "10a49c142b438673",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "9173c8e9337e06b4",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.sampleSeconds(at:previous:)": "0befeb7b3281987b"
    }
   },
   {
    "key": "func WorkoutAnalysisSnapshotBuilder.accumulate(_:dt:maxHR:shadows:into:)",
-   "hash": "6955e81b7bd4253b",
-   "does": "Per sample: α1 stats, HR zone time, METs sum, cadence sum (>0 only), and moving seconds when isMoving.",
+   "hash": "e1180dc06c8923c9",
+   "does": "Per sample: α1 stats, HR zone time (dt), METs sum, steps (cadence × dt / 60, cadence > 0 only), and moving seconds (dt) when isMoving.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.accumulateAlpha1(_:shadows:into:)",
@@ -124,10 +125,10 @@
     {
      "at": "+16",
      "cond": "cadence present and > 0",
-     "effect": "accumulated"
+     "effect": "stepCount += cadence × dt / 60"
     },
     {
-     "at": "+20",
+     "at": "+19",
      "cond": "isMoving",
      "effect": "movingSec += dt"
     }
@@ -241,9 +242,9 @@
    "deps": {
     "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.buildNarratives(_:below:btwn:above:alphaTotal:pass:)": "4e4084214fc3bd86",
     "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.dominantZone(zoneSecs:zoneTotal:)": "974008587ee9d034",
-    "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.energyAndEconomy(_:pass:)": "580e0517ee876930",
+    "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.energyAndEconomy(_:pass:)": "e0292b1dc8d890b9",
     "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.fastestAndSlowestSplits(_:)": "10d16f5949cb272d",
-    "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.scan(samples:userMaxHR:)": "c92d2e457b204ba2",
+    "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.scan(samples:userMaxHR:)": "8c808502eb0a5197",
     "Emuqu/Sources/Collection/METLookup.swift::func METLookup.bands(for:)": "7595b67c8748b5ce",
     "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.userMaxHR": "49805330e3ae7d57"
    }
@@ -365,13 +366,13 @@
   },
   {
    "key": "func WorkoutAnalysisSnapshotBuilder.energyAndEconomy(_:pass:)",
-   "hash": "954439e22cc5d630",
-   "does": "Average METs × body weight = kcal/h; total = kcal/h × duration hours; moving percent, VAM, stride length; GAP from per-km samples (WorkoutLiveTrends) falling back to net-grade whole-session estimate.",
+   "hash": "8917a1ef134982bf",
+   "does": "Average METs × body weight = kcal/h; total = kcal/h × duration hours; moving percent, VAM, stride length from the counted steps; GAP from per-km samples (WorkoutLiveTrends) falling back to net-grade whole-session estimate.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.movingPercent(_:pass:)",
     "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.vam(_:durationHours:)",
-    "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.strideLength(distanceMeters:durationSec:cadenceSum:cadenceCount:)",
+    "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.strideLength(distanceMeters:durationSec:stepCount:)",
     "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.sessionGradeAdjustedPaceSecPerKm(samples:)",
     "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.gradeAdjustedPace(durationSec:distanceMeters:elevGain:elevLoss:)"
    ],
@@ -393,7 +394,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.gradeAdjustedPace(durationSec:distanceMeters:elevGain:elevLoss:)": "3ee6c9d915b9b8cf",
     "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.movingPercent(_:pass:)": "5573b7e23eee1411",
-    "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.strideLength(distanceMeters:durationSec:cadenceSum:cadenceCount:)": "ddb48f5a35762ff9",
+    "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.strideLength(distanceMeters:durationSec:stepCount:)": "962a3a01363165ab",
     "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.vam(_:durationHours:)": "05747a52304f24b5",
     "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.sessionGradeAdjustedPaceSecPerKm(samples:)": "445c47bb3b0ff4e4",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
@@ -467,40 +468,24 @@
    "deps": {}
   },
   {
-   "key": "func WorkoutAnalysisSnapshotBuilder.strideLength(distanceMeters:durationSec:cadenceSum:cadenceCount:)",
-   "hash": "dd452bf4c0ca18c1",
-   "does": "Stride length = distance / (avgCadence × minutes / 2); nil unless distance > 100 m, duration > 60 s, any cadence.",
+   "key": "func WorkoutAnalysisSnapshotBuilder.strideLength(distanceMeters:durationSec:stepCount:)",
+   "hash": "5ffd9958fe1e8d99",
+   "does": "Metres per stride (two steps): distance / (stepCount / 2), where stepCount is summed sample by sample so stationary seconds add no steps; nil for <= 100 m, <= 60 s or no steps.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+6",
-     "cond": "distance missing/<=100, duration<=60, or no cadence",
-     "effect": "nil"
-    },
-    {
-     "at": "+10",
-     "cond": "totalSteps <= 0",
+     "at": "+5",
+     "cond": "distance missing or <= 100 m, duration <= 60 s, or stepCount <= 0",
      "effect": "nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "avgCadence is averaged only over samples with cadence > 0 (accumulate skips 0/nil) but multiplied by the whole active durationSec, so standing/stopped time is counted as stepping at the running cadence; total steps are overestimated and stride length underestimated in proportion to the stationary fraction (e.g. 25% stopped -> stride ~25% short). The value is surfaced to the AI as stride_length_m.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift:103",
-      "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift:322",
-      "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift:323",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift:327"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {}
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func stepCount(samples:)": "6c00c4d3ab2ac3d3"
+   }
   },
   {
    "key": "func WorkoutAnalysisSnapshotBuilder.gradeAdjustedPace(durationSec:distanceMeters:elevGain:elevLoss:)",

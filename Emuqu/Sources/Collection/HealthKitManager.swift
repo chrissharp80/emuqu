@@ -158,6 +158,13 @@ final class HealthKitManager {
     /// granted. Used by `OnboardingHealthPage` to drive its post-sheet
     /// status card. Empty set ⇒ user denied everything (or HK is off);
     /// 4+ entries ⇒ confirmation card; partial ⇒ warning card.
+    ///
+    /// iOS never says whether a read was granted, so a scope counts when
+    /// another source's sample can be read from the last 30 days. This
+    /// app's own writes (heart rate, sleep, workouts) are left out — an app
+    /// can always read what it wrote, so they showed a denied scope as
+    /// granted. A granted scope with no other data in 30 days still reads as
+    /// not granted; nothing in HealthKit can tell those apart.
     func grantedScopeSummary() async -> Set<String> {
         guard isHealthKitAvailable else { return [] }
         var granted: Set<String> = []
@@ -189,12 +196,21 @@ final class HealthKitManager {
 
     private func sampleExists(type: HKSampleType?, since: Date) async -> Bool {
         guard let type else { return false }
-        let predicate = HKQuery.predicateForSamples(withStart: since, end: nil)
+        let predicate = Self.otherSourcesSamples(from: since, to: nil)
         return await runBoundedQuery(timeout: Self.vitalsQueryTimeoutSec) { resolve in
             HKSampleQuery(sampleType: type, predicate: predicate, limit: 1, sortDescriptors: nil) { _, results, _ in
                 resolve(!(results?.isEmpty ?? true))
             }
         } ?? false // timeout → treat as "not present" (fail-safe for the auth probe)
+    }
+
+    /// Samples in the date range written by any source but this app. The
+    /// read-authorization probes use it: an app can always read its own
+    /// writes, so counting them reported access the user had denied.
+    nonisolated private static func otherSourcesSamples(from start: Date, to end: Date?) -> NSPredicate {
+        let range = HKQuery.predicateForSamples(withStart: start, end: end, options: [])
+        let ours = HKQuery.predicateForObjects(from: Set([HKSource.default()]))
+        return NSCompoundPredicate(andPredicateWithSubpredicates: [range, NSCompoundPredicate(notPredicateWithSubpredicate: ours)])
     }
 
     /// Auto-recover from the "stale auth set"
@@ -424,9 +440,42 @@ final class HealthKitManager {
         // in between looked unexported and went to Health twice.
         guard HealthExportClaims.claim(entry.sessionId) else { return tally.failed += 1 }
         defer { HealthExportClaims.release(entry.sessionId) }
-        guard var session = try? archive.retrieve(entry.sessionId) else { return tally.failed += 1 }
+        guard var session = readableSession(entry, archive: archive) else { return tally.skipped += 1 }
         guard Self.needsBackfill(session) else { return tally.skipped += 1 }
+        guard !Self.exportedUnstamped().contains(entry.sessionId.uuidString) else {
+            return stampAlreadyExported(entry.sessionId, archive: archive, tally: &tally)
+        }
         await exportClaimed(&session, entry: entry, archive: archive, bodyWeightKg: bodyWeightKg, tally: &tally)
+    }
+
+    /// The session, or nil when it cannot be read (its file is missing or
+    /// cannot be decrypted). Retrying will not make it readable, so the
+    /// caller counts it as skipped rather than failed: counted as failed it
+    /// held the watermark for good, and every foreground decrypted every
+    /// workout again.
+    private func readableSession(_ entry: SessionArchiveEntry, archive: SessionArchive) -> HRVSession? {
+        let id = entry.sessionId.uuidString.prefix(8)
+        do {
+            if let session = try archive.retrieve(entry.sessionId) { return session }
+            debugLog("[HealthKitManager] backfill: workout \(id) is listed but missing from the archive — skipped", level: .warning)
+        } catch {
+            debugLog("[HealthKitManager] backfill: workout \(id) could not be read — skipped: \(error.localizedDescription)", level: .warning)
+        }
+        return nil
+    }
+
+    /// A session already in Apple Health whose stamp did not persist: only
+    /// the stamp is written. Exporting it again put a second copy of the
+    /// workout in Health.
+    private func stampAlreadyExported(_ id: UUID, archive: SessionArchive, tally: inout (exported: Int, skipped: Int, failed: Int)) {
+        do {
+            try Self.writeExportStamp(id, at: Date(), archive: archive)
+            Self.noteExportedUnstamped(id, pending: false)
+            tally.skipped += 1
+        } catch {
+            debugLog("[HealthKit] Export stamp still not persisted for \(id.uuidString.prefix(8)): \(error.localizedDescription)", level: .warning)
+            tally.failed += 1
+        }
     }
 
     private func exportClaimed(
@@ -446,27 +495,47 @@ final class HealthKitManager {
     }
 
     /// Polite pacing after each write — HealthKit's writer accepts ~1/sec
-    /// sustained without throwing, so sleeping ~250 ms keeps us safely below.
+    /// sustained without throwing, so a 1 s pause after each export keeps
+    /// the batch at or below that.
     private func exportAndStamp(_ session: inout HRVSession, archive: SessionArchive, bodyWeightKg: Double) async throws {
         try await HealthKitWorkoutExport.export(session: session, store: healthStore, bodyWeightKg: bodyWeightKg)
         let exportedAt = Date()
         session.healthKitExportedAt = exportedAt
         session.healthKitExportFailureCount = nil
         do {
-            // Only the stamp, onto the copy as stored now: the export takes a
-            // moment, and writing back the copy read before it undid an edit
-            // or a heart-rate-recovery save made meanwhile.
-            try archive.update(session.id, requestingReupload: false) {
-                $0.healthKitExportedAt = exportedAt
-                $0.healthKitExportFailureCount = nil
-            }
+            try Self.writeExportStamp(session.id, at: exportedAt, archive: archive)
         } catch {
             // The export itself succeeded; only the "already exported" stamp
-            // failed to persist. Backfill will re-export this session on the
-            // next pass, which is safe but wasteful — and silent, until now.
+            // failed to persist. Noted outside the archive, so the next pass
+            // stamps it instead of exporting a second copy to Health.
+            Self.noteExportedUnstamped(session.id, pending: true)
             debugLog("[HealthKit] Export stamp not persisted for \(session.id.uuidString.prefix(8)): \(error.localizedDescription)", level: .warning)
         }
-        await sleepQuietly(250_000_000, context: "exportAndStamp")
+        await sleepQuietly(1_000_000_000, context: "exportAndStamp")
+    }
+
+    /// Only the stamp, onto the copy as stored now: the export takes a
+    /// moment, and writing back the copy read before it undid an edit or a
+    /// heart-rate-recovery save made meanwhile.
+    private static func writeExportStamp(_ id: UUID, at exportedAt: Date, archive: SessionArchive) throws {
+        try archive.update(id, requestingReupload: false) {
+            $0.healthKitExportedAt = exportedAt
+            $0.healthKitExportFailureCount = nil
+        }
+    }
+
+    /// Sessions exported to Apple Health whose stamp could not be written
+    /// to the archive (`UserDefaults`, swept by Delete All My Data).
+    nonisolated private static let exportedUnstampedKey = "hkExportedUnstampedSessions"
+
+    private static func exportedUnstamped() -> Set<String> {
+        Set(UserDefaults.standard.stringArray(forKey: exportedUnstampedKey) ?? [])
+    }
+
+    private static func noteExportedUnstamped(_ id: UUID, pending: Bool) {
+        var ids = exportedUnstamped()
+        if pending { ids.insert(id.uuidString) } else { ids.remove(id.uuidString) }
+        UserDefaults.standard.set(Array(ids), forKey: exportedUnstampedKey)
     }
 
     /// A workout with no forward duration can never be exported.
@@ -662,10 +731,11 @@ final class HealthKitManager {
         return writeTypes
     }
 
-    /// Run a wide-window probe for sleep + HRV samples. If both return
-    /// zero results and the device clock indicates we're past the
-    /// install window, set `inferredAuthorizationDenied = true` so the
-    /// UI can surface a Settings deep-link.
+    /// Run a wide-window probe for sleep + HRV samples from other sources
+    /// (this app's own SDNN and sleep exports are left out: an app can
+    /// always read its own writes). If both return zero results, set
+    /// `inferredAuthorizationDenied = true` so the UI can surface a
+    /// Settings deep-link; otherwise clear it.
     ///
     /// Heuristic: if BOTH come back empty over 14 days, the user probably
     /// denied access OR has never recorded sleep / HRV. We can't distinguish
@@ -691,16 +761,17 @@ final class HealthKitManager {
         }
     }
 
-    /// Sample-count helper used by the auth probe. Wraps `HKSampleQuery`
-    /// in async/await; returns 0 on any error so the probe defaults to
-    /// "appears denied" — fail-safe for the banner.
+    /// Sample-count helper used by the auth probe: samples from sources
+    /// other than this app. Wraps `HKSampleQuery` in async/await; returns 0
+    /// on any error so the probe defaults to "appears denied" — fail-safe
+    /// for the banner.
     /// Takes dates rather than a built `NSPredicate` so nothing non-Sendable
     /// crosses into the child task; the predicate is built where it is used.
     private func sampleCount(for type: HKSampleType, from start: Date, to end: Date) async -> Int {
         await runBoundedQuery(timeout: Self.vitalsQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: type,
-                predicate: HKQuery.predicateForSamples(withStart: start, end: end, options: []),
+                predicate: Self.otherSourcesSamples(from: start, to: end),
                 limit: 1,
                 sortDescriptors: nil
             ) { _, samples, _ in

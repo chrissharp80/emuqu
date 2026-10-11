@@ -42,28 +42,37 @@
   },
   {
    "key": "func AssistantContextSource.currentContext()",
-   "hash": "3b80a9b7f9c69555",
-   "does": "On MainActor reads TrainingLoadRegistry.live() and RRCollector.current?.baselineTracker, then on the private queue builds the context and overlays the live workout and live HRV broker snapshots; resumes the continuation with it.",
+   "hash": "df5e421468c17ce3",
+   "does": "On MainActor reads TrainingLoadRegistry.live() and RRCollector.current?.baselineTracker, then on the private queue builds the context and overlays the live workout snapshot, the workout's samples (only when that snapshot is live, else nil) and the live HRV snapshot from the brokers; resumes the continuation with it.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.live()",
     "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift::func AssistantContextSource.build(liveLoadSnapshot:baselineTracker:)",
     "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSnapshot()",
+    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSamples()",
     "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveHRVBroker.currentSnapshot()"
    ],
    "reads": [
     "mem:RRCollector.current",
     "mem:TrainingLoadRegistry live load",
-    "mem:LiveWorkoutBroker snapshot",
+    "mem:LiveWorkoutBroker snapshot and kept samples",
     "mem:LiveHRVBroker snapshot"
    ],
    "writes": [],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "liveWorkout nil",
+     "effect": "liveWorkoutSamples nil; else the broker's samples"
+    }
+   ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.live()": "36ee2153414390ef",
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.live()": "fc01ae42d73cc6b8",
     "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift::func AssistantContextSource.build(liveLoadSnapshot:baselineTracker:)": "323361ccc78e4b92",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.liveWorkoutSamples()": "90aecfc83f2a507f",
     "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveHRVBroker.currentSnapshot()": "9544923aae2a6add",
+    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSamples()": "903bc0b6e3a3a86c",
     "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSnapshot()": "a50b1a67daa97277",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
@@ -102,7 +111,7 @@
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.analyze(sessions:period:)": "211a820e07506c98",
     "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift::func AssistantContextSource.previousOvernight(after:in:)": "d1e857779d662d3d",
     "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift::func AssistantContextSource.recentLightweightSessions()": "969883c6e1ada68c",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.build(latestSession:yesterdaySession:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:customTagNames:baseline:baselineStats:yesterdayBaselineStats:trends7Day:trends30Day:liveLoadSnapshot:)": "aac5024f6b848ae2",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.build(latestSession:yesterdaySession:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:customTagNames:baseline:baselineStats:yesterdayBaselineStats:trends7Day:trends30Day:liveLoadSnapshot:)": "f490d7e48800e2ca",
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",

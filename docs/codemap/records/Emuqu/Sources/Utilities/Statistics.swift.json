@@ -1,12 +1,12 @@
 {
  "file": "Emuqu/Sources/Utilities/Statistics.swift",
  "hash": "72e13dbfade1a2ab",
- "role": "Pure statistics helpers (mean, sample variance/SD, RMS, CV, OLS linear regression with R²) using Accelerate vDSP, plus [Double] convenience properties.",
+ "role": "Pure statistics helpers (mean, sample variance/SD, RMS, CV, OLS linear regression with R²) using Accelerate vDSP, plus [Double] mean/sampleSD convenience properties.",
  "types": [
   "Statistics: enum — namespace",
   "Statistics.RegressionResult: struct — slope, intercept, r2",
   "Statistics.RegressionSums: struct (private) — running OLS sums",
-  "[Double]: extension — mean, sampleSD, rms convenience"
+  "[Double]: extension — mean, sampleSD convenience"
  ],
  "state": [],
  "toplevel": "",
@@ -110,18 +110,7 @@
      "effect": "returns nil; otherwise SD/mean (negative when mean is negative)"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Doc comment says CV 'Returns 0 when the array contains fewer than two elements', but an empty array has mean 0 and returns nil (line 67); only a single non-zero value returns 0.",
-     "evidence": [
-      "Emuqu/Sources/Utilities/Statistics.swift:64",
-      "Emuqu/Sources/Utilities/Statistics.swift:67"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.mean(_:)": "e3bce1ab6c17b7e1",
     "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.sampleStandardDeviation(_:)": "6a1a9d5b3116a177"
@@ -238,33 +227,6 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.sampleStandardDeviation(_:)": "6a1a9d5b3116a177"
-   }
-  },
-  {
-   "key": "var [Double].rms",
-   "hash": "5f041e7dee3b30df",
-   "does": "[Double].rms convenience → Statistics.rootMeanSquare(self).",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.rootMeanSquare(_:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "The [Double].rms property has no production caller; the only use is EmuquTests/StatisticsTests.swift:140 (other `.rms` hits are VoiceConversationController.rms(of:)).",
-     "evidence": [
-      "Emuqu/Sources/Utilities/Statistics.swift:147",
-      "EmuquTests/StatisticsTests.swift:140"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.rootMeanSquare(_:)": "fc0d58e5da7718f5"
    }
   }
  ],

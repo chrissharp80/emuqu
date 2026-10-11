@@ -21,8 +21,8 @@
  "units": [
   {
    "key": "func StrapFeedHealth.decide(_:)",
-   "hash": "c759a2c969ee7263",
-   "does": "From a snapshot decides the feed Status and Action: not linked → waitingForStrap; a sample within 15 s → live; before the stall start → settingUp; else stalled with stalledAction.",
+   "hash": "b3e84f964f3e6716",
+   "does": "From a snapshot decides the feed Status and Action: not linked → waitingForStrap; a sample within 15 s → live; a link with no sample yet still inside its setup grace → settingUp; else stalled with stalledAction.",
    "entry": "Called from StrapLinkCoordinator.evaluateFeedHealth (StrapLinkCoordinator.swift:497); tests StrapFeedHealthTests.",
    "calls": [
     "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.stallStart(_:linkedAt:)",
@@ -42,29 +42,12 @@
      "effect": "true: live/none; false: continue"
     },
     {
-     "at": "+8",
+     "at": "+11",
      "cond": "now >= stall start",
-     "effect": "false: status settingUp if no sample yet else live (the live arm is unreachable: with a sample, stall start = last+15 s and line 76 already returned for now <= last+15 s); true: stalled + stalledAction"
-    },
-    {
-     "at": "+9",
-     "cond": "lastSampleAt == nil (ternary)",
-     "effect": "true: settingUp; false: live (unreachable, see line 80)"
+     "effect": "false: settingUp/none (reachable only before a first sample: with one, the stall starts where live ended); true: stalled + stalledAction"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "The `.live` arm of the ternary at line 81 cannot be taken: when lastSampleAt is set, stallStart is last+15 s, and any now <= last+15 s already returned .live at line 76, so the guard at line 80 always passes.",
-     "evidence": [
-      "Emuqu/Sources/Collection/StrapFeedHealth.swift:76",
-      "Emuqu/Sources/Collection/StrapFeedHealth.swift:81",
-      "Emuqu/Sources/Collection/StrapFeedHealth.swift:88"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.stallStart(_:linkedAt:)": "2e34b6404c1e5008",
     "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.stalledAction(_:stalledSince:)": "3e032564afcb073b"

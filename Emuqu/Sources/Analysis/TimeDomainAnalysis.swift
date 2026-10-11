@@ -5,11 +5,13 @@ import Foundation
 enum TimeDomainAnalyzer {
     // RMSSD=√(mean successive ΔRR²); pNN50; SDNN(N−1); triangular index 1/128s
     // bins — Task Force ESC/NASPE, Circulation 1996;93:1043-1065
-    /// Compute RMSSD (ms) from a sequence of clean RR intervals. Shared
-    /// helper used by the canonical `computeTimeDomain(_:flags:windowStart:windowEnd:)`
-    /// path AND by the live-chart / PDF-sections call sites that used to
-    /// inline the same arithmetic. One implementation prevents numeric
-    /// drift between parallel copies.
+    /// Compute RMSSD (ms) from a sequence of clean RR intervals: the pure
+    /// Task Force formula over the array as given, with no ectopic gate and
+    /// no adjacency check. It is the reference the RMSSD estimators are
+    /// validated against (the RMSSD and HRV-reference tests, and
+    /// `docs/hrv-reference-data.md`); the app's own RMSSD comes from
+    /// `computeTimeDomain`, which differences only beats adjacent in the
+    /// original series.
     ///
     /// Returns `nil` when there aren't enough samples to form a single
     /// successive difference.
@@ -23,10 +25,7 @@ enum TimeDomainAnalyzer {
         // Return nil rather than a non-finite Double. A NaN
         // input would produce `Optional(nan)` and a pair of +/-1e308
         // `Optional(inf)`; both would then travel as a *present* measurement.
-        // `FiniteHRVInputs` catches them at the scoring boundary, but this is
-        // the source and every other caller (Apple Health export, the live
-        // chart, the PDF sections) reads it directly. Missing is the honest
-        // answer for an unrepresentable one.
+        // Missing is the honest answer for an unrepresentable one.
         return finiteOrNil((sumSquared / Double(rr.count - 1)).squareRoot())
     }
 
@@ -125,14 +124,11 @@ enum TimeDomainAnalyzer {
     /// disagreed about the same window. This applies the SAME local-median
     /// 20% gate the selector uses so the two paths agree.
     ///
-    /// Mirrors `WindowSelector.filterEctopicBeats` /
-    /// `HRVThresholds.ectopicThresholdPercent` (0.20) and
-    /// `WindowSelection.Config.localMedianWindow` (10). Kept as a local
-    /// O(n·w) implementation rather than reaching into `WindowSelector`
-    /// (which is an instance type carrying its own `config`) so the
-    /// time-domain path stays a free function with no selector dependency.
-    /// `localMedianWindow` matches `WindowSelection.Config.localMedianWindow`
-    /// (10) so this gate behaves identically to the selector's.
+    /// This is now the one ectopic gate: the window selector calls
+    /// `ectopicKeepMask` itself (`WindowSelector`'s window evaluation), so
+    /// the selector and the report cannot drift apart. The threshold is
+    /// `HRVThresholds.ectopicThresholdPercent` (0.20) from a
+    /// `localMedianWindow`-beat (10) local median.
     private static let localMedianWindow = 10
     static func filterEctopicBeats(_ rr: [Double]) -> [Double] {
         zip(rr, ectopicKeepMask(rr)).filter { $0.1 }.map { $0.0 }
@@ -229,7 +225,7 @@ enum TimeDomainAnalyzer {
         else { return nil }
         return metrics(
             cleanRR: cleanRR, diffs: diffs,
-            hrStats: computeHRStatistics(series: series, flags: flags, windowStart: windowStart, windowEnd: windowEnd)
+            hrStats: computeHRStatistics(series: series, flags: flags, windowStart: windowStart, windowEnd: windowEnd, cleanRR: cleanRR)
         )
     }
 
@@ -336,50 +332,53 @@ enum TimeDomainAnalyzer {
 
     /// Compute HR statistics using rolling 10-second windows
     /// This is the correct method - NOT instantaneous HR from single RR intervals
+    /// `cleanRR` is the window's non-artifact RR, never empty: the only
+    /// caller, `computeTimeDomain`, returns before this for fewer than 10.
     private static func computeHRStatistics(
         series: RRSeries,
         flags: [ArtifactFlags],
         windowStart: Int,
-        windowEnd: Int
+        windowEnd: Int,
+        cleanRR: [Double]
     ) -> HRWindowStatistics {
         if let stored = storedHRStatistics(series: series, flags: flags, windowStart: windowStart, windowEnd: windowEnd) {
             return stored
         }
         let hrSamples = rollingWindowHRSamples(series: series, flags: flags, windowStart: windowStart, windowEnd: windowEnd)
-        guard !hrSamples.isEmpty else {
-            return meanRRFallback(series: series, flags: flags, windowStart: windowStart, windowEnd: windowEnd)
-        }
+        guard !hrSamples.isEmpty else { return meanRRFallback(cleanRR: cleanRR) }
         return statistics(of: hrSamples)
     }
 
     /// HR as reported by the Polar sensor during streaming.
     ///
-    /// Nil when every stored-HR point in the window was artifact-rejected. In
-    /// that case we must NOT fabricate a 60 bpm sentinel — it biases the
-    /// downstream RHR z-score (RecoveryScoreCalculator's `zHR = (meanHR -
-    /// meanHRBaseline) / meanHRSD`). The caller falls through to the RR-based
-    /// rolling window instead, which derives a real HR from the same window's
-    /// non-artifact beats.
+    /// Only when EVERY non-artifact beat in the window carries sensor HR. In
+    /// a `DataSourceSelector`-merged night the internal-recording beats carry
+    /// none and only the streamed gap-fill beats do, so averaging whatever
+    /// beats have it would report the HR of a few gap-fill beats as the whole
+    /// window's — and this mean HR feeds the recovery score's resting-HR
+    /// z-score. Nil then, and nil when the window has no clean beat; the
+    /// caller falls through to the RR-based rolling window, which derives HR
+    /// from all the window's clean beats. Never a fabricated 60 bpm sentinel.
     private static func storedHRStatistics(
         series: RRSeries,
         flags: [ArtifactFlags],
         windowStart: Int,
         windowEnd: Int
     ) -> HRWindowStatistics? {
-        let points = series.points
-        guard points[windowStart ..< windowEnd].contains(where: { $0.hr != nil }) else { return nil }
         var hrValues: [Double] = []
-        for i in windowStart ..< windowEnd {
-            if !flags[i].isArtifact, let hr = points[i].hr {
-                hrValues.append(Double(hr))
-            }
+        var cleanBeats = 0
+        for i in windowStart ..< windowEnd where !flags[i].isArtifact {
+            cleanBeats += 1
+            if let hr = series.points[i].hr { hrValues.append(Double(hr)) }
         }
-        guard !hrValues.isEmpty else { return nil }
+        guard !hrValues.isEmpty, hrValues.count == cleanBeats else { return nil }
         return statistics(of: hrValues)
     }
 
-    /// Rolling 10-second windows at 50% overlap — standard practice for the
-    /// irregular rhythms of sleep HRV.
+    /// Rolling ~10-second windows, each started 5 beats after the last, for
+    /// the irregular rhythms of sleep HRV. The step is in beats, not seconds,
+    /// so the overlap is about 50% only near 60 bpm (about 58% at 50 bpm and
+    /// 33% at 90 bpm).
     private static func rollingWindowHRSamples(
         series: RRSeries,
         flags: [ArtifactFlags],
@@ -421,20 +420,9 @@ enum TimeDomainAnalyzer {
         return (windowHR >= 30 && windowHR <= 200 ? windowHR : nil, j)
     }
 
-    /// Last resort: a flat HR estimated from the window's mean RR.
-    private static func meanRRFallback(
-        series: RRSeries,
-        flags: [ArtifactFlags],
-        windowStart: Int,
-        windowEnd: Int
-    ) -> HRWindowStatistics {
-        var cleanRR = [Double]()
-        for i in windowStart ..< windowEnd where !flags[i].isArtifact {
-            cleanRR.append(Double(series.points[i].rr_ms))
-        }
-        guard !cleanRR.isEmpty else {
-            return HRWindowStatistics(mean: 60.0, sd: 0, min: 60.0, max: 60.0)
-        }
+    /// Last resort: a flat HR estimated from the window's mean clean RR
+    /// (non-empty, see `computeHRStatistics`).
+    private static func meanRRFallback(cleanRR: [Double]) -> HRWindowStatistics {
         var meanRR: Double = 0
         vDSP_meanvD(cleanRR, 1, &meanRR, vDSP_Length(cleanRR.count))
         let meanHR = 60_000.0 / meanRR

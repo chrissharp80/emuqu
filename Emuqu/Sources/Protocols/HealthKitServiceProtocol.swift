@@ -8,32 +8,17 @@ import Foundation
 /// main actor.
 @MainActor
 protocol HealthKitServiceProtocol: Sendable {
+    // The requirements are the queries the injected services
+    // (`MorningProcessingService`, `SessionAcceptanceService`,
+    // `ReanalysisService`, `HRVAnalysisPipeline`, `SleepBoundaryResolver`)
+    // make through this protocol, so a test mock stubs only those. Everything
+    // else (authorization, observers, trends, exports, dashboard queries) is
+    // called on the concrete `HealthKitManager` and is not part of it.
+
     /// Whether HealthKit is available on this device
     nonisolated var isHealthKitAvailable: Bool { get }
 
-    /// Has `requestAuthorization` been called this app session AND
-    /// returned without throwing. Doesn't tell you whether the user
-    /// granted access — HealthKit hides that — but DOES tell you
-    /// whether to bother running queries (queries before this point
-    /// silently return empty for any unauthorized type, which the
-    /// dashboard misreads as "no data" and waits 15s for).
-    var authorizationRequested: Bool { get }
-
-    /// Request authorization for HealthKit access
-    func requestAuthorization() async throws
-
-    // MARK: - Sleep Data Observation
-
-    /// Start observing HealthKit for new sleep data (e.g. Apple Watch sync)
-    func startObservingSleepData()
-
-    /// Stop observing HealthKit sleep data
-    func stopObservingSleepData()
-
     // MARK: - Sleep Data
-
-    /// Fetch sleep data for last night (or a specific night via referenceDate)
-    func fetchLastNightSleep(relativeTo referenceDate: Date) async throws -> SleepData
 
     /// Fetch sleep data for a recording period.
     /// When rrPoints are provided, HR analysis validates HealthKit boundaries and computes RMSSD quality metrics.
@@ -64,13 +49,6 @@ protocol HealthKitServiceProtocol: Sendable {
     ///   For historical sessions, pass the session's end date so ATL/CTL/TSB reflect that point in time.
     func calculateTrainingLoad(relativeTo referenceDate: Date) async -> HealthKitManager.TrainingLoad
 
-    /// Fetch VO2max
-    func fetchVO2Max() async -> Double?
-
-    /// VO2max trend over a window. Returns
-    /// (latest, oldestInWindow, sampleCount). nil when no samples.
-    func fetchVO2MaxTrend(days: Int) async -> (latest: Double, oldestInWindow: Double, sampleCount: Int)?
-
     // MARK: - Recovery Vitals
 
     /// Fetch recovery vitals (respiratory rate, SpO2, temperature)
@@ -81,49 +59,20 @@ protocol HealthKitServiceProtocol: Sendable {
     /// Estimate sleep from Apple Watch background HR samples when native sleep tracking is unavailable
     func estimateSleepFromHealthKitHR(windowStart: Date, windowEnd: Date, minimumSamples: Int, minimumSleepMinutes: Int) async -> SleepData?
 
-    /// Fetch raw heart rate samples for Watch-based sleep detection
-    func fetchHeartRateSamples(from start: Date, to end: Date) async throws -> [(date: Date, hr: Double)]
+    /// Sleep boundaries inferred from the strap's own RR series — the
+    /// fallback when HealthKit has no sleep for the night. The default calls
+    /// `HealthKitManager.estimateSleepFromHR`; a test mock can stub it.
+    func estimateSleepFromRR(rrPoints: [RRPoint], recordingStart: Date) -> SleepData?
 
     // MARK: - Apple Health Export
 
     /// Export session metrics (SDNN, HR, resting HR, sleep) to Apple Health
     func exportSessionMetrics(from session: HRVSession) async throws
-
-    /// Export sleep data to Apple Health as sleep category samples
-    func exportSleepToHealthKit(sleepData: SleepData, sessionId: UUID) async throws
-
-    // MARK: - Dashboard Queries
-
-    /// Calculate training metrics (TRIMP, ATL/CTL/TSB) for dashboard display.
-    /// - Parameter forMorningReading: When true, freezes ATL/CTL/TSB through yesterday only.
-    func calculateTrainingMetrics(forMorningReading: Bool) async -> TrainingMetrics
-
-    /// Check if any workout exists in a date range (used to reject false sleep detections)
-    func hasWorkoutInRange(from start: Date, to end: Date) async -> Bool
-
-    /// Find the earliest-start and latest-end of any additional HealthKit
-    /// sleep samples in the window. Used by extended-sleep detection to
-    /// verify that a candidate extension actually starts near the session end
-    /// (and is not a separate afternoon nap).
-    func findAdditionalSleepRange(after anchor: Date, before cutoff: Date) async -> (start: Date, end: Date)?
-
-    /// Fetch sleep data for the last N days (for trend analysis)
-    func fetchSleepTrend(days: Int) async throws -> [SleepData]
-
-    /// Analyze a series of sleep data into trend statistics
-    func analyzeSleepTrend(from sleepData: [SleepData]) -> SleepTrendStats
-
-    /// Calculate HR statistics (mean, min, max, nadir time) for a date range
-    func calculateHRStats(from start: Date, to end: Date) async throws -> HeartRateStats?
 }
 
 // MARK: - Default Parameter Convenience
 
 extension HealthKitServiceProtocol {
-    func fetchLastNightSleep() async throws -> SleepData {
-        try await fetchLastNightSleep(relativeTo: Date())
-    }
-
     /// Conformers without daytime-nap support (e.g. test mocks) contribute no
     /// nap credit. `HealthKitManager` overrides this with the real query.
     func fetchDaytimeNapMinutes(nightAnchoredAt nightAnchor: Date) async -> Int { 0 }
@@ -149,12 +98,12 @@ extension HealthKitServiceProtocol {
         )
     }
 
-    func fetchRecoveryVitals() async -> RecoveryVitals {
-        await fetchRecoveryVitals(relativeTo: Date())
-    }
-
     func calculateTrainingLoad() async -> HealthKitManager.TrainingLoad {
         await calculateTrainingLoad(relativeTo: Date())
+    }
+
+    func estimateSleepFromRR(rrPoints: [RRPoint], recordingStart: Date) -> SleepData? {
+        HealthKitManager.estimateSleepFromHR(rrPoints: rrPoints, recordingStart: recordingStart)
     }
 
     func estimateSleepFromHealthKitHR(windowStart: Date, windowEnd: Date) async -> SleepData? {
@@ -167,19 +116,5 @@ extension HealthKitServiceProtocol {
 extension HealthKitManager: HealthKitServiceProtocol {
     func calculateTrainingLoad(relativeTo referenceDate: Date) async -> TrainingLoad {
         await calculateTrainingLoad(days: 7, forMorningReading: true, relativeTo: referenceDate)
-    }
-
-    // Bridge: protocol's 1-param signature → the concrete method. Leaving the
-    // HR anchors nil resolves them the way every training-load path does
-    // (`trainingHeartRateAnchors`: Apple's resting HR, else the user's
-    // setting; the user's max HR), so TRIMP is normalised against the
-    // athlete rather than each workout's own peak.
-    func calculateTrainingMetrics(forMorningReading: Bool) async -> TrainingMetrics {
-        await calculateTrainingMetrics(forMorningReading: forMorningReading, relativeTo: Date())
-    }
-
-    // Bridge: protocol's 1-param signature → concrete's 2-param method with default relativeTo.
-    func fetchSleepTrend(days: Int) async throws -> [SleepData] {
-        try await fetchSleepTrend(days: days, relativeTo: Date())
     }
 }

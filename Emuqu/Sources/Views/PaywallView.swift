@@ -73,18 +73,14 @@ struct PaywallView: View {
         .padding(.bottom, 24)
     }
 
-    /// The hard gate applies ONLY to a user with no access at
-    /// all. `isGate && !isBetaTester` would trap anyone who
-    /// reached the paywall voluntarily while still entitled: "Unlock Now" on
-    /// the trial reminder routes here with `isGate: true`, so a user with days
-    /// of trial left got a sheet they could not dismiss whose only buttons were
-    /// Purchase and Restore. Force-quitting was the only way back into an app
-    /// they were entitled to use.
+    /// No swipe-dismiss control here: the launch gate is a full-screen cover,
+    /// which cannot be swiped away, and Settings / More push the paywall in a
+    /// navigation stack. A gated user without access leaves through
+    /// `continueWithAccessButton` once access exists, not by a gesture.
     private func withPaywallChrome(_ content: some View) -> some View {
         content
             .background(AppTheme.background.ignoresSafeArea())
-            .interactiveDismissDisabled(isGate && !storeKit.hasActiveAccess)
-            .onAppear { NSLog("[Paywall] onAppear — paywall visible (isGate=\(isGate))") }
+            .onAppear { debugLog("[Paywall] onAppear — paywall visible (isGate=\(isGate))") }
             .task { await loadProducts() }
             .alert(
                 String(localized: "Error", bundle: LanguageManager.appBundle),
@@ -100,9 +96,9 @@ struct PaywallView: View {
     }
 
     private func loadProducts() async {
-        NSLog("[Paywall] .task fired — loading products")
+        debugLog("[Paywall] .task fired — loading products")
         await storeKit.loadProducts()
-        NSLog("[Paywall] loadProducts() returned")
+        debugLog("[Paywall] loadProducts() returned")
     }
 
     @ViewBuilder
@@ -311,7 +307,10 @@ struct PaywallView: View {
         if offersTrial, storeKit.trialProduct != nil, let price = storeKit.product?.displayPrice {
             bottomCaption(trialTermsText(price: price))
                 .accessibilityIdentifier("paywall.trialTerms")
-        } else if trialHasEnded {
+        } else if trialHasEnded, !offersTrial {
+            // Not while a trial is on offer: StoreKit says this Apple ID can
+            // still start one, so "has ended" would contradict the retry
+            // that offers it.
             bottomCaption(String(localized: "Your free trial has ended. Unlock Emuqu to keep recording and to see your scores and history again. Everything you recorded is kept.", bundle: LanguageManager.appBundle))
         }
     }

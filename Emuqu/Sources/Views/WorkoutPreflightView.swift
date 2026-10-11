@@ -21,15 +21,16 @@ import SwiftUI
 //      summary when collapsed. Holds intervals + zone + threshold
 //      cues so the casual user isn't overwhelmed
 //   5. Start button, directly under the sport row — dominant CTA, tap
-//      fires the strap-aware start sequence (kicks reconnect if needed, waits
-//      briefly, then starts). Disabled while in flight.
+//      fires the strap-aware start sequence (kicks a strap reconnect in the
+//      background if needed and starts at once, never waiting for it).
+//      Disabled while a workout is recording or finalizing.
 //
 // **What this design fixes** vs the broken inline experiment:
 //   • State lives on @Observable model, not @State on the view, so
 //     parent re-renders can't reset sport / route / threshold picks
 //   • Single ScrollView — no nested-scroll .onAppear suppression
 //   • Strap is a pill, not a gate — user can plan from the couch
-//   • Single Start button with explicit in-flight gate — can't
+//   • Single Start button gated on the recorder's phase — can't
 //     double-fire and produce "already in progress"
 struct WorkoutPreflightView: View {
     @Environment(\.dependencies) var dependencies
@@ -86,9 +87,13 @@ struct WorkoutPreflightView: View {
         }
     }
 
+    /// A sport without GPS (treadmill, indoor bike, row…) cannot follow a
+    /// route, so picking one drops a bound route rather than carrying it into
+    /// the start.
     private func sportChip(_ sport: Sport) -> some View {
         SportChip(sport: sport, isSelected: plan.selectedSport == sport) {
             plan.selectedSport = sport
+            if !sport.usesGPS { plan.selectedRoute = nil }
         }
     }
 
@@ -106,10 +111,12 @@ struct WorkoutPreflightView: View {
     // Casual sleepy-user joystick test still passes: tap sport, tap
     // start, done. No route required.
 
+    /// Opens itself when a route is picked; the user's collapse tap is
+    /// honoured either way.
     private var routeDisclosure: some View {
         DisclosureGroup(
             isExpanded: Binding(
-                get: { plan.routeExpanded || plan.selectedRoute != nil },
+                get: { plan.routeExpanded },
                 set: { plan.routeExpanded = $0 }
             )
         ) {
@@ -122,6 +129,9 @@ struct WorkoutPreflightView: View {
         .padding(12)
         .background(AppTheme.cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: 12))
+        .onChange(of: plan.selectedRoute?.id) { _, picked in
+            if picked != nil { plan.routeExpanded = true }
+        }
     }
 
     private var routeDisclosureBody: some View {
@@ -253,59 +263,46 @@ struct WorkoutPreflightView: View {
 
     private func startButtonLabel(canTap: Bool) -> some View {
         HStack {
-            if plan.startInProgress {
-                ProgressView().tint(.white)
-                Text(plan.startProgressLabel.isEmpty ? String(localized: "Starting…", bundle: LanguageManager.appBundle) : plan.startProgressLabel)
-                    .fontWeight(.semibold)
-            } else {
-                Image(systemName: "play.fill")
-                Text(startCTALabel)
-                    .fontWeight(.semibold)
-            }
+            Image(systemName: "play.fill")
+            Text(startCTALabel)
+                .fontWeight(.semibold)
         }
         .frame(maxWidth: .infinity)
         .frame(height: 60) // 60pt full-width
-        // Sport-color background (varies per
-        // selected sport). Falls back to fitnessAccent if a sport
-        // has no defined color. Disabled state stays neutral.
+        // Sport-color background: every sport has one (`Sport.themeColor`).
+        // Disabled state stays neutral.
         .background(canTap ? plan.selectedSport.themeColor : Color.gray.opacity(0.4))
         .foregroundStyle(.white)
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .shadow(color: .black.opacity(0.15), radius: 6, y: 2)
     }
 
+    /// "Start <sport>", except treadmill and row, which have their own
+    /// whole-phrase keys.
     private var startCTALabel: String {
-        let verb: String = {
-            switch plan.selectedSport {
-            case .walk, .hike: return String(localized: "Start \(plan.selectedSport.localizedName)", bundle: LanguageManager.appBundle)
-            case .run, .trailRun: return String(localized: "Start \(plan.selectedSport.localizedName)", bundle: LanguageManager.appBundle)
-            case .bike, .indoorBike: return String(localized: "Start \(plan.selectedSport.localizedName)", bundle: LanguageManager.appBundle)
-            case .treadmill: return String(localized: "Start Treadmill", bundle: LanguageManager.appBundle)
-            case .row: return String(localized: "Start Row", bundle: LanguageManager.appBundle)
-            case .airBike, .crossFit: return String(localized: "Start \(plan.selectedSport.localizedName)", bundle: LanguageManager.appBundle)
-            }
-        }()
-        return verb
+        let b = LanguageManager.appBundle
+        switch plan.selectedSport {
+        case .treadmill: return String(localized: "Start Treadmill", bundle: b)
+        case .row: return String(localized: "Start Row", bundle: b)
+        case .walk, .hike, .run, .trailRun, .bike, .indoorBike, .airBike, .crossFit:
+            return String(localized: "Start \(plan.selectedSport.localizedName)", bundle: b)
+        }
     }
 
     // MARK: - Start sequence
 
-    /// Strap-aware start: kicks Polar reconnect if the user has a
-    /// paired device that's currently disconnected, then calls the supplied
-    /// start callback with the resolved source. Falls back to Watch if the
-    /// strap can't come back. Gates the button so the user can't double-fire.
+    /// Strap-aware start: kicks a Polar reconnect in the background if the
+    /// user has a paired strap that is disconnected, then calls the supplied
+    /// start callback at once with the resolved source (`.strap` stays
+    /// `.strap`; the recorder waits for the link, nothing falls back).
     ///
-    /// Two-stage guard — `startInProgress` prevents double-fire from a rapid
-    /// second tap during the strap-reconnect window; `recorder.phase` prevents
-    /// firing AT ALL when a workout is already mid-flight (e.g. user came from
-    /// background while already recording, or the body switch to
-    /// FitnessRecordingView hadn't propagated yet). Either being false silently
-    /// exits — we never throw `alreadyRecording` to the user from a mis-timed
-    /// tap.
+    /// The guard is `recorder.phase`: the start runs synchronously and flips
+    /// the phase to `.recording`, so a second tap — or a tap while a workout
+    /// is already mid-flight — exits silently; we never throw
+    /// `alreadyRecording` to the user from a mis-timed tap. Once the workout
+    /// is recording, the plan's per-workout picks are cleared for the next.
     private func runStartSequence() async {
         guard plan.canStart(recorderPhase: recorder.phase) else { return }
-        plan.startInProgress = true
-        defer { plan.startInProgress = false }
         let source = resolveSourceAndReconnect()
         // Hand off to the recorder via the callback the tab provided.
         // The tab handles the routing to FitnessRecordingView.
@@ -317,6 +314,7 @@ struct WorkoutPreflightView: View {
             plan.selectedThresholds,
             plan.selectedRoute
         )
+        if recorder.phase == .recording { plan.clearPerWorkoutPicks() }
     }
 
     /// No connect-poll. User direction:
@@ -511,7 +509,7 @@ private struct BoundRouteSummary: View {
     }
 
     private var ascentLabel: String {
-        "↑" + preflightAscent(meters: route.totalAscentMeters)
+        "↑" + UnitsPreferenceStore.current.resolved.formatElevation(meters: route.totalAscentMeters)
     }
 
     @ViewBuilder
@@ -588,10 +586,21 @@ private struct RoutePicker: View {
         Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) { gpxImportError = nil }
     }
 
+    /// A file the importer could not hand over is reported like one that
+    /// could not be read, not dropped.
+    private func importGPX(_ result: Result<[URL], Error>) {
+        switch result {
+        case .failure(let error):
+            debugLog("[Preflight] GPX file picker failed: \(error)")
+            gpxImportError = String(localized: "Couldn't read that GPX file. Check that it contains a track and try again.", bundle: LanguageManager.appBundle)
+        case .success(let urls):
+            if let url = urls.first { readGPX(at: url) }
+        }
+    }
+
     /// GPX arrives as a security-scoped URL; the access has to be released on
     /// every path out, which is why the `defer` sits beside the open.
-    private func importGPX(_ result: Result<[URL], Error>) {
-        guard case let .success(urls) = result, let url = urls.first else { return }
+    private func readGPX(at url: URL) {
         let accessing = url.startAccessingSecurityScopedResource()
         defer { if accessing { url.stopAccessingSecurityScopedResource() } }
         do {
@@ -738,18 +747,8 @@ private struct SavedRouteCarouselCard: View {
     }
 
     private var ascentLabel: String {
-        "↑" + preflightAscent(meters: saved.totalAscentMeters)
+        "↑" + UnitsPreferenceStore.current.resolved.formatElevation(meters: saved.totalAscentMeters)
     }
-}
-
-/// A route's total climb in the user's units, with the unit symbol in the
-/// app language.
-@MainActor
-private func preflightAscent(meters: Double) -> String {
-    if UnitsPreferenceStore.current.resolved == .imperial {
-        return LocalizedUnit.format(meters * UnitConstants.feetPerMeter, UnitLength.feet)
-    }
-    return LocalizedUnit.format(meters, UnitLength.meters)
 }
 
 // MARK: - Coaching sub-rows
@@ -942,12 +941,10 @@ private struct ThresholdsRow: View {
     }
 
     /// The cue as the user typed it; a cue saved without its text reads as
-    /// the line the coach would speak when it fires.
+    /// the line the coach would speak when it fires. Every cue here came
+    /// through `parsePlainText`, so none is a natural-language cue.
     private func summary(of t: WorkoutThreshold) -> String {
         if let cue = t.userCue, !cue.isEmpty { return cue }
-        if t.metric == .naturalLanguage {
-            return "🗣 \(t.naturalLanguageText ?? "")"
-        }
         return t.defaultCue(currentValue: t.value)
     }
 }

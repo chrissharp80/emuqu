@@ -41,24 +41,6 @@ struct HRVMetricCell: View {
     }
 }
 
-// MARK: - Section Header
-
-struct SectionHeader: View {
-    let title: String
-    let icon: String
-
-    var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.caption)
-                .foregroundColor(AppTheme.primary)
-            Text(title)
-                .font(.subheadline.bold())
-                .foregroundColor(AppTheme.textPrimary)
-        }
-    }
-}
-
 // MARK: - Trend Comparison Row
 
 struct TrendComparisonRow: View {
@@ -135,6 +117,20 @@ struct TrendComparisonRow: View {
                     .foregroundColor(trendColor)
             }
             Text(String(localized: "vs avg \(formatValue(average))", bundle: LanguageManager.appBundle))
+                .font(.caption2)
+                .foregroundColor(AppTheme.textTertiary)
+            baselineLine
+        }
+    }
+
+    /// Today's value against the personal baseline, when the caller has one,
+    /// so the card compares current, recent average and baseline.
+    @ViewBuilder
+    private var baselineLine: some View {
+        if let baseline {
+            let delta = current - baseline
+            let sign = delta >= 0 ? "+" : ""
+            Text(String(localized: "\(sign)\(formatValue(delta)) vs baseline", bundle: LanguageManager.appBundle))
                 .font(.caption2)
                 .foregroundColor(AppTheme.textTertiary)
         }

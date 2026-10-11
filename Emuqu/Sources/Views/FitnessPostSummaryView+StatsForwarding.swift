@@ -15,9 +15,23 @@ extension FitnessPostSummaryView {
 
     // MARK: - Derived display values
 
-    var bestSplitDisplay: (pace: String, caption: String)? { stats.bestSplitDisplay }
-
-    func hrrNarrative(drop: Int) -> String { WorkoutStatsCards.hrrNarrative(drop: drop) }
+    /// The fastest full split of the splits the splits card shows
+    /// (`cachedSplits`, already resolved to the user's unit), labelled with
+    /// that one unit. A partial split (under 90 % of the bucket — the tail of
+    /// the workout) can't win, and its row-by-row length never picks the unit.
+    var bestSplitDisplay: (pace: String, caption: String)? {
+        guard let resolved = cachedSplits, resolved.splits.count >= 2 else { return nil }
+        let bucket = resolved.isMile ? 1_609.344 : 1_000.0
+        let fastest = resolved.splits
+            .filter { $0.distanceMeters >= 0.9 * bucket && ($0.averagePaceSecPerKm ?? 0) > 0 }
+            .min { ($0.averagePaceSecPerKm ?? 0) < ($1.averagePaceSecPerKm ?? 0) }
+        guard let fastest, let pace = fastest.averagePaceSecPerKm,
+              let paceStr = units.formatPace(secondsPerMeter: pace / 1_000)
+        else { return nil }
+        let unitLabel = LocalizedUnit.symbol(resolved.isMile ? UnitLength.miles : UnitLength.kilometers)
+        let hrPart = fastest.averageHR.map { " · " + String(localized: "\(Int($0)) bpm", bundle: LanguageManager.appBundle) } ?? ""
+        return (pace: paceStr, caption: "\(unitLabel) \(fastest.index)\(hrPart)")
+    }
 
     // MARK: - Cards
 
@@ -42,14 +56,4 @@ extension FitnessPostSummaryView {
     var hrrCaptureBanner: some View { stats.hrrCaptureBanner }
 
     var hrrCard: some View { stats.hrrCard }
-
-    // MARK: - Pure helpers that moved with the cards
-
-    func elevationSeries(_ track: [CLLocation]) -> [FitnessSummaryCards.ElevationPoint] {
-        WorkoutStatsCards.elevationSeries(track)
-    }
-
-    func hrrProvenanceLabel(_ p: HRRSample.Provenance) -> String {
-        WorkoutStatsCards.hrrProvenanceLabel(p)
-    }
 }

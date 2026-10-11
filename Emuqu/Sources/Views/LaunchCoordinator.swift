@@ -120,18 +120,26 @@ final class LaunchCoordinator {
         }
     }
 
+    /// A free slot is taken at once. Otherwise the job parks until a
+    /// finishing job hands it that job's slot (`releaseSlot`), so parked jobs
+    /// start in arrival order and a newcomer can never take a slot from a
+    /// waiter that was just woken.
     private func acquireSlot() async {
-        while inFlight >= maxConcurrent {
-            await withCheckedContinuation { (c: CheckedContinuation<Void, Never>) in
-                slotWaiters.append(c)
-            }
+        if inFlight < maxConcurrent {
+            inFlight += 1
+            return
         }
-        inFlight += 1
+        await withCheckedContinuation { (c: CheckedContinuation<Void, Never>) in
+            slotWaiters.append(c)
+        }
     }
 
+    /// Passes the slot straight to the oldest waiter (the count of slots in
+    /// use does not change), or frees it when nobody waits.
     private func releaseSlot() {
-        inFlight -= 1
-        if !slotWaiters.isEmpty {
+        if slotWaiters.isEmpty {
+            inFlight -= 1
+        } else {
             slotWaiters.removeFirst().resume()
         }
     }

@@ -221,14 +221,16 @@ struct HealthWorkoutSummary: Codable {
     /// specific field incident (the 827-minute duration, the missing
     /// `.mets` tier).
     ///
-    /// Lightweight decode — skips `rrSeries`, which is the expensive part.
+    /// Lightweight decode — skips `rrSeries`, which is the expensive part. A
+    /// session that cannot be read is logged (`retrieveLightweightOrLog`), not
+    /// swallowed, and left out of the training load.
     /// Workout metadata + sample buffer + meanHR are top-level fields and
     /// remain populated.
     private static func summary(
         from entry: SessionArchiveEntry,
         archive: SessionArchive
     ) -> HealthWorkoutSummary? {
-        guard let session = try? archive.retrieveLightweight(entry.sessionId),
+        guard let session = archive.retrieveLightweightOrLog(entry.sessionId),
               let meta = session.workoutMetadata
         else { return nil }
         let samples = meta.samples ?? []
@@ -461,8 +463,6 @@ struct HealthBiometricProfile {
 
 enum HealthStoreError: Error, LocalizedError {
     case notAvailable
-    case notAuthorized
-    case noSleepData
     /// Raised when an HKQuantityType / HKCategoryType
     /// identifier doesn't resolve. Should never occur for the
     /// well-known Apple identifiers we use, but the typed error
@@ -481,10 +481,6 @@ enum HealthStoreError: Error, LocalizedError {
         switch self {
         case .notAvailable:
             String(localized: "Apple Health is not available on this device", bundle: LanguageManager.appBundle)
-        case .notAuthorized:
-            String(localized: "Apple Health access not authorized", bundle: LanguageManager.appBundle)
-        case .noSleepData:
-            String(localized: "No sleep data found for the requested period", bundle: LanguageManager.appBundle)
         case let .typeUnavailable(name):
             String(localized: "Apple Health type '\(name)' is not available on this device", bundle: LanguageManager.appBundle)
         case let .queryTimedOut(name):

@@ -28,20 +28,6 @@
     "Emuqu/Sources/Views/SleepDetailV2View.swift:287"
    ],
    "found": "second read"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Header documents a skeleton shimmer for loading, a CTA below noData and an error chip below error; the code draws a static 18% ring, a glyph+caption, and a glyph+message — none of the three exist.",
-   "evidence": [
-    "Emuqu/Sources/Views/ScoreRing.swift:9",
-    "Emuqu/Sources/Views/ScoreRing.swift:11",
-    "Emuqu/Sources/Views/ScoreRing.swift:12",
-    "Emuqu/Sources/Views/ScoreRing.swift:137",
-    "Emuqu/Sources/Views/ScoreRing.swift:212",
-    "Emuqu/Sources/Views/ScoreRing.swift:225"
-   ],
-   "found": "second read"
   }
  ],
  "units": [
@@ -530,12 +516,12 @@
   },
   {
    "key": "func ScoreRing.animateOnAppear()",
-   "hash": "4e794221f47b29fd",
+   "hash": "12ade54d9d800ade",
    "does": "On appear: under Reduce Motion, sets revealedFraction=1 and displayedScore=score immediately (no breathing). Otherwise animates revealedFraction to 1 with an easeOutQuart-approx timing curve (0.25,1,0.5,1) over revealDuration and, for .default, calls revealScore.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.revealDuration",
-    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.revealScore(_:curve:)"
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.revealScore(_:)"
    ],
    "reads": [],
    "writes": [],
@@ -558,43 +544,61 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.revealScore(_:curve:)": "62b922c132665b2b",
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.revealScore(_:)": "59a994dbc71b74e8",
     "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.revealDuration": "90f967d17797e457"
    }
   },
   {
-   "key": "func ScoreRing.revealScore(_:curve:)",
-   "hash": "0989ef9b40bfb047",
-   "does": "Animates displayedScore to score with the reveal curve delayed by revealDuration-0.2s (digit roll in last 200 ms); if score > 67 starts a 4 s repeatForever breathing scale to 1.005 delayed by revealDuration.",
+   "key": "var ScoreRing.digitRoll",
+   "hash": "88eae341b3101aee",
+   "does": "The digit-roll animation: 0.2 s on the easeOutQuart-approx curve (0.25,1,0.5,1), delayed by revealDuration - 0.2, so it fills the last 200 ms of the ring reveal.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.revealDuration"
    ],
    "reads": [],
    "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.revealDuration": "90f967d17797e457"
+   }
+  },
+  {
+   "key": "var ScoreRing.breathing",
+   "hash": "5786a5bb13179554",
+   "does": "The breathing animation: easeInOut 2 s, repeating with autoreverse — a 4-second cycle.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ScoreRing.revealScore(_:)",
+   "hash": "14d71e95b6560285",
+   "does": "Rolls displayedScore to the score with digitRoll; for score > 67 starts the breathing loop (breathingScale 1.005) after revealDuration.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.digitRoll",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.breathing",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.revealDuration"
+   ],
+   "reads": [],
+   "writes": [],
    "branches": [
     {
-     "at": "+5",
-     "cond": "score > 67",
-     "effect": "start breathing; otherwise return with no breathing"
+     "at": "+4",
+     "cond": "score <= 67",
+     "effect": "no breathing"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Doc says the digit roll occupies the last 200 ms of the reveal and breathing is a 4-second cycle, but the roll uses the full revealDuration curve delayed by revealDuration-0.2, so it ends 0.4 s after the ring (1.0 s default, 0.6 s snappy), and easeInOut(duration: 4) with autoreverses gives an 8 s cycle.",
-     "evidence": [
-      "Emuqu/Sources/Views/ScoreRing.swift:15",
-      "Emuqu/Sources/Views/ScoreRing.swift:16",
-      "Emuqu/Sources/Views/ScoreRing.swift:262",
-      "Emuqu/Sources/Views/ScoreRing.swift:271",
-      "Emuqu/Sources/Views/ScoreRing.swift:275"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.breathing": "33e47bac2a823b01",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.digitRoll": "a90eaf578557f4c8",
     "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.revealDuration": "90f967d17797e457"
    }
   },
@@ -625,8 +629,8 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.resetForNonDefaultState()": "2ee8bcf3f088a271",
-    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.rollScore(to:)": "9a1e203c10f46616",
-    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.updateBreathing(for:)": "861cdd48a2dc250f"
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.rollScore(to:)": "afca40b29df66185",
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.updateBreathing(for:)": "1c9890d80127a3d0"
    }
   },
   {
@@ -643,11 +647,12 @@
   },
   {
    "key": "func ScoreRing.rollScore(to:)",
-   "hash": "55285efdeafc6bda",
-   "does": "If the ring is already revealed (revealedFraction >= 0.99) animates only displayedScore over 0.25 s easeInOut; otherwise replays the full ring reveal and delayed digit roll.",
+   "hash": "570e06c52d6f846e",
+   "does": "If the ring is already revealed (revealedFraction >= 0.99) animates only displayedScore over 0.25 s easeInOut; otherwise replays the ring reveal over revealDuration and rolls the digits with digitRoll (last 200 ms).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.revealDuration"
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.revealDuration",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.digitRoll"
    ],
    "reads": [],
    "writes": [],
@@ -660,15 +665,18 @@
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.digitRoll": "a90eaf578557f4c8",
     "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.revealDuration": "90f967d17797e457"
    }
   },
   {
    "key": "func ScoreRing.updateBreathing(for:)",
-   "hash": "44cb16f3950bf3b1",
-   "does": "Starts the 4 s breathing loop when newScore > 67 and not already breathing; stops it (0.4 s back to 1.0) when newScore <= 67 and currently breathing.",
+   "hash": "7343adf63fd99226",
+   "does": "Starts the 4 s breathing cycle (breathing) when newScore > 67 and not already breathing; stops it (0.4 s back to 1.0) when newScore <= 67 and currently breathing.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.breathing"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
@@ -689,7 +697,9 @@
     }
    ],
    "flags": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.breathing": "33e47bac2a823b01"
+   }
   },
   {
    "key": "var ScoreRing.accessibilityLabel",

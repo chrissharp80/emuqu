@@ -1,36 +1,27 @@
 {
  "file": "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift",
- "hash": "5af372d3e4afc70b",
- "role": "Main-actor, @Observable singleton holding the assistant's long-term structured artifacts (bugs, features, decisions, notes) persisted as JSON in the App Group 'Assistant/artifacts.json'.",
+ "hash": "e33a180006e90106",
+ "role": "Main-actor, @Observable singleton holding the assistant's long-term structured artifacts (bugs, features, decisions, notes) persisted as JSON in the App Group 'Assistant/artifacts.json'. A file that cannot be read yet (locked) holds saves and is re-read before the next change and on unlock; one that does not decode is set aside before the next save; a failed write is retried on unlock.",
  "types": [
-  "AssistantArtifactStore: final class (@Observable @MainActor) — artifact CRUD + persistence",
+  "AssistantArtifactStore: final class (@Observable @MainActor) — artifact add/update/list + persistence",
   "AssistantArtifactStore.Kind: enum — bug/feature/decision/note",
   "AssistantArtifactStore.Status: enum — open/resolved/shipped/archived",
-  "AssistantArtifactStore.Artifact: struct Codable — one artifact"
+  "AssistantArtifactStore.Artifact: struct Codable — one artifact",
+  "AssistantArtifactStore.DiskState: private enum — readable/unreadable/undecodable",
+  "AssistantArtifactStore.DiskRead: private enum — missing/unreadable/undecodable/artifacts([Artifact])"
  ],
  "state": [
   "mem:AssistantArtifactStore.shared",
   "mem:AssistantArtifactStore.artifacts (@Observable, private(set))",
   "file:<AppGroup or Documents>/Assistant/artifacts.json (atomic, completeFileProtection)",
-  "mem:AssistantArtifactStore.loadFailed",
+  "file:<AppGroup or Documents>/Assistant/artifacts.undecodable-<unix>.json (set aside, via UndecodableFile)",
+  "mem:AssistantArtifactStore.diskState",
+  "mem:AssistantArtifactStore.writePending",
+  "mem:AssistantArtifactStore.unlockObservers (NotificationTokens: protectedDataDidBecomeAvailable, didBecomeActive)",
   "mem:AssistantArtifactStore.queue (DispatchQueue 'com.chrissharp.flowrecovery.assistant.artifacts')"
  ],
- "toplevel": "Codable synthesis for Kind/Status/Artifact used by load/persist.",
- "flags": [
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "updateBody, remove(id:), removeAll(kind:) and counts have no callers in the repo; only add, updateStatus, list, artifacts and forgetAfterPurge are used (AppFactResolver+AssistantMemory.swift, DataPurgeService.swift:595).",
-   "evidence": [
-    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift:126",
-    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift:135",
-    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift:140",
-    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift:160",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift:344"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "Codable synthesis for Kind/Status/Artifact used by readDisk/write; private DiskState/DiskRead enums.",
+ "flags": [],
  "units": [
   {
    "key": "var AssistantArtifactStore.Kind.id",
@@ -66,43 +57,39 @@
   },
   {
    "key": "func AssistantArtifactStore.forgetAfterPurge()",
-   "hash": "a2d4f9510ee8c22a",
-   "does": "Clears the in-memory artifacts list after Delete All My Data removed the file.",
+   "hash": "5d53785cc8c9f384",
+   "does": "After Delete All My Data removed the file: clears the in-memory artifacts and resets diskState to .readable and writePending to false, so a stale read failure cannot hold later saves.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [
-    "mem:AssistantArtifactStore.artifacts"
+    "mem:AssistantArtifactStore.artifacts",
+    "mem:AssistantArtifactStore.diskState",
+    "mem:AssistantArtifactStore.writePending"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Does not reset loadFailed; if the earlier load failed, saves stay blocked for the rest of the process even though the file is gone.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift:81",
-      "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift:201"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
    "key": "init AssistantArtifactStore()",
-   "hash": "35df93fdbdba8a33",
-   "does": "Resolves App Group (else Documents) 'Assistant' dir, creates it, sets fileURL artifacts.json and calls load().",
+   "hash": "f59ffdd69447cea0",
+   "does": "Resolves App Group (else Documents) 'Assistant' dir, creates it, sets fileURL artifacts.json, folds the file into memory (apply(readDisk())) and wires the unlock/become-active recovery observers.",
    "entry": "first access of AssistantArtifactStore.shared",
    "calls": [
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
-    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.load()",
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.readDisk()",
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.apply(_:)",
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.wireRecoveryOnUnlock()",
     "ext:FileManager.containerURL/createDirectory"
    ],
    "reads": [
     "file:Assistant/artifacts.json"
    ],
-   "writes": [],
+   "writes": [
+    "mem:AssistantArtifactStore.artifacts",
+    "mem:AssistantArtifactStore.diskState"
+   ],
    "branches": [
     {
      "at": "+3",
@@ -112,16 +99,95 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.load()": "8696110441197cfa",
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.apply(_:)": "110d136bf220f970",
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.readDisk()": "c43cf26f40bc5ec6",
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.wireRecoveryOnUnlock()": "f617bc2da24fbcf5",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
    }
   },
   {
-   "key": "func AssistantArtifactStore.add(kind:body:)",
-   "hash": "3536461787f92ec7",
-   "does": "Trims body, appends a new open Artifact of kind, persists, returns it.",
+   "key": "func AssistantArtifactStore.wireRecoveryOnUnlock()",
+   "hash": "0a4d851fe1890727",
+   "does": "Registers NotificationCenter observers (queue nil) for protectedDataDidBecomeAvailable and didBecomeActive whose block calls scheduleRecoveryAfterUnlock(); tokens kept in unlockObservers.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.scheduleRecoveryAfterUnlock()",
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)",
+    "ext:NotificationCenter.addObserver(forName:object:queue:using:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:AssistantArtifactStore.unlockObservers"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.scheduleRecoveryAfterUnlock()": "9a26045bd5790a6d",
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)": "e97498d0288a8c95"
+   }
+  },
+  {
+   "key": "func AssistantArtifactStore.scheduleRecoveryAfterUnlock()",
+   "hash": "00996d8f5834f5a5",
+   "does": "Nonisolated: starts a main-actor Task (weak self) that runs recoverAfterUnlock().",
+   "entry": "notification:UIApplication.protectedDataDidBecomeAvailableNotification / didBecomeActiveNotification (observer from wireRecoveryOnUnlock)",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.recoverAfterUnlock()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.recoverAfterUnlock()": "5396494c1617a44a"
+   }
+  },
+  {
+   "key": "func AssistantArtifactStore.recoverAfterUnlock()",
+   "hash": "cfd11c67d027a0d9",
+   "does": "Re-reads the file when the last read could not read it (merging what is on disk into memory), then writes a held or failed save when writePending.",
+   "entry": "scheduleRecoveryAfterUnlock (unlock / become-active)",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.readDisk()",
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.apply(_:)",
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.persist()"
+   ],
+   "reads": [
+    "mem:AssistantArtifactStore.diskState",
+    "mem:AssistantArtifactStore.writePending",
+    "file:Assistant/artifacts.json"
+   ],
+   "writes": [
+    "mem:AssistantArtifactStore.artifacts",
+    "mem:AssistantArtifactStore.diskState",
+    "file:Assistant/artifacts.json"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "diskState == .unreadable",
+     "effect": "read the file again and apply it; else skip"
+    },
+    {
+     "at": "+2",
+     "cond": "writePending",
+     "effect": "persist(); else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.apply(_:)": "110d136bf220f970",
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.persist()": "3d12aab181bfea8f",
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.readDisk()": "c43cf26f40bc5ec6"
+   }
+  },
+  {
+   "key": "func AssistantArtifactStore.add(kind:body:)",
+   "hash": "64844adb2a646ba0",
+   "does": "Re-reads a blocked file first (reloadIfBlocked), trims body, appends a new open Artifact of kind, persists (held or retried when the file cannot be written), returns it.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.reloadIfBlocked()",
     "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::init AssistantArtifactStore.Artifact(id:kind:status:body:createdAt:updatedAt:)",
     "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.persist()"
    ],
@@ -133,16 +199,18 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.persist()": "d65345223921fcd7",
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.persist()": "3d12aab181bfea8f",
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.reloadIfBlocked()": "3553f0a2c2135774",
     "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::init AssistantArtifactStore.Artifact(id:kind:status:body:createdAt:updatedAt:)": "7c83cb27370f36ec"
    }
   },
   {
    "key": "func AssistantArtifactStore.updateStatus(id:status:)",
-   "hash": "0e922c72a21d842d",
-   "does": "Sets status and updatedAt for the artifact with id, persists, returns it; nil when id unknown.",
+   "hash": "4ec6ea18be835c0a",
+   "does": "Re-reads a blocked file first (so an artifact only on disk can be found), then sets status and updatedAt for the artifact with id, persists, returns it; nil when id unknown.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.reloadIfBlocked()",
     "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.persist()"
    ],
    "reads": [],
@@ -152,116 +220,16 @@
    ],
    "branches": [
     {
-     "at": "+2",
+     "at": "+3",
      "cond": "no artifact with id",
      "effect": "return nil, nothing persisted; else update+persist"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.persist()": "d65345223921fcd7",
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.persist()": "3d12aab181bfea8f",
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.reloadIfBlocked()": "3553f0a2c2135774",
     "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::var AssistantArtifactStore.Kind.id": "16312aa5df71e35f"
-   }
-  },
-  {
-   "key": "func AssistantArtifactStore.updateBody(id:body:)",
-   "hash": "3acaae6e8b3128c8",
-   "does": "Replaces trimmed body + updatedAt for id, persists; nil when id unknown.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.persist()"
-   ],
-   "reads": [],
-   "writes": [
-    "mem:AssistantArtifactStore.artifacts",
-    "file:Assistant/artifacts.json"
-   ],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "no artifact with id",
-     "effect": "return nil; else update+persist"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No caller in repo (grep updateBody).",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift:126"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.persist()": "d65345223921fcd7",
-    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::var AssistantArtifactStore.Kind.id": "16312aa5df71e35f"
-   }
-  },
-  {
-   "key": "func AssistantArtifactStore.remove(id:)",
-   "hash": "7412a0461762c87a",
-   "does": "Removes artifact by id and persists.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.persist()"
-   ],
-   "reads": [],
-   "writes": [
-    "mem:AssistantArtifactStore.artifacts",
-    "file:Assistant/artifacts.json"
-   ],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No caller: grep '.remove(id:' hits only SavedRoutesPage/Settings/email contact stores.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift:135"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.persist()": "d65345223921fcd7",
-    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::var AssistantArtifactStore.Kind.id": "16312aa5df71e35f"
-   }
-  },
-  {
-   "key": "func AssistantArtifactStore.removeAll(kind:)",
-   "hash": "e1b291bc50e015cd",
-   "does": "Removes all artifacts of a kind (or all when nil) and persists.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.persist()"
-   ],
-   "reads": [],
-   "writes": [
-    "mem:AssistantArtifactStore.artifacts",
-    "file:Assistant/artifacts.json"
-   ],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "kind given",
-     "effect": "remove only that kind; else remove all"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No caller in repo.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift:140"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.persist()": "d65345223921fcd7"
    }
   },
   {
@@ -290,137 +258,163 @@
    "deps": {}
   },
   {
-   "key": "var AssistantArtifactStore.counts",
-   "hash": "b59f6c150b4b8570",
-   "does": "Dictionary of open-artifact count per Kind.",
-   "entry": null,
-   "calls": [],
-   "reads": [
-    "mem:AssistantArtifactStore.artifacts"
-   ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "for each Kind case",
-     "effect": "count open artifacts of that kind"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "`counts` is never read (grep '.counts' finds only ValidationTelemetry's unrelated static func).",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift:160"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
-  },
-  {
-   "key": "func AssistantArtifactStore.load()",
-   "hash": "a529afb5ec5dbed8",
-   "does": "Reads and decodes artifacts.json into artifacts; missing file is first run; any other error sets loadFailed=true (blocks saves) and logs.",
+   "key": "func AssistantArtifactStore.readDisk()",
+   "hash": "34f571ceb9c6beda",
+   "does": "Reads artifacts.json and classifies it: .missing (no such file — first run), .unreadable (any other read error, e.g. locked; logged at warning), .undecodable (decode error; logged at error), else .artifacts(decoded list).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:Data(contentsOf:)",
+    "ext:JSONDecoder.decode"
    ],
    "reads": [
     "file:Assistant/artifacts.json"
    ],
-   "writes": [
-    "mem:AssistantArtifactStore.artifacts",
-    "mem:AssistantArtifactStore.loadFailed"
-   ],
+   "writes": [],
    "branches": [
     {
-     "at": "+5",
-     "cond": "CocoaError fileNoSuchFile/fileReadNoSuchFile",
-     "effect": "first run: loadFailed=false, empty list"
+     "at": "+4",
+     "cond": "CocoaError fileNoSuchFile / fileReadNoSuchFile",
+     "effect": "return .missing"
     },
     {
-     "at": "+8",
-     "cond": "any other error (decode failure, or read refused because file is complete-protected and the phone is locked)",
-     "effect": "loadFailed=true, artifacts stay empty, error logged"
-    }
-   ],
-   "flags": [
+     "at": "+6",
+     "cond": "other read error",
+     "effect": "log, return .unreadable"
+    },
     {
-     "kind": "data-loss",
-     "sev": "med",
-     "text": "The file is written with .completeFileProtection, so a first access while the phone is locked fails with a permission CocoaError, not fileNoSuchFile; loadFailed becomes true for the whole process (never retried, no unlock observer, no set-aside like ConversationStore/UserFactsStore), the AI sees an empty artifact list and every add/updateStatus in that process is dropped at relaunch.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift:186",
-      "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift:189",
-      "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift:201",
-      "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift:212"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+12",
+     "cond": "decode throws",
+     "effect": "log, return .undecodable; else .artifacts"
     }
    ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
+   "key": "func AssistantArtifactStore.apply(_:)",
+   "hash": "9bf289e756c868bd",
+   "does": "Folds a DiskRead into memory: missing → diskState .readable; unreadable/undecodable → that state; artifacts(onDisk) → prepends the on-disk artifacts whose ids memory lacks (changes made while blocked are kept) and sets .readable.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AssistantArtifactStore.artifacts"
+   ],
+   "writes": [
+    "mem:AssistantArtifactStore.artifacts",
+    "mem:AssistantArtifactStore.diskState"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "switch on read: .missing / .unreadable / .undecodable / .artifacts",
+     "effect": "set the matching state; .artifacts also merges by id"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AssistantArtifactStore.reloadIfBlocked()",
+   "hash": "eae71af47ce3dd27",
+   "does": "Before a change: re-reads an unreadable file (apply(readDisk())), then sets an undecodable file aside via UndecodableFile.setAside and marks the state readable when that succeeds.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.readDisk()",
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.apply(_:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func UndecodableFile.setAside(_:caller:)"
+   ],
+   "reads": [
+    "mem:AssistantArtifactStore.diskState",
+    "file:Assistant/artifacts.json"
+   ],
+   "writes": [
+    "mem:AssistantArtifactStore.artifacts",
+    "mem:AssistantArtifactStore.diskState",
+    "file:Assistant/artifacts.json (renamed aside when undecodable)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "diskState == .unreadable",
+     "effect": "read again and apply"
+    },
+    {
+     "at": "+2",
+     "cond": "diskState == .undecodable and setAside succeeds",
+     "effect": "diskState = .readable; setAside failing leaves saves held"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.apply(_:)": "110d136bf220f970",
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.readDisk()": "c43cf26f40bc5ec6",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func UndecodableFile.setAside(_:caller:)": "76b5be5e37c88b2f"
+   }
+  },
+  {
    "key": "func AssistantArtifactStore.persist()",
-   "hash": "fdcdce76da9a2b05",
-   "does": "Unless loadFailed, snapshots artifacts and asynchronously JSON-encodes + atomically writes them with complete file protection on the private queue; errors are logged.",
+   "hash": "2c81114161014d42",
+   "does": "Calls reloadIfBlocked(); if the file is still not readable, sets writePending, logs and returns (held). Otherwise clears writePending, snapshots artifacts and on the private queue writes them via write(_:to:); a failed write hops to the main actor to set writePending so recoverAfterUnlock retries it.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.reloadIfBlocked()",
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.write(_:to:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:AssistantArtifactStore.diskState",
+    "mem:AssistantArtifactStore.artifacts"
+   ],
+   "writes": [
+    "mem:AssistantArtifactStore.writePending",
+    "file:Assistant/artifacts.json"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "diskState != .readable after reloadIfBlocked",
+     "effect": "writePending = true, log warning, return without saving"
+    },
+    {
+     "at": "+11",
+     "cond": "write(_:to:) returns false",
+     "effect": "main-actor Task sets writePending = true; else done"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.reloadIfBlocked()": "3553f0a2c2135774",
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.write(_:to:)": "b3f2f9b3ab5b2de6",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func AssistantArtifactStore.write(_:to:)",
+   "hash": "3125bbea5bd3018e",
+   "does": "Nonisolated: JSON-encodes the snapshot, creates the parent directory (Delete All My Data removes it under a running store), writes atomically with complete file protection; true on success, false (logged at warning) on any error.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "ext:JSONEncoder.encode",
+    "ext:FileManager.createDirectory",
     "ext:Data.write(.atomic,.completeFileProtection)"
    ],
-   "reads": [
-    "mem:AssistantArtifactStore.loadFailed"
-   ],
+   "reads": [],
    "writes": [
     "file:Assistant/artifacts.json"
    ],
    "branches": [
     {
-     "at": "+3",
-     "cond": "loadFailed",
-     "effect": "log warning and return without saving; else write async"
-    },
-    {
-     "at": "+15",
-     "cond": "encode/write throws",
-     "effect": "error logged at warning, change remains only in memory"
+     "at": "+8",
+     "cond": "encode, createDirectory or write throws",
+     "effect": "log, return false; else return true"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "A failed write (e.g. phone locked under complete protection) is only logged; nothing retries, so the change is lost if the process ends before the next mutation.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift:213"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "data-loss",
-     "sev": "med",
-     "text": "After Delete All My Data the container sweep deletes the whole App Group 'Assistant/' directory (sweepAndForget runs first, removing every root entry not on the keep-list) and nothing recreates it: the directory is only created in init (line 101) and forgetAfterPurge only empties memory. Every later persist() in that process fails at Data.write (parent directory missing), is only logged at warning, and all artifacts the AI adds or updates until the app is relaunched are lost.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift:101",
-      "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift:81",
-      "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift:212",
-      "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift:214",
-      "Emuqu/Sources/Services/DataPurgeService.swift:196",
-      "Emuqu/Sources/Services/DataPurgeService.swift:420",
-      "Emuqu/Sources/Services/DataPurgeService.swift:451",
-      "Emuqu/Sources/Services/DataPurgeService.swift:453",
-      "EmuquTests/DataPurgeServiceTests.swift:362"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }

@@ -72,7 +72,7 @@ struct MetricExplanationPopover: View {
 
     /// Card and Engine Room labels that name the same metric as a table key.
     private static let aliases = [
-        "Window Beats": "Clean Beats", "Window beats": "Clean Beats", "Window HR": "HR Range",
+        "Window Beats": "Clean Beats", "Window beats": "Clean Beats",
         "HR range": "HR Range", "Resp rate": "Resp Rate", "PNS": "PNS Index", "SNS": "SNS Index",
         "Stress": "Stress Index", "Total power": "Total Power"
     ]

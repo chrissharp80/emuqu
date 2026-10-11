@@ -26,6 +26,10 @@ struct KeyboardCaptureView: View {
     @State private var elapsed: TimeInterval = 0
     @State private var elapsedTimer: Timer?
     @State private var sharePresented = false
+    /// The last Stop on this screen wrote no trace (nothing was recorded, or
+    /// the file could not be written). Said on screen, so an older trace in
+    /// "Last trace" is not taken for the one just stopped.
+    @State private var lastStopWroteNoTrace = false
 
     var body: some View {
         Form {
@@ -68,7 +72,17 @@ struct KeyboardCaptureView: View {
                 traceSectionRows
             } else {
                 startCaptureButton
+                noTraceNote
             }
+        }
+    }
+
+    @ViewBuilder
+    private var noTraceNote: some View {
+        if lastStopWroteNoTrace {
+            Text(String(localized: "No trace was saved: nothing was recorded, or the file couldn't be written.", bundle: LanguageManager.appBundle))
+                .font(.caption)
+                .foregroundStyle(AppTheme.textSecondary)
         }
     }
 
@@ -115,9 +129,12 @@ struct KeyboardCaptureView: View {
         }
     }
 
+    /// `captureStartedAt` is the start of the most recent capture, which is
+    /// the last trace's only once that capture has stopped and written it:
+    /// not while a newer capture runs, and not after a Stop that wrote nothing.
     @ViewBuilder
     private var capturedAtLabel: some View {
-        if let captured = perf.captureStartedAt {
+        if !perf.isCapturing, !lastStopWroteNoTrace, let captured = perf.captureStartedAt {
             let when = captured.formatted(Date.FormatStyle(date: .abbreviated, time: .standard).locale(LanguageManager.appLocale))
             Text(String(localized: "Captured \(when)", bundle: LanguageManager.appBundle))
                 .font(.caption)
@@ -152,13 +169,18 @@ struct KeyboardCaptureView: View {
 
     // MARK: - Actions
 
+    /// Times from now: `perf.captureStartedAt` is published by a main-actor
+    /// task that has not run yet, so it still holds the previous capture's
+    /// start.
     private func startCapture() {
+        let start = Date()
         guard perf.startCapture() else { return }
-        installElapsedTimer()
+        lastStopWroteNoTrace = false
+        installElapsedTimer(since: start)
     }
 
     private func stopCapture() {
-        _ = perf.stopCaptureAndExportTrace()
+        lastStopWroteNoTrace = perf.stopCaptureAndExportTrace() == nil
         elapsedTimer?.invalidate()
         elapsedTimer = nil
         elapsed = 0
@@ -168,8 +190,10 @@ struct KeyboardCaptureView: View {
     /// in default mode; we're called from a SwiftUI button on @MainActor,
     /// so the closure fires on the main run loop. The closure parameter
     /// is `@Sendable`, so we bridge into the main actor explicitly.
-    private func installElapsedTimer() {
-        let start = perf.captureStartedAt ?? Date()
+    /// `start` defaults to the running capture's published start, which is
+    /// current by the time the screen re-appears.
+    private func installElapsedTimer(since capturedStart: Date? = nil) {
+        let start = capturedStart ?? perf.captureStartedAt ?? Date()
         elapsed = Date().timeIntervalSince(start)
         elapsedTimer?.invalidate()
         elapsedTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in

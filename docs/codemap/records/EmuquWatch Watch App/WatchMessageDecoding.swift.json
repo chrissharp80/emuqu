@@ -1,13 +1,14 @@
 {
  "file": "EmuquWatch Watch App/WatchMessageDecoding.swift",
- "hash": "65ce7d2e02b69d51",
- "role": "Pure, nonisolated decoding of iPhone→Watch WCSession payloads into typed StateUpdate/Command values, plus the transition rules (recording start/stop, completion banner, request clearing), refusal wording, sport/band/pace labels and phone-silence rules. Compiled into both the Watch target and EmuquTests (project.pbxproj:4517).",
+ "hash": "a7425c16614fe797",
+ "role": "Pure, nonisolated decoding of iPhone→Watch WCSession payloads into typed StateUpdate/Command values, plus the transition rules (recording start/stop, completion banner, request clearing), refusal wording, sport/band/pace labels, phone-silence rules, message send-time ordering, queued-End displacement, heart-rate zone buckets and strap 2A37 packet decoding. Compiled into both the Watch target and EmuquTests (project.pbxproj:4517).",
  "types": [
   "WatchMessageDecoding: enum (namespace, nonisolated)",
   "WatchMessageDecoding.StateUpdate: struct — optional fields, nil = absent; isLiveSnapshot marks a liveState tick",
   "WatchMessageDecoding.Bounds: enum — plausible ranges for each numeric field",
   "WatchMessageDecoding.RecordingTransition: enum — none/started/stopped",
-  "WatchMessageDecoding.Command: enum — startWorkout/stopWorkout/strapState/liveState/voiceChatState/unknown"
+  "WatchMessageDecoding.Command: enum — startWorkout/stopWorkout/strapState/liveState/voiceChatState/unknown",
+  "WatchMessageDecoding.StrapMeasurement: struct — heartRate (nil when no real beat), rrMillis in whole ms"
  ],
  "state": [
   "mem:WatchMessageDecoding.Bounds.heartRate 25...250",
@@ -22,9 +23,11 @@
   "mem:WatchMessageDecoding.needsUnlockCode = \"needsUnlock\"",
   "mem:WatchMessageDecoding.phoneSilenceLimit = 1800 s",
   "mem:WatchMessageDecoding.phoneSilenceCheckInterval = 60 s",
-  "wc keys read: heartRate, hrPercentOfMax, peakHR, elapsedSec, distanceMeters, paceSecPerKm, paceDisplay, units, alpha1, alpha1Status, bandCode, band, sport, cadenceSpm, elevationGainMeters, targetZone, displayOnlyMode, isPaused, autoPaused, isRecording, voiceChatState, ts, type, strapConnected, strapDeviceName, ok, errorCode, error"
+  "wc keys read: heartRate, hrPercentOfMax, peakHR, elapsedSec, distanceMeters, paceSecPerKm, paceDisplay, units, alpha1, alpha1Status, bandCode, band, sport, cadenceSpm, elevationGainMeters, targetZone, displayOnlyMode, isPaused, autoPaused, isRecording, voiceChatState, ts, type, strapConnected, strapDeviceName, ok, errorCode, error",
+  "mem:WatchMessageDecoding.maxSendTimeLead = 60 s",
+  "mem:WatchMessageDecoding.stopIntentType = \"stopWorkoutFromWatch\""
  ],
- "toplevel": "StateUpdate.isLiveSnapshot defaults false; Bounds are static lets. No other top-level code.",
+ "toplevel": "StateUpdate.isLiveSnapshot defaults false; Bounds, maxSendTimeLead and stopIntentType are static lets. No other top-level code.",
  "flags": [],
  "units": [
   {
@@ -493,19 +496,7 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Never called by production code: WatchSessionManager.applyRecording re-implements the same check inline (`if rec { clearStartWorkoutRequest() }`). Only EmuquTests/WatchMessageDecodingTests.swift:205-211 call it, so the test pins a function the app does not use.",
-     "evidence": [
-      "EmuquWatch Watch App/WatchMessageDecoding.swift:310",
-      "EmuquWatch Watch App/WatchSessionManager.swift:723",
-      "EmuquTests/WatchMessageDecodingTests.swift:205"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -609,22 +600,165 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Tested rule (refuse startWorkout in display-only mode) has no effect on behaviour: the isRecording-driven keep-alive in WatchSessionManager starts the session in display-only mode anyway.",
-     "evidence": [
-      "EmuquWatch Watch App/WatchMessageDecoding.swift:392",
-      "EmuquWatch Watch App/WatchSessionManager.swift:746",
-      "EmuquWatch Watch App/WatchSessionManager.swift:749"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.command(_:)": "d00b802a898af93b"
    }
+  },
+  {
+   "key": "func WatchMessageDecoding.isCurrent(sentAt:newestApplied:now:)",
+   "hash": "f239028427a37e98",
+   "does": "True when sentAt >= newestApplied (not older than the newest message applied), or when newestApplied lies more than maxSendTimeLead (60 s) ahead of now — a mark left by an iPhone clock that has since stepped back no longer orders anything.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "sentAt >= newestApplied || newestApplied > now + maxSendTimeLead",
+     "effect": "true: apply; false: stale, drop"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WatchMessageDecoding.wouldDisplaceQueuedStop(payloadType:pending:phoneRecording:now:)",
+   "hash": "867b0a8a3b552725",
+   "does": "True when phoneRecording, pending['type'] is stopWorkoutFromWatch, payloadType is not, and pending['expiresAt'] (Double) is after now: queuing the new request would replace an End the iPhone may still act on. False once the iPhone has reported not recording.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "phoneRecording, pending is an End, payload is not an End, expiresAt present",
+     "effect": "false if any fails"
+    },
+    {
+     "at": "+7",
+     "cond": "expiresAt > now",
+     "effect": "returned"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WatchMessageDecoding.heartRateZone(percentOfMax:)",
+   "hash": "86161226346e80aa",
+   "does": "Maps percent of max HR to zone 1–5 on the iPhone HRZone.classify buckets (50–60/60–70/70–80/80–90/90+); nil below 50.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "switch on pct",
+     "effect": "<50 nil; 50..<60 1; 60..<70 2; 70..<80 3; 80..<90 4; else 5"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Restates HRZone.classify buckets (iOS target) by hand; nothing pins the two together until a test compares them (handoff b38).",
+     "evidence": [
+      "EmuquWatch Watch App/WatchMessageDecoding.swift:460",
+      "Emuqu/Sources/Views/HRZone.swift:37"
+     ],
+     "found": "fix pass b38"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func WatchMessageDecoding.strapMeasurement(_:)",
+   "hash": "62c8736ea9f3d62b",
+   "does": "Decodes a BLE 2A37 Heart Rate Measurement packet as iOS HeartRateMeasurement.parse does: 8/16-bit rate per flag bit 0, skips energy expended (bit 3), reads RR (bit 4) rounded to whole ms. heartRate is nil for rate 0 or lost contact (bit 2 set, bit 1 clear); RR are kept either way. Nil for a packet too short for its flags.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.rrMillis(in:from:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.lostContact(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "empty packet",
+     "effect": "nil"
+    },
+    {
+     "at": "+4",
+     "cond": "too short for the rate width",
+     "effect": "nil"
+    },
+    {
+     "at": "+7",
+     "cond": "energy expended flagged",
+     "effect": "nil if too short, else skip 2 bytes"
+    },
+    {
+     "at": "+11",
+     "cond": "RR flag",
+     "effect": "decode intervals, else []"
+    },
+    {
+     "at": "+12",
+     "cond": "rate > 0 and contact not lost",
+     "effect": "heartRate = rate, else nil"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "untested",
+     "sev": "low",
+     "text": "No test covers strapMeasurement (lost-contact, HR 0, energy-expended and RR paths), unlike the iOS HeartRateMeasurement parser; tests handed off (b38).",
+     "evidence": [
+      "EmuquWatch Watch App/WatchMessageDecoding.swift:497",
+      "EmuquTests/HeartRateMeasurementTests.swift:35"
+     ],
+     "found": "second read; moved from WatchStrapConnector.parseHeartRateMeasurement"
+    }
+   ],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.lostContact(_:)": "293352b3ca91aa5a",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.rrMillis(in:from:)": "be6e49d590de5bd7"
+   }
+  },
+  {
+   "key": "func WatchMessageDecoding.lostContact(_:)",
+   "hash": "c1e4a28f7e829e65",
+   "does": "True when sensor contact is supported (flag bit 2) but not detected (bit 1).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WatchMessageDecoding.rrMillis(in:from:)",
+   "hash": "1321b0dd43b1afe6",
+   "does": "Reads 16-bit little-endian 1/1024 s intervals from offset to the end, each converted as Double((Float(raw)/1024*1000).rounded()) — the iOS/Polar SDK rounding.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "while two bytes remain",
+     "effect": "append one interval"
+    }
+   ],
+   "flags": [],
+   "deps": {}
   }
  ],
  "deps": {}

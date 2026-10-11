@@ -1,59 +1,69 @@
 {
  "file": "Emuqu/Sources/Views/Utilities/MailComposerView.swift",
- "hash": "0a7f36679d74aa28",
+ "hash": "3b0084bbf52334f4",
  "role": "UIViewControllerRepresentable around MFMailComposeViewController for PDF report email and assistant email drafts, with a share-sheet fallback when the device cannot send mail and Markdown→plain-text body flattening.",
  "types": [
   "MailComposerView: struct (UIViewControllerRepresentable)",
   "MailComposerView.Coordinator: final class (MFMailComposeViewControllerDelegate) — dismisses and fires onDismiss"
  ],
  "state": [
-  "closure:MailComposerView.onDismiss (set by EmuquApp.mailComposer → emailBridge.clear(), MainTabView reportMailSheet → pendingReportMailURL=nil)"
+  "closure:MailComposerView.onDismiss (set by EmuquApp.mailComposer → emailBridge.clear(), MainTabView reportMailSheet → pendingReportMailURL=nil)",
+  "closure:MailComposerView.onFailure (optional; called after onDismiss with the failure message when the attachment is unreadable or Mail reports .failed; no caller wires it yet)"
  ],
  "toplevel": "Callers: EmuquApp.swift:380, FitnessPostSummaryView+Share.swift:119, MorningResultsView.swift:462, MainTabView.swift:228, AssistantChatView.swift:330.",
  "flags": [],
  "units": [
   {
    "key": "func MailComposerView.makeCoordinator()",
-   "hash": "0a666f036a877696",
-   "does": "Creates the Coordinator holding the SwiftUI dismiss action and onDismiss closure.",
+   "hash": "fba157d0940fcf8c",
+   "does": "Creates the Coordinator holding the SwiftUI dismiss action and the onDismiss and onFailure closures.",
    "entry": "UIViewControllerRepresentable.makeCoordinator",
    "calls": [
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::init MailComposerView.Coordinator(dismiss:onDismiss:)"
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::init MailComposerView.Coordinator(dismiss:onDismiss:onFailure:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::init MailComposerView.Coordinator(dismiss:onDismiss:)": "bcbf43afb7dc2ec9"
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::init MailComposerView.Coordinator(dismiss:onDismiss:onFailure:)": "6b0eba98faff509f"
    }
   },
   {
    "key": "func MailComposerView.makeUIViewController(context:)",
-   "hash": "f04d272f588b13d5",
-   "does": "If the device cannot send mail returns shareSheetFallback(); otherwise builds MFMailComposeViewController with the coordinator as delegate, fills subject/recipients/body and attaches the file.",
+   "hash": "8d927bfc14fe1c9c",
+   "does": "If the device cannot send mail returns shareSheetFallback(); otherwise builds MFMailComposeViewController with the coordinator as delegate, fills subject/recipients/body and attaches attachmentURL. If the attachment cannot be read it logs at .error and returns closeOnNextRunLoop(failure:) with the error text instead of opening a composer without the report.",
    "entry": "UIViewControllerRepresentable.makeUIViewController",
    "calls": [
     "ext:MFMailComposeViewController.canSendMail",
     "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.shareSheetFallback()",
     "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.attach(to:)"
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.attach(to:)",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.closeOnNextRunLoop(failure:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+6",
-     "cond": "MFMailComposeViewController.canSendMail()",
-     "effect": "build composer; false → share-sheet fallback controller"
+     "cond": "!canSendMail",
+     "effect": "return shareSheetFallback()"
+    },
+    {
+     "at": "+12",
+     "cond": "attach(to:) throws",
+     "effect": "debugLog .error; return closeOnNextRunLoop(failure: error.localizedDescription) — sheet closes, onDismiss then onFailure run"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/BackgroundAudioManager.swift::var SystemCueAudioSession.coordinator": "1c56830bce5016ed",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.attach(to:)": "c26c8894f9b78426",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.attach(to:)": "bd97381f67bc3459",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.closeOnNextRunLoop(failure:)": "d96edfb937ab7624",
     "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.shareSheetFallback()": "aa672b00c9e735e7"
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.shareSheetFallback()": "e73b24ab871a1be6"
    }
   },
   {
@@ -90,12 +100,13 @@
   },
   {
    "key": "func MailComposerView.attach(to:)",
-   "hash": "d54056ca6209197d",
-   "does": "Reads attachmentURL into memory and attaches it as application/pdf with the file's name; returns silently if no URL or the read fails.",
+   "hash": "adbd241a606ddc70",
+   "does": "No-op without attachmentURL; otherwise reads the file (throws if it cannot) and attaches it with the MIME type for its extension (mimeType(of:)) and the file's name.",
    "entry": null,
    "calls": [
     "ext:Data(contentsOf:)",
-    "ext:MFMailComposeViewController.addAttachmentData"
+    "ext:MFMailComposeViewController.addAttachmentData",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.mimeType(of:)"
    ],
    "reads": [
     "file:attachmentURL (temp PDF report)"
@@ -104,43 +115,74 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "attachmentURL non-nil and Data(contentsOf:) succeeds",
-     "effect": "attach; nil URL or read error (try?) → return, mail opens without attachment and no error is shown"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "med",
-     "text": "`try? Data(contentsOf:)` discards a read failure; the composer then opens with the report subject but no PDF attached and nothing tells the user or logs it.",
-     "evidence": [
-      "Emuqu/Sources/Views/Utilities/MailComposerView.swift:61"
-     ],
-     "found": "first read, upheld on second"
+     "cond": "attachmentURL nil",
+     "effect": "return without attaching"
     },
     {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "MIME type is hard-coded to application/pdf for any attachmentURL, including AssistantEmailDraft.attachmentURL whose type is not constrained.",
-     "evidence": [
-      "Emuqu/Sources/Views/Utilities/MailComposerView.swift:64",
-      "Emuqu/Sources/Assistant/Chat/AssistantEmailBridge.swift:37"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+2",
+     "cond": "Data(contentsOf:) throws",
+     "effect": "error propagates to makeUIViewController"
     }
    ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.mimeType(of:)": "e327a26f416e10a5"
+   }
+  },
+  {
+   "key": "func MailComposerView.mimeType(of:)",
+   "hash": "3f30b635b5022282",
+   "does": "UTType(filenameExtension:)?.preferredMIMEType for the URL's extension (application/pdf for the reports), or application/octet-stream when the extension names no type.",
+   "entry": null,
+   "calls": [
+    "ext:UTType(filenameExtension:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no UTType or no preferred MIME type",
+     "effect": "application/octet-stream"
+    }
+   ],
+   "flags": [],
    "deps": {}
   },
   {
+   "key": "func MailComposerView.closeOnNextRunLoop(failure:)",
+   "hash": "d093e42205c2df23",
+   "does": "Returns a blank UIViewController and, on the next main-queue turn, calls SwiftUI dismiss, onDismiss, and onFailure(failure) when a failure message was given.",
+   "entry": null,
+   "calls": [
+    "ext:DispatchQueue.main.async",
+    "closure:onDismiss (caller-supplied)",
+    "closure:onFailure (caller-supplied)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "failure non-nil",
+     "effect": "onFailure?(failure)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d"
+   }
+  },
+  {
    "key": "func MailComposerView.shareSheetFallback()",
-   "hash": "400f0cc84e10ce52",
-   "does": "Builds share items from attachmentURL and the flattened body; if empty, dismisses and calls onDismiss on the next main-queue turn and returns an empty UIViewController; else returns a UIActivityViewController whose completion dismisses and calls onDismiss.",
+   "hash": "a8c3a5024be2f85b",
+   "does": "Builds share items from attachmentURL and the flattened body; if empty returns closeOnNextRunLoop(failure: nil) (dismiss + onDismiss next turn); otherwise a UIActivityViewController whose completion dismisses and calls onDismiss.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.plainText(fromMarkdown:)",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.closeOnNextRunLoop(failure:)",
     "closure:onDismiss (caller-supplied)",
-    "ext:UIActivityViewController",
-    "ext:DispatchQueue.main.async"
+    "ext:UIActivityViewController"
    ],
    "reads": [],
    "writes": [],
@@ -176,7 +218,7 @@
     }
    ],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.closeOnNextRunLoop(failure:)": "d96edfb937ab7624",
     "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.plainText(fromMarkdown:)": "afb14f60a1230941"
    }
   },
@@ -238,9 +280,9 @@
    }
   },
   {
-   "key": "init MailComposerView.Coordinator(dismiss:onDismiss:)",
-   "hash": "1dc507e9fa88eecc",
-   "does": "Stores dismiss and onDismiss.",
+   "key": "init MailComposerView.Coordinator(dismiss:onDismiss:onFailure:)",
+   "hash": "629db593b279351b",
+   "does": "Stores the SwiftUI dismiss action and the onDismiss / onFailure closures.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -251,27 +293,33 @@
   },
   {
    "key": "func MailComposerView.Coordinator.mailComposeController(_:didFinishWith:error:)",
-   "hash": "80eae62d943d4e1b",
-   "does": "On any mail result (sent/saved/cancelled/failed) calls SwiftUI dismiss and onDismiss; the result and error are ignored.",
+   "hash": "59c75a8f32bb464d",
+   "does": "On any mail result calls SwiftUI dismiss and onDismiss. When the result is .failed it also logs at .error and calls onFailure with the error's description (or the localized 'Email failed').",
    "entry": "MFMailComposeViewControllerDelegate callback from MessageUI",
    "calls": [
-    "closure:onDismiss (caller-supplied)"
+    "closure:onDismiss (caller-supplied)",
+    "closure:onFailure (caller-supplied)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
    "writes": [],
-   "branches": [],
-   "flags": [
+   "branches": [
     {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "MFMailComposeResult.failed and the error are discarded; a failed send dismisses exactly like success with no message.",
-     "evidence": [
-      "Emuqu/Sources/Views/Utilities/MailComposerView.swift:125"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+3",
+     "cond": "result != .failed",
+     "effect": "return after dismiss/onDismiss"
+    },
+    {
+     "at": "+4",
+     "cond": "error nil",
+     "effect": "message falls back to 'Email failed'"
     }
    ],
-   "deps": {}
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
   }
  ],
  "deps": {}

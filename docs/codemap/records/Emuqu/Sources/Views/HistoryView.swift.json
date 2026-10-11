@@ -1,21 +1,23 @@
 {
  "file": "Emuqu/Sources/Views/HistoryView.swift",
- "hash": "5b5128862c64cb09",
- "role": "History screen pushed from the Dashboard: paginated, grouped (Today/Yesterday/This Week/Last Week/month) list of archive index entries with session-type, tag and text filters (state held in HistoryViewModel), swipe-delete, Ask-Flo context action, and on-tap async load of the full session into MorningResultsView or FitnessPostSummaryView.",
+ "hash": "1d19cff9ed19bc4e",
+ "role": "History screen pushed from the Dashboard: paginated, grouped (Today/Yesterday/This Week/Last Week/month) list of archive index entries with session-type, tag and text filters (state held in HistoryViewModel), swipe-delete, Ask-Flo context action, and on-tap async load of the full session into MorningResultsView or FitnessPostSummaryView. It deletes (SessionTrash.move, declared here and the shared delete sequence), saves tags and sleep edits itself and shows an alert when any of those, or opening a reading, fails. Also declares historyDisplayScore, shared with HistoryCalendarView.",
  "types": [
   "HistoryView: struct (View) — main screen",
+  "HistoryView.HistorySection: private struct — a section's newest date and entries",
   "HistoryView extension — tag filter bar",
   "SessionTypeFilterButton: private struct (View) — chip",
-  "EntryHistoryRow: private struct (View) — row built from SessionArchiveEntry metadata only"
+  "EntryHistoryRow: private struct (View) — row built from SessionArchiveEntry metadata only",
+  "SessionTrash: @MainActor enum — move(_:collector:cloudKit:), the one archive delete + notify + iCloud deletion sequence"
  ],
  "state": [
   "mem:HistoryView.viewModel (@State HistoryViewModel())",
-  "mem:HistoryView.deleteSessionId/showingDeleteAlert/selectedSession/selectedLinkedSegments/cachedRecentSessions/selectionTask (@State)",
+  "mem:HistoryView.deleteSessionId/showingDeleteAlert/failureMessage/selectedSession/selectedLinkedSegments/cachedRecentSessions/selectionTask (@State)",
   "static monthYearStyle Date.FormatStyle (.month(.wide).year())",
   "global private var napBadge/quickBadge/breatheBadge (file-scope computed views)",
   "accessibility identifiers 'history.search', 'history.entryRow'"
  ],
- "toplevel": "`@State private var viewModel = HistoryViewModel()` (line 15) uses the default init, which binds AppDependencies.current.storage.sessionArchive and settingsManager rather than the @Environment(\\.dependencies) the view reads elsewhere; SwiftUI re-evaluates that initializer expression every time the HistoryView struct is re-created by DashboardV2View (historyDestination), building and discarding a HistoryViewModel (with an ObservationLoop and an initial debounced recompute Task). #Preview (971-979) builds HistoryView with no-op closures. Only production caller: DashboardV2View.swift:513 (onDelete = MainTabView.deleteSession).",
+ "toplevel": "`@State private var viewModel = HistoryViewModel()` (line 19) uses the default init, which binds AppDependencies.current.storage.sessionArchive and settingsManager rather than the @Environment(\\.dependencies) the view reads elsewhere; SwiftUI re-evaluates that initializer expression every time the HistoryView struct is re-created by DashboardV2View (historyDestination), building and discarding a HistoryViewModel. The stored onDelete/onUpdateTags closures are no longer called. #Preview builds HistoryView with no-op closures. Only production caller: DashboardV2View.swift historyDestination (MainTabView no longer passes delete/tag closures, so it gets DashboardV2View's no-op defaults).",
  "flags": [
   {
    "kind": "coupling",
@@ -31,13 +33,23 @@
   {
    "kind": "duplicate",
    "sev": "low",
-   "text": "Three copies of the delete sequence (archive.delete + notifyArchiveChanged + CloudKit uploadDeletion): HistoryView.confirmDelete, MainTabView.deleteSession and TrendsV2View.deleteSession; HistoryView's swipe path ignores its own onDelete parameter (which is MainTabView.deleteSession) and re-implements it.",
+   "text": "The delete sequence (archive.delete + notifyArchiveChanged + CloudKit uploadDeletion) now lives in SessionTrash.move, used by both History paths (MainTabView.deleteSession is gone), but TrendsV2View.deleteSession still carries its own copy (handoff from fix batch b22).",
    "evidence": [
-    "Emuqu/Sources/Views/HistoryView.swift:328",
-    "Emuqu/Sources/Views/MainTabView+Tabs.swift:199",
+    "Emuqu/Sources/Views/HistoryView.swift:1033",
     "Emuqu/Sources/Views/TrendsV2View.swift:257"
    ],
    "found": "first read, upheld on second"
+  },
+  {
+   "kind": "dead",
+   "sev": "low",
+   "text": "onDelete and onUpdateTags are stored but never called (History deletes through SessionTrash.move and saves tags in saveTags so it can report failures); they stay only until DashboardV2View, the #Preview and RemainingScreenSnapshotTests stop passing them (handoff from fix batch b22).",
+   "evidence": [
+    "Emuqu/Sources/Views/HistoryView.swift:14",
+    "Emuqu/Sources/Views/DashboardV2View.swift:539",
+    "EmuquTests/RemainingScreenSnapshotTests.swift:38"
+   ],
+   "found": "fix batch b22"
   }
  ],
  "units": [
@@ -73,8 +85,8 @@
   },
   {
    "key": "var HistoryView.groupedEntries",
-   "hash": "2e683fd2809a037c",
-   "does": "Groups visibleEntries by sectionKey(displayDate) and sorts groups by sectionsInReadingOrder.",
+   "hash": "5e94da15ba0361d5",
+   "does": "Builds sections from visibleEntries keyed by sectionKey(displayDate), each carrying the displayDate of its first (newest) entry, sorts them by sectionsInReadingOrder and returns (key, entries) pairs.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.visibleEntries",
@@ -89,7 +101,7 @@
    "deps": {
     "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate": "b7a08a3bb6301f41",
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sectionKey(for:now:)": "93d3da093d0850e7",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sectionsInReadingOrder(_:_:)": "ebc72d9603360dd5",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sectionsInReadingOrder(_:_:)": "fe3af8ee22fe9037",
     "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.visibleEntries": "d9e6735c79be16fa"
    }
   },
@@ -133,8 +145,8 @@
   },
   {
    "key": "func HistoryView.sectionsInReadingOrder(_:_:)",
-   "hash": "01ad7a9f3a087060",
-   "does": "Static sort comparator: named buckets in fixed order first, then month groups newest-first by their first entry's displayDate, finally by key string.",
+   "hash": "27310d88b8071d6e",
+   "does": "Orders sections: the named buckets Today, Yesterday, This Week, Last Week first in that order, then month sections newest first by their newest entry's date.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate"
@@ -143,40 +155,20 @@
    "writes": [],
    "branches": [
     {
-     "at": "+5",
-     "cond": "first.key in named order",
-     "effect": "?? Int.max when it's a month key"
-    },
-    {
-     "at": "+6",
-     "cond": "second.key in named order",
-     "effect": "?? Int.max when it's a month key"
-    },
-    {
      "at": "+7",
-     "cond": "idx1 != idx2",
-     "effect": "true: order by bucket index (named before months)"
+     "cond": "the two keys rank differently in the named order (months rank last)",
+     "effect": "the lower rank first"
     },
     {
      "at": "+9",
-     "cond": "both groups have a first entry",
-     "effect": "true: newer displayDate first; false: compare keys alphabetically"
+     "cond": "both are months (or the same bucket)",
+     "effect": "newest first"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "Dictionary(grouping:) never produces an empty group, so both `first.value.first` are always non-nil and the `first.key < second.key` fallback never runs.",
-     "evidence": [
-      "Emuqu/Sources/Views/HistoryView.swift:77",
-      "Emuqu/Sources/Views/HistoryView.swift:45"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate": "b7a08a3bb6301f41"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate": "b7a08a3bb6301f41",
+    "EmuquTests/StrapExerciseDecoderTests.swift::func StrapExerciseDecoderTests.newest(_:notBefore:)": "d26546370a46948a"
    }
   },
   {
@@ -224,7 +216,7 @@
   {
    "key": "var HistoryView.body",
    "hash": "d3cd8eb2f931d8f9",
-   "does": "Body: historyStack wrapped with delete alert, archive refresh, cancel-on-disappear and session-detail sheet.",
+   "does": "Body: historyStack wrapped with the delete alert, the failure alert, archive refresh, cancel-on-disappear and the session-detail sheet (withHistoryLifecycle).",
    "entry": "SwiftUI body; HistoryView is pushed from DashboardV2View.historyDestination",
    "calls": [
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.withHistoryLifecycle(_:)",
@@ -235,7 +227,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.withHistoryLifecycle(_:)": "81322f44aa6995ef",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.withHistoryLifecycle(_:)": "ed079c556e3f0720",
     "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.historyStack": "5fd6670454b117b4"
    }
   },
@@ -380,7 +372,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sectionHeaderID(_:)": "bf1ccde3e3388f6a",
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.groupedEntries": "9cb6f828f1d2a461"
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.groupedEntries": "468b47faec455317"
    }
   },
   {
@@ -428,7 +420,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.entrySection(_:entries:)": "2994902da508651b",
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.groupedEntries": "9cb6f828f1d2a461"
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.groupedEntries": "468b47faec455317"
    }
   },
   {
@@ -482,7 +474,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.entryRowContent(_:)": "157beb64aae685d3",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.withEntryActions(_:entry:)": "c26bdc4a04d6d21c"
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.withEntryActions(_:entry:)": "b8177382aa267314"
    }
   },
   {
@@ -506,13 +498,13 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.loadAndSelect(_:)": "7bd55f8a5aab53bb"
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.loadAndSelect(_:)": "bc5fe1533648fe4a"
    }
   },
   {
    "key": "func HistoryView.withEntryActions(_:entry:)",
    "hash": "f8624f35e729bd51",
-   "does": "Adds trailing swipe (Delete, no full swipe), leading swipe (Edit Tags) and context menu (Ask Flo).",
+   "does": "Adds trailing swipe (Delete, no full swipe), leading swipe (Edit Tags, only on rows whose detail view has the tag editor) and context menu (Ask Flo).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.deleteEntryButton(_:)",
@@ -526,7 +518,21 @@
    "deps": {
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.askFloButton(_:)": "9d47ebbb1cccebb5",
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.deleteEntryButton(_:)": "09a7f8d02fcc41c3",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.editTagsButton(_:)": "d654433ae1ad10f1"
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.editTagsButton(_:)": "243aaf73bff5e668"
+   }
+  },
+  {
+   "key": "func HistoryView.opensTagEditor(_:)",
+   "hash": "0a88fa8dccc0a9c3",
+   "does": "True when a tap on the row opens the morning report (where tags are edited): not a workout, and analysed (the index's meanRMSSD comes from the analysis result).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef"
    }
   },
   {
@@ -550,33 +556,29 @@
   },
   {
    "key": "func HistoryView.editTagsButton(_:)",
-   "hash": "88421689f2f4c813",
-   "does": "Leading swipe 'Edit Tags' button that just calls loadAndSelect(entry) — identical to tapping the row.",
+   "hash": "cda60c64d70b11ef",
+   "does": "Leading swipe 'Edit Tags' (blue) that loads and opens the reading, offered only when opensTagEditor says its detail view has the tag editor.",
    "entry": "Swipe action tap",
    "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.opensTagEditor(_:)",
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.loadAndSelect(_:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
    "writes": [],
-   "branches": [],
-   "flags": [
+   "branches": [
     {
-     "kind": "broken",
-     "sev": "low",
-     "text": "'Edit Tags' opens the same detail sheet as a tap; for workouts that is FitnessPostSummaryView (no tag editor) and for sessions without analysisResult it is the 'No analysis data available' placeholder, so the action named Edit Tags offers no way to edit tags for those rows.",
-     "evidence": [
-      "Emuqu/Sources/Views/HistoryView.swift:241",
-      "Emuqu/Sources/Views/HistoryView.swift:412",
-      "Emuqu/Sources/Views/HistoryView.swift:417"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+1",
+     "cond": "row opens the tag editor",
+     "effect": "button shown; else no leading swipe action"
     }
    ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.loadAndSelect(_:)": "7bd55f8a5aab53bb"
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.loadAndSelect(_:)": "bc5fe1533648fe4a",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.opensTagEditor(_:)": "d9a1ec49ed30bb17"
    }
   },
   {
@@ -692,18 +694,20 @@
   },
   {
    "key": "func HistoryView.withHistoryLifecycle(_:)",
-   "hash": "bd9e8f42f1cfd058",
-   "does": "Applies delete alert, refreshIfNeeded(archiveSignal.version) on appear and on version change, cancelInFlightWork on disappear, and a sheet presenting sessionDetailSheet for selectedSession.",
+   "hash": "2cc9dc66fd3d25b5",
+   "does": "Applies the delete alert and the failure alert (shown on the list only while no sheet is up), refreshIfNeeded(archiveSignal.version) on appear and on version change, cancelInFlightWork on disappear, and a sheet presenting sessionDetailSheet for selectedSession with its own failure alert.",
    "entry": "SwiftUI lifecycle modifiers (.onAppear/.onChange/.onDisappear/.sheet)",
    "calls": [
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.withDeleteAlert(_:)",
     "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.refreshIfNeeded(archiveVersion:)",
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.cancelInFlightWork()",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sessionDetailSheet(for:)"
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sessionDetailSheet(for:)",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.withFailureAlert(_:shown:)"
    ],
    "reads": [
     "mem:ArchiveSignal.version",
-    "mem:HistoryView.selectedSession"
+    "mem:HistoryView.selectedSession",
+    "mem:HistoryView.failureMessage"
    ],
    "writes": [
     "mem:HistoryViewModel.filteredEntries",
@@ -715,7 +719,39 @@
     "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.refreshIfNeeded(archiveVersion:)": "31cf379f4b178303",
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.cancelInFlightWork()": "24b5c3f9505f1f8b",
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sessionDetailSheet(for:)": "e1b3037d9f6ff8ee",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.withDeleteAlert(_:)": "8924953178659b81"
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.withDeleteAlert(_:)": "8924953178659b81",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.withFailureAlert(_:shown:)": "1133f56b9bb1d7be"
+   }
+  },
+  {
+   "key": "func HistoryView.withFailureAlert(_:shown:)",
+   "hash": "6e86892b63599863",
+   "does": "Attaches an alert titled failureMessage with an OK button, presented while `shown` and failureMessage is set; dismissing clears failureMessage. Attached to the list (shown when no sheet is up) and to the detail sheet (always), so exactly one presents.",
+   "entry": "SwiftUI .alert binding",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:HistoryView.failureMessage"
+   ],
+   "writes": [
+    "mem:HistoryView.failureMessage"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "shown and a failure is pending",
+     "effect": "alert presented"
+    },
+    {
+     "at": "+3",
+     "cond": "alert dismissed",
+     "effect": "failureMessage cleared"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },
   {
@@ -755,19 +791,16 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.confirmDelete()": "c268cda7673824dc"
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.confirmDelete()": "63ea8b1c6b1c460c"
    }
   },
   {
    "key": "func HistoryView.confirmDelete()",
-   "hash": "ca0d3ed9b3143230",
-   "does": "Deletes the pending session: SessionArchive.delete (soft delete to Trash), notifyArchiveChanged, then async CloudKit uploadDeletion; on throw only logs.",
+   "hash": "6617fb7ca5648a58",
+   "does": "Takes the pending deleteSessionId (clearing it) and moves that reading to Trash through moveToTrash, which reports a failure.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)",
-    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadDeletion(_:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.moveToTrash(_:)"
    ],
    "reads": [
     "mem:HistoryView.deleteSessionId"
@@ -777,49 +810,52 @@
     "archive:SessionArchive.delete (index drop + move to Trash)",
     "notif:.flowRecoveryArchiveChanged (via ArchiveSignal.notifyChanged)",
     "mem:ArchiveSignal.version",
-    "ck:session soft-delete flag (when iCloudSyncEnabled)"
+    "ck:session soft-delete flag (when iCloudSyncEnabled)",
+    "mem:HistoryView.failureMessage"
    ],
    "branches": [
     {
      "at": "+1",
      "cond": "deleteSessionId non-nil",
      "effect": "false: return (nothing to delete)"
-    },
-    {
-     "at": "+8",
-     "cond": "catch: archive.delete throws",
-     "effect": "error swallowed with debugLog('[HistoryView] Failed to delete session') — no alert, row stays, error detail not logged"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "med",
-     "text": "A failed delete is only debug-logged (without the error); the user gets no feedback and the row simply stays, unlike the calendar's DaySummarySheet which shows 'Couldn't delete this reading'.",
-     "evidence": [
-      "Emuqu/Sources/Views/HistoryView.swift:336",
-      "Emuqu/Sources/Views/HistoryCalendarView.swift:693"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Re-implements MainTabView.deleteSession (the onDelete closure this view already receives) and TrendsV2View.deleteSession.",
-     "evidence": [
-      "Emuqu/Sources/Views/HistoryView.swift:328",
-      "Emuqu/Sources/Views/MainTabView+Tabs.swift:199",
-      "Emuqu/Sources/Views/TrendsV2View.swift:257"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "1c38f37d10093863",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "cefef470ab858af7",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadDeletion(_:)": "35795a3f19c6054a",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.moveToTrash(_:)": "79f58a11bdcf082f"
+   }
+  },
+  {
+   "key": "func HistoryView.moveToTrash(_:)",
+   "hash": "0ef0fa92819ae983",
+   "does": "SessionTrash.move for the id; on throw logs the error and sets failureMessage to \"Couldn't delete this reading. Try again.\". Returns whether the reading left the archive.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::func SessionTrash.move(_:collector:cloudKit:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:SessionArchive.delete (index drop + move to Trash)",
+    "notif:.flowRecoveryArchiveChanged (via ArchiveSignal.notifyChanged)",
+    "mem:ArchiveSignal.version",
+    "ck:session soft-delete flag (when iCloudSyncEnabled)",
+    "mem:HistoryView.failureMessage"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "SessionTrash.move throws",
+     "effect": "log, failure alert, return false; else true"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Views/HistoryView.swift::func SessionTrash.move(_:collector:cloudKit:)": "5a5b9af14dcd988b"
    }
   },
   {
@@ -882,53 +918,62 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
     "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3",
-    "Emuqu/Sources/Views/HistoryView.swift::func historyDisplayScore(_:)": "d8b054bcd9d4203e"
+    "Emuqu/Sources/Views/HistoryView.swift::func historyDisplayScore(_:)": "70f6457ef9f4a2bb"
    }
   },
   {
    "key": "func HistoryView.loadAndSelect(_:)",
-   "hash": "348d1a2a1d3e944e",
-   "does": "Cancels any prior selection task and starts a Task that loads the full session off-main via retrieveFullSessionAsync, then calls select; on nil only logs.",
+   "hash": "576a7034a2e886b2",
+   "does": "Cancels any prior selection task and starts a Task that loads the full session off-main via retrieveFullSessionAsync, then calls select; when it cannot be read (and the task was not cancelled) logs and sets failureMessage \"Couldn't open this reading. Try again.\".",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.retrieveFullSessionAsync(_:)",
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.select(_:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [
     "archive:SessionArchive.retrieve (full session with rrSeries)"
    ],
    "writes": [
-    "mem:HistoryView.selectionTask"
+    "mem:HistoryView.selectionTask",
+    "mem:HistoryView.failureMessage"
    ],
    "branches": [
     {
      "at": "+7",
      "cond": "retrieveFullSessionAsync returns a session",
-     "effect": "false: debugLog and return — tap silently does nothing; true: await select(session)"
+     "effect": "false: debugLog, then the failure alert unless cancelled; true: await select(session)"
+    },
+    {
+     "at": "+9",
+     "cond": "load failed and the task was not cancelled",
+     "effect": "failureMessage set (new tap supersedes silently)"
     }
    ],
    "flags": [
     {
      "kind": "silent-failure",
      "sev": "med",
-     "text": "If the session file cannot be read/decoded the row tap does nothing visible (only debugLog), so a corrupt or missing session looks like an unresponsive row.",
+     "text": "A reading that cannot be read now raises the failure alert, but its text (\"Couldn't open this reading. Try again.\") has no Localizable.xcstrings entry yet (catalog handoff from fix batch b22), so it is English in every language until the catalog is updated.",
      "evidence": [
-      "Emuqu/Sources/Views/HistoryView.swift:382"
+      "Emuqu/Sources/Views/HistoryView.swift:412",
+      "Emuqu/Localizable.xcstrings"
      ],
      "found": "first read, upheld on second"
     }
    ],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.retrieveFullSessionAsync(_:)": "0f232a98a915f52c",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.select(_:)": "d5dd9782a82a5a88"
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.select(_:)": "6c01803f9dca642b"
    }
   },
   {
    "key": "func HistoryView.select(_:)",
-   "hash": "0eb43ec98e54ee00",
-   "does": "Loads up to MorningResultsView.recentSessionsContextLimit overnight sessions before this one, aborts if cancelled, keeps those with state .complete in cachedRecentSessions, loads linked split-night segments and sets selectedSession (presenting the sheet).",
+   "hash": "b09f1fcbc257a4f1",
+   "does": "Loads up to MorningResultsView.recentSessionsContextLimit overnight sessions before this one, then the linked split-night segments in a detached task (linkedSegments reads, decrypts and decodes each linked session, so it stays off the main actor); aborts if cancelled after either; keeps the .complete ones in cachedRecentSessions, stores the segments and sets selectedSession (presenting the sheet).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+PriorSessions.swift::func RRCollector.recentSessionsAsync(limit:before:type:)",
@@ -936,7 +981,7 @@
    ],
    "reads": [
     "archive:SessionArchive.entries",
-    "archive:SessionArchive.retrieve (linked sessions, synchronous)"
+    "archive:SessionArchive.retrieve (linked sessions, off the main actor)"
    ],
    "writes": [
     "mem:HistoryView.cachedRecentSessions",
@@ -947,24 +992,17 @@
     {
      "at": "+3",
      "cond": "Task.isCancelled after loading prior sessions",
-     "effect": "true: return without presenting; false: continue"
-    }
-   ],
-   "flags": [
+     "effect": "true: return without presenting"
+    },
     {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "The loadAndSelect doc (369-374) says no synchronous disk I/O on @MainActor, but select runs on the main actor and calls collector.archive.linkedSegments, which synchronously retrieves (reads + decrypts + decodes) every linked session via archive.retrieve (Archive+Internal.swift:414) on the main thread.",
-     "evidence": [
-      "Emuqu/Sources/Views/HistoryView.swift:400",
-      "Emuqu/Sources/Storage/Archive+Internal.swift:397",
-      "Emuqu/Sources/Views/HistoryView.swift:369"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+6",
+     "cond": "Task.isCancelled after reading the linked segments",
+     "effect": "true: return without presenting; false: store and present"
     }
    ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+PriorSessions.swift::func RRCollector.recentSessionsAsync(limit:before:type:)": "1d40c0a9ed870882",
+    "Emuqu/Sources/Collection/RRCollector+PriorSessions.swift::func RRCollector.recentSessionsAsync(limit:before:type:)": "9990f6bb66c1edd2",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.linkedSegments(for:)": "852d48d0e3ec6bcb"
    }
   },
@@ -1007,7 +1045,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sessionDetailContent(session:result:)": "47a6bc7cb9d99041",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sessionDetailContent(session:result:)": "ddba50cd2e5ad4a4",
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.workoutSummarySheet(_:)": "31eb54af42d3e198",
     "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.noAnalysisPlaceholder": "2ef9a7aadcf0bd85"
    }
@@ -1053,19 +1091,17 @@
   },
   {
    "key": "func HistoryView.sessionDetailContent(session:result:)",
-   "hash": "4838e1e1c4a3b003",
-   "does": "Builds MorningResultsView for a past session, wiring discard, delete, reanalyze, tag update, reanalyze-at-position, manual-analysis apply, sleep update/adjust and segment unlink to the collector/parent closures.",
+   "hash": "1d8f970bc68e565e",
+   "does": "Builds MorningResultsView for a past session, wiring discard, delete (deleteAndDismiss), reanalyze (parent closure), tag save (saveTags), reanalyze-at-position, manual-analysis apply, sleep update and adjustment (saveSleep, which reports a failed save) and segment unlink to the collector.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/MorningResultsView.swift::init MorningResultsView(session:result:recentSessions:onDiscard:onDelete:onReanalyze:onUpdateTags:onReanalyzeAt:onApplyManualResult:onUpdateSleep:onAdjustSleep:onUnlinkSegment:linkedSegments:)",
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.deleteAndDismiss(_:)",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.adjustSleep(_:sleepData:)",
     "closure:onReanalyze = MainTabView.reanalyzeSession via DashboardV2View.onReanalyzeSession",
-    "closure:onUpdateTags = MainTabView.updateTags via DashboardV2View.onUpdateSessionTags",
     "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.reanalyzeAtPosition(_:targetMs:)",
     "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.applyManualAnalysis(_:result:)",
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)",
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.unlinkSegment(segmentId:fromSession:)"
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.unlinkSegment(segmentId:fromSession:)",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.saveTags(_:tags:notes:)",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.saveSleep(_:sleepData:isUserAdjustment:)"
    ],
    "reads": [
     "mem:HistoryView.cachedRecentSessions",
@@ -1081,42 +1117,41 @@
     "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.applyManualAnalysis(_:result:)": "5769cb4022f1481b",
     "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.reanalyzeAtPosition(_:targetMs:)": "1c0421a2b011d161",
     "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.unlinkSegment(segmentId:fromSession:)": "df81e8aa6eb05449",
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "ed8abe89df2283be",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.adjustSleep(_:sleepData:)": "12d941ea483f329a",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.deleteAndDismiss(_:)": "e4cd037b98f0b913",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.deleteAndDismiss(_:)": "48f14c8ee1eadceb",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.saveSleep(_:sleepData:isUserAdjustment:)": "395b402942721771",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.saveTags(_:tags:notes:)": "cf1bd1510f0fda5e",
     "Emuqu/Sources/Views/MorningResultsView.swift::init MorningResultsView(session:result:recentSessions:onDiscard:onDelete:onReanalyze:onUpdateTags:onReanalyzeAt:onApplyManualResult:onUpdateSleep:onAdjustSleep:onUnlinkSegment:linkedSegments:)": "708e5b20f5522dc7"
    }
   },
   {
    "key": "func HistoryView.deleteAndDismiss(_:)",
-   "hash": "5e20115ca566d407",
-   "does": "Calls the parent onDelete then clears selectedSession (dismissing the sheet) unconditionally.",
+   "hash": "93a108cda30770b5",
+   "does": "Moves the reading to Trash through moveToTrash; closes the sheet only when it left the archive, otherwise the sheet stays and its failure alert says the delete failed.",
    "entry": null,
    "calls": [
-    "closure:onDelete = MainTabView.deleteSession (MainTabView.swift:477 → DashboardV2View.onDeleteSession)",
-    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.deleteSession(_:)"
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.moveToTrash(_:)"
    ],
    "reads": [],
    "writes": [
     "mem:HistoryView.selectedSession",
-    "archive:SessionArchive.delete (via closure)"
+    "mem:HistoryView.failureMessage",
+    "archive:SessionArchive.delete (index drop + move to Trash)",
+    "notif:.flowRecoveryArchiveChanged (via ArchiveSignal.notifyChanged)",
+    "mem:ArchiveSignal.version",
+    "ck:session soft-delete flag (when iCloudSyncEnabled)"
    ],
-   "branches": [],
-   "flags": [
+   "branches": [
     {
-     "kind": "silent-failure",
-     "sev": "med",
-     "text": "onDelete returns Void and MainTabView.deleteSession swallows archive.delete errors with debugLog, so the sheet is dismissed as if the reading were deleted even when it was not.",
-     "evidence": [
-      "Emuqu/Sources/Views/HistoryView.swift:463",
-      "Emuqu/Sources/Views/MainTabView+Tabs.swift:205"
-     ],
-     "found": "first read, upheld on second"
-    },
+     "at": "+1",
+     "cond": "delete failed",
+     "effect": "sheet kept, alert shown; else selectedSession = nil"
+    }
+   ],
+   "flags": [
     {
      "kind": "spec-mismatch",
      "sev": "low",
-     "text": "USERS_MANUAL says Delete from History 'Permanently deletes session', but the delete path (MainTabView.deleteSession → archive.delete) moves it to Trash, as HistoryView's own alert text says.",
+     "text": "USERS_MANUAL says Delete from History 'Permanently deletes session', but the delete path (SessionTrash.move → archive.delete) moves it to Trash, as HistoryView's own alert text says (manual handoff from fix batch b22).",
      "evidence": [
       "docs/USERS_MANUAL.md:960",
       "Emuqu/Sources/Views/HistoryView.swift:314",
@@ -1126,36 +1161,67 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.deleteSession(_:)": "7d092790f5709dc1"
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.moveToTrash(_:)": "79f58a11bdcf082f"
    }
   },
   {
-   "key": "func HistoryView.adjustSleep(_:sleepData:)",
-   "hash": "ef321e7015af2906",
-   "does": "Writes user-adjusted sleep boundaries via collector.updateSessionSleepBoundaries(isUserAdjustment: true), discarding the Bool result.",
-   "entry": null,
+   "key": "func HistoryView.saveTags(_:tags:notes:)",
+   "hash": "da1e2bbe49f10a14",
+   "does": "Writes tags and notes to the archive (SessionArchive.updateTags) and notifies observers; on throw logs and sets failureMessage \"Couldn't save: <error>\".",
+   "entry": "closure: MorningResultsView.onUpdateTags",
    "calls": [
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)"
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.updateTags(_:tags:notes:)",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
    "writes": [
-    "archive:session sleep boundaries re-archive"
+    "archive:session tags/notes",
+    "mem:ArchiveSignal.version",
+    "notif:.flowRecoveryArchiveChanged (via ArchiveSignal.notifyChanged)",
+    "mem:HistoryView.failureMessage"
    ],
-   "branches": [],
-   "flags": [
+   "branches": [
     {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "Result of updateSessionSleepBoundaries is discarded (`_ =`); DashboardV2View's equivalent shows sleepEditSaveFailed on false, History shows nothing.",
-     "evidence": [
-      "Emuqu/Sources/Views/HistoryView.swift:468",
-      "Emuqu/Sources/Views/DashboardV2View.swift:495"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+4",
+     "cond": "updateTags throws",
+     "effect": "log and failure alert"
     }
    ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "ed8abe89df2283be"
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "1c38f37d10093863",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.updateTags(_:tags:notes:)": "1bf6c9d59b14e9d7",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HistoryView.saveSleep(_:sleepData:isUserAdjustment:)",
+   "hash": "13508c7a8e651092",
+   "does": "Stores the sleep boundaries through RRCollector.updateSessionSleepBoundaries (automatic measured-sleep update or user adjustment); when it returns false sets failureMessage \"Your timeline change couldn't be stored. Please try again.\".",
+   "entry": "closures: MorningResultsView.onUpdateSleep / onAdjustSleep",
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:session sleep boundaries/snapshot (re-scored)",
+    "mem:HistoryView.failureMessage"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "update returned true",
+     "effect": "return; false: failure alert"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "ed8abe89df2283be",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },
   {
@@ -1385,7 +1451,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.allTagsButton": "cf5bd7ab3e0209c4",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.allTagsButton": "096d79d373c3eeec",
     "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.tagButtons": "0ed69179afc5e2dd"
    }
   },
@@ -1488,8 +1554,8 @@
   },
   {
    "key": "var HistoryView.allTagsButton",
-   "hash": "9cdd08cee8279667",
-   "does": "'All' tag button clearing selectedTags; blue when no tags selected, gray otherwise; isSelected trait when empty.",
+   "hash": "d530763a32deb888",
+   "does": "'All' tag chip that clears selectedTags; filled AppTheme.primary with white text when no tag is selected, else primary-tinted, like the other chips.",
    "entry": "Button tap",
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
@@ -1517,19 +1583,10 @@
      "effect": "true: .isSelected trait; false: none"
     }
    ],
-   "flags": [
-    {
-     "kind": "hack",
-     "sev": "low",
-     "text": "Hard-coded Color.blue/Color.gray instead of AppTheme colors used by every other chip in the file.",
-     "evidence": [
-      "Emuqu/Sources/Views/HistoryView.swift:659"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
    }
   },
   {
@@ -1871,7 +1928,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Views/HistoryView.swift::func EntryHistoryRow.workoutRowMetrics(entry:)": "385bd2005a96b319",
+    "Emuqu/Sources/Views/HistoryView.swift::func EntryHistoryRow.workoutRowMetrics(entry:)": "b46ebf166d1fc4e2",
     "Emuqu/Sources/Views/HistoryView.swift::var EntryHistoryRow.recoveryRowMetrics": "f3d2c4eee7218bf2"
    }
   },
@@ -1950,7 +2007,7 @@
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.composite(key:description:valueType:dependencies:resolve:)": "da5bef37f40af84b",
     "Emuqu/Sources/Views/HistoryView.swift::func EntryHistoryRow.recoveryScoreBar(composite:)": "216179e09a73f70b",
     "Emuqu/Sources/Views/HistoryView.swift::func EntryHistoryRow.recoveryScoreRow(composite:)": "cb753331af6327c2",
-    "Emuqu/Sources/Views/HistoryView.swift::func historyDisplayScore(_:)": "d8b054bcd9d4203e"
+    "Emuqu/Sources/Views/HistoryView.swift::func historyDisplayScore(_:)": "70f6457ef9f4a2bb"
    }
   },
   {
@@ -2029,7 +2086,7 @@
     {
      "kind": "spec-mismatch",
      "sev": "low",
-     "text": "USERS_MANUAL says workout rows show duration and sport; the row shows duration with a fixed figure.run icon and the literal caption 'Workout' — no sport.",
+     "text": "USERS_MANUAL says workout rows show duration and sport; the row shows duration with a fixed figure.run icon and the literal caption 'Workout' — the index carries no sport, and the code comment now says so (manual handoff from fix batch b22).",
      "evidence": [
       "docs/USERS_MANUAL.md:835",
       "Emuqu/Sources/Views/HistoryView.swift:925",
@@ -2096,9 +2153,34 @@
    }
   },
   {
+   "key": "func SessionTrash.move(_:collector:cloudKit:)",
+   "hash": "7a4867e43920c23a",
+   "does": "The shared delete sequence: SessionArchive.delete (soft delete to Trash, throws on failure), RRCollector.notifyArchiveChanged, then an async CloudKit uploadDeletion so the next pull does not bring it back.",
+   "entry": "Called by HistoryView.moveToTrash (swipe delete and the detail sheet's Delete).",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadDeletion(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:SessionArchive.delete (index drop + move to Trash)",
+    "notif:.flowRecoveryArchiveChanged (via ArchiveSignal.notifyChanged)",
+    "mem:ArchiveSignal.version",
+    "ck:session soft-delete flag (when iCloudSyncEnabled)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "1c38f37d10093863",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "cefef470ab858af7",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadDeletion(_:)": "35795a3f19c6054a"
+   }
+  },
+  {
    "key": "func historyDisplayScore(_:)",
-   "hash": "371ac5cafa865c8e",
-   "does": "Converts a raw recovery score to (readiness 0-10, composite 0-100): raw > 10 is treated as legacy ms-scale and mapped to min(10, raw/5); composite = safeDisplayScore(readiness*10).",
+   "hash": "8bbc6f0ed62cb72c",
+   "does": "Readiness (0-10) and 0-100 composite for a stored score: a raw score above 10 (legacy ms-scale import) becomes min(10, raw/5); composite = safeDisplayScore(readiness × 10). The one conversion History rows, Ask-Flo text and HistoryCalendarView's day sheet use.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)"
@@ -2112,20 +2194,9 @@
      "effect": "true: readiness = min(10, raw/5) (legacy ms-scale import); false: readiness = raw (NaN passes through and safeDisplayScore maps it to 0)"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Legacy-scale handling exists only here; HistoryCalendarView's DaySummarySheet converts the same field with plain ×10, so the two surfaces disagree for legacy scores.",
-     "evidence": [
-      "Emuqu/Sources/Views/HistoryView.swift:984",
-      "Emuqu/Sources/Views/HistoryCalendarView.swift:843"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "243c4d1d41c669f4"
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "503106affd4064c8"
    }
   }
  ],

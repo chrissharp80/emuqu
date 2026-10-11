@@ -25,7 +25,9 @@ enum DFAAnalyzer {
     ///   - rr: Array of RR intervals in ms
     ///   - alpha1Range: Box sizes for α1 (default 4-16)
     ///   - alpha2Range: Box sizes for α2 (default 16-64)
-    /// - Returns: DFA result with scaling exponents, or nil if insufficient data
+    /// - Returns: DFA result with scaling exponents, or nil if insufficient
+    ///   data or a degenerate series (fewer than two box sizes with a non-zero
+    ///   fluctuation, e.g. constant intervals), which has no scaling exponent
     static func compute(
         _ rr: [Double],
         alpha1Range: ClosedRange<Int> = HRVConstants.DFA.alpha1ScaleMin ... HRVConstants.DFA.alpha1ScaleMax,
@@ -42,12 +44,12 @@ enum DFAAnalyzer {
         let alpha2Sizes = logSpacedBoxSizes(from: alpha2Range.lowerBound, through: min(alpha2Range.upperBound, maxBox))
         guard alpha1Sizes.count >= 3 else { return nil }
         let alpha1Fluctuations = alpha1Sizes.map { computeFluctuation(integrated, boxSize: $0) }
-        let (alpha1, alpha1R2) = logLogRegression(sizes: alpha1Sizes, fluctuations: alpha1Fluctuations)
+        guard let alpha1Fit = logLogRegression(sizes: alpha1Sizes, fluctuations: alpha1Fluctuations) else { return nil }
         let alpha2 = alpha2Exponent(integrated: integrated, sizes: alpha2Sizes, beatCount: rr.count)
         return DFAResult(
-            alpha1: alpha1,
+            alpha1: alpha1Fit.slope,
             alpha2: alpha2?.value,
-            alpha1R2: alpha1R2,
+            alpha1R2: alpha1Fit.r2,
             alpha2R2: alpha2?.r2
         )
     }
@@ -75,8 +77,7 @@ enum DFAAnalyzer {
     ) -> (value: Double, r2: Double)? {
         guard alpha2Sizes.count >= 3, beatCount >= HRVConstants.MinimumBeats.forDFA else { return nil }
         let fluctuations = alpha2Sizes.map { computeFluctuation(integrated, boxSize: $0) }
-        let (a2, r2) = logLogRegression(sizes: alpha2Sizes, fluctuations: fluctuations)
-        return (a2, r2)
+        return logLogRegression(sizes: alpha2Sizes, fluctuations: fluctuations).map { (value: $0.slope, r2: $0.r2) }
     }
 
     // MARK: - Private Helpers
@@ -155,17 +156,16 @@ enum DFAAnalyzer {
     }
 
     /// Log-log linear regression to find scaling exponent
-    /// Delegates core regression to Statistics.linearRegression.
-    private static func logLogRegression(sizes: [Int], fluctuations: [Double]) -> (slope: Double, r2: Double) {
-        let n = sizes.count
-        guard n >= 2 else { return (0, 0) }
-
-        let logN = sizes.map { log(Double($0)) }
-        let logF = fluctuations.map { $0 > 0 ? log($0) : -10.0 }
-
-        guard let result = Statistics.linearRegression(x: logN, y: logF) else {
-            return (0, 0)
-        }
+    /// Delegates core regression to Statistics.linearRegression. A box size
+    /// whose fluctuation is zero has no logarithm and is left out; nil when
+    /// fewer than two sizes remain or the regression fails, rather than
+    /// reporting an exponent of 0.
+    private static func logLogRegression(sizes: [Int], fluctuations: [Double]) -> (slope: Double, r2: Double)? {
+        let usable = zip(sizes, fluctuations).filter { $0.1 > 0 }
+        guard usable.count >= 2 else { return nil }
+        let logN = usable.map { log(Double($0.0)) }
+        let logF = usable.map { log($0.1) }
+        guard let result = Statistics.linearRegression(x: logN, y: logF) else { return nil }
         return (result.slope, result.r2)
     }
 }

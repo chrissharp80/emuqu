@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/FitnessTabView.swift",
- "hash": "ddf8a44c1cc96aa6",
+ "hash": "6912a41afc2b336e",
  "role": "Root view of the Fitness tab: routes between the recording screen and the default dashboard by recorder phase, owns the summary sheet, GPX export/preview/share, GPX and Apple Health import entry points, workout delete, and workout start; also declares WorkoutSummaryItem, PhaseObservingStateBody and the shared RecorderBox.",
  "types": [
   "WorkoutSummaryItem: struct — Identifiable sheet item (session + isJustCompleted)",
@@ -12,34 +12,10 @@
   "static RecorderBox.shared (FitnessTabView.swift:786)",
   "mem:RecorderBox.recorder (FitnessTabView.swift:787)",
   "ud:fitness.getMeBack.disclaimerSeenV1 — FitnessTabView.getMeBackDisclaimerSeenKey (FitnessTabView.swift:107; read/written in FitnessTabView+Sections.swift:49,61)",
-  "@State FitnessTabView: startError, planModel (WorkoutPlanModel), showImporter, importMessage, exportMessage, showHealthImport, interruptedRecordings, gpxShareURL, gpxSharePresented, gpxPreviewPayload, passiveSteps, todayWorkoutElevationMeters, weekWorkoutElevationMeters, dailyActivity, todayWorkoutAttributedSteps/DistanceMeters/Flights, meanHRR1m7d, lastCompletedSession, selectedHistorySession, unitsPreference (initialised from UnitsPreferenceStore.current), showGetMeBackSheet, showGetMeBackDisclaimer, latestWorkoutSession, latestWorkoutLoadFailed"
+  "@State FitnessTabView: startError, planModel (WorkoutPlanModel), showImporter, importMessage, exportMessage, showHealthImport, interruptedRecordings, gpxShareURL (set only while a share is pending or shown), gpxSharePresented, gpxPreviewPayload, passiveSteps, todayWorkoutElevationMeters, weekWorkoutElevationMeters, dailyActivity, todayWorkoutAttributedSteps/DistanceMeters/Flights, meanHRR1m7d, dailyActivityFromPedometer, lastCompletedSession, selectedHistorySession, showGetMeBackSheet, showGetMeBackDisclaimer, latestWorkoutSession, latestWorkoutLoadFailed, recentWorkoutLoadFailed"
  ],
- "toplevel": "Stored @State initialisers: planModel = WorkoutPlanModel(), unitsPreference = UnitsPreferenceStore.current (line 99), all others empty/false/nil/0. Environment: dependencies, RRCollector, ArchiveSignal, VoiceConversationController, SettingsManager. RecorderBox.shared is a static singleton constructed lazily.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "The comments on PhaseObservingStateBody say the recorder 'has zero @Published properties' and must be wrapped to observe lifecycle; WorkoutRecorder and WorkoutLifecycle are both @Observable, so reading recorder.phase in FitnessTabView is already tracked and the wrapper rationale is stale.",
-   "evidence": [
-    "Emuqu/Sources/Views/FitnessTabView.swift:258",
-    "Emuqu/Sources/Views/FitnessTabView.swift:730",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift:22",
-    "Emuqu/Sources/Collection/WorkoutLifecycle.swift:15"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "The doc comment at the top says the view 'Owns the WorkoutRecorder as a @State so the recorder lives only while the tab is on screen', but the recorder lives in the app-wide RecorderBox singleton (dependencies.app.recorderBox).",
-   "evidence": [
-    "Emuqu/Sources/Views/FitnessTabView.swift:13",
-    "Emuqu/Sources/Views/FitnessTabView.swift:36",
-    "Emuqu/Sources/Views/FitnessTabView.swift:786"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "Stored @State initialisers: planModel = WorkoutPlanModel(), all others empty/false/nil/0. Environment: dependencies, RRCollector, ArchiveSignal, VoiceConversationController, SettingsManager. RecorderBox.shared is a static singleton constructed lazily; the header and PhaseObservingStateBody comments say the recorder lives in that app-wide box and that both WorkoutRecorder and WorkoutLifecycle are @Observable.",
+ "flags": [],
  "units": [
   {
    "key": "var WorkoutSummaryItem.id",
@@ -110,20 +86,7 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "The comment says views format through the computed `units` and the @State `unitsPreference` copy is only for refresh triggering, but dailyActivityCard formats distance with the @State copy, which is initialised once from UnitsPreferenceStore.current and never written anywhere in FitnessTabView; after the user switches km/mi in Settings the daily-activity distances stay in the old unit while the hero uses the new one, until the tab view is recreated.",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessTabView.swift:99",
-      "Emuqu/Sources/Views/FitnessTabView.swift:118",
-      "Emuqu/Sources/Views/FitnessTabView+Sections.swift:219",
-      "Emuqu/Sources/Views/FitnessTabView+Sections.swift:221"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d"
    }
@@ -238,17 +201,24 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.workoutSummarySheet(_:)": "f448434a866d694d",
-    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.workoutSummaryBinding": "1df1af2b8c491fd3"
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.workoutSummaryBinding": "278c24102cd7df94"
    }
   },
   {
    "key": "var FitnessTabView.workoutSummaryBinding",
-   "hash": "747899d4f9888a2c",
-   "does": "Binding: get returns a just-completed item from lastCompletedSession, else a history item from selectedHistorySession, else nil; set(nil) clears both.",
+   "hash": "009733067b7fa1d5",
+   "does": "Binding: get returns a just-completed item from lastCompletedSession, else a history item from selectedHistorySession, else nil; set(nil) — a swipe-down dismissal — clears both and, when the dismissed sheet was the just-completed one, calls recorder.acknowledgeFinished() so the lifecycle returns to .idle like the Done button.",
    "entry": "SwiftUI sheet(item:) reads get and calls set(nil) on dismissal (including swipe-down)",
-   "calls": [],
-   "reads": [],
-   "writes": [],
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.acknowledgeFinished()"
+   ],
+   "reads": [
+    "mem:RecorderBox.recorder"
+   ],
+   "writes": [
+    "mem:WorkoutLifecycle.phase (via acknowledgeFinished)",
+    "mem:WorkoutLifecycle.finishedSession (via acknowledgeFinished)"
+   ],
    "branches": [
     {
      "at": "+3",
@@ -262,25 +232,21 @@
     },
     {
      "at": "+8",
-     "cond": "newValue == nil",
-     "effect": "true → clears both sessions; non-nil sets are ignored"
-    }
-   ],
-   "flags": [
+     "cond": "newValue non-nil",
+     "effect": "ignored"
+    },
     {
-     "kind": "broken",
-     "sev": "high",
-     "text": "Swipe-dismissing the just-completed summary sheet goes through the binding setter, which only nils lastCompletedSession/selectedHistorySession and never calls recorder.acknowledgeFinished(). acknowledgeFinished is the only path (besides the Watch ack listener) that moves lifecycle.phase from .finished back to .idle and stops a lingering Polar stream, and WorkoutRecorder.start throws alreadyRecording unless phase is .idle — so the next Start shows 'Can't start workout' until the Watch acknowledges or the app relaunches. The sheet has no interactiveDismissDisabled.",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessTabView.swift:199",
-      "Emuqu/Sources/Views/FitnessTabView.swift:221",
-      "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift:259",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:165"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+15",
+     "cond": "lastCompletedSession was set before clearing",
+     "effect": "true → recorder.acknowledgeFinished()"
     }
    ],
-   "deps": {}
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.acknowledgeFinished()": "941b16a208b7f311",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderBox": "611e443a4e0e62d1",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "2eb455c219ca902b"
+   }
   },
   {
    "key": "func FitnessTabView.workoutSummarySheet(_:)",
@@ -437,7 +403,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessRecordingView.swift::init FitnessRecordingView(recorder:onStop:)": "eb096de5ac3ed547",
+    "Emuqu/Sources/Views/FitnessRecordingView.swift::init FitnessRecordingView(recorder:onStop:)": "761d0c6e6caa3737",
     "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.stopAction(for:)": "cc8745c7138f74a7",
     "Emuqu/Sources/Views/FitnessTabView.swift::init PhaseObservingStateBody(recorder:recordingBody:defaultBody:)": "bf18e4bb5978dfd8",
     "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.defaultStateBody": "30bcadbc5b9e7e8b"
@@ -475,9 +441,9 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.withFitnessChrome(_:)": "91b6af901a0aed0a",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.withFitnessChrome(_:)": "fbc6cf6107a5e69f",
     "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.withFitnessImports(_:)": "fac7bec613c75bc6",
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.withGPXSheets(_:)": "c6373b6641b4512d",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.withGPXSheets(_:)": "ca0066497aafcef5",
     "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.fitnessHomeScroll": "2e967037646f7b98"
    }
   },
@@ -495,7 +461,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.fitnessHomeCards": "a69b41b2f6a1105c",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.fitnessHomeCards": "35e9814f8c0ad91a",
     "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.preflightSurface": "e2334dcf2e6615f8"
    }
   },
@@ -520,15 +486,15 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.startWorkout(sport:targetZone:source:plan:thresholds:route:)": "3b5c358bf50cff27",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.startWorkout(sport:targetZone:source:plan:thresholds:route:)": "d49802b34261eb68",
     "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderBox": "611e443a4e0e62d1",
     "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "2eb455c219ca902b"
    }
   },
   {
    "key": "var FitnessTabView.fitnessHomeCards",
-   "hash": "2ee97847d40cd78f",
-   "does": "Card stack: interrupted-recording card, hero (newest workout), trajectory link, summary tiles, heat card, daily activity + Get Me Back, recent list.",
+   "hash": "08a1201f4fa0aab7",
+   "does": "Card stack: interrupted-recording card, hero (newest workout), trajectory link, summary tiles, heat card, daily activity + Get Me Back, recent list; recentWorkoutEntries() is evaluated once per render and shared.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::var FitnessTabView.interruptedRecordingCard",
@@ -546,18 +512,6 @@
    "writes": [],
    "branches": [],
    "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "recentWorkoutEntries() (filter + sort of the whole archive) is evaluated three times per render here, plus again in heroReloadKey.",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessTabView.swift:351",
-      "Emuqu/Sources/Views/FitnessTabView.swift:353",
-      "Emuqu/Sources/Views/FitnessTabView.swift:356",
-      "Emuqu/Sources/Views/FitnessTabView+Strap.swift:478"
-     ],
-     "found": "first read, upheld on second"
-    },
     {
      "kind": "spec-mismatch",
      "sev": "low",
@@ -619,8 +573,8 @@
   },
   {
    "key": "func FitnessTabView.withFitnessChrome(_:)",
-   "hash": "5487c8128eb85fe4",
-   "does": "Adds the sensor-management sheet (planModel.sensorSheetPresented), the .task running loadFitnessHomeData, nav title 'Fitness', accessibility id fitness.root and the toolbar.",
+   "hash": "95aff1eb4b62a70c",
+   "does": "Adds the sensor-management sheet (planModel.sensorSheetPresented), the .task running loadFitnessHomeData, nav title 'Fitness', accessibility id fitness.root, the toolbar, and the \"Couldn't load this workout.\" alert bound to recentWorkoutLoadFailed (OK clears it).",
    "entry": "SwiftUI .task on tab appear",
    "calls": [
     "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.sensorSheet",
@@ -628,7 +582,9 @@
     "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.fitnessToolbar"
    ],
    "reads": [],
-   "writes": [],
+   "writes": [
+    "mem:FitnessTabView.recentWorkoutLoadFailed"
+   ],
    "branches": [],
    "flags": [],
    "deps": {
@@ -721,15 +677,19 @@
   },
   {
    "key": "func FitnessTabView.withGPXSheets(_:)",
-   "hash": "1095b7a6a525424f",
-   "does": "Adds the GPX share sheet, GPX preview sheet (item) and an 'Export' alert bound to exportMessage.",
+   "hash": "f3e18c2de9d360eb",
+   "does": "Adds the GPX share sheet (presented through gpxShareBinding; its dismissal clears gpxShareURL), the GPX preview sheet (item; its dismissal calls presentPendingGPXShare) and an 'Export' alert bound to exportMessage.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.gpxShareBinding",
     "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.gpxShareSheet",
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.gpxPreviewSheet(_:)"
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.gpxPreviewSheet(_:)",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.presentPendingGPXShare()"
    ],
    "reads": [],
-   "writes": [],
+   "writes": [
+    "mem:FitnessTabView.gpxShareURL"
+   ],
    "branches": [
     {
      "at": "+12",
@@ -746,13 +706,29 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.gpxPreviewSheet(_:)": "da35f75c988a085d",
-    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.gpxShareSheet": "36088f10a99a02f3"
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.presentPendingGPXShare()": "8f07da8af93048e4",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.gpxShareBinding": "600ed11b76cf57ae",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.gpxShareSheet": "4bb2d0e4efc813b4"
    }
+  },
+  {
+   "key": "var FitnessTabView.gpxShareBinding",
+   "hash": "9fc89237b94e2e29",
+   "does": "Share-sheet presentation binding: true only while gpxSharePresented AND gpxShareURL is set; set writes gpxSharePresented.",
+   "entry": "SwiftUI .sheet(isPresented:) in withGPXSheets",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:FitnessTabView.gpxSharePresented"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "var FitnessTabView.gpxShareSheet",
    "hash": "ee06f8a418e97f7a",
-   "does": "ShareSheet for gpxShareURL when set; empty otherwise.",
+   "does": "ShareSheet for gpxShareURL when set; empty otherwise (not reachable while presented: gpxShareBinding presents only with a URL).",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -764,19 +740,7 @@
      "effect": "false → empty sheet content"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "If gpxSharePresented is true while gpxShareURL is nil the sheet presents empty content; it relies on shareGPXAfterPreview setting the URL before the flag.",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessTabView.swift:486",
-      "Emuqu/Sources/Views/FitnessTabView.swift:500",
-      "Emuqu/Sources/Views/FitnessTabView.swift:503"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -792,34 +756,45 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.shareGPXAfterPreview(_:)": "e2ef1828c39f62ba"
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.shareGPXAfterPreview(_:)": "318376e9c3eb1e72"
    }
   },
   {
    "key": "func FitnessTabView.shareGPXAfterPreview(_:)",
-   "hash": "273e3ea86235897c",
-   "does": "Clears the preview payload, stores the URL, sleeps 300 ms on the main actor, then presents the share sheet.",
+   "hash": "fe96a140925f17c0",
+   "does": "Send tapped in the preview: stores the payload URL in gpxShareURL and clears the preview payload (dismissing the preview); the share sheet is presented from the preview's onDismiss (presentPendingGPXShare), not after a fixed delay.",
    "entry": "closure:onSend from GPXPreviewSheet",
-   "calls": [
-    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)"
-   ],
+   "calls": [],
    "reads": [],
-   "writes": [],
+   "writes": [
+    "mem:FitnessTabView.gpxShareURL",
+    "mem:FitnessTabView.gpxPreviewPayload"
+   ],
    "branches": [],
-   "flags": [
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FitnessTabView.presentPendingGPXShare()",
+   "hash": "664c70018687d90c",
+   "does": "After the preview sheet has finished dismissing: presents the share sheet when Send stored a URL; a plain dismissal (no URL) does nothing.",
+   "entry": "GPX preview sheet onDismiss (withGPXSheets)",
+   "calls": [],
+   "reads": [
+    "mem:FitnessTabView.gpxShareURL"
+   ],
+   "writes": [
+    "mem:FitnessTabView.gpxSharePresented"
+   ],
+   "branches": [
     {
-     "kind": "hack",
-     "sev": "low",
-     "text": "Fixed 300 ms sleep to wait out the preview sheet's dismissal animation before presenting the share sheet.",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessTabView.swift:502"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+1",
+     "cond": "a share is pending",
+     "effect": "gpxSharePresented = true"
     }
    ],
-   "deps": {
-    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851"
-   }
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "func FitnessTabView.withFitnessImports(_:)",
@@ -1217,8 +1192,8 @@
   },
   {
    "key": "func FitnessTabView.startWorkout(sport:targetZone:source:plan:thresholds:route:)",
-   "hash": "3179611e5b273a9b",
-   "does": "Starts a workout: sets recorder.targetZone then calls recorder.start(sport:source:intervalPlan:thresholds:route:); maps errors into startError for the alert; 'Recorder not ready yet.' when no recorder.",
+   "hash": "29852276e4c57ccd",
+   "does": "Starts a workout: remembers the recorder's previous targetZone, sets the new one, calls recorder.start(sport:source:intervalPlan:thresholds:route:); if start throws, puts the previous targetZone back and shows the error's localizedDescription (errorDescription for WorkoutRecorderError) in the start-error alert; 'Recorder not ready yet.' when no recorder.",
    "entry": "closure:onStart from WorkoutPreflightView",
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.start(sport:source:intervalPlan:thresholds:route:)"
@@ -1236,28 +1211,12 @@
      "effect": "false → startError 'Recorder not ready yet.', return"
     },
     {
-     "at": "+18",
-     "cond": "catch WorkoutRecorderError",
-     "effect": "startError = error.errorDescription"
-    },
-    {
      "at": "+20",
-     "cond": "catch any other error",
-     "effect": "startError = localizedDescription"
+     "cond": "start throws",
+     "effect": "targetZone restored; startError = localizedDescription"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "targetZone is written before start(); if start() throws (e.g. alreadyRecording) the recorder keeps the new targetZone.",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessTabView.swift:714",
-      "Emuqu/Sources/Views/FitnessTabView.swift:716"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.start(sport:source:intervalPlan:thresholds:route:)": "3ccf53157fe3d7cd",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.targetZone": "c3e90b3ab0e837fa",

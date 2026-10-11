@@ -1,24 +1,11 @@
 {
  "file": ".github/ISSUE_TEMPLATE/bug_report.yml",
- "hash": "3395b54619bf516d",
- "role": "GitHub issue form \"Bug report\" (label bug): required what-happened, steps, versions; optional session date, strap, log excerpt (Settings → Diagnostics export). Warns not to report security issues here and not to paste raw health data.",
+ "hash": "fd54edc510be4297",
+ "role": "GitHub issue form \"Bug report\" (label bug): required what-happened, steps, versions; optional session date, strap, log excerpt (Settings → Troubleshooting → Export Diagnostic Log or Copy Log to Clipboard). Warns not to report security issues here and not to paste raw health data.",
  "types": [],
  "state": [],
- "toplevel": "Form definition only. The log-export path it names exists (DiagnosticLogExport ShareLink in Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift:51).",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "The log-excerpt field points users to 'Settings → Diagnostics → export', but no Settings page is called Diagnostics. The log export is on the page titled Troubleshooting, so the path in the form cannot be followed literally.",
-   "evidence": [
-    ".github/ISSUE_TEMPLATE/bug_report.yml:56",
-    ".github/SECURITY.md:206",
-    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift:44",
-    "Emuqu/Sources/Views/SettingsView.swift:401"
-   ],
-   "found": "second read"
-  }
- ],
+ "toplevel": "Form definition only. The log-export path it names exists: the Troubleshooting page (TroubleshootingPage, navigationTitle \"Troubleshooting\", Emuqu/Sources/Views/SettingsPages+Diagnostics.swift:44) holds the \"Export Diagnostic Log\" ShareLink and the \"Copy Log to Clipboard\" button (Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift).",
+ "flags": [],
  "units": [],
  "deps": {}
 }

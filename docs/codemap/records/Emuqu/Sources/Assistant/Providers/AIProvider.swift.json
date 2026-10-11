@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Assistant/Providers/AIProvider.swift",
- "hash": "1c9454e14bbc548c",
- "role": "Shared vocabulary of the assistant's provider layer: ProviderID identity/branding, ModelOption catalog entries, ChatTurn transcript model (with hand-written tolerant decoder), ToolSpec/ToolExchange tool-use types, AIStreamEvent stream events, API-key redaction, AIProviderError (fallback/guardrail policy + user text), ProviderAccountReply credit/purchase detection, the AIProvider protocol and AnyJSON encoder.",
+ "hash": "765a4666d4c3c2c6",
+ "role": "Shared vocabulary of the assistant's provider layer: ProviderID identity/branding, ModelOption catalog entries, ChatTurn transcript model (with hand-written tolerant decoder), ToolSpec/ToolExchange tool-use types, AIStreamEvent stream events, API-key redaction, AIProviderError (fallback/guardrail policy + user text), ProviderAccountReply credit/purchase detection, ProviderHTTP (the cloud streamers' shared URL session, error-body/envelope/status mapping, mid-stream error chunks, cache-marker split and <live_state> envelope), the AIProvider protocol and AnyJSON encoder.",
  "types": [
   "ProviderID: enum — the six AI backends (apple, anthropic, openai, gemini, grok, deepseek) with display/vendor/symbol/privacy URL",
   "ModelOption: struct — one selectable model (apiID, context window, per-MTok prices, default flag)",
@@ -15,13 +15,15 @@
   "AIStreamEvent: enum — textDelta/toolUse/usage/done stream events",
   "AIProviderError: enum (LocalizedError) — provider failure taxonomy with isFallbackable/isAppleGuardrail and localized messages",
   "ProviderAccountReply: enum — string heuristics for credit-exhausted and purchase-prompt vendor replies",
+  "ProviderHTTP: enum — HTTP plumbing shared by AnthropicProvider, GeminiProvider and OpenAICompatibleStreamer",
   "AIProvider: protocol — backend interface (id, models, key need, availability, tool cap, streaming send)",
   "AIProvider: extension — default maxToolSchemaCount nil and 4-argument toolless send",
   "AnyJSON: struct (Encodable) — re-encodes JSONSerialization output via Codable"
  ],
  "state": [
   "mem:ProviderAccountReply.creditMarkers (private static let, 9 lowercase phrases)",
-  "mem:ProviderAccountReply.purchaseMarkers (private static let, 10 lowercase phrases)"
+  "mem:ProviderAccountReply.purchaseMarkers (private static let, 10 lowercase phrases)",
+  "mem:ProviderHTTP.streamSession (one URLSession: waitsForConnectivity, 30 s request / 180 s resource timeouts, 4 connections per host, no URL cache)"
  ],
  "toplevel": "Conformances: ProviderID String/Codable/CaseIterable/Identifiable; ModelOption Codable/Hashable/Identifiable/Sendable; AssistantSubsystem String/Codable; ChatTurn Codable (synthesized encode, custom decode)/Identifiable/Hashable/Sendable with stored default localOnly=false; ToolSpec Hashable/Codable/Sendable; AIStreamEvent.usage has default 0 for cache fields; AIProviderError LocalizedError.",
  "flags": [],
@@ -220,28 +222,6 @@
    "writes": [],
    "branches": [],
    "flags": [],
-   "deps": {}
-  },
-  {
-   "key": "var ModelOption.isFree",
-   "hash": "a4b8934393266df9",
-   "does": "True when both input and output prices are nil (Apple on-device model).",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "ModelOption.isFree has no reader anywhere in the repo, app or tests (grep -rnw isFree finds only the declaration).",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Providers/AIProvider.swift:83"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   },
   {
@@ -589,7 +569,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderAccountReply.carriesPurchasePrompt(_:)": "5f44af92700ff614",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderAccountReply.carriesPurchasePrompt(_:)": "0dc63ae996821308",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },
@@ -620,18 +600,168 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "let ProviderHTTP.streamSession",
+   "hash": "3cc612d312a5a579",
+   "does": "The one URLSession every cloud streamer sends through: waitsForConnectivity (a cellular tower handoff waits instead of failing), 30 s request / 180 s resource timeouts, cellular/constrained/expensive access allowed, 4 connections per host, no URL cache.",
+   "entry": "Initialised on first use by AnthropicProvider.stream, GeminiProvider.stream or OpenAICompatibleStreamer.connect.",
+   "calls": [
+    "ext:URLSessionConfiguration.default",
+    "ext:URLSession(configuration:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ProviderHTTP.errorBody(_:)",
+   "hash": "78b57a40f204e195",
+   "does": "Drains a failed response's byte stream into Data, stopping at 4096 bytes, for diagnostics.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "net:HTTP response body bytes"
+   ],
+   "writes": [],
+   "branches": [
     {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Plain substring matching: any vendor error that merely mentions the word \"payment\" or \"billing\" (e.g. a model-name or policy message) is replaced by the generic account sentence, hiding the real error text.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Providers/AIProvider.swift:465",
-      "Emuqu/Sources/Assistant/Providers/AIProvider.swift:481"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+4",
+     "cond": "4096 bytes collected",
+     "effect": "stops reading"
     }
    ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ProviderHTTP.errorMessage(from:)",
+   "hash": "45bccdf3208e28b0",
+   "does": "Pulls error.message out of a vendor JSON error envelope ({\"error\":{\"message\":...}}, Anthropic's and Gemini's shape), redacted of API keys; nil when the body is not JSON, has no error object, or the message is empty.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func redactAPIKeys(_:)",
+    "ext:JSONSerialization.jsonObject(with:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "body is not JSON",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+3",
+     "cond": "no error object or empty message",
+     "effect": "returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func redactAPIKeys(_:)": "9e0f224221ffe8ed"
+   }
+  },
+  {
+   "key": "func ProviderHTTP.statusError(_:message:overloaded:)",
+   "hash": "9ef33393312f249a",
+   "does": "Maps an HTTP failure status to the AIProviderError the chat shows: 401/403 authFailed, 429 rateLimited, 404 modelUnavailable(message), 5xx modelUnavailable(overloaded) — the caller's localized 'try again' sentence, evaluated only then — and anything else invalidResponse('HTTP <status>: <message>').",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "401 or 403",
+     "effect": ".authFailed"
+    },
+    {
+     "at": "+3",
+     "cond": "429",
+     "effect": ".rateLimited"
+    },
+    {
+     "at": "+4",
+     "cond": "404",
+     "effect": ".modelUnavailable(message)"
+    },
+    {
+     "at": "+5",
+     "cond": "500...599",
+     "effect": ".modelUnavailable(overloaded())"
+    },
+    {
+     "at": "+6",
+     "cond": "other",
+     "effect": ".invalidResponse(\"HTTP status: message\")"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ProviderHTTP.streamFailure(in:)",
+   "hash": "e19baa6055f2b4c7",
+   "does": "For a stream chunk that is an {\"error\":{...}} object (OpenAI-compatible and Gemini streams send one when a reply fails mid-stream after a 200), returns .invalidResponse with the redacted error message ('stream error' when it has none); nil for an ordinary chunk.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func redactAPIKeys(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "chunk has no error object",
+     "effect": "returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func redactAPIKeys(_:)": "9e0f224221ffe8ed"
+   }
+  },
+  {
+   "key": "func ProviderHTTP.splitOnCacheMarker(_:)",
+   "hash": "169fa283d3240168",
+   "does": "Splits the composed system prompt at AssistantSystemPrompt.Composed.cacheSplitMarker into the stable prefix (the whole prompt when there is no marker) and the variable suffix (later parts rejoined with the marker; empty when there is none).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AssistantSystemPrompt.Composed.cacheSplitMarker"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "prompt has more than one part",
+     "effect": "variable = the rest joined with the marker; else ''"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ProviderHTTP.liveStateEnvelope(variableSystem:contextRendered:)",
+   "hash": "be431ff542da50f8",
+   "does": "Joins the non-empty halves (variable system suffix, rendered context) with a blank line and wraps them as '\\n\\n<live_state>\\n...\\n</live_state>' for the tail of the last user message; '' when both are empty.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "both halves empty",
+     "effect": "returns ''"
+    }
+   ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -648,7 +778,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "3512c5da27515623",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "7497b854ecdea890",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "19b6cbae8b2494ae",
     "Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::func DeepSeekProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "ac452c89288faf61",
     "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "3291746dee017ce6",
     "Emuqu/Sources/Assistant/Providers/GrokProvider.swift::func GrokProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "786eeefe853edfb8",

@@ -154,11 +154,12 @@ struct HealthWorkoutImportSheet: View {
         }
     }
 
+    /// Without Apple Health on the device nothing was read, so the sheet
+    /// says that instead of claiming the history is complete.
     private var emptyExplanation: some View {
-        Text(String(
-            localized: "Every workout Apple Health has from the last 30 days is already in Emuqu.",
-            bundle: LanguageManager.appBundle
-        ))
+        Text(HKHealthStore.isHealthDataAvailable()
+            ? String(localized: "Every workout Apple Health has from the last 30 days is already in Emuqu.", bundle: LanguageManager.appBundle)
+            : String(localized: "Apple Health is not available on this device", bundle: LanguageManager.appBundle))
         .font(.footnote)
         .foregroundStyle(.secondary)
     }

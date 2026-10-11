@@ -6,18 +6,20 @@ import Foundation
 // MARK: - Workout Location Manager
 //
 // CoreLocation wrapper for workout GPS capture. Uses "While Using" permission
-// only — the app is active during a workout, so there's no need for Always
-// authorization and no backgrounding trickery.
+// only: a workout is started from the app, and While-Using authorization with
+// the `location` background mode keeps the fixes coming when the screen locks
+// (`startTracking` turns on `allowsBackgroundLocationUpdates` and the
+// background location indicator), so there's no need for Always.
 //
 // Responsibilities:
 //   - Request While-Using authorization on demand
-//   - Stream CLLocation fixes while a workout is active
+//   - Stream CLLocation fixes while a workout is active, in the background too
 //   - Track cumulative distance across the session
 //   - Provide a polyline suitable for map rendering and persistence
 //
 // What this does NOT do:
 //   - Request Always authorization
-//   - Attempt background execution beyond iOS's natural while-using lifetime
+//   - Keep updating once the workout stops tracking
 //   - Process routing, geofencing, or significant-change monitoring
 @Observable
 @MainActor
@@ -77,16 +79,6 @@ final class WorkoutLocationManager: NSObject {
     /// actually kills chair-sitting drift: indoor accuracy is typically
     /// 8–15 m, so any apparent movement under ~20 m gets filtered out.
     private let accuracyNoiseMultiplier: Double = 1.5
-    /// Elevation changes smaller than this between consecutive fixes are
-    /// ignored. Sized for **barometric altitude** (CMAltimeter →
-    /// `relativeAltitude`, typically ±0.5 m accurate), which is why 1 m
-    /// holds without inflating gain. Raw GPS altitude (±5-10 m noise
-    /// standard deviation) needs a far larger gate — even 2 m accumulates
-    /// drift and walks report ~2× the real elevation gain.
-    /// GPS altitude is still used as a starting-altitude reference for
-    /// CLLocation compatibility; all gain/loss math runs against the
-    /// barometer.
-    private let minimumElevationChangeMeters: Double = 1.0
 
     /// Deadband (m) of the live elevation accumulator: altitude has to move
     /// this far from the last banked level before the move counts.
@@ -114,9 +106,6 @@ final class WorkoutLocationManager: NSObject {
     private let altimeter = CMAltimeter()
     /// Whether the device supports relative-altitude updates.
     private(set) var barometerAvailable = false
-    /// Starting reference altitude so we can annotate track fixes with
-    /// barometrically-corrected elevations when GPS altitude drifts.
-    private var barometricStartOffset: Double?
 
     /// Every barometric sample during the session, verbatim. The live
     /// `elevationGainMeters` value is a rough running estimate for the UI
@@ -284,7 +273,6 @@ final class WorkoutLocationManager: NSObject {
     private func advanceLiveAltitudeRun(current: Double) {
         guard let reference = liveAltitudeReference else {
             // First sample seeds the anchor; nothing to accumulate yet.
-            barometricStartOffset = current
             liveAltitudeReference = current
             return
         }
@@ -312,7 +300,6 @@ final class WorkoutLocationManager: NSObject {
         trackPauses = WorkoutAnalyzer.TrackPauses()
         elevationGainMeters = 0
         elevationLossMeters = 0
-        barometricStartOffset = nil
         liveAltitudeReference = nil
         lastJitterLogAt = nil
         lastRawBarometricAltitude = nil
@@ -322,7 +309,12 @@ final class WorkoutLocationManager: NSObject {
         trackSeededByRejectedFix = false
     }
 
+    /// Only while tracking: fixes reach here through a main-actor hop per
+    /// delegate batch, so a batch delivered just before `stopTracking` would
+    /// otherwise land after it, extending the stopped workout's track and
+    /// distance (or a reset one's).
     private func ingest(location: CLLocation) {
+        guard isTracking else { return }
         lastHorizontalAccuracy = location.horizontalAccuracy
         guard Self.isUsableFix(location, threshold: accuracyThresholdMeters) else {
             seedTrackIfEmpty(with: location)
@@ -482,8 +474,12 @@ extension WorkoutLocationManager: CLLocationManagerDelegate {
         status == .authorizedWhenInUse || status == .authorizedAlways
     }
 
+    /// CoreLocation reports `.locationUnknown` transiently in bad signal and
+    /// keeps trying, so that one is not logged; anything else (a revoked
+    /// permission, a denied service) is, so a route that stopped mid-workout
+    /// leaves a trace. The workout carries on without GPS either way.
     nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        // Silent — CoreLocation can transiently emit errors during bad signal.
-        // The app remains usable without GPS (distance just stops advancing).
+        guard (error as? CLError)?.code != .locationUnknown else { return }
+        debugLog("[WorkoutLocation] location error: \(error.localizedDescription)", level: .warning)
     }
 }

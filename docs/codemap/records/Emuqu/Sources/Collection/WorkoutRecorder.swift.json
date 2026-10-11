@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Collection/WorkoutRecorder.swift",
- "hash": "f9efd6233904780d",
+ "hash": "e9d9f60139c74c77",
  "role": "The @Observable @MainActor live-workout orchestrator: owns sub-observables (lifecycle, HR, motion), DFA analyzer, interval controller, dependencies (RecordingCore, location, pedometer, foot pod, Watch bridge, voice coach, conversation) and all per-workout mutable state; forwards lifecycle work to WorkoutSessionLifecycle. Also declares FootPodOdometer.",
  "types": [
   "WorkoutRecorder: class — live workout orchestrator",
@@ -33,18 +33,20 @@
   "mem:WorkoutRecorder.hrFromWrist",
   "mem:WorkoutRecorder.wristHROffsets",
   "mem:WorkoutRecorder.trackBackupWatermark",
+  "mem:WorkoutRecorder.trackBackupRows (TrackBackupRows: crash-backup track/baro rows extended incrementally)",
   "mem:WorkoutRecorder.cachedHistoricalBaselines",
   "mem:WorkoutRecorder.cachedTodayReadiness",
   "mem:WorkoutRecorder.cachedTrainingProjection",
   "mem:WorkoutRecorder.cachedRacePredictionsByDistance",
-  "mem:WorkoutRecorder.lastConsumedWatchStrapAt",
   "mem:WorkoutRecorder.lastWatchRoutedHRAt",
   "mem:WorkoutRecorder.watchRoutedCumulativeMs",
   "mem:WorkoutRecorder.watchRoutedRRBuffer",
   "mem:WorkoutRecorder.livePace",
   "mem:WorkoutRecorder.footPodOdometer",
   "mem:WorkoutRecorder.deviceBackupArmedAt",
+  "mem:WorkoutRecorder.ownedStrapStreamStart (streamingStartTime of the stream this recorder started)",
   "mem:WorkoutRecorder.liveSnapshotAtStop",
+  "mem:WorkoutRecorder.lastPedometerStepAdvance (count, at) for the indoor auto-pause",
   "mem:WorkoutRecorder.powerSampleSum/powerSampleCount/maxPowerObserved",
   "mem:WorkoutRecorder.lastStrapHRAt",
   "mem:WorkoutRecorder.userThresholds",
@@ -52,7 +54,7 @@
   "mem:WorkoutRecorder.lastRouteProgressIndex",
   "mem:WorkoutRecorder.plannedRouteWasAutoDetected",
   "mem:WorkoutRecorder.plannedRouteDirection",
-  "mem:WorkoutRecorder.routeDetectionAttempted",
+  "mem:WorkoutRecorder.nextRouteDetectionAtMeters (track length of the next route-detection attempt; 0 = not tried)",
   "mem:WorkoutRecorder.thresholdBreachSec",
   "mem:WorkoutRecorder.autoPause",
   "mem:WorkoutRecorder.settingsProvider",
@@ -60,20 +62,8 @@
   "TrainingProjectionSnapshot.empty",
   "FootPodOdometer.baselineMeters/lastReadingMeters/bankedMeters"
  ],
- "toplevel": "Stored-property initializers construct WorkoutLifecycle(), WorkoutHR(), WorkoutMotion(), LiveDFAAnalyzer() (default 120 s window / 20 s cadence), IntervalController(), WorkoutPedometer(), TrackBackupWatermark(), LivePaceEstimator(), FootPodOdometer(), AutoPauseDetector() at recorder construction; caches start .empty/[]/nil/0.",
- "flags": [
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "lastConsumedWatchStrapAt is documented as the dedupe for Watch strap payloads but is only ever written, never read.",
-   "evidence": [
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift:260",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift:263",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:347"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "Stored-property initializers construct WorkoutLifecycle(), WorkoutHR(), WorkoutMotion(), LiveDFAAnalyzer() (default 120 s window / 20 s cadence), IntervalController(), WorkoutPedometer(), TrackBackupWatermark(), TrackBackupRows(), LivePaceEstimator(), FootPodOdometer(), AutoPauseDetector() at recorder construction; caches start .empty/[]/nil/0.",
+ "flags": [],
  "units": [
   {
    "key": "var WorkoutRecorder.phase",
@@ -327,7 +317,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.start(sport:source:intervalPlan:thresholds:route:)": "14dd715369a65cc9",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.start(sport:source:intervalPlan:thresholds:route:)": "662bb386b53ba4ff",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.session": "4350fe4ffbbfcf41"
    }
   },
@@ -381,7 +371,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.archive(session:)": "c3a5d7033070b434",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.archive(session:)": "75203d22cdf273ba",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.session": "4350fe4ffbbfcf41"
    }
   },
@@ -416,7 +406,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.computeNormalizedPower(samples:)": "c6637e6f56feefc1"
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.computeNormalizedPower(samples:)": "b67511c7c2b6fe63"
    }
   },
   {
@@ -546,38 +536,6 @@
    "branches": [],
    "flags": [],
    "deps": {}
-  },
-  {
-   "key": "var WorkoutRecorder.footPodStartDistanceMeters",
-   "hash": "6dd2abff2e21f91e",
-   "does": "Get returns the odometer baseline; set replaces footPodOdometer with a new one at that baseline (nil clears banked distance too).",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::init FootPodOdometer(baselineMeters:)"
-   ],
-   "reads": [
-    "mem:WorkoutRecorder.footPodOdometer"
-   ],
-   "writes": [
-    "mem:WorkoutRecorder.footPodOdometer"
-   ],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "The getter of footPodStartDistanceMeters is never read; the only use in the repo is the setter `recorder.footPodStartDistanceMeters = nil` at start, so the property is a write-only alias for resetting footPodOdometer.",
-     "evidence": [
-      "Emuqu/Sources/Collection/WorkoutRecorder.swift:301",
-      "Emuqu/Sources/Collection/WorkoutRecorder.swift:302",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:291"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::init FootPodOdometer(baselineMeters:)": "5981568fb8583312"
-   }
   },
   {
    "key": "func WorkoutRecorder.footPodDistanceMeters()",

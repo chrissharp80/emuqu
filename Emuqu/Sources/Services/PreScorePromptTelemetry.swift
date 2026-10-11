@@ -8,6 +8,10 @@ import Foundation
 /// Diagnostics page surfaces a one-line read-out so a single user (or a
 /// TestFlight tester) can sanity-check completion in the field without
 /// any analytics SDK.
+///
+/// Each record call counts on from the value stored in UserDefaults, not
+/// the in-memory copy, so a sweep of these keys (Delete All My Data) is
+/// not undone by writing an old total back.
 @Observable
 @MainActor
 final class PreScorePromptTelemetry {
@@ -17,43 +21,37 @@ final class PreScorePromptTelemetry {
     private let shownKey   = "preScorePrompt.telemetry.shownCount"
     private let completedKey = "preScorePrompt.telemetry.completedCount"
     private let skippedKey   = "preScorePrompt.telemetry.skippedCount"
-    private let firstSeenKey = "preScorePrompt.telemetry.firstSeen"
+    /// Written by earlier builds and never read; `reset()` still removes it.
+    private let legacyFirstSeenKey = "preScorePrompt.telemetry.firstSeen"
 
     private(set) var shownCount: Int
     private(set) var completedCount: Int
     private(set) var skippedCount: Int
-    private(set) var firstSeen: Date?
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         shownCount = defaults.integer(forKey: shownKey)
         completedCount = defaults.integer(forKey: completedKey)
         skippedCount = defaults.integer(forKey: skippedKey)
-        firstSeen = defaults.object(forKey: firstSeenKey) as? Date
     }
 
     /// Called when the prompt mounts.
     func recordShown() {
-        shownCount += 1
+        shownCount = defaults.integer(forKey: shownKey) + 1
         defaults.set(shownCount, forKey: shownKey)
-        if firstSeen == nil {
-            let now = Date()
-            firstSeen = now
-            defaults.set(now, forKey: firstSeenKey)
-        }
     }
 
     /// Called when the user taps "Show my score" with at least one
     /// answer set.
     func recordCompleted() {
-        completedCount += 1
+        completedCount = defaults.integer(forKey: completedKey) + 1
         defaults.set(completedCount, forKey: completedKey)
     }
 
     /// Called when the user taps "Skip this time" or dismisses with
     /// zero answers set.
     func recordSkipped() {
-        skippedCount += 1
+        skippedCount = defaults.integer(forKey: skippedKey) + 1
         defaults.set(skippedCount, forKey: skippedKey)
     }
 
@@ -81,10 +79,9 @@ final class PreScorePromptTelemetry {
         shownCount = 0
         completedCount = 0
         skippedCount = 0
-        firstSeen = nil
         defaults.removeObject(forKey: shownKey)
         defaults.removeObject(forKey: completedKey)
         defaults.removeObject(forKey: skippedKey)
-        defaults.removeObject(forKey: firstSeenKey)
+        defaults.removeObject(forKey: legacyFirstSeenKey)
     }
 }

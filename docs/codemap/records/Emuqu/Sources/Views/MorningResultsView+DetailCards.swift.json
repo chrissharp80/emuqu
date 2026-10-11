@@ -9,20 +9,7 @@
   "MorningDetailCards.beatFormatter: private static computed NumberFormatter (new instance per access, decimal, app locale)"
  ],
  "toplevel": "File-scope private @MainActor helpers dataSourceHeader and reconnectNote (listed as units). No other top-level code.",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "Split-night detection and the date/subtitle read the immutable `session` (session.sleepSegments, session.endDate, session.id) while the readiness card and quality badge read vm.displaySession/vm.displayResult, which the comment at 193-195 says carry the re-analyze/sleep-refresh reload; after a reload the split-night indicator can still reflect the pre-reload stored sleep segments.",
-   "evidence": [
-    "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift:243",
-    "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift:121",
-    "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift:200",
-    "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift:134"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "func MorningDetailCards.recoveryScoreCard(breakdownMessage:)",
@@ -47,7 +34,7 @@
     "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.clampedDisplayScore(_:)": "0e3e974933bc5204",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.compositeRecoveryScore": "b00af62d5eb939c7",
     "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::func MorningDetailCards.scoreRing(score:color:)": "7fb210b2484b3561",
-    "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::var MorningDetailCards.dateAndQualitySubtitle": "feef9ba90fa25f21",
+    "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::var MorningDetailCards.dateAndQualitySubtitle": "12a6409198cb27e9",
     "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::var MorningDetailCards.scoreCaption": "5e3350454a7f0d42",
     "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::var MorningDetailCards.splitNightSection": "9fff88b6ff571e6c",
     "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::var MorningDetailCards.strapSyncIndicator": "454e1a4066e75885",
@@ -148,25 +135,27 @@
   },
   {
    "key": "var MorningDetailCards.dateAndQualitySubtitle",
-   "hash": "826cdbe967505e41",
-   "does": "Date (session.endDate, else startDate) · quality badge.",
+   "hash": "1331d4b0be779579",
+   "does": "Date of the displayed session (vm.displaySession endDate, else startDate, so a reload is honoured) · quality badge.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::var MorningDetailCards.qualityBadge",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+2",
-     "cond": "session.endDate ?? session.startDate",
-     "effect": "endDate when set; startDate used for sessions without an end date"
+     "at": "+3",
+     "cond": "endDate ?? startDate",
+     "effect": "endDate when set; startDate for sessions without an end date"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "eccc568f4bbb99c3",
     "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::var MorningDetailCards.qualityBadge": "64f9a08e5c85f294",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
    }
@@ -260,17 +249,18 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::func MorningDetailCards.splitNightCard(segments:)": "6dd316588320ed3c",
-    "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::var MorningDetailCards.normalizedSplitNightSegments": "69706b4e08f13e7e"
+    "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::var MorningDetailCards.normalizedSplitNightSegments": "a7704427c8791436"
    }
   },
   {
    "key": "var MorningDetailCards.normalizedSplitNightSegments",
-   "hash": "c1126899f01b0843",
-   "does": "When linkedSegments exist and sleep data shows a split, returns SessionArchive.normalizedSplitNightSegments for this session with removed segment ids filtered out; otherwise nil.",
+   "hash": "369e36c5ea7ceabe",
+   "does": "When linkedSegments exist and sleep data shows a split, returns SessionArchive.normalizedSplitNightSegments for the displayed session (vm.displaySession id/start/end) with removed segment ids filtered out; otherwise nil.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::var MorningDetailCards.sleepWasActuallySplit",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.normalizedSplitNightSegments(currentSessionId:currentStartDate:currentEndDate:linkedSegments:)"
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.normalizedSplitNightSegments(currentSessionId:currentStartDate:currentEndDate:linkedSegments:)",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession"
    ],
    "reads": [],
    "writes": [],
@@ -281,42 +271,54 @@
      "effect": "returns nil (no split-night UI)"
     },
     {
-     "at": "+5",
-     "cond": "session.endDate ?? session.startDate",
-     "effect": "startDate used as end when endDate nil"
+     "at": "+6",
+     "cond": "endDate ?? startDate",
+     "effect": "start date stands in for a missing end"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.normalizedSplitNightSegments(currentSessionId:currentStartDate:currentEndDate:linkedSegments:)": "3b3f57d2c5dc60b3",
-    "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::var MorningDetailCards.sleepWasActuallySplit": "67ea2135b6904cf5"
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "eccc568f4bbb99c3",
+    "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::var MorningDetailCards.sleepWasActuallySplit": "5a419286bcc9a318"
    }
   },
   {
    "key": "var MorningDetailCards.trainingReadinessCard",
-   "hash": "1e3a19928fa57715",
-   "does": "TrainingReadinessCard with recoveryScore = vm.compositeRecoveryScore, dayTrimp 0, trainingContext = displaySession.trainingSnapshot else displayResult.trainingContext, frozenReadiness = displaySession.frozenReadiness.",
+   "hash": "632cfbf6cd175148",
+   "does": "TrainingReadinessCard with recoveryScore = vm.compositeRecoveryScore, trainingContext = displaySession.trainingSnapshot else displayResult.trainingContext, adviceLoad = TrainingAdviceGate.Load.preferring(live: vm.adviceLiveLoad, frozen: that context) — the same load vm.adviceLoadLevel gives the recovery card, so the two cards agree — and frozenReadiness = displaySession.frozenReadiness.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.compositeRecoveryScore",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession",
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displayResult"
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displayResult",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.adviceLiveLoad",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.Load.preferring(live:frozen:)",
+    "Emuqu/Sources/Views/MorningResults/TrainingReadinessCard.swift::var TrainingReadinessCard.body"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+4",
+     "at": "+1",
      "cond": "displaySession.trainingSnapshot ?? displayResult.trainingContext",
-     "effect": "snapshot preferred; analysis-result context used when no snapshot (may be nil)"
+     "effect": "snapshot preferred; result context otherwise; nil when neither"
+    },
+    {
+     "at": "+5",
+     "cond": "adviceLiveLoad present (today, warm cache)",
+     "effect": "live load; else the frozen context"
     }
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.Load.preferring(live:frozen:)": "e3f09218ae297d05",
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.adviceLiveLoad": "9f431de25d8c23b6",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.compositeRecoveryScore": "b00af62d5eb939c7",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displayResult": "215489cda008c57b",
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "eccc568f4bbb99c3"
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "eccc568f4bbb99c3",
+    "Emuqu/Sources/Views/MorningResults/TrainingReadinessCard.swift::var TrainingReadinessCard.body": "5d132f35cd94651e"
    }
   },
   {
@@ -366,10 +368,12 @@
   },
   {
    "key": "var MorningDetailCards.sleepWasActuallySplit",
-   "hash": "4b8032ae54ee7b8f",
-   "does": "True when the live HealthKit sleep has >1 segment, else when the session's stored sleepSegments has >1; false otherwise.",
+   "hash": "a997df6ed68d3cad",
+   "does": "True when the live HealthKit sleep has >1 segment, else when the displayed session's (vm.displaySession) stored sleepSegments has >1; false otherwise.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession"
+   ],
    "reads": [
     "mem:MorningResultsViewModel.healthKitSleep"
    ],
@@ -382,12 +386,15 @@
     },
     {
      "at": "+4",
-     "cond": "session.sleepSegments non-nil with >1",
+     "cond": "displaySession.sleepSegments non-nil with >1",
      "effect": "returns true; else false"
     }
    ],
    "flags": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "428ceef7932431a2",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "eccc568f4bbb99c3"
+   }
   },
   {
    "key": "func MorningDetailCards.splitNightCard(segments:)",
@@ -406,7 +413,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::func MorningDetailCards.gapRow(after:in:)": "1509b80918340d6a",
-    "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::func MorningDetailCards.segmentRow(_:index:)": "843f5695e9275e5b",
+    "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::func MorningDetailCards.segmentRow(_:index:)": "f2560cc753c03104",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
     "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "1f6afb21d0621d1d"
@@ -414,30 +421,22 @@
   },
   {
    "key": "func MorningDetailCards.segmentRow(_:index:)",
-   "hash": "9ccaa5b5b4f3a8b4",
-   "does": "Row 'Segment n' + start–end clock times + unlink control.",
+   "hash": "da67097379f9b71b",
+   "does": "Row 'Segment n' + start–end clock times (hour:minute in the app locale, LanguageManager.appLocale) + unlink control.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::func MorningDetailCards.unlinkButton(for:)",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Segment times are formatted with Date.FormatStyle .dateTime.hour().minute() without .locale(LanguageManager.appLocale), unlike the rest of the screen (e.g. MorningResultsCharts.swift:505), so with an in-app language override the times follow the system locale.",
-     "evidence": [
-      "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift:274",
-      "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift:280"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.hour(from:)": "49d2f1a114e03f25",
     "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3",
     "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::func MorningDetailCards.unlinkButton(for:)": "607268bc14b2f92a",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
@@ -727,7 +726,7 @@
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.totalSleepIncludingNapMinutes": "a4a2d3868396b45f",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::func MorningDetailCards.sleepVerdict(_:)": "928103c38e4ef078",
+    "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::func MorningDetailCards.sleepVerdict(_:)": "3f27fd1d618931cc",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
    }
   },
@@ -750,8 +749,8 @@
   },
   {
    "key": "func MorningDetailCards.sleepVerdict(_:)",
-   "hash": "4a782cc10d8d1bdf",
-   "does": "ScoreVerdict of the integer sleep score.",
+   "hash": "aaa7a4320295e1e9",
+   "does": "ScoreVerdict of the unrounded sleep score (ScoreVerdict rounds), as Sleep detail grades it.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::func MorningDetailCards.sleepScoreForLabel(_:)",
@@ -763,13 +762,13 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)": "89445abed2b3e6c9",
-    "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::func MorningDetailCards.sleepScoreForLabel(_:)": "78948e771944ac5a"
+    "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::func MorningDetailCards.sleepScoreForLabel(_:)": "3b1be02e9d56a536"
    }
   },
   {
    "key": "func MorningDetailCards.sleepScoreForLabel(_:)",
-   "hash": "266f9f0a3a450ade",
-   "does": "Computes the sleep score with RecoveryScoreCalculator.calculateSleepScore using current settings' typicalSleepHours and age, truncated to Int.",
+   "hash": "e08f6eac3c33d36b",
+   "does": "Computes the sleep score with RecoveryScoreCalculator.calculateSleepScore using current settings' typicalSleepHours and age, unrounded (0 when no score).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
@@ -785,28 +784,14 @@
    "branches": [
     {
      "at": "+7",
-     "cond": "score ?? 0",
-     "effect": "0 when calculateSleepScore returns nil; unreachable here because sleepData is non-nil and calculateSleepScore only returns nil for nil sleepData (RecoveryScoreCalculator+Tiers.swift:120)"
+     "cond": "score nil",
+     "effect": "0"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "Int(score) truncates before ScoreVerdict, while Sleep detail (which the comment at 455-456 says this card must match) passes the unrounded score and ScoreVerdict rounds (ScoreVerdict.swift:31). A 74.6 sleep score reads 'Fair' (74) on this card and 'Good' (75) on the Sleep detail screen it opens.",
-     "evidence": [
-      "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift:471",
-      "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift:455",
-      "Emuqu/Sources/Views/SleepDetailV2View.swift:120",
-      "Emuqu/Sources/Views/SleepDetailV2View.swift:127",
-      "Emuqu/Sources/Models/ScoreVerdict.swift:31"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateSleepScore(sleepData:typicalSleepHours:userAge:)": "7330a00595a0e155",
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateSleepScore(sleepData:typicalSleepHours:userAge:)": "042f75023c6f6a31",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb"

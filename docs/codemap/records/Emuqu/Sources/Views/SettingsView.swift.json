@@ -131,13 +131,13 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.listContent(_:)": "b48e090be11f8b92"
+    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.listContent(_:)": "fc8e78a514f85666"
    }
   },
   {
    "key": "func SettingsView.listContent(_:)",
-   "hash": "f9188a0914458ea7",
-   "does": "Chooses list content: grouped settings when the query is empty; 'no results' section when the query matches nothing; otherwise the results section.",
+   "hash": "c8f4264512115196",
+   "does": "Chooses list content: grouped settings when the query is empty or only spaces (as SettingsSearchEntry.matches treats it); 'no results' section when the query matches nothing; otherwise the results section.",
    "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
    "calls": [
     "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.settingsBody(scrollProxy:)",
@@ -150,27 +150,16 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "searchQuery is empty",
+     "cond": "searchQuery trimmed of spaces is empty",
      "effect": "renders settingsBody"
     },
     {
      "at": "+4",
-     "cond": "filteredSearchResults is empty (non-empty query)",
+     "cond": "filteredSearchResults is empty (non-blank query)",
      "effect": "renders noSearchResultsSection; else resultsSection"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "A whitespace-only query is non-empty here, but SettingsSearchEntry.matches returns false for a query that trims to empty, so typing a space replaces the whole settings list with 'No settings match \" \"'.",
-     "evidence": [
-      "Emuqu/Sources/Views/SettingsView.swift:93",
-      "Emuqu/Sources/Views/SettingsSearchIndex.swift:47"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.settingsBody(scrollProxy:)": "976b2226e1a356a8",
     "Emuqu/Sources/Views/SettingsView.swift::var SettingsView.filteredSearchResults": "99c1a66c5a9aa717",
@@ -689,14 +678,14 @@
     "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.body": "745b6df4fedf9111",
     "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.PermState.label": "85bca1cadfed3afd",
     "Emuqu/Sources/Views/SettingsView.swift::var SettingsView.legalLinks": "a57ba20c1efde91b",
-    "Emuqu/Sources/Views/SettingsView.swift::var SettingsView.supportLink": "59b48f31b1642abf",
+    "Emuqu/Sources/Views/SettingsView.swift::var SettingsView.supportLink": "504660c92696e02c",
     "Emuqu/Sources/Views/SettingsView.swift::var SettingsView.versionRow": "1de29b29d476a45c"
    }
   },
   {
    "key": "var SettingsView.supportLink",
-   "hash": "85bcf236d29237a3",
-   "does": "Contact Support Link to mailto:chrissharp80@gmail.com?subject=Emuqu%20Support; falls back to plain text of the address if the URL fails to parse.",
+   "hash": "dc8b989d2d018076",
+   "does": "Contact Support Link to mailto:chrissharp80@gmail.com?subject=Emuqu%20Support (the constant literal always parses, so the link always shows).",
    "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
    "calls": [
     "ext:SwiftUI Link (mailto)"
@@ -707,21 +696,10 @@
     {
      "at": "+2",
      "cond": "URL(string: mailto literal) parses",
-     "effect": "renders the mail Link; else renders the address as text"
+     "effect": "renders the mail Link; else nothing (cannot happen for this literal)"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "The mailto literal is a constant valid URL, so the else branch rendering plain text never runs.",
-     "evidence": [
-      "Emuqu/Sources/Views/SettingsView.swift:448",
-      "Emuqu/Sources/Views/SettingsView.swift:454"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
@@ -781,28 +759,6 @@
    "deps": {}
   },
   {
-   "key": "var PermissionsSettingsPage.anyHealthUnset",
-   "hash": "ef79bb1bae08ed8e",
-   "does": "True if any HealthKit write permission is .notDetermined. Never referenced.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "anyHealthUnset is declared but not used anywhere in the repo (grep finds only its declaration).",
-     "evidence": [
-      "Emuqu/Sources/Views/SettingsView.swift:529"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
-  },
-  {
    "key": "var PermissionsSettingsPage.body",
    "hash": "e6004b1d8d381125",
    "does": "Permissions form: intro text, Apple Health write, notifications, location, Bluetooth sections; loads statuses on .task and reloads when the scene returns to active.",
@@ -824,7 +780,7 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
     "Emuqu/Sources/Views/SettingsView.swift::func PermissionsSettingsPage.reload()": "f7e1815edf37a676",
-    "Emuqu/Sources/Views/SettingsView.swift::func PermissionsSettingsPage.reloadOnReturn(_:)": "70256a185b6c56b2",
+    "Emuqu/Sources/Views/SettingsView.swift::func PermissionsSettingsPage.reloadOnReturn(_:)": "1db3f6863531c09f",
     "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.markAppleHealthWriteSection40": "c98192c40b53af26",
     "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.markBluetoothSection": "dfa342f93d5871d9",
     "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.markLocationSection": "e11b58e23420b8ee",
@@ -835,23 +791,28 @@
   },
   {
    "key": "func PermissionsSettingsPage.reloadOnReturn(_:)",
-   "hash": "7315070ff73af79d",
-   "does": "Reloads permission statuses when the scene phase becomes .active.",
+   "hash": "79fd236a54aff0d1",
+   "does": "When the scene phase becomes .active, reloads permission statuses and then calls MorningNotificationScheduler.rescheduleIfNeeded, so a notification permission granted in iOS Settings re-arms the morning push.",
    "entry": "SwiftUI .onChange(of: scenePhase) (line 548)",
    "calls": [
-    "Emuqu/Sources/Views/SettingsView.swift::func PermissionsSettingsPage.reload()"
+    "Emuqu/Sources/Views/SettingsView.swift::func PermissionsSettingsPage.reload()",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.rescheduleIfNeeded()"
    ],
    "reads": [],
-   "writes": [],
+   "writes": [
+    "notif:UNUserNotificationCenter pending morning report request"
+   ],
    "branches": [
     {
      "at": "+1",
      "cond": "phase != .active",
-     "effect": "returns; active → launches Task { await reload() }"
+     "effect": "returns; active → Task: reload() then rescheduleIfNeeded()"
     }
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.rescheduleIfNeeded()": "162c08d2673af8aa",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a",
     "Emuqu/Sources/Views/SettingsView.swift::func PermissionsSettingsPage.reload()": "f7e1815edf37a676"
    }
   },
@@ -947,43 +908,31 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/SettingsView.swift::func PermissionsSettingsPage.permRow(title:state:)": "dea1ba0f241a0390",
     "Emuqu/Sources/Views/SettingsView.swift::func PermissionsSettingsPage.state(for: UNAuthorizationStatus)": "4270ab0a98365c4e",
-    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.allowNotificationsButton": "288bbac614a71c9c",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.allowNotificationsButton": "008ae41f16cd1987",
     "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.openSettingsButton": "88d9d991439d9658"
    }
   },
   {
    "key": "var PermissionsSettingsPage.allowNotificationsButton",
-   "hash": "639c8406daab99b0",
-   "does": "Button: requests UNUserNotificationCenter authorization for alert/sound/badge (error discarded via try?) then reloads.",
+   "hash": "6919f7b17bee0417",
+   "does": "Button: asks MorningNotificationScheduler.requestAuthorizationIfNeeded (which prompts only when undetermined and logs a failure), then rescheduleIfNeeded so an enabled daily report is scheduled at once, then reloads the rows.",
    "entry": "SwiftUI evaluates this view-builder member while rendering the parent; button tap",
    "calls": [
-    "ext:UNUserNotificationCenter.requestAuthorization",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.requestAuthorizationIfNeeded()",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.rescheduleIfNeeded()",
     "Emuqu/Sources/Views/SettingsView.swift::func PermissionsSettingsPage.reload()"
    ],
    "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "Allow notifications calls UNUserNotificationCenter.requestAuthorization directly and only reloads the status rows; it never calls MorningNotificationScheduler.requestAuthorizationIfNeeded/rescheduleIfNeeded as NotificationsSettingsPage does. The same holds when the user returns from 'Open iOS Settings' (reloadOnReturn only reloads). A user who enabled the daily report while notifications were denied and fixes it here sees 'Allowed' but gets no morning push until the next cold launch runs scheduleLaunchHousekeeping, though the footer says this permission is 'Needed for the morning recovery push'.",
-     "evidence": [
-      "Emuqu/Sources/Views/SettingsView.swift:606",
-      "Emuqu/Sources/Views/SettingsView.swift:608",
-      "Emuqu/Sources/Views/SettingsView.swift:551",
-      "Emuqu/Sources/Views/SettingsView.swift:599",
-      "Emuqu/Sources/Views/NotificationsSettingsPage.swift:60",
-      "Emuqu/Sources/Views/NotificationsSettingsPage.swift:63",
-      "Emuqu/Sources/Services/MorningNotificationScheduler.swift:94",
-      "Emuqu/Sources/Services/AppLaunchTasks.swift:412",
-      "Emuqu/Sources/Services/AppLaunchTasks.swift:609"
-     ],
-     "found": "second read"
-    }
+   "writes": [
+    "notif:UNUserNotificationCenter pending morning report request"
    ],
+   "branches": [],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.requestAuthorizationIfNeeded()": "896c11b22b2ffa02",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.rescheduleIfNeeded()": "162c08d2673af8aa",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a",
     "Emuqu/Sources/Views/SettingsView.swift::func PermissionsSettingsPage.reload()": "f7e1815edf37a676",
     "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.PermState.label": "85bca1cadfed3afd"
    }

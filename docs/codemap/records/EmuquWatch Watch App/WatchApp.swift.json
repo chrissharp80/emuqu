@@ -66,7 +66,7 @@
     }
    ],
    "deps": {
-    "EmuquWatch Watch App/WatchApp.swift::func WatchApp.followScenePhase(_:)": "8dc557825b0d0fe3",
+    "EmuquWatch Watch App/WatchApp.swift::func WatchApp.followScenePhase(_:)": "0afc0f89d984f90b",
     "EmuquWatch Watch App/WatchApp.swift::func WatchApp.wireUp()": "ae438d928af1b3da",
     "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayOnlyMode": "1a34b86867962727",
     "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.setAutoReconnect(_:)": "7b28d58801a2fa0a"
@@ -74,10 +74,11 @@
   },
   {
    "key": "func WatchApp.followScenePhase(_:)",
-   "hash": "14895ec0d2b3836b",
-   "does": "On scene phase change: when the app becomes .active it asks the iPhone for the current live state so a running workout is restored on reopen.",
+   "hash": "3888946e8906b633",
+   "does": "Scene phase change: .background → strapConnector.appDidEnterBackground() (ends any discovery scan); .active → sessionManager.requestCurrentStateFromPhone() (deduplicated with launch's in-flight pull).",
    "entry": null,
    "calls": [
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.appDidEnterBackground()",
     "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.requestCurrentStateFromPhone()"
    ],
    "reads": [],
@@ -87,25 +88,19 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "phase == .active",
-     "effect": "true: call requestCurrentStateFromPhone; false (inactive/background): return, nothing done"
-    }
-   ],
-   "flags": [
+     "cond": "phase == .background",
+     "effect": "appDidEnterBackground()"
+    },
     {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "At launch the same requestCurrentState round trip is sent up to three times: applyActivation (activated+reachable), wireUp on appear, and followScenePhase(.active); each reply is applied through apply() and bumps messagesReceived.",
-     "evidence": [
-      "EmuquWatch Watch App/WatchApp.swift:45",
-      "EmuquWatch Watch App/WatchApp.swift:67",
-      "EmuquWatch Watch App/WatchSessionManager.swift:900"
-     ],
-     "found": "second read"
+     "at": "+2",
+     "cond": "phase == .active",
+     "effect": "false: return; true: pull current state"
     }
    ],
+   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.requestCurrentStateFromPhone()": "6b5ecbc5e5caca23"
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.requestCurrentStateFromPhone()": "19232ab440a9dfb0",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.appDidEnterBackground()": "0cca82852a16a1a8"
    }
   },
   {
@@ -139,7 +134,7 @@
    ],
    "deps": {
     "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.attach(workoutManager:)": "8d388cb3a7cb6831",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.requestCurrentStateFromPhone()": "6b5ecbc5e5caca23",
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.requestCurrentStateFromPhone()": "19232ab440a9dfb0",
     "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.followPhoneMessages(of:)": "68fc975eef7ce55a",
     "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.requestAuthorizationIfNeeded()": "42513ab83b997254"
    }

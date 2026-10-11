@@ -278,14 +278,15 @@
   },
   {
    "key": "var DashboardV2View.heroSection",
-   "hash": "efce19d58b766c9d",
-   "does": "Hero ring with the Day-14 particle bloom overlay (tint = verdict colour or primary) above the verdict row.",
+   "hash": "fcf4b1c7d880fc6c",
+   "does": "Hero ring with the Day-14 particle bloom overlay (tint = verdict colour or primary) above the verdict row and the hero age caption.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.heroRing",
     "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var Day14ParticleBloom.body",
     "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.color",
-    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.verdictRow"
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.verdictRow",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.heroAgeCaption"
    ],
    "reads": [],
    "writes": [],
@@ -299,11 +300,41 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.color": "dc2f3b06b79e333d",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.heroAgeCaption": "deb0899dd6305bd6",
     "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.heroRing": "62259fac85aa7357",
     "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.verdictRow": "238c35452c57a517",
     "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var Day14ParticleBloom.body": "6768fbaaf0c729fd",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.verdict": "3ae168b82fc438b5",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "var DashboardV2View.heroAgeCaption",
+   "hash": "f353d6dab05fe465",
+   "does": "Caption under the verdict with nightAgeLabel of the hero overnight, shown only when the score is shown, latestOvernightComplete carries a recovery/readiness score, and that night did not end today.",
+   "entry": "SwiftUI view builder",
+   "calls": [
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func ScoreAppearancePolicy.showsScore(baselineNights:)",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestOvernightComplete",
+    "Emuqu/Sources/Views/DashboardV2View.swift::func nightAgeLabel(for:now:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "showsScore AND scored latestOvernightComplete AND age label non-nil",
+     "effect": "tertiary caption; otherwise nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func ScoreAppearancePolicy.showsScore(baselineNights:)": "1a88ccd14afefff8",
+    "Emuqu/Sources/Views/DashboardV2View.swift::func nightAgeLabel(for:now:)": "2d1b8ce31b042aa9",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.baselineNights": "bf5bdd7b8c73498e",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestOvernightComplete": "f41743b582b9e9d4",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
    }
   },
   {
@@ -322,7 +353,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.connectHealthRow": "1fc4374cd05a5549",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.connectHealthRow": "a3c2fa1b28f3041e",
     "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.day1Header": "f4f14115b8e1ebce",
     "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.firstReadingRow": "6dd87c88d7096ef5",
     "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.pairDeviceRow": "73c9e2571af6c265",
@@ -377,12 +408,12 @@
   },
   {
    "key": "var DashboardV2View.connectHealthRow",
-   "hash": "64bcf38dac86550d",
-   "does": "Connect-Health row: done once authorization was requested this process; tap requests HealthKit authorization, errors discarded with try?.",
+   "hash": "e076394d3453f7d5",
+   "does": "Connect-Health row: done once authorization was requested this process; tap runs requestHealthAccess (failure logged and toasted).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.day1Row(done:glyph:title:subtitle:action:)",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.requestAuthorization()",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.requestHealthAccess()",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [
@@ -398,21 +429,41 @@
      "effect": "subtitle \"Access requested\"; else \"For sleep + vitals\""
     }
    ],
-   "flags": [
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.day1Row(done:glyph:title:subtitle:action:)": "49f5b5b06c08c8ab",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.requestHealthAccess()": "d05aa3467a2b5669",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "f61a7a679f5280dd"
+   }
+  },
+  {
+   "key": "func DashboardV2View.requestHealthAccess()",
+   "hash": "6351a3f9f2fcaffd",
+   "does": "Awaits HealthKitManager.requestAuthorization(); on error logs a warning and shows an 'Apple Health authorization failed: <error>' toast.",
+   "entry": "Connect Apple Health checklist row tap",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.requestAuthorization()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:DashboardV2View.toast @State",
+    "hk:authorization request"
+   ],
+   "branches": [
     {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "`try? await requestAuthorization()` drops any HealthKit authorization error; the row stays unchecked with no message.",
-     "evidence": [
-      "Emuqu/Sources/Views/DashboardV2View+Cards.swift:242"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+4",
+     "cond": "requestAuthorization throws",
+     "effect": "warning log + alert-tinted toast"
     }
    ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.requestAuthorization()": "0554c5246dd39562",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.day1Row(done:glyph:title:subtitle:action:)": "49f5b5b06c08c8ab",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "f61a7a679f5280dd"
    }
   },
@@ -560,9 +611,9 @@
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func ScoreAppearancePolicy.stage(baselineNights:)": "ea31274f980b20bf",
     "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.openMorningReport()": "4b81827917696cd5",
     "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.heroContextMenu": "d8438f8f40a9638b",
-    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.baselineNights": "ccef0fea4ae889e2",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.baselineNights": "bf5bdd7b8c73498e",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.daysCollected": "06a2354ea1f359d2",
-    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.displayedScore": "3ef6f8f7cd87ca76",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.displayedScore": "01657452d21bf419",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.verdict": "3ae168b82fc438b5"
    }
   },
@@ -696,7 +747,7 @@
     "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.textColor": "d1b20461dd94a948",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.baselineProgressOrSampleOffer": "5cfb508b549133bc",
-    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.baselineNights": "ccef0fea4ae889e2",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.baselineNights": "bf5bdd7b8c73498e",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.verdict": "3ae168b82fc438b5",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
    }
@@ -718,7 +769,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.baselineNights": "ccef0fea4ae889e2",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.baselineNights": "bf5bdd7b8c73498e",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.daysCollected": "06a2354ea1f359d2"
    }
   },
@@ -753,7 +804,7 @@
     "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.color": "dc2f3b06b79e333d",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.mainLoopCard(accent:)": "95eb2c89edeb428b",
-    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.baselineNights": "ccef0fea4ae889e2",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.baselineNights": "bf5bdd7b8c73498e",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.daysCollected": "06a2354ea1f359d2",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.verdict": "3ae168b82fc438b5"
    }

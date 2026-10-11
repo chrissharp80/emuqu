@@ -16,11 +16,14 @@ enum AssistantCitationResolver {
     // `annotate` runs from ChatBubble's `renderedText` computed var, i.e. per
     // render — 50-200× during a streaming response. A fresh DateFormatter +
     // NSDataDetector each time is pure per-frame allocation churn.
+    // Auto-updating calendar and time zone, so a time-zone change after
+    // launch keys detected dates and archive entries in the zone the user
+    // now sees (the day map's signature includes the zone, so it rebuilds).
     private static let dayKeyFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd"
-        f.calendar = Calendar.current
-        f.timeZone = Calendar.current.timeZone
+        f.calendar = Calendar.autoupdatingCurrent
+        f.timeZone = TimeZone.autoupdatingCurrent
         return f
     }()
 
@@ -79,12 +82,14 @@ enum AssistantCitationResolver {
         return map
     }
 
-    /// Hash of every entry's (id, display date), in index order. Count and
+    /// Hash of every entry's (id, display date), in index order, and the
+    /// current time zone the day keys are formed in. Count and
     /// newest date alone missed a re-dated older entry, which left citation
     /// links opening the wrong night. Kept in memory only, so the per-process
     /// `Hasher` seed does not matter.
     private static func entrySignature(_ entries: [SessionArchiveEntry]) -> Int {
         var hasher = Hasher()
+        hasher.combine(TimeZone.current.identifier)
         hasher.combine(entries.count)
         for entry in entries {
             hasher.combine(entry.sessionId)
@@ -132,19 +137,30 @@ enum AssistantCitationResolver {
 
     // MARK: - Private
 
-    /// Crude check: is `range`'s start preceded by `[` and followed eventually
-    /// by `](`? If yes, treat as already-linked and skip.
+    /// True when the date already sits inside Markdown link syntax: in a
+    /// link's text (`[… date …](`) or in its target (`](… date …)`).
+    /// Bracketed prose that is not a link (`[note: Apr 12`) is not skipped.
     private static func isAlreadyInsideLink(_ text: String, range: Range<String.Index>) -> Bool {
-        // Cheap heuristic: scan back up to 80 chars for a `[` without `]` in between.
-        let maxLookback = 80
-        let start = text.index(range.lowerBound, offsetBy: -maxLookback, limitedBy: text.startIndex) ?? text.startIndex
-        let prefix = text[start ..< range.lowerBound]
-        if let openBracket = prefix.lastIndex(of: "[") {
-            let between = prefix[openBracket ..< range.lowerBound]
-            if !between.contains("]") {
-                return true
-            }
-        }
-        return false
+        isInsideLinkText(text, range: range) || isInsideLinkTarget(text, range: range)
+    }
+
+    /// An open `[` within 80 characters before the date with no `]` after it,
+    /// and the link's `](` after the date with no bracket in between.
+    private static func isInsideLinkText(_ text: String, range: Range<String.Index>) -> Bool {
+        let start = text.index(range.lowerBound, offsetBy: -80, limitedBy: text.startIndex) ?? text.startIndex
+        guard let open = text[start ..< range.lowerBound].lastIndex(of: "["),
+              !text[open ..< range.lowerBound].contains("]")
+        else { return false }
+        let after = text[range.upperBound...]
+        guard let close = after.range(of: "](") else { return false }
+        let between = after[..<close.lowerBound]
+        return !between.contains("[") && !between.contains("]")
+    }
+
+    /// A `](` within 200 characters before the date with no `)` after it.
+    private static func isInsideLinkTarget(_ text: String, range: Range<String.Index>) -> Bool {
+        let start = text.index(range.lowerBound, offsetBy: -200, limitedBy: text.startIndex) ?? text.startIndex
+        guard let target = text[start ..< range.lowerBound].range(of: "](", options: .backwards) else { return false }
+        return !text[target.upperBound ..< range.lowerBound].contains(")")
     }
 }

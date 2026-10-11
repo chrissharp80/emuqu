@@ -1,10 +1,10 @@
 {
  "file": "Emuqu/Sources/Analysis/TCXExporter.swift",
- "hash": "1e428fb5046e581f",
- "role": "TCX v2 writer: one Activity/Lap with total time, distance, Calories 0, mean HR, and trackpoints (position, altitude, cumulative distance, median-smoothed HR) or time+HR-only points every 5 s for indoor sessions; writes to the temp directory.",
+ "hash": "19bebba22b26853c",
+ "role": "TCX v2 writer: one Activity/Lap with total time, distance, Calories 0, mean HR, and trackpoints (position, altitude when stored, cumulative distance, median-smoothed HR) or time+HR-only points every 5 s for indoor sessions; writes to the temp directory. The summary line reuses the GPX export's totals.",
  "types": [
   "TCXExporter: enum — TCX builder",
-  "HRTrack: struct (private) — HR series by offset with ±3 s median lookup"
+  "HRTrack: struct (private) — HR series by wall-clock offset (RR beats preferred, else 1 Hz samples) with ±3 s median lookup"
  ],
  "state": [
   "file:FileManager.temporaryDirectory/<sport.rawValue>-<yyyyMMdd-HHmmss UTC>.tcx (writeToTempFile)",
@@ -45,7 +45,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.header(session:activityType:summary:iso:)": "d7149ace8d57bc92",
-    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.humanSummary(session:)": "dcf9122333b9ce6f",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.humanSummary(session:)": "a66f30922dfacaed",
     "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.lapHeader(session:iso:)": "016c138a088221bc",
     "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.tcxActivityType(for:)": "7255eb219a0819d6",
     "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.timeOnlyTrackpoints(session:iso:)": "735bbf1e12a8c831",
@@ -54,13 +54,13 @@
   },
   {
    "key": "func TCXExporter.humanSummary(session:)",
-   "hash": "38621ed6a9f7acc3",
-   "does": "Builds the summary line (preferred units, distance, elevation gain, m:ss duration, 'values below are metric') used in the XML comment and <Notes>.",
+   "hash": "10c11b84c67a9881",
+   "does": "Builds the summary line used in the XML comment and <Notes>: preferred units, the GPX export's totals (GPXExporter.summaryTotals — only the totals the session recorded, none written as 0) and 'values below are metric per TCX v2 schema'.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration"
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.summaryTotals(session:imperial:)"
    ],
    "reads": [
     "ud:fitness.unitsPreference (App Group suite SharedUserDefaults.appGroup; legacy UserDefaults.standard fallback, migrated on read)"
@@ -69,50 +69,18 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "distanceMeters nil",
-     "effect": "0"
+     "cond": "summaryTotals returns nil (no total recorded)",
+     "effect": "no totals sentence"
     },
     {
      "at": "+3",
-     "cond": "elevationGainMeters nil",
-     "effect": "0"
-    },
-    {
-     "at": "+4",
-     "cond": "duration nil",
-     "effect": "0"
-    },
-    {
-     "at": "+7",
-     "cond": "imperial",
-     "effect": "miles else km"
-    },
-    {
-     "at": "+11",
-     "cond": "imperial",
-     "effect": "feet else metres"
-    },
-    {
-     "at": "+19",
      "cond": "imperial",
      "effect": "'imperial' else 'metric' text"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Re-implements GPXExporter.summaryDesc/distanceLabel/elevationLabel/durationLabel line for line instead of calling them.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/GPXExporter.swift:44",
-      "Emuqu/Sources/Analysis/TCXExporter.swift:53"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.summaryTotals(session:imperial:)": "943e67f8555d6704",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d"
    }
@@ -128,7 +96,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.humanSummary(session:)": "dcf9122333b9ce6f"
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.humanSummary(session:)": "a66f30922dfacaed"
    }
   },
   {
@@ -196,9 +164,9 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TCXExporter.swift::func HRTrack.median(near:)": "003f01482895df64",
-    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoint(_:cumulative:heartRate:iso:)": "b80311b1250e0a09",
-    "Emuqu/Sources/Analysis/TCXExporter.swift::init HRTrack(session:)": "68345dad019e67d0"
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func HRTrack.median(near:)": "fc82274b901cfff2",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoint(_:cumulative:heartRate:iso:)": "d334cbaab5d86412",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::init HRTrack(session:)": "c42b9db80583d5f8"
    }
   },
   {
@@ -233,9 +201,9 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TCXExporter.swift::func HRTrack.median(near:)": "003f01482895df64",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func HRTrack.median(near:)": "fc82274b901cfff2",
     "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.timeOnlyTrackpoint(at:heartRate:iso:)": "118c90e86bb330db",
-    "Emuqu/Sources/Analysis/TCXExporter.swift::init HRTrack(session:)": "68345dad019e67d0",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::init HRTrack(session:)": "c42b9db80583d5f8",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48"
    }
   },
@@ -259,8 +227,8 @@
   },
   {
    "key": "func TCXExporter.trackpoint(_:cumulative:heartRate:iso:)",
-   "hash": "bf34e8d1584d41b3",
-   "does": "Returns a GPS <Trackpoint> with Time, Position, AltitudeMeters, DistanceMeters and optional HeartRateBpm.",
+   "hash": "eabdcaebe5d3abe5",
+   "does": "Returns a GPS <Trackpoint> with Time, Position, AltitudeMeters (only when the fix has an altitude: non-zero or a non-negative vertical accuracy, the GPX writer's rule), DistanceMeters and optional HeartRateBpm.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -268,22 +236,16 @@
    "branches": [
     {
      "at": "+16",
+     "cond": "fix.altitude != 0 || verticalAccuracy >= 0",
+     "effect": "writes AltitudeMeters; a fix decoded without a stored altitude omits it"
+    },
+    {
+     "at": "+21",
      "cond": "heartRate non-nil",
      "effect": "writes HR; else omitted"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "AltitudeMeters is always written from fix.altitude, so tracks with no stored altitudes export 0.0 m at every point instead of omitting the element.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/TCXExporter.swift:168",
-      "Emuqu/Sources/Analysis/GPXExporter.swift:152"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -362,8 +324,8 @@
   },
   {
    "key": "init HRTrack(session:)",
-   "hash": "58620a0c792c5efe",
-   "does": "Builds the HR series: positive-HR WorkoutSamples (offsetSec, HR) when any exist, else per-beat HR from the RR series via WorkoutAnalyzer.hrSamplesWithWallClock.",
+   "hash": "6484275b42f110ab",
+   "does": "Builds the HR series sorted by offset: per-beat HR from the RR series via WorkoutAnalyzer.hrSamplesWithWallClock (gap-corrected wall-clock offsets, so it lines up with trackpoint times after a pause) when the session has beats; else positive-HR WorkoutSamples (offsetSec, HR), whose offsets stop while paused.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.hrSamplesWithWallClock(rrPoints:startDate:)"
@@ -372,42 +334,32 @@
    "writes": [],
    "branches": [
     {
-     "at": "+1",
-     "cond": "workoutMetadata or samples nil",
-     "effect": "treated as []; filters HR > 0 (nil HR → 0 → excluded)"
-    },
-    {
      "at": "+2",
-     "cond": "positive-HR samples exist",
-     "effect": "uses them and returns"
+     "cond": "rrSeries nil",
+     "effect": "[] points → no beats"
     },
     {
      "at": "+4",
-     "cond": "heartRate nil",
-     "effect": "?? 0 (unreachable after the filter)"
+     "cond": "workoutMetadata or samples nil",
+     "effect": "treated as []; samples with nil or non-positive HR are dropped"
     },
     {
      "at": "+8",
-     "cond": "rrSeries nil",
-     "effect": "[] points → empty series"
+     "cond": "beats empty",
+     "effect": "use the 1 Hz samples; else the RR beats"
     }
    ],
    "flags": [
     {
      "kind": "broken",
      "sev": "med",
-     "text": "HR offsets come from WorkoutSample.offsetSec, which stops during pauses, while trackpoints()/timeOnlyTrackpoints() query by wall-clock offset (evenly spread fix times / startDate+offset); after a pause every exported HeartRateBpm is taken from the wrong time (shifted by the cumulative pause length).",
+     "text": "Without an RR series the 1 Hz WorkoutSample offsets (offsetSec stops during pauses) are still matched against wall-clock trackpoint times, so after a pause a wrist-HR-only export takes each HeartRateBpm from the wrong time (shifted by the cumulative pause length). The pause timeline that would map them (WorkoutLifecycle.pauseTimeline) is not stored with the workout. Sessions with an RR series now use its wall-clock beats and are aligned.",
      "evidence": [
-      "Emuqu/Sources/Analysis/TCXExporter.swift:227",
-      "Emuqu/Sources/Analysis/TCXExporter.swift:119",
-      "Emuqu/Sources/Analysis/TCXExporter.swift:138",
-      "Emuqu/Sources/Analysis/TCXExporter.swift:140",
+      "Emuqu/Sources/Analysis/TCXExporter.swift:220",
       "Emuqu/Sources/Collection/WorkoutLifecycle.swift:73",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:548",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:558",
-      "Emuqu/Sources/Analysis/GPXExporter.swift:155"
+      "Emuqu/Sources/Models/WorkoutMetadata.swift:155"
      ],
-     "found": "second read"
+     "found": "second read; narrowed in fix pass b03"
     }
    ],
    "deps": {
@@ -416,8 +368,8 @@
   },
   {
    "key": "func HRTrack.median(near:)",
-   "hash": "3f9b4d333eccc326",
-   "does": "Advances a moving start index past readings older than offset−3 s, collects readings up to offset+3 s, and returns their (upper) median; nil when none.",
+   "hash": "27727e77aeb11d7d",
+   "does": "Moves a start index back while the reading before it is still inside the window (a query earlier than the last) and forward past readings older than offset−3 s, collects readings up to offset+3 s, and returns their (upper) median; nil when none. Readings are sorted at init, so any query order is answered correctly; in-order queries stay linear.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -425,31 +377,26 @@
    "branches": [
     {
      "at": "+1",
+     "cond": "reading before start is within the window",
+     "effect": "move start back"
+    },
+    {
+     "at": "+2",
      "cond": "reading older than window",
      "effect": "advance start"
     },
     {
-     "at": "+4",
+     "at": "+5",
      "cond": "reading within window",
      "effect": "collect"
     },
     {
-     "at": "+8",
+     "at": "+9",
      "cond": "window empty",
      "effect": "nil; else sorted[count/2]"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "The moving start index assumes queries come in non-decreasing offset order and offsets are sorted; a track with a backwards timestamp would permanently skip readings.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/TCXExporter.swift:239"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   }
  ],

@@ -1,40 +1,18 @@
 {
  "file": "Emuqu/Sources/Views/ModesSettingsPage.swift",
- "hash": "c4886b926c388dea",
- "role": "Settings → Modes screen: Comeback mode toggle (21-day window), Auto-detect peaking toggle, and Intentional overreach toggle with an auto-deactivate end date.",
+ "hash": "520ea1154699b116",
+ "role": "Settings → Modes screen (Comeback mode toggle with its 21-day window, Auto-detect peaking toggle, Intentional overreach toggle with an auto-deactivate end date) and TrainingModeSwitches, the one Comeback/overreach switch implementation it shares with the Load & Trajectory screen.",
  "types": [
-  "ModesSettingsPage: struct View — three Form sections bound to SettingsManager.settings"
+  "ModesSettingsPage: struct View — three Form sections bound to SettingsManager.settings",
+  "TrainingModeSwitches: @MainActor enum — setComeback / setOverreach / defaultOverreachEnd used by this page and LoadTrajectoryLoader"
  ],
- "state": [
-  "@State showOverreachDatePicker (declared line 11, never read or written)"
- ],
- "toplevel": "settingsManager defaults to AppDependencies.current.app.settingsManager at init (line 10) while telemetry goes through the @Environment dependencies (lines 109,174); PageSnapshotTests passes SettingsManager.shared explicitly. Reached from SettingsView.swift:240 and SettingsSearchIndex.swift:172.",
+ "state": [],
+ "toplevel": "settingsManager defaults to AppDependencies.current.app.settingsManager at init (line 10) while telemetry goes through the @Environment dependencies; PageSnapshotTests passes SettingsManager.shared explicitly. Reached from SettingsView.swift:240 and SettingsSearchIndex.swift:172.",
  "flags": [
-  {
-   "kind": "duplicate",
-   "sev": "med",
-   "text": "Mode toggles are implemented twice with different semantics: Settings → Modes turns Intentional overreach on with a 7-day end date and records ValidationTelemetry mode activations, while LoadTrajectoryLoader.toggleOverreach turns it on open-ended (end nil) and LoadTrajectoryLoader.toggleComeback records no telemetry. The same mode therefore auto-expires or not depending on which screen enabled it, and the telemetry 'mode activations' counter undercounts Trajectory-screen activations.",
-   "evidence": [
-    "Emuqu/Sources/Views/ModesSettingsPage.swift:167",
-    "Emuqu/Sources/Views/ModesSettingsPage.swift:102",
-    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift:283",
-    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift:298"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "@State showOverreachDatePicker is declared but never used anywhere in the repo.",
-   "evidence": [
-    "Emuqu/Sources/Views/ModesSettingsPage.swift:11"
-   ],
-   "found": "first read, upheld on second"
-  },
   {
    "kind": "coupling",
    "sev": "low",
-   "text": "The page reads settings from the AppDependencies.current global captured at init but services from the SwiftUI environment, so a preview/test that injects a different dependencies environment edits one SettingsManager and records telemetry on another.",
+   "text": "The page reads settings from the AppDependencies.current global captured at init but services from the SwiftUI environment, so a preview/test that injects a different dependencies environment edits one SettingsManager and records telemetry on another. Moving settings to @Environment needs PageSnapshotTests to stop passing settingsManager: (handoff from fix batch b22).",
    "evidence": [
     "Emuqu/Sources/Views/ModesSettingsPage.swift:10",
     "Emuqu/Sources/Views/ModesSettingsPage.swift:109"
@@ -83,7 +61,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.comebackModeFooter": "611c3a4651f9355e",
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.comebackToggle": "0745ec96238b77c8"
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.comebackToggle": "d46e5e541b24fe42"
    }
   },
   {
@@ -185,14 +163,14 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.intentionalOverreachFields": "9c52d5424f831a28",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.intentionalOverreachFields": "0f00cc22d5d97e87",
     "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.intentionalOverreachFooter": "46d68597504bacc6"
    }
   },
   {
    "key": "var ModesSettingsPage.intentionalOverreachFields",
    "hash": "7fe5d796d2dd1c29",
-   "does": "Shows the overreach toggle and, only while the mode is in effect, the end-date picker row.",
+   "does": "Shows the overreach toggle and, only while the mode is in effect, the end-date row (picker, or a button to set the end date when none is saved).",
    "entry": "SwiftUI view composition.",
    "calls": [
     "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.overreachToggle",
@@ -210,7 +188,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.overreachEndDateRow": "68f57ba887521ef9",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.overreachEndDateRow": "607462e002335b38",
     "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.overreachInEffect": "bbb83ecf47fd16a2",
     "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.overreachToggle": "ad212aeb909c9fa5"
    }
@@ -233,13 +211,13 @@
   },
   {
    "key": "var ModesSettingsPage.comebackToggle",
-   "hash": "d5e973e87368986b",
-   "does": "Toggle whose state is settings.isComebackModeActive; turning on stamps comebackModeStartDate = now and records a .comeback mode activation in ValidationTelemetry; turning off clears the start date.",
+   "hash": "cbe202f9d37e15bd",
+   "does": "Toggle whose state is settings.isComebackModeActive; its setter goes through TrainingModeSwitches.setComeback (on: start date now + .comeback telemetry; off: start date cleared).",
    "entry": "SwiftUI Toggle binding set closure.",
    "calls": [
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive",
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
-    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.recordModeActivation(_:)",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::func TrainingModeSwitches.setComeback(_:settings:telemetry:)",
     "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.comebackToggleLabel"
    ],
    "reads": [
@@ -247,23 +225,17 @@
    ],
    "writes": [
     "mem:SettingsManager.settings.comebackModeStartDate",
-    "file:user_settings.json (SettingsManager.settings, persisted by didSet save)",
     "ud:telemetry.modeActivationsByKind",
+    "file:user_settings.json (SettingsManager.settings, persisted by didSet save)",
     "notif:flowRecoverySettingsChanged (posted by SettingsManager.settings didSet, SettingsManager.swift:37)"
    ],
-   "branches": [
-    {
-     "at": "+5",
-     "cond": "new toggle value is true",
-     "effect": "sets comebackModeStartDate = Date() and records telemetry; false → sets comebackModeStartDate = nil (no telemetry)"
-    }
-   ],
+   "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive": "4a697d3be6c9e5eb",
-    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.recordModeActivation(_:)": "0e1cfdf6203d9109",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::func TrainingModeSwitches.setComeback(_:settings:telemetry:)": "b29a48972f91d8f3",
     "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.comebackToggleLabel": "f2a71e7adcbfe8df"
    }
   },
@@ -335,9 +307,9 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::func ModesSettingsPage.setOverreach(_:)": "01aa69b3ee59ae96",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::func ModesSettingsPage.setOverreach(_:)": "c22c4ed806b6a0dd",
     "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.overreachInEffect": "bbb83ecf47fd16a2",
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.overreachStatusText": "9a43932b2f6bdb7f",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.overreachStatusText": "d3a3900456b48930",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
    }
   },
@@ -362,55 +334,25 @@
   },
   {
    "key": "func ModesSettingsPage.setOverreach(_:)",
-   "hash": "81a51ab8371d5e86",
-   "does": "Sets intentionalOverreachActive = on; when off clears the end date; when on sets the end date to start-of-today + 7 days and records an .intentionalOverreach telemetry activation.",
+   "hash": "6173ebf7c1da390b",
+   "does": "Forwards the toggle to TrainingModeSwitches.setOverreach with this page's settings and the environment's telemetry.",
    "entry": "Called from the overreach Toggle binding set closure.",
    "calls": [
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.defaultOverreachEnd",
-    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.recordModeActivation(_:)"
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::func TrainingModeSwitches.setOverreach(_:settings:telemetry:)"
    ],
    "reads": [],
    "writes": [
     "mem:SettingsManager.settings.intentionalOverreachActive",
     "mem:SettingsManager.settings.intentionalOverreachEndDate",
-    "file:user_settings.json (SettingsManager.settings, persisted by didSet save)",
     "ud:telemetry.modeActivationsByKind",
+    "file:user_settings.json (SettingsManager.settings, persisted by didSet save)",
     "notif:flowRecoverySettingsChanged (posted by SettingsManager.settings didSet, SettingsManager.swift:37)"
    ],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "on is false (guard on)",
-     "effect": "clears intentionalOverreachEndDate and returns; true → sets 7-day end date and records telemetry"
-    }
-   ],
+   "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
-    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.recordModeActivation(_:)": "0e1cfdf6203d9109",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a",
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.defaultOverreachEnd": "458360c5bb3b2f0d"
-   }
-  },
-  {
-   "key": "var ModesSettingsPage.defaultOverreachEnd",
-   "hash": "378a7da6ecc89a43",
-   "does": "Returns start of today + 7 days via Calendar, or today + 7×24 h if Calendar returns nil.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+3",
-     "cond": "Calendar.date(byAdding:) returns nil",
-     "effect": "falls back to adding 604800 s to start of today"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::func TrainingModeSwitches.setOverreach(_:settings:telemetry:)": "520c910ef75c9415"
    }
   },
   {
@@ -436,7 +378,7 @@
   {
    "key": "var ModesSettingsPage.overreachStatusText",
    "hash": "dcf433782e7e8ace",
-   "does": "Caption for the overreach toggle: 'Off' when not in effect; 'Active until <date>.' when an end date exists; else 'Active. Tap below to set an end date.'",
+   "does": "Caption for the overreach toggle: 'Off' when not in effect; 'Active until <date>.' when an end date exists; else 'Active. Tap below to set an end date.', matching the button the end-date row then shows.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.overreachInEffect",
@@ -456,22 +398,10 @@
     {
      "at": "+2",
      "cond": "intentionalOverreachEndDate is non-nil",
-     "effect": "returns 'Active until <abbreviated date>.'; nil (mode enabled open-ended from the Trajectory screen) → 'Active. Tap below to set an end date.'"
+     "effect": "returns 'Active until <abbreviated date>.'; nil (switched on open-ended before both screens shared TrainingModeSwitches) → 'Active. Tap below to set an end date.'"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "When overreach was turned on from the Load & Trajectory screen (end date nil), this caption says 'Tap below to set an end date' while the DatePicker row below shows 'Auto-deactivate on' a date one week away (its getter falls back to defaultOverreachEnd) that is not saved; the mode stays open-ended until the user actually changes the date, contrary to what the row displays.",
-     "evidence": [
-      "Emuqu/Sources/Views/ModesSettingsPage.swift:195",
-      "Emuqu/Sources/Views/ModesSettingsPage.swift:200",
-      "Emuqu/Sources/Views/LoadTrajectoryLoader.swift:301"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
@@ -481,12 +411,12 @@
   },
   {
    "key": "var ModesSettingsPage.overreachEndDateRow",
-   "hash": "8b66177830fa80e8",
-   "does": "DatePicker 'Auto-deactivate on' (dates from tomorrow on) bound to intentionalOverreachEndDate; getter falls back to defaultOverreachEnd when nil, setter stores the start of the chosen day.",
-   "entry": "SwiftUI DatePicker binding.",
+   "hash": "60a67577dec21045",
+   "does": "With an end date saved, the 'Auto-deactivate on' DatePicker (overreachEndDatePicker); with none saved (a block switched on open-ended earlier), a button with the same label that saves TrainingModeSwitches.defaultOverreachEnd, never a picker showing an unsaved date.",
+   "entry": "SwiftUI view body; Button tap.",
    "calls": [
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.defaultOverreachEnd",
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.earliestOverreachEnd",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::func ModesSettingsPage.overreachEndDatePicker(_:)",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::var TrainingModeSwitches.defaultOverreachEnd",
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
@@ -500,19 +430,121 @@
    ],
    "branches": [
     {
-     "at": "+2",
-     "cond": "intentionalOverreachEndDate is nil (??)",
-     "effect": "picker displays defaultOverreachEnd (today+7) without persisting it; otherwise shows the stored date"
+     "at": "+1",
+     "cond": "end date saved",
+     "effect": "true: picker; false: button that saves the default end date"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7",
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.defaultOverreachEnd": "458360c5bb3b2f0d",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::func ModesSettingsPage.overreachEndDatePicker(_:)": "87944d10c198c66b",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::var TrainingModeSwitches.defaultOverreachEnd": "009af1b617485a6f"
+   }
+  },
+  {
+   "key": "func ModesSettingsPage.overreachEndDatePicker(_:)",
+   "hash": "4d1a4dc4ff6808c0",
+   "does": "DatePicker 'Auto-deactivate on' (dates from tomorrow on) showing the saved end date; choosing a day stores its start.",
+   "entry": "SwiftUI DatePicker binding.",
+   "calls": [
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.earliestOverreachEnd",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SettingsManager.settings.intentionalOverreachEndDate",
+    "file:user_settings.json (SettingsManager.settings, persisted by didSet save)",
+    "notif:flowRecoverySettingsChanged (posted by SettingsManager.settings didSet, SettingsManager.swift:37)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.earliestOverreachEnd": "436d0ed423be0f21"
    }
+  },
+  {
+   "key": "func TrainingModeSwitches.setComeback(_:settings:telemetry:)",
+   "hash": "7b59d2c7d456f163",
+   "does": "Comeback on: comebackModeStartDate = now and a .comeback mode activation recorded; off: start date cleared, nothing recorded.",
+   "entry": "Called by ModesSettingsPage.comebackToggle and LoadTrajectoryLoader.toggleComeback.",
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
+    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.recordModeActivation(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SettingsManager.settings.comebackModeStartDate",
+    "ud:telemetry.modeActivationsByKind",
+    "file:user_settings.json (SettingsManager.settings, persisted by didSet save)",
+    "notif:flowRecoverySettingsChanged (posted by SettingsManager.settings didSet, SettingsManager.swift:37)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "on",
+     "effect": "telemetry recorded; off: none"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
+    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.recordModeActivation(_:)": "0e1cfdf6203d9109"
+   }
+  },
+  {
+   "key": "func TrainingModeSwitches.setOverreach(_:settings:telemetry:)",
+   "hash": "384a3b396d09e767",
+   "does": "Sets intentionalOverreachActive = on; off clears the end date; on saves defaultOverreachEnd (start of today + 7 days) and records an .intentionalOverreach mode activation, so the mode never stays on open-ended.",
+   "entry": "Called by ModesSettingsPage.setOverreach and LoadTrajectoryLoader.toggleOverreach.",
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::var TrainingModeSwitches.defaultOverreachEnd",
+    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.recordModeActivation(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SettingsManager.settings.intentionalOverreachActive",
+    "mem:SettingsManager.settings.intentionalOverreachEndDate",
+    "ud:telemetry.modeActivationsByKind",
+    "file:user_settings.json (SettingsManager.settings, persisted by didSet save)",
+    "notif:flowRecoverySettingsChanged (posted by SettingsManager.settings didSet, SettingsManager.swift:37)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "on is false",
+     "effect": "clear the end date and return; true: save the default end date and record telemetry"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
+    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.recordModeActivation(_:)": "0e1cfdf6203d9109",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::var TrainingModeSwitches.defaultOverreachEnd": "009af1b617485a6f"
+   }
+  },
+  {
+   "key": "var TrainingModeSwitches.defaultOverreachEnd",
+   "hash": "c7d202e107c269ed",
+   "does": "Start of today + 7 days (falls back to adding 7 × 24 h when the calendar cannot).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "calendar date arithmetic fails",
+     "effect": "today + 7 × 24 h"
+    }
+   ],
+   "flags": [],
+   "deps": {}
   }
  ],
  "deps": {}

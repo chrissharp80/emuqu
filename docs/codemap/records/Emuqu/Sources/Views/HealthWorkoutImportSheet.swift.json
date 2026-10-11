@@ -342,18 +342,26 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::var HealthWorkoutImportSheet.emptyExplanation": "bdc4114d9e1ec495"
+    "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift::var HealthWorkoutImportSheet.emptyExplanation": "0dd3fa4d19018dc0"
    }
   },
   {
    "key": "var HealthWorkoutImportSheet.emptyExplanation",
-   "hash": "5f80b79101f57ecb",
-   "does": "Footnote 'Every workout Apple Health has from the last 30 days is already in Emuqu.' (30 matches HealthWorkoutImporter.candidates default days).",
+   "hash": "4676bbd98a17ddeb",
+   "does": "Footnote under 'Nothing to import': 'Every workout Apple Health has from the last 30 days is already in Emuqu.' (30 matches HealthWorkoutImporter.candidates default days) when HKHealthStore.isHealthDataAvailable(), else 'Apple Health is not available on this device'.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "ext:HKHealthStore.isHealthDataAvailable"
+   ],
    "reads": [],
    "writes": [],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "Apple Health available on the device",
+     "effect": "true → history-complete text; false → not-available text"
+    }
+   ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"

@@ -1,14 +1,14 @@
 {
  "file": "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift",
- "hash": "b35725c104b2a6c2",
+ "hash": "b079215f3be97a5f",
  "role": "Second half of the `assistant` fact namespace: the address-book actions (assistant.contacts.list/add/remove) and the assistant.email.compose action that resolves names/category defaults into recipients and stages a draft on AssistantEmailBridge for the mail composer.",
  "types": [
   "AssistantMemoryNamespace: extension (struct declared in AppFactResolver+AssistantMemory.swift) — contacts + email-compose entries"
  ],
  "state": [
-  "static let assistantContactsAddDescription (AI tool description text, line 97)",
-  "static let assistantEmailComposeParameters ([ActionParam] subject/body/category/to/cc, line 160)",
-  "static let assistantEmailComposeDescription (line 315)"
+  "static let assistantContactsAddDescription (AI tool description text)",
+  "static let assistantEmailComposeParameters ([ActionParam] subject/body/category/to/cc)",
+  "static let assistantEmailComposeDescription (says the draft is staged on the email bridge, which the root view observes)"
  ],
  "toplevel": "Three static string/array constants used as tool descriptions/parameters; no other top-level code.",
  "flags": [],
@@ -321,20 +321,7 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "The compose tool description tells the model the draft 'is staged as a notification the chat UI catches', but staging sets AssistantEmailBridge.pendingDraft, which the root view observes through Observation; no notification is posted.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift:316",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift:286",
-      "Emuqu/Sources/Assistant/Chat/AssistantEmailBridge.swift:13",
-      "Emuqu/Sources/Assistant/Chat/AssistantEmailBridge.swift:71"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.resolveAssistantEmailCompose(_:)": "c8faa335578720c4",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)": "cc67ad9762ace28b"
@@ -418,7 +405,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.ccRecipients(_:fallback:)": "8dd6f78bcdd316ee",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.contactResolutionFailure(_:_:)": "f861dcb5273fe95e",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.emailDefaults(for:)": "ac8f90527627af06",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.emailDefaults(for:)": "152b6775bb3c5d57",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.resolveContacts(_:)": "e3eae52210f1d8eb",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.stageEmail(subject:body:to:cc:)": "c64908ea9cb06511",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.stagedEmailRecord(subject:body:category:to:cc:)": "641f11b0a7c10372",
@@ -427,8 +414,8 @@
   },
   {
    "key": "func AssistantMemoryNamespace.emailDefaults(for:)",
-   "hash": "658f8181e98940fc",
-   "does": "Reads the settings snapshot and returns (to, cc) for the category: to = category recipient trimmed, else resolvedDefaultEmailRecipient (generic → recovery → training); cc = category CC, else resolvedDefaultEmailCC joined with ','.",
+   "hash": "33fa5702e4ce6463",
+   "does": "Reads the settings snapshot and returns (to, cc) for the category: to = category recipient trimmed, else resolvedDefaultEmailRecipient (recovery → training → legacy); cc = the category CC split on ',', trimmed and stripped of empty entries (so a whitespace-only or comma-only CC counts as unset), else resolvedDefaultEmailCC, joined with ','.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
@@ -453,29 +440,24 @@
      "effect": "?? '' — primary empty"
     },
     {
-     "at": "+6",
+     "at": "+8",
      "cond": "category == 'recovery'",
      "effect": "reads defaultRecoveryEmailCC; else defaultTrainingEmailCC"
     },
     {
-     "at": "+6",
+     "at": "+8",
      "cond": "selected CC is nil",
      "effect": "?? '' — categoryCC empty"
     },
     {
-     "at": "+10",
+     "at": "+16",
      "cond": "primary is empty",
-     "effect": "to = resolvedDefaultEmailRecipient (first non-empty of generic, recovery, training) ?? ''; else primary"
+     "effect": "to = resolvedDefaultEmailRecipient ?? ''; else primary"
     },
     {
-     "at": "+10",
-     "cond": "resolvedDefaultEmailRecipient is nil",
-     "effect": "?? '' — no recipient"
-    },
-    {
-     "at": "+11",
-     "cond": "categoryCC is empty",
-     "effect": "cc = resolvedDefaultEmailCC (first non-empty of generic, recovery, training CC) joined with ','; else categoryCC"
+     "at": "+17",
+     "cond": "parsed categoryCC is empty",
+     "effect": "cc = resolvedDefaultEmailCC joined with ','; else categoryCC"
     }
    ],
    "flags": [
@@ -504,24 +486,12 @@
       "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift:325"
      ],
      "found": "second read"
-    },
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "categoryCC is not trimmed before the isEmpty check, so a whitespace-only category CC counts as configured: the generic/other-category fallback is skipped and ccRecipients then parses it to [] (no CC). The view-side copies split and trim before checking, so they fall back correctly.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift:227",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift:230",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift:278",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift:264"
-     ],
-     "found": "second read"
     }
    ],
    "deps": {
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "599269848673b93a",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailCC": "94f7651b9cad60c1",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailRecipient": "659b64b5b07e9608",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailCC": "9fa516b2dcf25514",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailRecipient": "1a3b52db4e9c1356",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb"

@@ -179,25 +179,33 @@
   },
   {
    "key": "func ImportDataView.importPreviewSection(_:)",
-   "hash": "bb3cf24a88518e49",
-   "does": "Single-file preview card: loaded header, file info rows, and Analyze Data button (disabled while analysing).",
+   "hash": "7b48528760108754",
+   "does": "Single-file preview card: loaded header, file info rows, the recording-date picker for a dateless file, and the Analyze Data button, disabled while analysing or while a dateless file has no date set.",
    "entry": "SwiftUI view builder",
    "calls": [
     "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.loadedHeader(_:)",
     "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.singleFileInfoRows(_:)",
     "Emuqu/Sources/Views/ImportDataView+Preview.swift::var ImportDataView.analyzeButtonLabel",
     "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.startAnalysis()",
-    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)"
+    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.recordingDatePicker(_:)"
    ],
    "reads": [
     "mem:ImportDataView @State (view-local)"
    ],
    "writes": [],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "analysing, or no recording date known",
+     "effect": "Analyze disabled"
+    }
+   ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.loadedHeader(_:)": "ae04fe8d699079ed",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.recordingDatePicker(_:)": "09922b4a0b1cb841",
     "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.singleFileInfoRows(_:)": "d9609d01d24c2b1c",
     "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.startAnalysis()": "791d1de2393d1dcb",
     "Emuqu/Sources/Views/ImportDataView+Preview.swift::var ImportDataView.analyzeButtonLabel": "1ad3793147868b90",
@@ -231,6 +239,33 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
     "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.formatDate(_:)": "b5480ced805a303b"
+   }
+  },
+  {
+   "key": "func ImportDataView.recordingDatePicker(_:)",
+   "hash": "4b0804ef1559c5ef",
+   "does": "For a file that states no recording date: a DatePicker labelled 'Recorded' (date and time, up to now) bound to importRecordingDate (showing now until set) with a footnote explaining why, so the reading is dated by the user, not filed under the time of import.",
+   "entry": "SwiftUI view builder; DatePicker binding",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:ImportDataView.importRecordingDate"
+   ],
+   "writes": [
+    "mem:ImportDataView.importRecordingDate"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "file states no recording date",
+     "effect": "picker + footnote; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
    }
   },
   {
@@ -306,7 +341,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.eliteImportButton(_:)": "99adf69170954f53",
-    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.eliteSessionListPreview(_:)": "b734d29cf383ef8f",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.eliteSessionListPreview(_:)": "ad0bf2266214a002",
     "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.eliteSummaryRows(_:newSessions:alreadyImportedCount:)": "5efc9c5ec1a94784",
     "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.loadedHeader(_:)": "ae04fe8d699079ed",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e"
@@ -359,7 +394,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.importAllFlowHRVSessions()": "fff6519c7a44095b"
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.importAllFlowHRVSessions()": "cad69a41c9ddb605"
    }
   },
   {
@@ -391,7 +426,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.analyzeImportedData()": "93ad1b9fc0af1bd6"
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.analyzeImportedData()": "ebef507e61409e57"
    }
   },
   {
@@ -410,8 +445,8 @@
   },
   {
    "key": "func ImportDataView.eliteSessionListPreview(_:)",
-   "hash": "12c9d08185b2e385",
-   "does": "'New Sessions Preview' list of the first 5 new Elite sessions plus '...and N more'.",
+   "hash": "f4e6b88f60f98dfd",
+   "does": "'New Sessions Preview' list of the first 5 new Elite sessions (identified by position, since two summaries can share a timestamp) plus '...and N more'.",
    "entry": "SwiftUI view builder",
    "calls": [
     "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.eliteSessionRow(_:)",
@@ -420,22 +455,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "ForEach uses id: \\.date; two Elite rows with the same timestamp produce duplicate SwiftUI ids (undefined row rendering).",
-     "evidence": [
-      "Emuqu/Sources/Views/ImportDataView+Preview.swift:244"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.eliteSessionRow(_:)": "74c52c96b1a457fc",
     "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.moreSessionsNote(total:)": "59861d60bdf581bc",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "1f6afb21d0621d1d"
    }
   },
   {

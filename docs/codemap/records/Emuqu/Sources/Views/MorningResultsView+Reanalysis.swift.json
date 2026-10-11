@@ -401,7 +401,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.mergeOvernightFromStrap()": "4bf78043092344e5",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.mergeOvernightFromStrap()": "974844f2461c4579",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.overnightStrapMergeCardLabel": "e1e5e4a3e0d34423"
    }
   },
@@ -432,19 +432,7 @@
      "effect": "true: await showMergedSession(sessionId); false: skip reload"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "med",
-     "text": "When the merge persisted but the re-score declined (collector.reanalyzeSession returned nil), augmentOvernightFromStrap still returns .merged with finalSession = the pre-rescore copy, whose recoveryScore is the old streaming-only score; mergeOutcomeMessage then shows 'Merged — N beats, recovery S' with that stale S as if it were the re-scored result.",
-     "evidence": [
-      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:354",
-      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:360",
-      "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift:257"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.augmentOvernightFromStrap(sessionId:)": "a0a14c62552ed068",
     "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.augmentOvernightFromStrap(sessionId:)": "5236aba59d4fa262",
@@ -578,7 +566,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "eccc568f4bbb99c3",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.persistentBannerColumns(auto:)": "9badf5fb4065d4b0",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.persistentBannerColumns(auto:)": "88d498ac8a42dfd4",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.persistentBannerHeader": "e0bf2b1b23ebad59",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
    }
@@ -601,14 +589,14 @@
   },
   {
    "key": "func MorningReanalysisControls.persistentBannerColumns(auto:)",
-   "hash": "f12900c0d36eb62f",
-   "does": "Three columns: Auto (autoWindowScore, auto RMSSD), Yours (displaySession.recoveryScore, displayResult RMSSD), and the score diff.",
+   "hash": "cac54ffed117bc01",
+   "does": "Three columns separated by 56 pt dividers: Auto (autoWindowScore, auto RMSSD), Yours (displaySession.recoveryScore, displayResult RMSSD), and the score diff.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displayResult",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.windowStatColumn(title:score:rmssd:tint:)",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.windowComparisonDivider",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func comparisonDivider(height:)",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func persistentScoreDiffColumn(autoScore:yoursScore:)"
    ],
    "reads": [],
@@ -620,56 +608,34 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displayResult": "215489cda008c57b",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "eccc568f4bbb99c3",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.windowStatColumn(title:score:rmssd:tint:)": "617d903b7ad900d9",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func persistentScoreDiffColumn(autoScore:yoursScore:)": "c25e9b94e40d368f",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.windowComparisonDivider": "2d5a27c28265dff5",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.windowStatColumn(title:score:rmssd:tint:)": "903f96657b17ecaa",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func comparisonDivider(height:)": "7e0f4f965b30f511",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func persistentScoreDiffColumn(autoScore:yoursScore:)": "ee4f52313a9f1ef4",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
    }
   },
   {
-   "key": "var MorningReanalysisControls.windowComparisonDivider",
-   "hash": "08e1198f5c986b32",
-   "does": "1pt x 56pt divider rectangle.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
-   }
-  },
-  {
    "key": "func MorningReanalysisControls.windowStatColumn(title:score:rmssd:tint:)",
-   "hash": "0f15f9c9545e438b",
-   "does": "Column with title, score*10 formatted '%.0f' (or '—' when nil), 'Score' caption and rounded RMSSD in ms.",
+   "hash": "e309c9805bb3e4e7",
+   "does": "Column with title, the display score ScoreVerdict.safeDisplayScore(score*10) (clamped 0–100, non-finite → 0; or '—' when nil), 'Score' caption and rounded RMSSD in ms.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+6",
+     "at": "+5",
      "cond": "score != nil",
-     "effect": "true: score*10 formatted with app locale; false: '—'"
+     "effect": "clamped display score in app locale; else —"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Formats the display score as raw '%.0f' of score*10 without the ScoreVerdict clamp, while the strap-merge message and rings use ScoreVerdict.safeDisplayScore; a non-finite or out-of-range score renders differently here.",
-     "evidence": [
-      "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift:344",
-      "Emuqu/Sources/Models/ScoreVerdict.swift:178",
-      "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift:257"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "503106affd4064c8",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
@@ -691,7 +657,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.comparisonColumns(manual:)": "36a563fed5c3a283",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.comparisonColumns(manual:)": "03c4a487642fbdbb",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.manualWindowActions(_:)": "a0a2a0e2d6d101e0",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
@@ -699,8 +665,8 @@
   },
   {
    "key": "var MorningReanalysisControls.autoComparisonResult",
-   "hash": "87e410499f9c11df",
-   "does": "Auto comparison baseline: displaySession.autoWindowResult when present, else displayResult.",
+   "hash": "eb35c2d528adfc55",
+   "does": "The Auto column's result: displaySession.autoWindowResult while the night carries a manual pick (windowUserAdjusted == true) and one was kept; otherwise vm.displayResult, which follows a method switch (that clears windowUserAdjusted but leaves the old autoWindowResult).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession",
@@ -711,24 +677,11 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "autoWindowResult == nil",
-     "effect": "fallback to vm.displayResult (the current auto/method result)"
+     "cond": "windowUserAdjusted == true and autoWindowResult set",
+     "effect": "kept auto result; else displayResult"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "The comment says the fallback 'follows a method switch', but a method switch (ReanalysisService.applyAnalysis) clears windowUserAdjusted and never clears autoWindowResult, so after a manual pick then a method change the live 'Auto' column keeps showing the stale pre-pick window instead of the newly selected method's window.",
-     "evidence": [
-      "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift:375",
-      "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift:380",
-      "Emuqu/Sources/Services/ReanalysisService.swift:345",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:260"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displayResult": "215489cda008c57b",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "eccc568f4bbb99c3"
@@ -736,13 +689,13 @@
   },
   {
    "key": "func MorningReanalysisControls.comparisonColumns(manual:)",
-   "hash": "027e624064baeb42",
-   "does": "HStack of rmssdColumn(Auto, autoComparisonResult), divider, rmssdColumn(Yours, manual), divider, diffColumn.",
+   "hash": "13bf4ce254a74e85",
+   "does": "HStack of rmssdColumn(Auto, autoComparisonResult), 50 pt divider, rmssdColumn(Yours, manual), divider, diffColumn.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func rmssdColumn(titleKey:from:tint:)",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.autoComparisonResult",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.comparisonDivider",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func comparisonDivider(height:)",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.diffColumn(manual:)"
    ],
    "reads": [],
@@ -751,9 +704,9 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.diffColumn(manual:)": "e33a4bff3c17585c",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func comparisonDivider(height:)": "7e0f4f965b30f511",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func rmssdColumn(titleKey:from:tint:)": "fd841d3787f279c4",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.autoComparisonResult": "0854b3f655c82c7c",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.comparisonDivider": "4e64de527739c5f8",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.autoComparisonResult": "73d6df3c8d8b4ab1",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
    }
   },
@@ -789,33 +742,7 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func comparisonColumn(title:value:color:footnote:)": "b677cd0d4bbc154e",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.autoComparisonResult": "0854b3f655c82c7c"
-   }
-  },
-  {
-   "key": "var MorningReanalysisControls.comparisonDivider",
-   "hash": "1477b95c361f0331",
-   "does": "1pt x 50pt divider rectangle (same as windowComparisonDivider but 50pt tall).",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same divider as windowComparisonDivider except height 50 vs 56.",
-     "evidence": [
-      "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift:332",
-      "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift:407"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.autoComparisonResult": "73d6df3c8d8b4ab1"
    }
   },
   {
@@ -857,7 +784,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.applyManualWindowChoice(_:)": "d1124ed7cb0bc7ab",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.applyManualWindowChoice(_:)": "ae0a4f5cacd7a55b",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.applyManualLabel": "6ce4872edfd54026",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.cancelManualLabel": "9bf5a57cb43bdf06"
    }
@@ -934,7 +861,7 @@
     {
      "kind": "data-loss",
      "sev": "high",
-     "text": "onApplyManualResult receives only the HRVAnalysisResult, so both callers apply it to the session captured when the sheet was built (HistoryView.swift:454, RecordView+Sections.swift:348/366), not vm.displaySession. ReanalysisService.applyManualAnalysis copies that captured session (hydrated only when its rrSeries is empty) and archives it whole, so anything archived earlier in this same sheet is overwritten: a strap merge's rrSeries/dataSourceSummary (RRCollector+BackupRecovery.swift:415), a sleep adjustment made via onAdjustSleep, or a method re-analysis.",
+     "text": "onApplyManualResult receives only the HRVAnalysisResult, so both callers apply it to the session captured when the sheet was built (HistoryView.swift:454, RecordView+Sections.swift:348/366), not vm.displaySession. ReanalysisService.applyManualAnalysis copies that captured session (hydrated only when its rrSeries is empty) and archives it whole, so anything archived earlier in this same sheet is overwritten: a strap merge's rrSeries/dataSourceSummary (RRCollector+BackupRecovery.swift:415), a sleep adjustment made via onAdjustSleep, or a method re-analysis. Handoff b23: ReanalysisService.applyManualAnalysis / reanalyzeAtPosition to start from the current archived copy of the session (by id), so every caller is covered without changing these closures' signatures.",
      "evidence": [
       "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift:483",
       "Emuqu/Sources/Views/HistoryView.swift:454",
@@ -1077,15 +1004,15 @@
   },
   {
    "key": "var MorningReanalysisControls.availableReportSections",
-   "hash": "e1b1a47941e868da",
-   "does": "Computes which PDF sections have data: always hrvSummary; overnightStats if raw RR and overnight; sleep if HK sleep minutes > 0; trainingLoad if training context/snapshot; vitals if (historical ? frozen snapshot ?? live : live) vitals exist; scoreBreakdown if composite > 0; charts and deepDive if raw RR.",
+   "hash": "dc6bbc82e1e8c5c7",
+   "does": "Computes which PDF sections have data: always hrvSummary; overnightStats if raw RR and overnight; sleep if HK sleep minutes > 0; trainingLoad if training context/snapshot; vitals if reportVitals exist; scoreBreakdown if composite > 0; charts and deepDive if raw RR.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.hasRawData",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displayResult",
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.isHistoricalSession",
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.compositeRecoveryScore"
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.compositeRecoveryScore",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.reportVitals"
    ],
    "reads": [
     "mem:MorningResultsViewModel.healthKitSleep",
@@ -1096,77 +1023,80 @@
     {
      "at": "+4",
      "cond": "hasRawData && sessionType == .overnight",
-     "effect": "insert .overnightStats else omit"
+     "effect": "insert .overnightStats"
     },
     {
      "at": "+5",
      "cond": "healthKitSleep with nightSleepMinutes > 0",
-     "effect": "insert .sleep else omit"
+     "effect": "insert .sleep"
     },
     {
      "at": "+6",
      "cond": "trainingContext != nil || trainingSnapshot != nil",
-     "effect": "insert .trainingLoad else omit"
+     "effect": "insert .trainingLoad"
     },
     {
      "at": "+7",
-     "cond": "isHistoricalSession",
-     "effect": "true: session.vitalsSnapshot ?? vm.recoveryVitals; false: vm.recoveryVitals"
+     "cond": "reportVitals != nil",
+     "effect": "insert .vitals"
     },
     {
      "at": "+8",
-     "cond": "vitals != nil",
-     "effect": "insert .vitals else omit"
+     "cond": "compositeRecoveryScore > 0",
+     "effect": "insert .scoreBreakdown"
     },
     {
      "at": "+9",
-     "cond": "compositeRecoveryScore > 0",
-     "effect": "insert .scoreBreakdown else omit"
-    },
-    {
-     "at": "+10",
      "cond": "hasRawData",
-     "effect": "insert .charts"
-    },
-    {
-     "at": "+11",
-     "cond": "hasRawData",
-     "effect": "insert .deepDive"
+     "effect": "insert .charts and .deepDive"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "The historical-vs-live vitals choice is re-implemented in reportInputs; the two must be kept in step by hand.",
-     "evidence": [
-      "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift:570",
-      "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift:700"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.compositeRecoveryScore": "b00af62d5eb939c7",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displayResult": "215489cda008c57b",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "eccc568f4bbb99c3",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.hasRawData": "0ed6faa0cdc6c34f",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.reportVitals": "eb84b79d1e7342f4"
+   }
+  },
+  {
+   "key": "var MorningReanalysisControls.reportVitals",
+   "hash": "6a1bcfc4f11cf463",
+   "does": "Vitals for the report: for a historical session the frozen session.vitalsSnapshot, else live vm.recoveryVitals; for today's session the live vitals. Shared by the section picker and reportInputs.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.isHistoricalSession"
+   ],
+   "reads": [
+    "mem:MorningResultsViewModel.recoveryVitals"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "vm.isHistoricalSession",
+     "effect": "snapshot ?? live; else live"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.isHistoricalSession": "80173b2efd370453",
     "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.recoveryVitals()": "6b42d93fc6f07dd7"
    }
   },
   {
-   "key": "func MorningReanalysisControls.exportPDF(style:sections:)",
-   "hash": "c4486eb8b54344ae",
-   "does": "Sets vm.isGeneratingPDF and renders the PDF in a Task, then hands the URL to finishExportPDF on the MainActor.",
-   "entry": null,
+   "key": "func MorningReanalysisControls.exportPDF(style:sections:onFailure:)",
+   "hash": "7d303aa54459719e",
+   "does": "Sets vm.isGeneratingPDF, then in a Task renders the PDF (renderPDFAsync) and hands the URL to finishExportPDF on the main actor with onFailure.",
+   "entry": "Report section picker's onGenerate, via the MorningResultsView forwarder",
    "calls": [
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.renderPDFAsync(style:sections:)",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.finishExportPDF(_:)"
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.finishExportPDF(_:onFailure:)"
    ],
    "reads": [],
    "writes": [
@@ -1175,49 +1105,60 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.finishExportPDF(_:)": "920c67e2f8a13e02",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.finishExportPDF(_:onFailure:)": "16521ec532a28c8e",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.renderPDFAsync(style:sections:)": "3e181c1c3dcca38a"
    }
   },
   {
-   "key": "func MorningReanalysisControls.finishExportPDF(_:)",
-   "hash": "eac988864bde09e1",
-   "does": "Clears isGeneratingPDF and, when a URL came back, sets exportURL (presents the PDFPreviewView sheet).",
+   "key": "func MorningReanalysisControls.finishExportPDF(_:onFailure:)",
+   "hash": "47ce3fbb42d7fd4a",
+   "does": "Clears vm.isGeneratingPDF; with a URL sets exportURL (opening the PDF preview sheet); without one calls onFailure with reportFailureMessage so the user is told the render failed.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.reportFailureMessage",
+    "closure:onFailure — sets MorningResultsView.exportErrorMessage (Export failed alert)"
+   ],
    "reads": [],
    "writes": [
-    "mem:MorningResultsViewModel.isGeneratingPDF"
+    "mem:MorningResultsViewModel.isGeneratingPDF",
+    "mem:MorningResultsView.exportURL"
    ],
    "branches": [
     {
-     "at": "+3",
-     "cond": "url != nil",
-     "effect": "true: exportURL = IdentifiableURL(url); false: nothing — overlay disappears with no message"
+     "at": "+2",
+     "cond": "url nil",
+     "effect": "onFailure(reportFailureMessage); else set the URL"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "A failed render (generateReportURL nil) only logs; the user sees the overlay vanish and no error.",
-     "evidence": [
-      "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift:589",
-      "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift:632"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.reportFailureMessage": "6d378f30ecf1bbc8"
+   }
   },
   {
-   "key": "func MorningReanalysisControls.emailReport(style:sections:)",
-   "hash": "2178ff63855aec82",
-   "does": "Sets vm.isGeneratingEmailPDF and renders the PDF in a Task, then routes the URL to finishEmailPDF.",
+   "key": "var MorningReanalysisControls.reportFailureMessage",
+   "hash": "3fa1271f781fc948",
+   "does": "Localized 'Couldn't generate the recovery PDF. The session may not have enough data.'",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func MorningReanalysisControls.emailReport(style:sections:onFailure:)",
+   "hash": "ca8ed1d0e3745ff5",
+   "does": "Sets vm.isGeneratingEmailPDF, then in a Task renders the PDF (renderPDFAsync) and hands the URL to finishEmailPDF on the main actor with onFailure.",
+   "entry": "Report section picker's onGenerate, via the MorningResultsView forwarder",
+   "calls": [
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.renderPDFAsync(style:sections:)",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.finishEmailPDF(_:)"
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.finishEmailPDF(_:onFailure:)"
    ],
    "reads": [],
    "writes": [
@@ -1226,40 +1167,35 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.finishEmailPDF(_:)": "53eca2e5f548f4ac",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.finishEmailPDF(_:onFailure:)": "03b200da3efdaa9b",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.renderPDFAsync(style:sections:)": "3e181c1c3dcca38a"
    }
   },
   {
-   "key": "func MorningReanalysisControls.finishEmailPDF(_:)",
-   "hash": "b17bc85929952182",
-   "does": "Clears isGeneratingEmailPDF and, on success, sets emailURL (presents the mail composer sheet).",
+   "key": "func MorningReanalysisControls.finishEmailPDF(_:onFailure:)",
+   "hash": "9675b24374739317",
+   "does": "Clears vm.isGeneratingEmailPDF; with a URL sets emailURL (opening the mail composer); without one calls onFailure with reportFailureMessage so the user is told the render failed.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.reportFailureMessage",
+    "closure:onFailure — sets MorningResultsView.exportErrorMessage (Export failed alert)"
+   ],
    "reads": [],
    "writes": [
-    "mem:MorningResultsViewModel.isGeneratingEmailPDF"
+    "mem:MorningResultsViewModel.isGeneratingEmailPDF",
+    "mem:MorningResultsView.emailURL"
    ],
    "branches": [
     {
-     "at": "+3",
-     "cond": "url != nil",
-     "effect": "true: emailURL set; false: nothing shown to the user"
+     "at": "+2",
+     "cond": "url nil",
+     "effect": "onFailure(reportFailureMessage); else set the URL"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "A failed render (nil URL) only clears isGeneratingEmailPDF; the email button does nothing visible and no error is shown (same as the export path).",
-     "evidence": [
-      "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift:609",
-      "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift:632"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {}
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.reportFailureMessage": "6d378f30ecf1bbc8"
+   }
   },
   {
    "key": "func MorningReanalysisControls.renderPDFAsync(style:sections:)",
@@ -1303,7 +1239,7 @@
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.exportSession()": "1d4dc6d00bf9cfd1",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.fetchHealthKitHRForReport()": "518d734c7e054fed",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.renderReport(session:inputs:style:sections:)": "4002c9ec1252cac7",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.reportInputs(healthKitHR:)": "bb4f721c70a50211"
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.reportInputs(healthKitHR:)": "265bb88f88ae35e9"
    }
   },
   {
@@ -1372,17 +1308,17 @@
   },
   {
    "key": "func MorningReanalysisControls.reportInputs(healthKitHR:)",
-   "hash": "9bf3d1620cc76d3a",
-   "does": "Gathers report inputs on the MainActor: vitals (frozen snapshot for historical sessions), HK sleep and sleep trend (only when non-empty), HK HR, composite score, breakdown, baseline stats, freshly recomputed live training load, recent sessions.",
+   "hash": "4912be65515ae3c3",
+   "does": "Gathers report inputs on the MainActor: vitals (reportVitals), HK sleep and sleep trend (only when non-empty), HK HR, composite score, breakdown, baseline stats, freshly recomputed live training load, recent sessions.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.isHistoricalSession",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.compositeRecoveryScore",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.recoveryBreakdown()",
     "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.liveRefreshed()",
     "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator.SleepData(from:)",
-    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator.SleepTrendData(from:)",
-    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator.VitalsData(from:)"
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator.VitalsData(from:)",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.reportVitals",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepTrendInput(from:)"
    ],
    "reads": [
     "mem:MorningResultsViewModel.healthKitSleep",
@@ -1397,38 +1333,26 @@
    ],
    "branches": [
     {
-     "at": "+1",
-     "cond": "vm.isHistoricalSession",
-     "effect": "true: session.vitalsSnapshot ?? vm.recoveryVitals; false: vm.recoveryVitals"
-    },
-    {
-     "at": "+2",
-     "cond": "session.vitalsSnapshot == nil",
-     "effect": "fallback to vm.recoveryVitals"
-    },
-    {
-     "at": "+7",
+     "at": "+5",
      "cond": "hkSleep nightSleepMinutes > 0 (nil -> 0)",
-     "effect": "true: SleepData(from:); false: nil"
+     "effect": "SleepData(from:); else nil"
     },
     {
-     "at": "+8",
+     "at": "+6",
      "cond": "hkTrend nightsAnalyzed > 0 (nil -> 0)",
-     "effect": "true: SleepTrendData(from:); false: nil"
+     "effect": "SleepTrendData (AnalysisSleepTrendInput) from the stats; else nil"
     }
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepTrendInput(from:)": "d1aec411499c093d",
     "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.liveRefreshed()": "f6fdc835bab57f33",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
     "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator.SleepData(from:)": "0bacc660b77071e6",
-    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator.SleepTrendData(from:)": "2025f224b3af4d7b",
     "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator.VitalsData(from:)": "1f72b8e1242a44d9",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.recoveryBreakdown()": "cde8ca2df2aec214",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.compositeRecoveryScore": "b00af62d5eb939c7",
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.isHistoricalSession": "80173b2efd370453",
-    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.recoveryVitals()": "6b42d93fc6f07dd7"
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.reportVitals": "eb84b79d1e7342f4"
    }
   },
   {
@@ -1556,7 +1480,7 @@
     {
      "kind": "broken",
      "sev": "med",
-     "text": "The manual-pick preview runs onReanalyzeAt on the session captured at sheet creation (HistoryView.swift:453, RecordView+Sections.swift:347), not vm.displaySession, so after an in-sheet strap merge the preview window/RMSSD is computed on the pre-merge stream-only RR series while the chart shows the merged beats.",
+     "text": "The manual-pick preview runs onReanalyzeAt on the session captured at sheet creation (HistoryView.swift:453, RecordView+Sections.swift:347), not vm.displaySession, so after an in-sheet strap merge the preview window/RMSSD is computed on the pre-merge stream-only RR series while the chart shows the merged beats. Handoff b23: ReanalysisService.applyManualAnalysis / reanalyzeAtPosition to start from the current archived copy of the session (by id), so every caller is covered without changing these closures' signatures.",
      "evidence": [
       "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift:786",
       "Emuqu/Sources/Views/HistoryView.swift:453",
@@ -1596,63 +1520,43 @@
    }
   },
   {
-   "key": "func MorningReanalysisControls.exportRRData()",
-   "hash": "57a60411d8155c60",
-   "does": "Writes the displayed session's RR series to a CSV in the temp directory (provenance header + timestamp_ms,rr_ms,hr_bpm rows) and presents it via exportURL.",
-   "entry": "Export RR action in MorningResultsView+Actions.swift:197 via forwarding.",
+   "key": "func MorningReanalysisControls.exportRRData(onFailure:)",
+   "hash": "df7967ea1361448b",
+   "does": "Writes the displayed session's RR series as a CSV (rrExportHeader provenance comments + rrCSVRows) to tmp under rrExportFilename and sets exportURL to preview/share it (MorningResultsView deletes the file when the sheet closes). With no series, or when the write throws, logs and calls onFailure with 'Couldn't create the CSV file.'",
+   "entry": "Export RR button, via the MorningResultsView forwarder",
    "calls": [
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.rrExportHeader(series:)",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func rrExportRows(series:)",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.rrExportFilename()"
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func rrCSVRows(points:)",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.rrExportFilename()",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession",
+    "closure:onFailure — sets MorningResultsView.exportErrorMessage",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
    "writes": [
-    "file:<tmp>/Emuqu_RR_yyyy-MM-dd_HHmm.csv"
+    "file:tmp/Emuqu_RR_<date>.csv",
+    "mem:MorningResultsView.exportURL"
    ],
    "branches": [
     {
-     "at": "+1",
-     "cond": "displaySession.rrSeries == nil",
-     "effect": "log error and return (no user feedback)"
+     "at": "+2",
+     "cond": "rrSeries nil",
+     "effect": "log, onFailure, return"
     },
     {
-     "at": "+12",
-     "cond": "csv.write throws",
-     "effect": "log, no user feedback"
+     "at": "+13",
+     "cond": "write throws",
+     "effect": "log, onFailure"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "Missing RR series or a write failure only logs; the Export RR button does nothing visible.",
-     "evidence": [
-      "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift:814",
-      "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift:825"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "privacy",
-     "sev": "low",
-     "text": "Writes the night's plaintext RR/HR CSV to the temp directory and never deletes it, whereas ExportDataView explicitly removes its RR export from tmp because it is plaintext health data; the recovery PDF from renderPDFAsync is likewise left in tmp.",
-     "evidence": [
-      "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift:820",
-      "Emuqu/Sources/Views/ExportAndArchiveViews.swift:196",
-      "Emuqu/Sources/Views/ExportAndArchiveViews.swift:205",
-      "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift:286"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "eccc568f4bbb99c3",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.rrExportFilename()": "2e32f2c0dfeffeef",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.rrExportHeader(series:)": "249a07441ca8b0c0",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func rrExportRows(series:)": "468429872cab70e0",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func rrCSVRows(points:)": "cc54d00cf490e4a1",
     "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
    }
   },
@@ -1708,26 +1612,31 @@
   },
   {
    "key": "func persistentScoreDiffColumn(autoScore:yoursScore:)",
-   "hash": "1f725e187f6abfc2",
-   "does": "Score-diff column: (yours − auto)*10 formatted '%+.0f', sage if >= 0 else terracotta; '—' when either score is missing.",
+   "hash": "a60fa37ed2361df3",
+   "does": "Score-diff column: the difference of the two displayed scores, safeDisplayScore(yours*10) − safeDisplayScore(auto*10), formatted '%+d', sage if >= 0 else terracotta; '—' when either score is missing.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+6",
+     "at": "+5",
      "cond": "autoScore and yoursScore both non-nil",
-     "effect": "true: signed diff + 'Score'; false: '—'"
+     "effect": "signed diff + Score; else —"
     },
     {
      "at": "+10",
      "cond": "d >= 0",
-     "effect": "sage vs terracotta"
+     "effect": "sage; else terracotta"
     }
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "503106affd4064c8",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
@@ -1776,6 +1685,23 @@
    }
   },
   {
+   "key": "func comparisonDivider(height:)",
+   "hash": "a28412104a9e34d5",
+   "does": "1 pt wide tertiary (30%) vertical rule of the given height between comparison columns (56 pt in the persistent banner, 50 pt in the live comparison).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
    "key": "func provenanceRow(glyph:text:)",
    "hash": "9a8f9f15c9260ad1",
    "does": "Glyph + caption row used for provenance.",
@@ -1790,30 +1716,25 @@
    }
   },
   {
-   "key": "func rrExportRows(series:)",
-   "hash": "6cae92242fe2be39",
-   "does": "CSV body: header line then one row per RR point with t_ms, rr_ms and 60000/rr HR formatted POSIX '%.1f' (empty when rr <= 0).",
+   "key": "func rrCSVRows(points:)",
+   "hash": "c45292e79eeec56b",
+   "does": "The 'timestamp_ms,rr_ms,hr_bpm' header and one row per beat; hr is 60000/rr_ms with one decimal in the POSIX locale, empty for rr_ms ≤ 0. Internal so every RR CSV export can share one row format.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+2",
-     "cond": "for each point",
-     "effect": "emit a row"
-    },
-    {
      "at": "+4",
-     "cond": "point.rr_ms > 0",
-     "effect": "true: HR value; false: empty field"
+     "cond": "rr_ms > 0",
+     "effect": "bpm; else empty cell"
     }
    ],
    "flags": [
     {
      "kind": "duplicate",
      "sev": "low",
-     "text": "Same 'timestamp_ms,rr_ms,hr_bpm' row builder as RawRRBackup.exportToCSV, which writes 0 (not empty) for rr_ms <= 0; the two exports of the same columns disagree on that cell.",
+     "text": "Same 'timestamp_ms,rr_ms,hr_bpm' row builder as RawRRBackup.exportToCSV, which writes 0 (not empty) for rr_ms <= 0; the two exports of the same columns disagree on that cell. rrCSVRows is now internal; handoff b23 for RawRRBackup.exportToCSV to call it.",
      "evidence": [
       "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift:941",
       "Emuqu/Sources/Storage/RawRRBackup.swift:797",

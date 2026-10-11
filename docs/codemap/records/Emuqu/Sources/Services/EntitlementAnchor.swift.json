@@ -1,34 +1,24 @@
 {
  "file": "Emuqu/Sources/Services/EntitlementAnchor.swift",
- "hash": "64e927089e4a2263",
- "role": "Durable two-tier (UserDefaults cache + iCloud-synchronizable keychain item) store for the entitlement facts that must survive app deletion: beta-tester status, device/App Store trial starts, clock high-water mark and the one-time store history check; plus TrialPolicy, the pure 30-day trial arithmetic.",
+ "hash": "16af2d644bc6fe0d",
+ "role": "Durable store for the entitlement facts that must survive app deletion — UserDefaults cache plus one iCloud-synchronizable keychain item per install (all items read and merged, only the install's own written, undecodable copies never overwritten): beta-tester status, device/App Store trial starts, clock high-water mark and the one-time store history check; plus TrialPolicy, the pure 30-day trial arithmetic.",
  "types": [
   "EntitlementAnchor: enum — namespace for pure merge logic and persistence of the anchor record",
   "EntitlementAnchor.Record: struct (Codable, Equatable) — isBetaTester, deviceTrialStartDate (coded as 'trialStartDate'), storeTrialStartDate, highWaterMark, storeHistoryCheckedAt",
+  "EntitlementAnchor.TierRead: private enum — absent | record | unreadable",
+  "EntitlementAnchor.Tiers: private struct — defaults read, merged keychain record, own keychain item read",
   "TrialPolicy: enum — pure trial-length / days-remaining / active / expired arithmetic (30 days)"
  ],
  "state": [
   "ud:entitlement.anchor.v1 (EntitlementAnchor.defaultsKey, JSON-encoded Record)",
-  "kc:com.chrissharp.flowrecovery.entitlement/primary (synchronizable generic password) accessible AfterFirstUnlock",
+  "ud:entitlement.anchor.account (this install's keychain account name, 'install-<UUID>')",
+  "kc:com.chrissharp.flowrecovery.entitlement/<every account> (synchronizable generic passwords) accessible AfterFirstUnlock; the legacy account 'primary' is read, never written",
   "mem:EntitlementAnchor.Record.empty (isBetaTester false, no starts, highWaterMark .distantPast)",
   "mem:TrialPolicy.durationDays = 30",
   "mem:TrialPolicy.secondsPerDay = 86400"
  ],
  "toplevel": "Record.CodingKeys maps deviceTrialStartDate to the legacy key 'trialStartDate' and does not decode the legacy 'historyCheckedAt' key (so a store build re-runs the history check). Codable synthesis encodes/decodes Record for both tiers. resetForUITesting is compiled only under #if DEBUG.",
  "flags": [
-  {
-   "kind": "data-loss",
-   "sev": "med",
-   "text": "A Record that fails to decode in either tier (e.g. a downgrade to a build whose Record lacks a field a newer build wrote non-optionally, or corruption) is treated as an absent tier; resolve() then persists the merge of the other tier over it, so a keychain item that only failed to decode is overwritten with the UserDefaults copy or with .empty, erasing beta status, trial starts, high-water mark and the history-check stamp.",
-   "evidence": [
-    "Emuqu/Sources/Services/EntitlementAnchor.swift:435",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift:441",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift:205",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift:207",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift:370"
-   ],
-   "found": "first read, upheld on second"
-  },
   {
    "kind": "spec-mismatch",
    "sev": "low",
@@ -130,18 +120,7 @@
      "effect": "isBetaTester set true; otherwise isBetaTester left as is"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Record.isBetaTester is documented as 'Set only on proof of a sandbox receipt', but evaluatedHistory sets it from the mere presence of archived sessions at the first store-build check.",
-     "evidence": [
-      "Emuqu/Sources/Services/EntitlementAnchor.swift:60",
-      "Emuqu/Sources/Services/EntitlementAnchor.swift:155"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.effectiveNow(_:wallClock:)": "5364495875c1deda"
    }
@@ -224,11 +203,11 @@
   },
   {
    "key": "func EntitlementAnchor.cached()",
-   "hash": "498eba1d8ce758c6",
-   "does": "Fast synchronous read of the UserDefaults tier only; .empty when absent or undecodable.",
+   "hash": "adf403eeb7e8a1f4",
+   "does": "Fast synchronous read of the UserDefaults cache only (readDefaults); .empty when absent or undecodable.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.loadFromDefaults()"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.readDefaults()"
    ],
    "reads": [
     "ud:entitlement.anchor.v1"
@@ -237,42 +216,33 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "loadFromDefaults() returns nil",
-     "effect": "falls back to Record.empty; otherwise decoded record"
+     "cond": "?? — no decodable cache",
+     "effect": ".empty"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.loadFromDefaults()": "fa956a7525c59d0d"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.readDefaults()": "61448e510b2021f1",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.TierRead.storedRecord": "f189915542dbcaed"
    }
   },
   {
    "key": "func EntitlementAnchor.resolve(wallClock:)",
-   "hash": "4d3ff82df5a8e143",
-   "does": "Authoritative read: merges the UserDefaults and keychain tiers, advances the high-water mark to wallClock, unconditionally writes the result to both tiers, and returns it.",
+   "hash": "40ddadf14aa6dbf5",
+   "does": "Authoritative read: update(wallClock:) with no change — merges the cache and every keychain item, advances the high-water mark to wallClock, writes the result to the cache and this install's own item where they differ (never over an undecodable copy), and returns it.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.merged(_:_:)",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.loadFromDefaults()",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.loadFromKeychain()",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.advanced(_:to:)",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.persist(_:)"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.update(wallClock:_:)"
    ],
    "reads": [
     "ud:entitlement.anchor.v1",
-    "kc:com.chrissharp.flowrecovery.entitlement/primary (synchronizable generic password)"
+    "kc:com.chrissharp.flowrecovery.entitlement/<every account> (synchronizable generic passwords)"
    ],
    "writes": [
     "ud:entitlement.anchor.v1",
-    "kc:com.chrissharp.flowrecovery.entitlement/primary (synchronizable generic password)"
+    "kc:com.chrissharp.flowrecovery.entitlement/<this install's account>"
    ],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "merged(...) returns nil (both tiers empty/undecodable)",
-     "effect": "uses Record.empty; otherwise merged record"
-    }
-   ],
+   "branches": [],
    "flags": [
     {
      "kind": "fragile",
@@ -292,196 +262,101 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.advanced(_:to:)": "d56f6e9206929597",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.loadFromDefaults()": "fa956a7525c59d0d",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.loadFromKeychain()": "5150b72255778c3f",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.merged(_:_:)": "004de710422586ad",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.persist(_:)": "829445d8ebb86069"
-   }
-  },
-  {
-   "key": "func EntitlementAnchor.resolvedForGate(wallClock:)",
-   "hash": "349b645a9c6328ec",
-   "does": "Launch-gate read: returns the UserDefaults cache when it already says beta tester or has a trial start; otherwise does the full keychain resolve (which also promotes the result into UserDefaults).",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.cached()",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.resolve(wallClock:)"
-   ],
-   "reads": [
-    "ud:entitlement.anchor.v1",
-    "kc:com.chrissharp.flowrecovery.entitlement/primary (synchronizable generic password)"
-   ],
-   "writes": [
-    "ud:entitlement.anchor.v1",
-    "kc:com.chrissharp.flowrecovery.entitlement/primary (synchronizable generic password)"
-   ],
-   "branches": [
-    {
-     "at": "+3",
-     "cond": "cached record isBetaTester or has a trialStartDate",
-     "effect": "returns cache without keychain I/O; otherwise resolve(wallClock:) (keychain read + write both tiers)"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Doc says a launch where the anchor is already populated does no keychain I/O at all, but the same gate step (prepareEntitlementGate) next calls grandfatherExistingUserIfNeeded → recordHistoryCheck → resolve, which reads and writes the keychain on every non-DEBUG launch.",
-     "evidence": [
-      "Emuqu/Sources/Services/EntitlementAnchor.swift:226",
-      "Emuqu/Sources/Services/EntitlementAnchor.swift:227",
-      "Emuqu/Sources/Services/AppLaunchTasks.swift:637",
-      "Emuqu/Sources/Services/StoreKitManager.swift:209",
-      "Emuqu/Sources/Services/EntitlementAnchor.swift:257"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "In every non-DEBUG build the keychain promotion resolvedForGate exists for is repeated unconditionally by the next gate step: grandfatherExistingUserIfNeeded -> recordHistoryCheck -> resolve() reads and merges the keychain anyway, so the fast-path skip saves nothing; in DEBUG builds isDeveloperInstall grants access regardless.",
-     "evidence": [
-      "Emuqu/Sources/Services/AppLaunchTasks.swift:635",
-      "Emuqu/Sources/Services/AppLaunchTasks.swift:637",
-      "Emuqu/Sources/Services/StoreKitManager.swift:208",
-      "Emuqu/Sources/Services/StoreKitManager.swift:209",
-      "Emuqu/Sources/Services/EntitlementAnchor.swift:257",
-      "Emuqu/Sources/Services/StoreKitManager.swift:771"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.cached()": "1f50f386668c92fd",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.resolve(wallClock:)": "ac55d5528623c3fb"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.update(wallClock:_:)": "7e1458111b702982"
    }
   },
   {
    "key": "func EntitlementAnchor.recordBetaTester(wallClock:)",
-   "hash": "c4da04da0f474b53",
-   "does": "Resolves the anchor and, if not already a beta tester, sets isBetaTester = true and persists to both tiers; returns the record. Only caller is StoreKitManager.migrateLegacyTestFlightFlag.",
+   "hash": "811382c54be0a54f",
+   "does": "update(wallClock:) setting isBetaTester = true; logs when the resolved record was not already a beta tester; returns the updated record.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.resolve(wallClock:)",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.persist(_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.update(wallClock:_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
     "ud:entitlement.anchor.v1",
-    "kc:com.chrissharp.flowrecovery.entitlement/primary (synchronizable generic password)"
+    "kc:com.chrissharp.flowrecovery.entitlement/<every account> (synchronizable generic passwords)"
    ],
    "writes": [
     "ud:entitlement.anchor.v1",
-    "kc:com.chrissharp.flowrecovery.entitlement/primary (synchronizable generic password)"
+    "kc:com.chrissharp.flowrecovery.entitlement/<this install's account>"
    ],
    "branches": [
     {
-     "at": "+3",
-     "cond": "record already isBetaTester",
-     "effect": "returns it without writing again (resolve already wrote); otherwise sets flag, persists, logs"
+     "at": "+7",
+     "cond": "resolved record was not yet a beta tester",
+     "effect": "log"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.persist(_:)": "829445d8ebb86069",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.resolve(wallClock:)": "ac55d5528623c3fb",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.update(wallClock:_:)": "7e1458111b702982",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
    "key": "func EntitlementAnchor.recordHistoryCheck(hasHistory:wallClock:)",
-   "hash": "3338661174ccba5f",
-   "does": "Resolves the anchor, applies evaluatedHistory for this launch, persists if it changed, logs when the check newly granted beta status, returns the updated record.",
+   "hash": "20278b9593151f2b",
+   "does": "update(wallClock:) applying evaluatedHistory; logs when that newly granted beta status; returns the updated record.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.resolve(wallClock:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.update(wallClock:_:)",
     "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.evaluatedHistory(_:hasHistory:wallClock:)",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.persist(_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
     "ud:entitlement.anchor.v1",
-    "kc:com.chrissharp.flowrecovery.entitlement/primary (synchronizable generic password)"
+    "kc:com.chrissharp.flowrecovery.entitlement/<every account> (synchronizable generic passwords)"
    ],
    "writes": [
     "ud:entitlement.anchor.v1",
-    "kc:com.chrissharp.flowrecovery.entitlement/primary (synchronizable generic password)"
+    "kc:com.chrissharp.flowrecovery.entitlement/<this install's account>"
    ],
    "branches": [
     {
-     "at": "+4",
-     "cond": "evaluated record equals resolved record (already checked)",
-     "effect": "returns without a second persist; otherwise persists"
-    },
-    {
-     "at": "+6",
-     "cond": "updated is beta tester and resolved was not",
-     "effect": "logs the grandfathering; otherwise no log"
+     "at": "+3",
+     "cond": "beta status newly set",
+     "effect": "log"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.evaluatedHistory(_:hasHistory:wallClock:)": "e8c584ec46ea1431",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.persist(_:)": "829445d8ebb86069",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.resolve(wallClock:)": "ac55d5528623c3fb",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.evaluatedHistory(_:hasHistory:wallClock:)": "01bdea8bd341e170",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.update(wallClock:_:)": "7e1458111b702982",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
    "key": "func EntitlementAnchor.adoptTrialStart(_:wallClock:)",
-   "hash": "3eadfd16905a459c",
-   "does": "Adopts an externally discovered device trial start: resolves, keeps the earlier device start, moves the high-water mark up to the candidate, persists when changed. Its only caller is SettingsManager.adoptTrialStart (else-branch), itself called only from StoreKitManager.adoptStoreTrialStart right after recordStoreTrialStart, so in practice it is reached only if that store start failed to reach the UserDefaults tier.",
+   "hash": "25bd9c1ce3e70b68",
+   "does": "Adopts a device trial start through update(wallClock:) with adopting (earlier device start kept, high-water mark raised to the candidate). Its only caller is SettingsManager.adoptTrialStart, which reaches it only for a start earlier than the anchor's; today that is the App Store start already recorded by recordStoreTrialStart. A start that exists only in synced settings is not fed in by any code.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.resolve(wallClock:)",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.adopting(_:trialStart:)",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.persist(_:)"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.update(wallClock:_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.adopting(_:trialStart:)"
    ],
    "reads": [
     "ud:entitlement.anchor.v1",
-    "kc:com.chrissharp.flowrecovery.entitlement/primary (synchronizable generic password)"
+    "kc:com.chrissharp.flowrecovery.entitlement/<every account> (synchronizable generic passwords)"
    ],
    "writes": [
     "ud:entitlement.anchor.v1",
-    "kc:com.chrissharp.flowrecovery.entitlement/primary (synchronizable generic password)"
+    "kc:com.chrissharp.flowrecovery.entitlement/<this install's account>"
    ],
    "branches": [
     {
      "at": "+1",
      "cond": "candidate is nil",
-     "effect": "returns immediately with no I/O; otherwise resolves"
-    },
-    {
-     "at": "+4",
-     "cond": "adopting produced no change",
-     "effect": "returns (resolve already persisted); otherwise persists the update"
+     "effect": "returns immediately with no I/O"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "The comments and docs say this adopts the UserSettings.trialStartDate that CloudKitSettingsSync restores, but no code passes a settings-restored date: SettingsManager.adoptTrialStart is called only with the App Store start, after recordStoreTrialStart has made cached().trialStartDate equal to it, so the guard at SettingsManager.swift:423 always takes the mirror branch. A trial start that exists only in synced settings is never written to the anchor/keychain nor used to raise the high-water mark (the clock-back protection described at lines 273-277); it is only read as a fallback in isTrialActive/trialDaysRemaining.",
-     "evidence": [
-      "Emuqu/Sources/Services/EntitlementAnchor.swift:267",
-      "Emuqu/Sources/Services/EntitlementAnchor.swift:268",
-      "Emuqu/Sources/Services/EntitlementAnchor.swift:273",
-      "Emuqu/Sources/Services/EntitlementAnchor.swift:48",
-      "Emuqu/Sources/Services/EntitlementAnchor.swift:49",
-      "Emuqu/Sources/Models/SettingsManager.swift:423",
-      "Emuqu/Sources/Models/SettingsManager.swift:427",
-      "Emuqu/Sources/Services/StoreKitManager.swift:364",
-      "Emuqu/Sources/Services/StoreKitManager.swift:365",
-      "docs/ARCHITECTURE.md:828"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.adopting(_:trialStart:)": "19be1a6e446da196",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.persist(_:)": "829445d8ebb86069",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.resolve(wallClock:)": "ac55d5528623c3fb"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.update(wallClock:_:)": "7e1458111b702982"
    }
   },
   {
@@ -504,34 +379,26 @@
   },
   {
    "key": "func EntitlementAnchor.recordStoreTrialStart(_:wallClock:)",
-   "hash": "d1d9c8bd9e7a78a7",
-   "does": "Records the App Store trial transaction's purchase date as storeTrialStartDate (replacing, not merging), advancing the high-water mark, and persists when changed.",
+   "hash": "f0a6a5fab13539a1",
+   "does": "update(wallClock:) applying recordingStoreTrialStart (App Store start replaces the stored one, high-water mark raised to it).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.resolve(wallClock:)",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.recordingStoreTrialStart(_:start:)",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.persist(_:)"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.update(wallClock:_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.recordingStoreTrialStart(_:start:)"
    ],
    "reads": [
     "ud:entitlement.anchor.v1",
-    "kc:com.chrissharp.flowrecovery.entitlement/primary (synchronizable generic password)"
+    "kc:com.chrissharp.flowrecovery.entitlement/<every account> (synchronizable generic passwords)"
    ],
    "writes": [
     "ud:entitlement.anchor.v1",
-    "kc:com.chrissharp.flowrecovery.entitlement/primary (synchronizable generic password)"
+    "kc:com.chrissharp.flowrecovery.entitlement/<this install's account>"
    ],
-   "branches": [
-    {
-     "at": "+3",
-     "cond": "recording produced no change",
-     "effect": "returns; otherwise persists to both tiers"
-    }
-   ],
+   "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.persist(_:)": "829445d8ebb86069",
     "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.recordingStoreTrialStart(_:start:)": "d6f1aacbd2cd2e71",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.resolve(wallClock:)": "ac55d5528623c3fb"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.update(wallClock:_:)": "7e1458111b702982"
    }
   },
   {
@@ -551,30 +418,106 @@
    }
   },
   {
-   "key": "func EntitlementAnchor.persist(_:)",
-   "hash": "14e3c3632f0a3db0",
-   "does": "Writes the record to UserDefaults then the keychain.",
+   "key": "var EntitlementAnchor.TierRead.storedRecord",
+   "hash": "e111e730f28a1865",
+   "does": "The record of a .record read; nil for .absent and .unreadable.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "case .record",
+     "effect": "the record; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func EntitlementAnchor.update(wallClock:_:)",
+   "hash": "21fb58b172f4638a",
+   "does": "Reads every tier (readTiers), merges the cache with the merged keychain items (.empty when none), advances the high-water mark to wallClock, applies change, then saves to the cache and to this install's own keychain item each one whose stored read differs from the result and is not unreadable (an undecodable copy is never overwritten). Returns (resolved before change, updated).",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.readTiers()",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.merged(_:_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.advanced(_:to:)",
     "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.saveToDefaults(_:)",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.saveToKeychain(_:)"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.saveToKeychain(_:)",
+    "closure:change"
    ],
-   "reads": [],
+   "reads": [
+    "ud:entitlement.anchor.v1",
+    "kc:com.chrissharp.flowrecovery.entitlement/<every account> (synchronizable generic passwords)"
+   ],
    "writes": [
     "ud:entitlement.anchor.v1",
-    "kc:com.chrissharp.flowrecovery.entitlement/primary (synchronizable generic password)"
+    "kc:com.chrissharp.flowrecovery.entitlement/<this install's account>"
    ],
-   "branches": [],
-   "flags": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "?? — no tier holds a record",
+     "effect": "Record.empty"
+    },
+    {
+     "at": "+5",
+     "cond": "cache differs and is not unreadable",
+     "effect": "saveToDefaults"
+    },
+    {
+     "at": "+6",
+     "cond": "own keychain item differs and is not unreadable",
+     "effect": "saveToKeychain"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "The high-water mark advances to wallClock on every update, so the result nearly always differs from what is stored and both writes still happen on every resolve (see the resolve finding); the skip only helps when the clock has not moved.",
+     "evidence": [
+      "Emuqu/Sources/Services/EntitlementAnchor.swift:332"
+     ],
+     "found": "fix batch b15"
+    }
+   ],
    "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.advanced(_:to:)": "d56f6e9206929597",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.merged(_:_:)": "004de710422586ad",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.readTiers()": "4e0e7cab0bca22f1",
     "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.saveToDefaults(_:)": "fa4b1a579d50305c",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.saveToKeychain(_:)": "3529061e84a8ccd8"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.saveToKeychain(_:)": "7708c28ab0c2d552",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.TierRead.storedRecord": "f189915542dbcaed"
    }
   },
   {
-   "key": "func EntitlementAnchor.loadFromDefaults()",
-   "hash": "b50fbaa28a08eac5",
-   "does": "Reads and decodes the UserDefaults tier; nil when absent or undecodable.",
+   "key": "func EntitlementAnchor.readTiers()",
+   "hash": "54748735a8c6be59",
+   "does": "Reads the keychain (loadFromKeychain) and the cache (readDefaults) into a Tiers value.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.loadFromKeychain()",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.readDefaults()"
+   ],
+   "reads": [
+    "ud:entitlement.anchor.v1",
+    "kc:com.chrissharp.flowrecovery.entitlement/<every account> (synchronizable generic passwords)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.loadFromKeychain()": "2f5027fa1d7ca711",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.readDefaults()": "61448e510b2021f1"
+   }
+  },
+  {
+   "key": "func EntitlementAnchor.readDefaults()",
+   "hash": "b4a702c4337d98e8",
+   "does": "Reads the cache: .absent when no data, .record when it decodes, .unreadable when it does not (decode logs).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.decode(_:)"
@@ -586,8 +529,13 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "no Data under entitlement.anchor.v1",
-     "effect": "returns nil; otherwise decode(data) (nil on decode error)"
+     "cond": "no data",
+     "effect": ".absent"
+    },
+    {
+     "at": "+2",
+     "cond": "decode fails",
+     "effect": ".unreadable"
     }
    ],
    "flags": [],
@@ -620,9 +568,31 @@
    }
   },
   {
-   "key": "var EntitlementAnchor.keychainQuery",
-   "hash": "422c33c990b8cfb1",
-   "does": "Base keychain query: generic password, service com.chrissharp.flowrecovery.entitlement, account primary, synchronizable true.",
+   "key": "var EntitlementAnchor.ownKeychainAccount",
+   "hash": "589596380b3a9cd1",
+   "does": "This install's keychain account: the name stored under ud:entitlement.anchor.account, or a new 'install-<UUID>' stored there on first use.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ud:entitlement.anchor.account"
+   ],
+   "writes": [
+    "ud:entitlement.anchor.account"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "name stored",
+     "effect": "return it; else create and store one"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var EntitlementAnchor.keychainServiceQuery",
+   "hash": "483b4299d294ee18",
+   "does": "Base query matching every synchronizable generic-password item of the anchor service, any account.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -632,47 +602,142 @@
    "deps": {}
   },
   {
-   "key": "func EntitlementAnchor.loadFromKeychain()",
-   "hash": "ae56070d1f6ad812",
-   "does": "SecItemCopyMatching for the anchor item, returning the decoded Record or nil.",
+   "key": "func EntitlementAnchor.keychainQuery(account:)",
+   "hash": "10c178d4668b60bf",
+   "does": "keychainServiceQuery narrowed to one account.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.keychainQuery",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.decode(_:)",
-    "ext:Security.SecItemCopyMatching"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.keychainServiceQuery"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.keychainServiceQuery": "322a0f9ba377d9ab"
+   }
+  },
+  {
+   "key": "func EntitlementAnchor.loadFromKeychain()",
+   "hash": "666a55c8ece4615d",
+   "does": "Lists the service's accounts and reads each item, merging every readable record; also returns this install's own item read (.absent when it has none). When the accounts cannot be listed returns (nil, .unreadable) so nothing is written.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.keychainAccounts()",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.ownKeychainAccount",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.readKeychainItem(account:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.merged(_:_:)"
    ],
    "reads": [
-    "kc:com.chrissharp.flowrecovery.entitlement/primary (synchronizable generic password)"
+    "kc:com.chrissharp.flowrecovery.entitlement/<every account> (synchronizable generic passwords)"
    ],
    "writes": [],
    "branches": [
     {
+     "at": "+1",
+     "cond": "listing failed",
+     "effect": "(nil, .unreadable)"
+    },
+    {
+     "at": "+8",
+     "cond": "account is this install's",
+     "effect": "keep its read as own"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.keychainAccounts()": "9c85000f12af91fe",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.merged(_:_:)": "004de710422586ad",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.readKeychainItem(account:)": "2c426cf6d0ed4fbc",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.TierRead.storedRecord": "f189915542dbcaed",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.ownKeychainAccount": "01a8b28e41b28b35"
+   }
+  },
+  {
+   "key": "func EntitlementAnchor.keychainAccounts()",
+   "hash": "25c9055aec12ecca",
+   "does": "SecItemCopyMatching for all items' attributes (kSecMatchLimitAll) and returns their account names; [] on errSecItemNotFound; nil (logged) on any other failure.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:Security.SecItemCopyMatching"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.entitlement/<every account> (synchronizable generic passwords)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "errSecItemNotFound",
+     "effect": "[]"
+    },
+    {
      "at": "+7",
-     "cond": "status != errSecSuccess or result is not Data",
-     "effect": "returns nil silently (no log, so a locked-keychain errSecInteractionNotAllowed reads as 'no anchor'); otherwise decode"
+     "cond": "other failure or unexpected result",
+     "effect": "log, nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func EntitlementAnchor.readKeychainItem(account:)",
+   "hash": "9a8be72687dd5bce",
+   "does": "Reads one item's data: .absent on errSecItemNotFound, .unreadable (logged) on another failure or when it does not decode, else .record.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.keychainQuery(account:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.decode(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:Security.SecItemCopyMatching"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.entitlement/<every account> (synchronizable generic passwords)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "errSecItemNotFound",
+     "effect": ".absent"
+    },
+    {
+     "at": "+7",
+     "cond": "other failure",
+     "effect": "log, .unreadable"
+    },
+    {
+     "at": "+11",
+     "cond": "decode fails",
+     "effect": ".unreadable"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.decode(_:)": "dcb6189c5049029b",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.keychainQuery": "71a87addf40591e8"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.keychainQuery(account:)": "a8d4ee1b266890ce",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
    "key": "func EntitlementAnchor.saveToKeychain(_:)",
-   "hash": "85c11990ac78555a",
-   "does": "Encodes the record and SecItemUpdate's the keychain item (data + AfterFirstUnlock); adds the item when it does not exist; logs other failures.",
+   "hash": "2b146ae6f6dff10c",
+   "does": "Encodes the record and SecItemUpdate's this install's own item (data + AfterFirstUnlock); adds it when it does not exist; logs other failures.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.encode(_:)",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.keychainQuery",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.addToKeychain(_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.keychainQuery(account:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.ownKeychainAccount",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.addToKeychain(_:query:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "ext:Security.SecItemUpdate"
    ],
    "reads": [],
    "writes": [
-    "kc:com.chrissharp.flowrecovery.entitlement/primary (synchronizable generic password)"
+    "kc:com.chrissharp.flowrecovery.entitlement/<this install's account>"
    ],
    "branches": [
     {
@@ -681,14 +746,14 @@
      "effect": "returns without writing"
     },
     {
-     "at": "+7",
+     "at": "+8",
      "cond": "update succeeded",
      "effect": "returns"
     },
     {
-     "at": "+8",
+     "at": "+9",
      "cond": "update status is not errSecItemNotFound",
-     "effect": "logs warning and returns (write dropped, no retry); errSecItemNotFound falls through to addToKeychain"
+     "effect": "logs warning and returns; errSecItemNotFound falls through to addToKeychain"
     }
    ],
    "flags": [
@@ -702,81 +767,60 @@
       "Emuqu/Sources/Services/EntitlementAnchor.swift:392"
      ],
      "found": "first read, upheld on second"
-    },
-    {
-     "kind": "data-loss",
-     "sev": "med",
-     "text": "The monotonic merge only runs between this device's two tiers (merged(loadFromDefaults(), loadFromKeychain())). On a device where the synchronizable item has not arrived from iCloud Keychain yet (new phone, reinstall before sync), loadFromKeychain returns nil, resolve persists the local record and addToKeychain creates a new synchronizable item with the same service/account. No code merges that item with the copy iCloud Keychain later delivers, so which record (beta status, history-check stamp, trial dates) survives is decided by iCloud Keychain's own conflict handling, not by the OR/earliest/latest rules the header promises.",
-     "evidence": [
-      "Emuqu/Sources/Services/EntitlementAnchor.swift:43",
-      "Emuqu/Sources/Services/EntitlementAnchor.swift:44",
-      "Emuqu/Sources/Services/EntitlementAnchor.swift:205",
-      "Emuqu/Sources/Services/EntitlementAnchor.swift:207",
-      "Emuqu/Sources/Services/EntitlementAnchor.swift:366",
-      "Emuqu/Sources/Services/EntitlementAnchor.swift:382",
-      "Emuqu/Sources/Services/EntitlementAnchor.swift:391",
-      "Emuqu/Sources/Services/StoreKitManager.swift:175"
-     ],
-     "found": "second read"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.addToKeychain(_:)": "cd822bbe398b5d0d",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.addToKeychain(_:query:)": "6f88db550bf422e5",
     "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.encode(_:)": "13bf1d7a301afabc",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.keychainQuery": "71a87addf40591e8",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.keychainQuery(account:)": "a8d4ee1b266890ce",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.ownKeychainAccount": "01a8b28e41b28b35",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
-   "key": "func EntitlementAnchor.addToKeychain(_:)",
-   "hash": "83cf9dec30145264",
-   "does": "Builds an add query from the base query plus attributes and SecItemAdd's it; logs on failure.",
+   "key": "func EntitlementAnchor.addToKeychain(_:query:)",
+   "hash": "367b5a03f1ff9e4f",
+   "does": "Adds the item: the given one-account query plus the attributes; logs a failure.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.keychainQuery",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "ext:Security.SecItemAdd"
    ],
    "reads": [],
    "writes": [
-    "kc:com.chrissharp.flowrecovery.entitlement/primary (synchronizable generic password)"
+    "kc:com.chrissharp.flowrecovery.entitlement/<this install's account>"
    ],
    "branches": [
     {
-     "at": "+2",
-     "cond": "for each attribute key/value",
-     "effect": "copied into the add query"
-    },
-    {
      "at": "+6",
-     "cond": "addStatus != errSecSuccess",
-     "effect": "logs warning; item not stored"
+     "cond": "add failed",
+     "effect": "log warning"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.keychainQuery": "71a87addf40591e8",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
    "key": "func EntitlementAnchor.resetForUITesting()",
-   "hash": "081babcf3fe02ba0",
-   "does": "DEBUG only: removes the UserDefaults key and deletes the keychain item.",
+   "hash": "a4b756af41c4686f",
+   "does": "DEBUG only: removes the cache and the install's account name from UserDefaults and deletes every keychain item of the service.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.keychainQuery",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.keychainServiceQuery",
     "ext:Security.SecItemDelete"
    ],
    "reads": [],
    "writes": [
     "ud:entitlement.anchor.v1",
-    "kc:com.chrissharp.flowrecovery.entitlement/primary (synchronizable generic password)"
+    "ud:entitlement.anchor.account",
+    "kc:com.chrissharp.flowrecovery.entitlement/<every account> (synchronizable generic passwords)"
    ],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.keychainQuery": "71a87addf40591e8"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.keychainServiceQuery": "322a0f9ba377d9ab"
    }
   },
   {

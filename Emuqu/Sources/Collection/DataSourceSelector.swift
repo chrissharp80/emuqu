@@ -30,7 +30,12 @@ enum DataSourceSelector {
         }
     }
 
-    /// Select the best data source from streaming and internal recording data
+    /// Select the best data source from streaming and internal recording data.
+    ///
+    /// Both lists must be on the session's clock: a composite compares
+    /// internal `t_ms` with streaming `wallClockMs` (ms since the stream
+    /// started) directly, so callers first place a strap recording on the
+    /// session's clock with `StrapRecording.points(onClockOf:)`.
     /// - Parameters:
     ///   - streamingPoints: RR points collected via BLE streaming
     ///   - internalPoints: RR points fetched from H10 internal memory
@@ -134,7 +139,12 @@ enum DataSourceSelector {
         )
     }
 
-    /// Create composite RR points by merging internal recording with streaming data to fill gaps
+    /// Create composite RR points by merging internal recording with streaming
+    /// data: streaming fills the internal series' gaps and also supplies the
+    /// beats before its first beat and after its last (a strap recording that
+    /// started late or stopped early), the same rule as
+    /// `mergeAddingOnlyUncoveredBeats`. Nil when the internal series has no
+    /// gap streaming can fill.
     private static func createComposite(
         internalSeries: RRSeries,
         streamingSeries: RRSeries
@@ -145,47 +155,44 @@ enum DataSourceSelector {
             debugLog("[DataSourceSelector] Cannot create composite: empty series")
             return nil
         }
-        guard let fill = fillableGapSummary(internalPoints: internalPoints, streamingPoints: streamingPoints) else {
+        let gaps = findGaps(in: internalPoints)
+        guard let fill = fillableGapSummary(gaps: gaps, streamingPoints: streamingPoints) else {
             return nil
         }
-        let gapFill = streamingBeatsInsideGaps(internalPoints: internalPoints, streamingPoints: streamingPoints)
-        let merged = mergePoints(internal: internalPoints, streaming: gapFill)
-        debugLog("[DataSourceSelector] Composite complete: \(merged.count) beats — added \(fill.beatsAdded) beats to fill \(fill.gapsFilled) gap(s)")
+        let merged = mergePoints(internal: internalPoints, streaming: uncoveredBeats(streamingPoints, internal: internalPoints, gaps: gaps))
+        debugLog("[DataSourceSelector] Composite complete: \(merged.count) beats — added \(merged.count - internalPoints.count) streaming beats, \(fill.beatsAdded) of them in \(fill.gapsFilled) gap(s)")
         return merged
     }
 
     /// Merges a streaming series into a device recording without doubling the
     /// beats both captured: streaming beats are kept only inside the device's
     /// gaps or outside the span it recorded.
+    ///
+    /// Both series must be on one clock: internal `t_ms` and streaming
+    /// `wallClockMs` are compared directly, so the caller places a strap
+    /// recording on the session's clock first (`StrapRecording.points(onClockOf:)`).
     static func mergeAddingOnlyUncoveredBeats(internal internalPoints: [RRPoint], streaming streamingPoints: [RRPoint]) -> [RRPoint] {
-        guard let first = internalPoints.first, let last = internalPoints.last else {
-            return mergePoints(internal: internalPoints, streaming: streamingPoints)
-        }
-        let gaps = findGaps(in: internalPoints)
-        let uncovered = streamingPoints.filter { point in
-            let time = streamTime(point)
-            guard time >= first.t_ms, time <= last.endMs else { return true }
-            return gaps.contains { time >= $0.startMs && time <= $0.endMs }
-        }
+        let uncovered = uncoveredBeats(streamingPoints, internal: internalPoints, gaps: findGaps(in: internalPoints))
         return mergePoints(internal: internalPoints, streaming: uncovered)
     }
 
-    /// Only the streaming beats that fall inside an internal gap: the stream's
-    /// arrival-time clock rarely lands within the 50 ms duplicate window of
-    /// the strap's own beats, so merging all of it would put nearly every
-    /// beat of the night in twice.
-    private static func streamingBeatsInsideGaps(internalPoints: [RRPoint], streamingPoints: [RRPoint]) -> [RRPoint] {
-        let gaps = findGaps(in: internalPoints)
+    /// The streaming beats the internal series does not cover: those inside
+    /// one of its gaps or outside the span it recorded; all of them when it
+    /// is empty. The stream's arrival-time clock rarely lands within the
+    /// 50 ms duplicate window of the strap's own beats, so merging all of it
+    /// would put nearly every covered beat in twice.
+    private static func uncoveredBeats(_ streamingPoints: [RRPoint], internal internalPoints: [RRPoint], gaps: [GapInfo]) -> [RRPoint] {
+        guard let first = internalPoints.first, let last = internalPoints.last else { return streamingPoints }
         return streamingPoints.filter { point in
-            let time = point.wallClockMs ?? point.t_ms
+            let time = streamTime(point)
+            guard time >= first.t_ms, time <= last.endMs else { return true }
             return gaps.contains { time >= $0.startMs && time <= $0.endMs }
         }
     }
 
     /// Nil when there is nothing to gain from a composite: either the internal
     /// series has no significant gaps, or streaming can't cover any of them.
-    private static func fillableGapSummary(internalPoints: [RRPoint], streamingPoints: [RRPoint]) -> (gapsFilled: Int, beatsAdded: Int)? {
-        let gaps = findGaps(in: internalPoints)
+    private static func fillableGapSummary(gaps: [GapInfo], streamingPoints: [RRPoint]) -> (gapsFilled: Int, beatsAdded: Int)? {
         guard !gaps.isEmpty else {
             debugLog("[DataSourceSelector] No significant gaps found")
             return nil
@@ -224,7 +231,7 @@ enum DataSourceSelector {
         var beatsAdded = 0
         for gap in gaps {
             let fillPoints = streamingPoints.filter { point in
-                let effectiveTime = point.wallClockMs ?? point.t_ms
+                let effectiveTime = streamTime(point)
                 return effectiveTime >= gap.startMs && effectiveTime <= gap.endMs
             }
             guard !fillPoints.isEmpty else { continue }

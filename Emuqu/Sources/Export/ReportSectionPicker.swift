@@ -64,7 +64,6 @@ struct ReportSectionPicker: View {
             onGenerate(style, sections)
         }
         .fontWeight(.semibold)
-        .disabled(sections.rawValue == 0)
     }
 
     private var presetsSection: some View {
@@ -155,11 +154,22 @@ struct ReportSectionPicker: View {
 
     @ViewBuilder
     private func presetCheckmark(_ preset: PDFReportGenerator.ReportSections, presetStyle: PDFReportGenerator.ReportStyle) -> some View {
-        if sectionsMatch(preset, style: presetStyle) {
+        if let matched = matchedPreset, matched.sections == preset, matched.style == presetStyle {
             Image(systemName: "checkmark")
                 .foregroundColor(AppTheme.primary)
                 .fontWeight(.semibold)
         }
+    }
+
+    /// The first preset, in list order, that the selection matches. With data
+    /// missing two presets can reduce to the same sections (Summary and Sleep
+    /// Report on a night with no training, vitals, score or charts); only one
+    /// row then carries the checkmark.
+    private var matchedPreset: (sections: PDFReportGenerator.ReportSections, style: PDFReportGenerator.ReportStyle)? {
+        let presets: [(sections: PDFReportGenerator.ReportSections, style: PDFReportGenerator.ReportStyle)] = [
+            (.summaryPreset, .summary), (.all, .comprehensive), (.sleepPreset, .summary)
+        ]
+        return presets.first { sectionsMatch($0.sections, style: $0.style) }
     }
 
     private func sectionsMatch(_ preset: PDFReportGenerator.ReportSections, style presetStyle: PDFReportGenerator.ReportStyle) -> Bool {

@@ -1,24 +1,14 @@
 {
  "file": "scripts/check_no_unowned.sh",
- "hash": "89baa1d43d307183",
- "role": "CI gate: no `unowned let/var` or `unowned(unsafe) let/var` in Emuqu/Sources or the watch app.",
+ "hash": "3c31379765a29284",
+ "role": "CI gate: no `unowned` in Emuqu/Sources or the watch app - stored `unowned (let|var)` and closure captures `[unowned self]` / `[unowned(unsafe) x]` alike.",
  "types": [],
  "state": [
   "dir:Emuqu/Sources",
   "dir:EmuquWatch Watch App"
  ],
- "toplevel": "cd to repo root; sources preflight. grep; hits -> exit 1; else clean. Closure capture lists `[unowned self]` are not matched by the pattern.",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "Pattern requires `unowned let|var`; `[unowned self]` closure captures, which trap the same way when the owner is gone, pass.",
-   "evidence": [
-    "scripts/check_no_unowned.sh:26"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "cd to repo root; sources preflight. Missing root -> exit 2. grep `unowned((un)safe)? <identifier>`, // comment lines dropped; hits -> exit 1; else clean.",
+ "flags": [],
  "units": [],
  "deps": {}
 }

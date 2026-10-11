@@ -107,8 +107,8 @@
   },
   {
    "key": "func DemoSessionSeeder.seed(_:into:pipeline:finalize:progress:)",
-   "hash": "7f0040a7fd7a878c",
-   "does": "Filters plans to unoccupied nights, builds them concurrently, attaches vitals, scores each oldest-first through the injected finalize closure, then writes all off-main via writeAll; returns written ids.",
+   "hash": "ae2471b87f6ca03e",
+   "does": "Filters plans to unoccupied nights, builds them concurrently, attaches vitals, scores each oldest-first through the injected finalize closure, re-checks every finished night against the current archive entries (dropping any that a real session archived or synced meanwhile now overlaps), then writes the rest off-main via writeAll; returns written ids.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
@@ -118,7 +118,8 @@
     "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.writeAll(_:to:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "closure:finalize = SampleDataLibrary.finalize (SampleDataLibrary.swift:110: quality classify, computeRecoveryScore, BaselineTracker.update)",
-    "closure:progress set by SampleDataLibrary.load caller (SampleDataViews)"
+    "closure:progress set by SampleDataLibrary.load caller (SampleDataViews)",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.isOccupied(_:_:in:)"
    ],
    "reads": [
     "archive:SessionArchive.entries"
@@ -131,24 +132,18 @@
      "at": "+10",
      "cond": "for each night with vitals",
      "effect": "await finalize and collect"
-    }
-   ],
-   "flags": [
+    },
     {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Occupancy is checked against archive.entries before seconds-to-minutes of building/scoring; a real session archived (or synced) during that time is not re-checked before writeAll, and writes skip same-night merge, so a sample night can land beside a real one.",
-     "evidence": [
-      "Emuqu/Sources/Services/DemoSessionSeeder.swift:119",
-      "Emuqu/Sources/Services/DemoSessionSeeder.swift:125",
-      "Emuqu/Sources/Services/DemoSessionSeeder.swift:227"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+13",
+     "cond": "finished night now occupied",
+     "effect": "dropped before writing"
     }
    ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.buildAll(_:pipeline:progress:)": "e51c591cd89c1859",
-    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.unoccupied(_:in:)": "cc4dff6f3969a3f2",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.isOccupied(_:_:in:)": "c7f9fbe39f4b1128",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.unoccupied(_:in:)": "d50efe78682be887",
     "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.withVitals(_:)": "4429fd038d7d642c",
     "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.writeAll(_:to:)": "1dc480f268dcf127",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
@@ -208,23 +203,37 @@
   },
   {
    "key": "func DemoSessionSeeder.unoccupied(_:in:)",
-   "hash": "3c8aa6655cfd7672",
-   "does": "Keeps plans whose [start-3h, end+3h] overlaps no archived entry's [date, endDate ?? date].",
+   "hash": "f307032dacc39f05",
+   "does": "Keeps plans for which isOccupied(start, end) is false.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.isOccupied(_:_:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.isOccupied(_:_:in:)": "c7f9fbe39f4b1128"
+   }
+  },
+  {
+   "key": "func DemoSessionSeeder.isOccupied(_:_:in:)",
+   "hash": "f0eee96617e1ccb3",
+   "does": "True when [start-3h, end+3h] (occupancyPadding) overlaps any archived entry's [date, endDate ?? date].",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+4",
+     "at": "+3",
      "cond": "entry endDate nil (??)",
      "effect": "uses entry date as its end"
     }
    ],
    "flags": [],
-   "deps": {
-    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.plan(index:count:morning:calendar:)": "cea129c7616c3e27"
-   }
+   "deps": {}
   },
   {
    "key": "func DemoSessionSeeder.buildNight(_:pipeline:)",

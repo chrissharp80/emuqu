@@ -250,13 +250,13 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)": "bac5eb2b12a99713",
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.kilometreSplits(_:)": "11975a3be78ab2d2"
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.kilometreSplits(_:)": "8fc70e20a3316582"
    }
   },
   {
    "key": "func WorkoutLiveTrends.kilometreSplits(_:)",
-   "hash": "c829205fe0ca5d52",
-   "does": "Walks samples and emits a split every time cumulative distance advances >= 1000 m from the split start: raw pace = elapsed sec / km, grade from start/end altitude (carrying last known altitude forward).",
+   "hash": "49e076272155ea61",
+   "does": "Walks samples and emits a split every time cumulative distance advances >= 1000 m from the split start: raw pace = elapsed sec / km; grade = rise over run from the split's start altitude to the last known altitude (carried forward), where the run is measured from the sample that supplied the start altitude (altDist) — the split start, or, when that had no altitude yet, the first later sample that has one.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.splitGrade(from:to:run:)"
@@ -281,28 +281,16 @@
     },
     {
      "at": "+7",
-     "cond": "split start altitude still nil",
-     "effect": "set start altitude to current lastAlt"
+     "cond": "split start altitude still nil and an altitude is now known",
+     "effect": "set start altitude to lastAlt and altDist to this sample's distance"
     },
     {
-     "at": "+9",
+     "at": "+12",
      "cond": "run since split start < 1000 m",
-     "effect": "continue; else append split and reset start to this sample"
+     "effect": "continue; else append split (grade over d - altDist) and reset start, altDist to this sample"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "When the split-start sample has no altitude (start.alt nil), the start altitude is taken from the first LATER sample that has one, but the rise is still divided by the whole split's run, so the grade of that split is understated.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift:175",
-      "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift:180",
-      "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift:184"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.splitGrade(from:to:run:)": "774ebb117d88f0ac"
    }
@@ -343,7 +331,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)": "bac5eb2b12a99713",
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.kilometreSplits(_:)": "11975a3be78ab2d2"
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.kilometreSplits(_:)": "8fc70e20a3316582"
    }
   },
   {
@@ -745,18 +733,7 @@
      "effect": "return baselines with nil averages and sampleCount 0"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "sampleCount is documented as 'Number of matched workouts that contributed any data' but is set to matches.count regardless of whether a session had distance, HR or alpha1, so a count can include sessions that contributed nothing.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift:557",
-      "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift:595"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
     "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.distanceWeightedPace(_:)": "cac5a8c99a6940ec",

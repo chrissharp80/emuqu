@@ -75,27 +75,32 @@ extension TrainingLoadNamespace {
         )
     }
 
+    /// A cold cache (no daily samples in the 28 days) is no data, not four
+    /// weeks of zero load.
     private func resolveTrainingLoadWeeklyLast4Weeks() -> FactValue {
-        let cal = Calendar.current
         let now = Date()
-        var items: [FactValue] = []
-        for weekIndex in 0 ..< 4 {
-            guard let weekEnd = cal.date(byAdding: .day, value: -7 * weekIndex, to: now),
-                  let weekStart = cal.date(byAdding: .day, value: -7, to: weekEnd)
-            else { continue }
-            let samples = MainActor.assumeIsolated {
-                AppDependencies.current.analysis.trainingMetricsCache.samplesSince(weekStart)
-            }.filter { $0.date < weekEnd }
-            let total = samples.map(\.trimp).reduce(0, +)
-            items.append(.record([
-                "week_ending": .date(weekEnd),
-                "trimp": .double(total)
-            ]))
+        guard let start = Calendar.current.date(byAdding: .day, value: -28, to: now) else {
+            return .missing(reason: .internalError)
         }
-        guard !items.isEmpty else {
+        let samples = MainActor.assumeIsolated {
+            AppDependencies.current.analysis.trainingMetricsCache.samplesSince(start)
+        }
+        guard !samples.isEmpty else {
             return .missing(reason: .notRecorded, detail: "cache cold — no daily samples")
         }
-        return .list(items)
+        return .list((0 ..< 4).compactMap { Self.weekRecord(weeksBack: $0, from: now, samples: samples) })
+    }
+
+    /// The load total of the 7 days ending `weeksBack` weeks before `now`.
+    private static func weekRecord(
+        weeksBack: Int, from now: Date, samples: [TrainingMetricsCache.DaySample]
+    ) -> FactValue? {
+        let cal = Calendar.current
+        guard let weekEnd = cal.date(byAdding: .day, value: -7 * weeksBack, to: now),
+              let weekStart = cal.date(byAdding: .day, value: -7, to: weekEnd)
+        else { return nil }
+        let total = samples.filter { $0.date >= weekStart && $0.date < weekEnd }.map(\.trimp).reduce(0, +)
+        return .record(["week_ending": .date(weekEnd), "trimp": .double(total)])
     }
 
     // Recovery time and days-until-fresh outside a workout; the
@@ -155,11 +160,7 @@ extension TrainingLoadNamespace {
         guard let sport = Sport(rawValue: rawSport.lowercased()) else {
             return .missing(reason: .invalidParameter, detail: "unknown sport \(rawSport)")
         }
-        let archive = self.archive
-        let entries = archive.entries
-            .filter { $0.sessionType == .workout }
-            .compactMap { archive.retrieveLightweightOrLog($0.sessionId) }
-        let predictions = RaceTimePrediction.predictWithBasis(from: entries, sport: sport)
+        let predictions = racePredictions(for: sport)
         guard !predictions.isEmpty else {
             return .missing(reason: .notRecorded, detail: "no \(sport.rawValue) workouts of 3 km or more for a prediction basis")
         }
@@ -171,6 +172,23 @@ extension TrainingLoadNamespace {
             rec["basis_\(label)"] = Self.raceBasisRecord(prediction.basis)
         }
         return .record(rec)
+    }
+
+    /// Race predictions from the sport's efforts. RaceTimePrediction uses
+    /// the last 90 days when they hold a basis and all history otherwise, so
+    /// older workouts are loaded only when the window gives no prediction.
+    private func racePredictions(for sport: Sport) -> [Double: RaceTimePrediction.Prediction] {
+        let workouts = archive.entries.filter { $0.sessionType == .workout }
+        let cutoff = Date().addingTimeInterval(-RaceTimePrediction.recentWindowDays * 86_400)
+        let recent = loadSessions(workouts.filter { $0.date >= cutoff })
+        let fromRecent = RaceTimePrediction.predictWithBasis(from: recent, sport: sport)
+        guard fromRecent.isEmpty else { return fromRecent }
+        let older = loadSessions(workouts.filter { $0.date < cutoff })
+        return RaceTimePrediction.predictWithBasis(from: recent + older, sport: sport)
+    }
+
+    private func loadSessions(_ entries: [SessionArchiveEntry]) -> [HRVSession] {
+        entries.compactMap { archive.retrieveLightweightOrLog($0.sessionId) }
     }
 
     private static func raceBasisRecord(_ basis: RaceTimePrediction.Basis) -> FactValue {
@@ -185,7 +203,7 @@ extension TrainingLoadNamespace {
         .fixed(
             key: "training.pace_zones",
             description: """
-            Daniels-style training pace zones derived from the user's running 5K race prediction. Returns sec/km per zone: easy (long-run / base, ×1.30), marathon (steady race pace, ×1.15), threshold (tempo, ×1.10), interval (VO2max, \
+            Daniels-style training pace zones derived from the user's running 5K race prediction. Returns sec/km per zone: easy (long-run / base, ×1.30), marathon (steady race pace, ×1.15), threshold (tempo, ×1.06), interval (VO2max, \
             ×1.00), repetition (speed work, ×0.93). Use to answer 'what pace should I hold for an easy run today?'. Returns notRecorded when no run history exists yet.
             """,
             valueType: "Record"
@@ -193,14 +211,8 @@ extension TrainingLoadNamespace {
     }
 
     private func resolveTrainingPaceZones() -> FactValue {
-        let archive = self.archive
-        let entries = archive.entries
-            .filter { $0.sessionType == .workout }
-            .compactMap { archive.retrieveLightweightOrLog($0.sessionId) }
-        let predictions = RaceTimePrediction.predict(from: entries, sport: .run)
-        guard let totalSec = predictions[5_000],
-              let zones = TrainingPaceZones.from5KPace(secPerKm: totalSec / 5.0)
-        else {
+        let predictions = racePredictions(for: .run).mapValues(\.totalSec)
+        guard let zones = TrainingPaceZones.from(racePredictions: predictions) else {
             return .missing(reason: .notRecorded, detail: "no 5K running basis in history")
         }
         return .record([
@@ -305,7 +317,8 @@ extension TrainingLoadNamespace {
 
     private static let daysUntilAtlConvergesDescription = """
     Days at the given daily TRIMP load until ATL converges within `gap_trimp` units of CTL (the 'adaptive zone' where fitness ≈ fatigue). Param format: 'daily_trimp,gap_trimp' — e.g. '60,5' means 'how many days at 60 TRIMP/day \
-    until |ATL−CTL| ≤ 5'. **For 'if I maintain the current walk daily' questions, get the daily_trimp by calling `workout.most_recent.snapshot` first (it returns TRIMP for today's most recent workout) — don't ask the user.** \
+    until |ATL−CTL| ≤ 5'. **For 'if I maintain the current walk daily' questions, get the daily_trimp from `training.load.trimp.by_date` for that walk's date — the power-aware load ATL/CTL are built from (it sums every workout that day) — \
+    not the heart-rate `trimp` of workout.most_recent.snapshot, which is a different unit; don't ask the user.** \
     For 'if I double the walk', multiply that value by 2 before passing in. To project the actual ATL/CTL trajectory (e.g. 'how high would ATL get'), use `training.project_from` with the load value — ATL exponentially approaches \
     the daily TRIMP (7-day τ; ~95% of asymptote at 21 days). Returns 0 when the user is already inside the gap. Returns notRecorded when the chosen daily_trimp would never close the gap within 60 days at current fitness (signal: \
     load unsustainable — ATL outruns CTL forever).

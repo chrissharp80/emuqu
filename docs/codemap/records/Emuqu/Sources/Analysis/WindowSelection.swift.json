@@ -6,7 +6,7 @@
   "WindowSelector: class (final, Sendable) — recovery window selector",
   "WindowSelector.RecoveryWindow: struct (Codable) — selected window persisted on analysis results",
   "WindowSelector.RecoveryWindow.WindowClassification: enum (String, Codable) — Organized Recovery / Flexible / High Variability / Insufficient",
-  "WindowSelector.WindowSelectionResult: struct — recovery window + peak capacity"
+  "WindowSelector.WindowSelectionResult: struct — the analysis window (best organized window, else the band's peak-RMSSD window marked not organized; nil only when neither exists) + peak capacity"
  ],
  "state": [
   "static RecoveryWindow.unstableCVThreshold = 0.08",
@@ -69,28 +69,6 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
-  },
-  {
-   "key": "var WindowSelector.WindowSelectionResult.hasConsolidatedRecovery",
-   "hash": "6fcb401832e9ee98",
-   "does": "True when recoveryWindow is non-nil.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No reference to hasConsolidatedRecovery outside its declaration (grep).",
-     "evidence": [
-      "Emuqu/Sources/Analysis/WindowSelection.swift:144"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
   },
   {
    "key": "init WindowSelector(config:)",

@@ -12,8 +12,8 @@
  "units": [
   {
    "key": "func WorkoutFinalizer.finalizeSession(rrPoints:stopDate:hrrSamples:)",
-   "hash": "02099738580eb9f5",
-   "does": "Finalize entry: reads recorder.currentSession and sessionStartDate; if either missing returns a blank HRVSession(.workout) without archiving. Otherwise runs analysis (stage 1), base metadata/distance, stages 3-9 via buildFinalizeMetadata, classifies state and attaches metadata/series/endDate, attaches AI-context and training snapshots, then awaits recorder.archive(session:) and returns the session.",
+   "hash": "7dd4ccfe57631915",
+   "does": "Finalize entry: reads recorder.currentSession and sessionStartDate; if either missing logs a warning and returns a blank HRVSession(.workout) without archiving. Otherwise runs analysis (stage 1), base metadata/distance, stages 3-9 via buildFinalizeMetadata, classifies state and attaches metadata/series/endDate, attaches AI-context and training snapshots, then awaits recorder.archive(session:) (which does not write a .failed accidental start) and returns the session.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.analyzeWorkoutForFinalize(rrPoints:session:startDate:)",
@@ -23,7 +23,8 @@
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.attachAIContextSnapshot(to:sport:stopDate:)",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.attachTrainingSnapshot(to:stopDate:)",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.archive(session:)",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)"
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
     "mem:WorkoutLifecycle.currentSession",
@@ -36,30 +37,20 @@
     {
      "at": "+5",
      "cond": "recorder.currentSession and recorder.sessionStartDate both non-nil",
-     "effect": "false: returns a fresh empty HRVSession(sessionType: .workout) — nothing is analyzed or archived and the caller (WorkoutRecorder+Stop.swift:114) gets an empty session; true: continues the finalize pipeline"
+     "effect": "false: logs 'nothing to finalize' and returns a fresh empty HRVSession(sessionType: .workout) — nothing is analyzed or archived; true: continues the finalize pipeline"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "If currentSession or sessionStartDate is nil the recorder silently returns a blank session that is never archived; the caller presents it as the finished workout with no log line.",
-     "evidence": [
-      "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift:33",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift:34"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.analyzeWorkoutForFinalize(rrPoints:session:startDate:)": "67f93cb3e2890c79",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.attachAIContextSnapshot(to:sport:stopDate:)": "b6b68b1f071324b5",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.attachTrainingSnapshot(to:stopDate:)": "afe73caa4ce4abc4",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.attachTrainingSnapshot(to:stopDate:)": "46d6f3c006a08951",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.buildFinalizeMetadata(_:analysis:rrPoints:startDate:stopDate:hrrSamples:)": "d65187508045da8a",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.classifySessionAndAttachData(session:metadata:series:rrPoints:stopDate:)": "058491bc4962e38a",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.classifySessionAndAttachData(session:metadata:series:rrPoints:stopDate:)": "36e5aa81c7557001",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.makeBaseMetadata(session:sport:computed:)": "9d44bd728686a683",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.archive(session:)": "48c03f4e5ca60f97",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5"
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
@@ -88,7 +79,7 @@
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.applyRouteTRIMPEstimate(to:sport:)": "b49cc0b2ad0e508b",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.applyRowingTelemetry(to:sport:)": "0d50edd4756a6bdd",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.attachAnalysisSnapshot(to:sport:rrPoints:startDate:stopDate:userMaxHR:)": "8ed28a2457ae9906",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.backfillHRAndAttachSamples(metadata:startDate:stopDate:)": "12ba86900494d3e8",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.backfillHRAndAttachSamples(metadata:startDate:stopDate:)": "d8117fc400f4f302",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func attachWeatherSnapshot(to:sport:)": "542240c7a4472fdc",
     "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.userMaxHR": "49805330e3ae7d57"
    }
@@ -338,25 +329,9 @@
      "effect": "true: splits replaced by α1-enriched splits; false: splits left as analyzer produced"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "The doc says the HealthKit backfill 'fixes average HR, peak HR, zone distribution, TRIMP'. It does not fix TRIMP. luciaTRIMP and hrTSS are computed in stage 1 from rrPoints only (WorkoutAnalyzer.analyze, which returns nil under 30 beats) before this stage runs, and nothing recomputes them from the backfilled samples. Stage 9's meanHR also comes from rrPoints only. A strap-dropout or Watch-sourced workout keeps luciaTRIMP nil or near zero even when every sample row has heart rate.",
-     "evidence": [
-      "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift:213",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift:216",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift:96",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift:188",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift:380",
-      "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift:143",
-      "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift:224"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.enrichSplitsWithAlpha1(splits:samples:startDate:track:)": "fd191dffb2db28b7",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.enrichSplitsWithAlpha1(splits:samples:startDate:track:)": "fa9ae4d41c9013b8",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.backfillWorkoutHRFromHealthKit(samples:sessionStart:sessionEnd:pauses:healthKit:)": "f8780793c71151c5",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.healthKitHROffsets(samples:backfilled:source:)": "02b6b4c231ca2c24",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.activeHRSource": "daaf8ce19213f55e",
@@ -406,7 +381,7 @@
     "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::func WorkoutRecorder.sportFTP(for:settings:)": "877c66935f005bb2",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.activeDurationSeconds(startDate:stopDate:)": "6c24d1a4c0dc49e4",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func applyFTPAnchoredMetrics(to:ftp:np:durationSeconds:)": "999ebef033741fd8",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.computeNormalizedPower(samples:)": "c6637e6f56feefc1",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.computeNormalizedPower(samples:)": "b67511c7c2b6fe63",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.computeNormalizedPower(samples:)": "5cb6ec4d945e6935",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.settingsProvider": "962bc6e493a1aa94"
    }
@@ -576,7 +551,7 @@
     {
      "at": "+10",
      "cond": "hasMeaningfulData",
-     "effect": "true: state .complete; false: state .failed (session is still archived by finalizeSession F:48)"
+     "effect": "true: state .complete; false: state .failed (archive(session:) then retires its backups without writing it, so it reaches neither history, iCloud nor Apple Health)"
     },
     {
      "at": "+15",
@@ -584,23 +559,7 @@
      "effect": "true: partialDataReason = .strapDisconnected; false: no flag"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Doc says no-HR/no-movement accidental starts go to .failed \"so the archive isn't littered with ghost rows\", but finalizeSession archives them unconditionally (F:48) and archive() then uploads them (CloudKitSyncManager.uploadSession accepts any workout with workoutMetadata, CloudKitSyncManager.swift:387-388) and exports them to Apple Health (no state check in HealthKitWorkoutExport). Ghost workouts reach the archive, iCloud and Apple Health.",
-     "evidence": [
-      "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift:403",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift:426",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift:428",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift:48",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift:166",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift:169",
-      "Emuqu/Sources/Storage/CloudKitSyncManager.swift:387"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -635,7 +594,7 @@
   {
    "key": "func WorkoutFinalizer.attachTrainingSnapshot(to:stopDate:)",
    "hash": "71f20e87a2b949a5",
-   "does": "Stage 12: when training-load integration is on, resolves a TrainingContext (warm cache or 1.5 s-bounded HealthKit load), applies VO2max override or clears VO2max when HealthKit VO2max is disabled, and stores it as session.trainingSnapshot.",
+   "does": "Stage 12: when training-load integration is on, resolves a TrainingContext (warm cache or 1.5 s-bounded HealthKit load), applies VO2max override or clears VO2max when HealthKit VO2max is disabled, and stores it as session.trainingSnapshot. Taken before the session is archived, so it is the load the user brought into this workout (this workout is not in it).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.resolveFinalizeTrainingContext(stopDate:)",
@@ -669,22 +628,6 @@
    ],
    "flags": [
     {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "The doc says the snapshot includes 'this very workout' and 'represents the post-session state'. In fact it is attached (line 47) before the session is archived (line 48). The warm-cache path returns TrainingMetricsCache.current, and the cold path's calculateTrainingLoad merges archive + HealthKit workouts. Neither contains this workout yet, because the HealthKit export also runs after the archive. The stored ATL/CTL/TSB is therefore the pre-workout load, and that is what the PDF and Holistic report show next to the workout.",
-     "evidence": [
-      "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift:453",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift:455",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift:47",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift:48",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift:493",
-      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:566",
-      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:570",
-      "Emuqu/Sources/Export/HolisticDailyReport.swift:246"
-     ],
-     "found": "second read"
-    },
-    {
      "kind": "duplicate",
      "sev": "low",
      "text": "The VO2max override / useHealthKitVO2Max rule applied to a TrainingContext appears three times as identical blocks: here, RRCollector.trainingContext and ReanalysisService.applyVO2MaxPreference.",
@@ -698,20 +641,21 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.resolveFinalizeTrainingContext(stopDate:)": "a1fb532986144d73",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.resolveFinalizeTrainingContext(stopDate:)": "809640d30804240d",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.settingsProvider": "962bc6e493a1aa94"
    }
   },
   {
    "key": "func WorkoutFinalizer.resolveFinalizeTrainingContext(stopDate:)",
-   "hash": "d94e31cf913a3372",
-   "does": "Returns a TrainingContext from the warm TrainingMetricsCache when atl or ctl > 0 (yesterdayTrimp set from live.todayTrimp, no daysSinceHardWorkout/recentWorkouts); else races HealthKit calculateTrainingLoad(forMorningReading:false) against 1.5 s and builds TrainingContext(from:relativeTo: stopDate) (failable), returning nil on timeout.",
+   "hash": "6d1aea3a949fa89c",
+   "does": "Returns a TrainingContext from the warm TrainingMetricsCache when atl or ctl > 0 (trainingContext(fromCached:): yesterdayTrimp is the day before stopDate, as on the HealthKit path; no daysSinceHardWorkout/recentWorkouts); else races HealthKit calculateTrainingLoad(forMorningReading:false) against 1.5 s and builds TrainingContext(from:relativeTo: stopDate) (failable), returning nil on timeout.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.runWithTimeout(seconds:_:)",
     "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.calculateTrainingLoad(days:forMorningReading:relativeTo:)",
-    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(atl:ctl:tsb:yesterdayTrimp:vo2Max:daysSinceHardWorkout:recentWorkouts:)",
-    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(from:relativeTo:)"
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(from:relativeTo:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.trainingContext(fromCached:relativeTo:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
     "mem:TrainingMetricsCache.current",
@@ -725,42 +669,43 @@
      "effect": "true: returns cache-built context; false: falls to cold HealthKit fetch"
     },
     {
-     "at": "+8",
+     "at": "+5",
      "cond": "runWithTimeout returned a load within 1.5 s",
      "effect": "false: logs and returns nil (session saved without trainingSnapshot; HealthKit query keeps running unawaited); true: TrainingContext(from:) which itself returns nil when load.metrics is nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "The warm-cache path writes today's TRIMP into TrainingContext.yesterdayTrimp, while the HealthKit fallback (RRModels.swift:520-523) writes yesterday's TRIMP, and the cache path also omits daysSinceHardWorkout/recentWorkouts. The same stored field means different days depending on cache warmth.",
-     "evidence": [
-      "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift:495",
-      "Emuqu/Sources/Models/RRModels.swift:522"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "The yesterdayTrimp mix-up flagged on this unit reaches the user: HolisticDailyReport renders workoutSession.trainingSnapshot.yesterdayTrimp, so a warm cache shows today's TRIMP labelled as yesterday's.",
-     "evidence": [
-      "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift:495",
-      "Emuqu/Sources/Models/RRModels.swift:489",
-      "Emuqu/Sources/Export/HolisticDailyReport.swift:246"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.calculateTrainingLoad(days:forMorningReading:relativeTo:)": "c98aface262a25dc",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.runWithTimeout(seconds:_:)": "f017936602e8e59f",
-    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(atl:ctl:tsb:yesterdayTrimp:vo2Max:daysSinceHardWorkout:recentWorkouts:)": "598952b71e6507c4",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.trainingContext(fromCached:relativeTo:)": "787125be40fbebd4",
     "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(from:relativeTo:)": "9c385b2767688026",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "f61a7a679f5280dd",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func WorkoutFinalizer.trainingContext(fromCached:relativeTo:)",
+   "hash": "b2a8c8cf5ca57a17",
+   "does": "Builds a TrainingContext from cached TrainingMetrics: atl/ctl/tsb, VO2max latest, yesterdayTrimp = the cache's daily TRIMP for the day before stopDate (0 when absent) — the same day TrainingContext(from:relativeTo:) stores — and nil daysSinceHardWorkout/recentWorkouts (the cache has neither).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(atl:ctl:tsb:yesterdayTrimp:vo2Max:daysSinceHardWorkout:recentWorkouts:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "yesterday's date or its daily TRIMP missing (??)",
+     "effect": "yesterdayTrimp = 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(atl:ctl:tsb:yesterdayTrimp:vo2Max:daysSinceHardWorkout:recentWorkouts:)": "598952b71e6507c4",
     "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
    }
   },
@@ -821,7 +766,7 @@
    "deps": {
     "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PauseTimeline.wallClock(forOffset:sessionStart:)": "508a770ddea33edc",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.nearestHealthKitHR(to:in:)": "3d3c2386d4d4233c",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.wristHRSamples(from:to:healthKit:)": "2e0f2070ad18db66",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.wristHRSamples(from:to:healthKit:)": "e568c944c02fa860",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutSample.withHeartRate(_:)": "f378d2443f679181"
    }
   },
@@ -850,8 +795,44 @@
   },
   {
    "key": "func WorkoutFinalizer.wristHRSamples(from:to:healthKit:)",
-   "hash": "c66d56ed77fa2d7b",
-   "does": "Fetches HealthKit heart-rate samples for the session window, bounded by a 3 s timeout; errors and timeouts both yield []; logs when empty.",
+   "hash": "8fc2b1a5f0b5d342",
+   "does": "HealthKit heart-rate samples for the session window (wristHRQuery, 3 s bound). A timeout and a failed query (locked or unauthorized HealthKit) are each logged as such and give []; a query that found nothing logs that wrist HR may be unavailable.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.wristHRQuery(from:to:healthKit:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "hk:HKQuantityType.heartRate"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "query timed out (nil)",
+     "effect": "logs timeout, []"
+    },
+    {
+     "at": "+9",
+     "cond": "query failed",
+     "effect": "logs the error, []"
+    },
+    {
+     "at": "+12",
+     "cond": "query succeeded",
+     "effect": "logs when empty; returns samples"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.wristHRQuery(from:to:healthKit:)": "075100a59b612490",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func WorkoutFinalizer.wristHRQuery(from:to:healthKit:)",
+   "hash": "df8dae6a880bae4f",
+   "does": "Runs fetchHeartRateSamples for the window under runWithTimeout(3 s), capturing the outcome as a Result (success samples or the thrown error); nil when the timeout won.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.runWithTimeout(seconds:_:)",
@@ -863,37 +844,16 @@
    "writes": [],
    "branches": [
     {
-     "at": "+5",
-     "cond": "fetchHeartRateSamples throws",
-     "effect": "try? → ?? []: error swallowed, empty result"
-    },
-    {
-     "at": "+6",
-     "cond": "runWithTimeout returns nil (timed out)",
-     "effect": "?? []: treated as no samples"
-    },
-    {
      "at": "+8",
-     "cond": "samples empty",
-     "effect": "true: logs 'HealthKit had 0 HR samples'"
+     "cond": "fetch throws",
+     "effect": ".failure(error); else .success(samples)"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "HealthKit errors (including authorization) and timeouts are collapsed into an empty array and logged only as 'wrist HR may be unavailable', so a failed query is indistinguishable from no data.",
-     "evidence": [
-      "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift:587",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift:588"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.fetchHeartRateSamples(from:to:)": "8b56d29a274d3209",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.runWithTimeout(seconds:_:)": "f017936602e8e59f",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "0476d3f57d94bf98"
    }
   },
   {

@@ -35,7 +35,7 @@ struct TrainingLoadCard: View {
         if let acr = training.acuteChronicRatio {
             acrGaugeColumn(acr)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(String(localized: "Acute to chronic ratio: \(String(format: "%.2f", locale: LanguageManager.appLocale, acr)), \(acrZone(acr)) zone", bundle: LanguageManager.appBundle))
+            .accessibilityLabel(String(localized: "Acute to chronic ratio: \(String(format: "%.2f", locale: LanguageManager.appLocale, acr)), \(ACWRBand(ratio: acr).label) zone", bundle: LanguageManager.appBundle))
         }
     }
 
@@ -49,19 +49,13 @@ struct TrainingLoadCard: View {
         }
     }
 
-    /// Zone labels are descriptive ranges, not risk predictions. The gauge
-    /// uses colour bands for the visual information; the text under each
-    /// band is honest about what the number means — it describes where the user
-    /// is, it doesn't predict consequences.
-    private func acrZone(_ acr: Double) -> String {
-        if acr < Self.acrBelow { return String(localized: "below range", bundle: LanguageManager.appBundle) }
-        if acr <= Self.acrInRange { return String(localized: "in range", bundle: LanguageManager.appBundle) }
-        if acr <= Self.acrAbove { return String(localized: "above range", bundle: LanguageManager.appBundle) }
-        return String(localized: "sharp increase", bundle: LanguageManager.appBundle)
-    }
+    // Zone words are `ACWRBand`'s (the Training Load screen's and the PDF's):
+    // descriptive ranges, not risk predictions. The gauge uses colour bands
+    // for the visual information.
 
-    /// Zone edges shared by the text above and the coloured bands, so the
-    /// thumb always sits in the band the zone text names.
+    /// The coloured bands' edges, `ACWRBand`'s: below 0.8, in range to 1.3
+    /// (its maintenance and in-range bands share one colour), above to 1.5,
+    /// then the sharp increase.
     private static let acrBelow = 0.8
     private static let acrInRange = 1.3
     private static let acrAbove = 1.5
@@ -108,15 +102,17 @@ struct TrainingLoadCard: View {
             .foregroundColor(AppTheme.textPrimary)
     }
 
+    /// One label per coloured band, in `ACWRBand`'s words: range
+    /// descriptors, not risk verdicts.
     private var acrZoneLabels: some View {
         HStack {
-            // Gauge-bar end labels are range descriptors,
-            // not risk verdicts.
-            Text(String(localized: "Below", bundle: LanguageManager.appBundle)).font(.caption2).foregroundColor(AppTheme.mist)
+            Text(verbatim: ACWRBand.belowUsual.label).font(.caption2).foregroundColor(AppTheme.mist)
             Spacer()
-            Text(String(localized: "In range", bundle: LanguageManager.appBundle)).font(.caption2).foregroundColor(AppTheme.sageText)
+            Text(verbatim: ACWRBand.inRange.label).font(.caption2).foregroundColor(AppTheme.sageText)
             Spacer()
-            Text(String(localized: "Sharp jump", bundle: LanguageManager.appBundle)).font(.caption2).foregroundColor(AppTheme.alert)
+            Text(verbatim: ACWRBand.aboveUsual.label).font(.caption2).foregroundColor(AppTheme.softGold)
+            Spacer()
+            Text(verbatim: ACWRBand.sharpIncrease.label).font(.caption2).foregroundColor(AppTheme.alert)
         }
     }
 

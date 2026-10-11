@@ -1,27 +1,17 @@
 {
  "file": "Emuqu/Sources/Collection/RRCollector+Streaming.swift",
- "hash": "6713765241957596",
+ "hash": "0b8d61899d3ae9e0",
  "role": "Quick-reading (3/5 min) streaming mode on CollectorSessionControl: start, 1 Hz countdown with incremental raw backup, completion alert, stop, analysis, archive. Plus file-scope publishAnalyzingSession.",
  "types": [
   "CollectorSessionControl: extension — quick streaming session lifecycle"
  ],
  "state": [
-  "CollectorSessionControl.kCompletionSoundID = 1007 (static SystemSoundID)"
+  "CollectorSessionControl.kCompletionSoundID = 1007 (static SystemSoundID)",
+  "CollectorSessionControl.minimumQuickReadingBeats = 120 (nonisolated static let; also RRCollector.streamingVerification's minPoints, and quoted by the insufficient-data message)",
+  "CollectorSessionControl.maxQuickReadingExtensionSeconds = 60 (private static let)"
  ],
- "toplevel": "static let kCompletionSoundID: SystemSoundID = 1007 (iOS 'received message' sound).",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "RecordingPhase documents .streaming → .analyzing → .awaitingAcceptance → .idle, but the quick path goes straight from .analyzing to .idle with needsAcceptance=false and archives without review.",
-   "evidence": [
-    "Emuqu/Sources/Collection/RecordingPhase.swift:7",
-    "Emuqu/Sources/Collection/RRCollector+Streaming.swift:240",
-    "Emuqu/Sources/Collection/RRCollector+Streaming.swift:243"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "static lets: kCompletionSoundID (1007, iOS 'received message' sound), minimumQuickReadingBeats (120), maxQuickReadingExtensionSeconds (60).",
+ "flags": [],
  "units": [
   {
    "key": "func CollectorSessionControl.startStreamingSession(durationSeconds:)",
@@ -70,7 +60,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.startStreaming()": "67a87b9dfb222b41",
-    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.persistRecordingState(sessionId:startTime:sessionType:)": "eb5f05984c3aa9a1",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.persistRecordingState(sessionId:startTime:sessionType:)": "90485455818ed9f4",
     "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.resetStateForQuickStreaming(_:durationSeconds:)": "d20f28ecd842b120",
     "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.startStreamingTimer()": "b00d9b168676aa06",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
@@ -131,20 +121,21 @@
    "flags": [],
    "deps": {
     "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d",
-    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.streamingCountdownTick()": "84bde787cfef8fb7",
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.streamingCountdownTick()": "62734273f0b2342c",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "f5231cd4a715d649",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.streamingTimer": "7ce2e2751903caf1"
    }
   },
   {
    "key": "func CollectorSessionControl.streamingCountdownTick()",
-   "hash": "a2f300f4832396ee",
-   "does": "One countdown tick: increments elapsed seconds, attempts an incremental raw backup of the current session, and when elapsed >= target invalidates the timer, plays the completion alert and invokes collector.onStreamingComplete.",
+   "hash": "1b22b04d053d7f66",
+   "does": "One countdown tick: increments elapsed seconds, attempts an incremental raw backup of the current session, and once the reading is complete (quickReadingComplete: target reached with the minimum beats, or the extension used up) invalidates the timer, plays the completion alert and invokes collector.onStreamingComplete.",
    "entry": "Timer tick (1 Hz) from startStreamingTimer",
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.runQuickStreamingBackup(session:)",
     "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.playCompletionAlert()",
-    "closure:RRCollector.onStreamingComplete — set by StreamingProgressPanel.installAutoCompleteHandler to its stopStreaming action"
+    "closure:RRCollector.onStreamingComplete — set by StreamingProgressPanel.installAutoCompleteHandler to its stopStreaming action",
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.quickReadingComplete()"
    ],
    "reads": [
     "mem:StreamingLifecycle.isStreamingMode",
@@ -170,7 +161,7 @@
     },
     {
      "at": "+7",
-     "cond": "elapsed >= target",
+     "cond": "quickReadingComplete",
      "effect": "completes (timer nil, alert, callback); else returns"
     }
    ],
@@ -180,9 +171,41 @@
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingElapsedSeconds": "7bf2ba3c9c305fc2",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingTargetSeconds": "bbc80a6af0d5bc78",
     "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.playCompletionAlert()": "cd099bc3252ad94e",
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.quickReadingComplete()": "8938c94ff2fba289",
     "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.runQuickStreamingBackup(session:)": "c60993677f6f537d",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.streamingTimer": "7ce2e2751903caf1",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func CollectorSessionControl.quickReadingComplete()",
+   "hash": "9b3c01a769d7b600",
+   "does": "Whether a quick reading is done: elapsed reached the target and the stream holds at least minimumQuickReadingBeats (120), or it has run 60 s past the target. A 2-minute reading below 60 bpm thus runs on until it has the beats it is analysed on (to about 40 bpm).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:StreamingLifecycle.streamingElapsedSeconds",
+    "mem:StreamingLifecycle.streamingTargetSeconds",
+    "mem:PolarManager.streamedRRPoints"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "elapsed < target",
+     "effect": "false"
+    },
+    {
+     "at": "+5",
+     "cond": "enough beats, or extension used up",
+     "effect": "true; else false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "e1584f9930f839e0",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingElapsedSeconds": "7bf2ba3c9c305fc2",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingTargetSeconds": "bbc80a6af0d5bc78"
    }
   },
   {
@@ -252,8 +275,8 @@
   },
   {
    "key": "func CollectorSessionControl.stopStreamingSession()",
-   "hash": "6b1fe72c68fae1d2",
-   "does": "Stops a quick reading: returns nil if not in streaming mode; redirects to stopOvernightStreaming during overnight streaming; otherwise stops the timer and Polar stream, publishes analyzing state, writes a full raw backup, and either returns a failed session (<120 beats) or analyzes, archives and returns the result; disconnects a Verity Sense afterwards.",
+   "hash": "b69b8211817c0c06",
+   "does": "Stops a quick reading: returns nil if not in streaming mode; redirects to stopOvernightStreaming during overnight streaming; otherwise stops the timer and Polar stream, publishes analyzing state, writes a full raw backup, and either returns a failed session (fewer than minimumQuickReadingBeats — only a reading stopped early, since the countdown runs on for them) or analyzes, archives and returns the result; disconnects a Verity Sense afterwards.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::func RRCollector.stopOvernightStreaming()",
@@ -293,35 +316,12 @@
      "effect": "uses a brand-new default (overnight-typed, new id) session when currentSession is nil"
     },
     {
-     "at": "+14",
-     "cond": "rrPoints.count >= 120",
+     "at": "+15",
+     "cond": "rrPoints.count >= minimumQuickReadingBeats",
      "effect": "analyzes and finalizes; else returns a failed session and disconnects Verity Sense"
     }
    ],
-   "flags": [
-    {
-     "kind": "hack",
-     "sev": "low",
-     "text": "The 120-beat minimum is hard-coded here and separately in streamingVerification(minPoints: 120) and the error text; changing one leaves the others stale.",
-     "evidence": [
-      "Emuqu/Sources/Collection/RRCollector+Streaming.swift:148",
-      "Emuqu/Sources/Collection/RRCollector.swift:240",
-      "Emuqu/Sources/Collection/RRCollector.swift:890"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "The Record screen offers a 2-minute quick reading (startStreaming(120)) but stop requires >= 120 beats; at a resting HR under 60 bpm a full 2-minute reading yields fewer than 120 beats and is returned as .failed with insufficientData even though the user completed it. The comment itself assumes 60 bpm.",
-     "evidence": [
-      "Emuqu/Sources/Collection/RRCollector+Streaming.swift:147",
-      "Emuqu/Sources/Collection/RRCollector+Streaming.swift:148",
-      "Emuqu/Sources/Views/RecordView+Panels.swift:738"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.stopStreaming()": "61f032bd39cc3856",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "ee98ca364404b3d4",
@@ -354,7 +354,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.analyzeStreamingData(rrPoints:baseSession:)": "1d015699ded3ed9f",
-    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.archiveAndFinalizeStreamingSession(_:)": "8fccb349b66c77e4",
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.archiveAndFinalizeStreamingSession(_:)": "329707b9bcc30915",
     "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.disconnectVeritySenseAfterQuickSession()": "0d66fb71ad4a003e"
    }
   },
@@ -478,15 +478,16 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "603a4d925fb360fb",
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSeries(series:flags:windowStart:windowEnd:trainingContext:ansConfig:daytimeRestingHR:)": "16f070d35d68d9c8",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "7033ee2115866c44",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSeries(series:flags:windowStart:windowEnd:trainingContext:ansConfig:daytimeRestingHR:)": "29c8b5a2dbaab494",
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Analysis/Verification.swift::func Verification.verify(_:flags:)": "2f614f09191c6c2d",
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.verify(_:flags:)": "1bc96c0e3839ebbf",
     "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.calculateTrainingLoad(days:forMorningReading:relativeTo:)": "c98aface262a25dc",
     "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.publishStreamingResult(_:verifyResult:)": "5386af539a68b491",
     "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func publishAnalyzingSession(on:baseSession:series:)": "1de221467bc2ec2d",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.ansConfig(for:)": "3a52960d403cbf6b",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.createTrainingContext(relativeTo:)": "1115324e6b6eb2ac",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.cachedTrainingLoad": "a4e379929acafe73",
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "f61a7a679f5280dd"
    }
@@ -520,8 +521,8 @@
   },
   {
    "key": "func CollectorSessionControl.archiveAndFinalizeStreamingSession(_:)",
-   "hash": "891ce0492ed9f462",
-   "does": "For a complete session: archives it, marks its raw backup archived, clears the persisted recording marker, calls baselineTracker.update (a no-op for .quick sessions, which the tracker rejects), posts an archive-changed signal and uploads it to CloudKit in a Task. A non-complete session only clears the marker. Archive errors are logged only.",
+   "hash": "7b362e517b91a64e",
+   "does": "For a complete session: archives it, marks its raw backup archived, clears the persisted recording marker, calls baselineTracker.update (a no-op for .quick sessions), posts an archive-changed signal (its own post reaches an ArchiveSignal on an injected centre) and uploads it to CloudKit in a Task. A non-complete session only clears the marker. An archive failure is logged and set as lastError (the reading shown is not saved); its recording marker stays so the launch offers it from the raw backup.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
@@ -537,7 +538,8 @@
     "file:RawRRBackup index (archived flag)",
     "ud:UserDefaultsKeys.persistedRecordingState",
     "notif:flowRecoveryArchiveChanged",
-    "ck:session upload"
+    "ck:session upload",
+    "mem:SessionState.lastError"
    ],
    "branches": [
     {
@@ -548,32 +550,10 @@
     {
      "at": "+13",
      "cond": "archive or later step throws",
-     "effect": "error is only logged; persisted marker stays set, no lastError, UI still shows the complete session"
+     "effect": "logs error, sets lastError; persisted marker stays"
     }
    ],
    "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "med",
-     "text": "If archive.archive throws, the error is only logged: currentSession already shows a complete reading with no lastError, so the user believes it was saved; the beats survive only in the raw backup for lost-session recovery.",
-     "evidence": [
-      "Emuqu/Sources/Collection/RRCollector+Streaming.swift:261",
-      "Emuqu/Sources/Collection/RRCollector+Streaming.swift:262",
-      "Emuqu/Sources/Collection/RRCollector+Streaming.swift:237"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Posts flowRecoveryArchiveChanged twice: SessionArchive.archive already posts it, then archiveSignal.notifyChanged posts it again (coalesced by ArchiveSignal).",
-     "evidence": [
-      "Emuqu/Sources/Collection/RRCollector+Streaming.swift:254",
-      "Emuqu/Sources/Collection/RRCollector+Streaming.swift:258",
-      "Emuqu/Sources/Storage/Archive.swift:470"
-     ],
-     "found": "first read, upheld on second"
-    },
     {
      "kind": "spec-mismatch",
      "sev": "low",
@@ -587,8 +567,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)": "3d630ccb9de1838f",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)": "39b522c63ba99f84",
     "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "47c71a985b0f7b54",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
     "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingState()": "13bc57053cf73f87",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)": "6be1af35552af634",

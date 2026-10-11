@@ -188,12 +188,20 @@ extension LivePaceEstimator {
         }
 
         private var steps: [Step] = []
+        /// The last reading, kept apart from `steps`: once a stop has pruned
+        /// every step, the unchanged distance must not count as a new one
+        /// (it came back every 30 s and anchored the restart on standing time).
+        private var lastMeters: Double = 0
 
         /// A distance that went backwards (a source reset) starts over.
         mutating func record(_ meters: Double?, at now: Date) {
             if let meters, meters.isFinite {
-                if let last = steps.last, meters < last.meters { steps.removeAll() }
-                if meters > (steps.last?.meters ?? 0) { steps.append(Step(at: now, meters: meters)) }
+                if meters < lastMeters {
+                    steps.removeAll()
+                    lastMeters = 0
+                }
+                if meters > lastMeters { steps.append(Step(at: now, meters: meters)) }
+                lastMeters = meters
             }
             let cutoff = now.addingTimeInterval(-LivePaceEstimator.distanceWindowSec)
             steps.removeAll { $0.at < cutoff }

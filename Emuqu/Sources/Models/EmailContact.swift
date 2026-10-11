@@ -63,11 +63,16 @@ final class EmailContactStore {
 
     private let storeURL: URL
 
-    /// Set when the contacts file exists but could not be read or decoded.
-    /// Saves are blocked while it is set, so an edit never overwrites the
-    /// user's saved contacts with the empty list this store fell back to —
-    /// the same guard as `SavedRouteStore`.
+    /// Set when the contacts file exists but could not be read (file
+    /// protection before first unlock). Saves are blocked while it is set,
+    /// so an edit never overwrites the user's saved contacts with the empty
+    /// list this store fell back to — the same guard as `SavedRouteStore`.
+    /// A file that reads but does not decode is set aside instead
+    /// (`undecodableBackupName`) and does not block saves.
     private var loadFailed = false
+
+    /// Where `load()` sets aside a contacts file it read but could not decode.
+    private static let undecodableBackupName = "email_contacts.undecodable.json"
 
     /// Serial, newest-wins writer: saves land in the order they were made, so
     /// a delete followed by an add cannot bring the deleted contact back.
@@ -79,13 +84,17 @@ final class EmailContactStore {
     /// every `EmailContactStore()` shares one on-disk book: contacts written by
     /// one test persist into the next run, and a name that resolved cleanly the
     /// first time reads as ambiguous the second.
+    ///
+    /// When Application Support cannot be resolved the book goes in the App
+    /// Group container instead, which persists like it; the temporary
+    /// directory would lose the contacts whenever iOS purges it.
     init(storeURL: URL? = nil) {
         if let storeURL {
             self.storeURL = storeURL
         } else {
             let fm = FileManager.default
             let support = attempt("emailContacts.supportDir") { try fm.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true) }
-                ?? fm.temporaryDirectory
+                ?? AppConfig.sharedContainerURL()
             self.storeURL = support.appendingPathComponent("email_contacts.json")
         }
         self.writer = LatestWinsFileWriter(
@@ -99,17 +108,6 @@ final class EmailContactStore {
     func add(_ contact: EmailContact) {
         retryLoadIfBlocked()
         contacts.append(contact)
-        save()
-    }
-
-    func update(id: UUID, name: String? = nil, email: String? = nil, notes: String? = nil) {
-        retryLoadIfBlocked()
-        guard let idx = contacts.firstIndex(where: { $0.id == id }) else { return }
-        if let name { contacts[idx].name = name }
-        if let email { contacts[idx].email = email }
-        // notes: explicit nil-vs-omitted distinction not needed — the
-        // store overwrites only if a value is supplied.
-        if let notes { contacts[idx].notes = notes.isEmpty ? nil : notes }
         save()
     }
 
@@ -164,32 +162,68 @@ final class EmailContactStore {
     /// Pre-check: if it already looks like an email address, pass through —
     /// AI may mix names and explicit addresses.
     private func classify(_ name: String) -> NameResolution {
-        if name.contains("@"), name.contains(".") { return .resolved(name) }
+        if Self.looksLikeEmailAddress(name) { return .resolved(name) }
         let matches = find(name: name)
         if matches.isEmpty { return .unknown }
         guard matches.count == 1 else { return .ambiguous }
         return .resolved(matches[0].email)
     }
 
+    /// One address, not a name: a single "@" with something before it, a
+    /// domain after it with a dot that is neither first nor last, and no
+    /// whitespace. "j.smith@" or "chris.p" are names to look up.
+    static func looksLikeEmailAddress(_ text: String) -> Bool {
+        let parts = text.split(separator: "@", omittingEmptySubsequences: false)
+        guard parts.count == 2, !parts[0].isEmpty, !text.contains(where: \.isWhitespace) else { return false }
+        let domain = parts[1]
+        return domain.contains(".") && !domain.hasPrefix(".") && !domain.hasSuffix(".")
+    }
+
     private func load() {
         guard FileManager.default.fileExists(atPath: storeURL.path) else { return }
+        let data: Data
         do {
-            let data = try Data(contentsOf: storeURL)
-            contacts = try JSONDecoder().decode([EmailContact].self, from: data)
-            loadFailed = false
+            data = try Data(contentsOf: storeURL)
         } catch {
             // The file exists, so these are saved recipients the user entered.
             // Keep the file untouched rather than overwrite it on the next edit.
             loadFailed = true
             debugLog("[EmailContact] store present but unreadable, blocking saves: \(error)", level: .error)
+            return
         }
+        do {
+            contacts = try JSONDecoder().decode([EmailContact].self, from: data)
+            loadFailed = false
+        } catch {
+            loadFailed = !Self.setAsideUndecodable(storeURL, reason: error)
+        }
+    }
+
+    /// Copies a contacts file that read but did not decode to
+    /// `undecodableBackupName` beside it, replacing an older copy, so the
+    /// book can start empty without destroying it. True when the copy is in
+    /// place; otherwise saves stay blocked.
+    private static func setAsideUndecodable(_ url: URL, reason: Error) -> Bool {
+        let backup = url.deletingLastPathComponent().appendingPathComponent(undecodableBackupName)
+        let copied = attempt("emailContacts.setAside") {
+            if FileManager.default.fileExists(atPath: backup.path) { try FileManager.default.removeItem(at: backup) }
+            try FileManager.default.copyItem(at: url, to: backup)
+        } != nil
+        debugLog("[EmailContact] store failed to decode (\(reason)) — \(copied ? "set aside; starting an empty book" : "could not set it aside; blocking saves")", level: .error)
+        return copied
     }
 
     /// A file that was unreadable at launch (file protection before first
     /// unlock) is read again before the next edit, so the edit applies to
-    /// the real list.
+    /// the real list. Contacts added while it was unreadable are kept: they
+    /// exist only in memory, and the reload would otherwise drop them.
     private func retryLoadIfBlocked() {
-        if loadFailed { load() }
+        guard loadFailed else { return }
+        let addedWhileBlocked = contacts
+        load()
+        guard !loadFailed else { return }
+        let known = Set(contacts.map(\.id))
+        contacts.append(contentsOf: addedWhileBlocked.filter { !known.contains($0.id) })
     }
 
     private func save() {

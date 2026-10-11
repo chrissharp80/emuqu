@@ -14,8 +14,8 @@
  "units": [
   {
    "key": "func RRCollector.persistRecordingState(sessionId:startTime:sessionType:)",
-   "hash": "3cb5e168cf9ebd68",
-   "does": "Saves a PersistedRecordingState (id, start, type, current phase description, useDeviceBackupForOvernight) to UserDefaults.",
+   "hash": "0d6078013f3f7933",
+   "does": "Saves a PersistedRecordingState (id, start, type, current phase description, useDeviceBackupForOvernight) to UserDefaults; when the encode fails it logs an error (a crash would then not be offered at launch) instead of reporting it persisted.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.save(_:)"
@@ -27,20 +27,14 @@
    "writes": [
     "ud:UserDefaultsKeys.persistedRecordingState"
    ],
-   "branches": [],
-   "flags": [
+   "branches": [
     {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "PersistedRecordingState.save returns false on encode failure; the result is discarded and the log line still says 'Persisted recording state'.",
-     "evidence": [
-      "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift:18",
-      "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift:19",
-      "Emuqu/Sources/Collection/PersistedRecordingState.swift:40"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+8",
+     "cond": "PersistedRecordingState.save returned false",
+     "effect": "logs error, returns"
     }
    ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.save(_:)": "956b3fbf479fafc1",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase": "dab0f809cbb1be27",
@@ -94,20 +88,31 @@
   },
   {
    "key": "func RRCollector.getPersistedCaptureMode()",
-   "hash": "3125194c6c426897",
-   "does": "Returns the persisted useDeviceInternalBackup flag, nil when no state or field absent.",
+   "hash": "4818e84858852de3",
+   "does": "Returns the recording marker's useDeviceInternalBackup flag, else the paused night's capture choice (the recording marker is cleared at pause); nil when neither holds one.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.load()"
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.load()",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.persistedPausedCaptureMode()"
    ],
    "reads": [
-    "ud:UserDefaultsKeys.persistedRecordingState"
+    "ud:UserDefaultsKeys.persistedRecordingState",
+    "ud:pausedSessionUsesDeviceBackup"
    ],
    "writes": [],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no recording marker or field absent",
+     "effect": "falls back to the paused night's choice"
+    }
+   ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.load()": "57396f55b0be8803"
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.load()": "57396f55b0be8803",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.persistedPausedCaptureMode()": "25f87488544b085a",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "f5231cd4a715d649"
    }
   },
   {
@@ -157,12 +162,10 @@
     {
      "kind": "duplicate",
      "sev": "low",
-     "text": "Identical to clearPersistedRecordingState (:23), which is itself not private (BackupRecovery.swift:503 calls it), so the 'Separate from the private method' rationale in the doc no longer holds.",
+     "text": "Identical to clearPersistedRecordingState, which is not private; kept only because the app-layer launch-recovery callers (AppLaunchRecovery and others outside this file) use this name.",
      "evidence": [
-      "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift:47",
-      "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift:49",
-      "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift:23",
-      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:503"
+      "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift:50",
+      "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift:23"
      ],
      "found": "first read, upheld on second"
     }
@@ -196,14 +199,14 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.backUpRescuedRecording(_:)": "cef69ca6a685a007",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.backUpRescuedRecording(_:)": "b056f597ed86dd59",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.isStrapRecordingSaved(startedAt:)": "b928802bf3a2b84b"
    }
   },
   {
    "key": "func RRCollector.backUpRescuedRecording(_:)",
-   "hash": "568886f9dad070d2",
-   "does": "Backs up a rescued strap recording to RawRRBackup under a fresh UUID, dated by the recording's own start when it is not in the future; errors logged.",
+   "hash": "99ad20178d7ce99d",
+   "does": "Backs up a rescued strap recording to RawRRBackup under a fresh UUID, dated by the recording's own start when it is not in the future. A failed backup is logged and shown to the user through lastError, since the strap no longer holds what was downloaded.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)"
@@ -212,7 +215,8 @@
     "mem:PolarManager.connectedDeviceId"
    ],
    "writes": [
-    "file:RawRRBackup"
+    "file:RawRRBackup",
+    "mem:SessionState.lastError"
    ],
    "branches": [
     {
@@ -223,23 +227,13 @@
     {
      "at": "+9",
      "cond": "backup throws",
-     "effect": "logs error; the rescued beats are not persisted anywhere"
+     "effect": "logs error and sets lastError"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "med",
-     "text": "If the rescue backup fails the downloaded strap recording (already stopped/taken off the strap by the caller) is only logged, with no user signal; e.g. pullStrapRecording returns [] after handing it here.",
-     "evidence": [
-      "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift:83",
-      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:390"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)": "e15f84c94869d1a4",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)": "4e78d5bd620c47fb",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
@@ -279,19 +273,7 @@
      "effect": "returns"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Doc's first line says it flushes 'to disk and iCloud immediately'; the same doc and the code say no CloudKit upload is made.",
-     "evidence": [
-      "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift:90",
-      "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift:97",
-      "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift:110"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "e1584f9930f839e0",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.currentSession": "210a4862ba3075d2",
@@ -318,7 +300,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.emergencyBackupFlush(force:)": "9d93e1cd0ed05050"
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.emergencyBackupFlush(force:)": "6e0cebea98abfcb4"
    }
   },
   {
@@ -341,7 +323,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysisService": "3b6ebd7162c9a28b",
-    "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.runAllIfNeeded()": "d96ebbe770509f6c",
+    "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.runAllIfNeeded()": "d4e00c05b325d191",
     "Emuqu/Sources/Collection/SessionDataMigrations.swift::init SessionDataMigrations(archive:healthKit:settingsManager:baselineTracker:reanalysisService:)": "1f4363262c7dd5ed"
    }
   }

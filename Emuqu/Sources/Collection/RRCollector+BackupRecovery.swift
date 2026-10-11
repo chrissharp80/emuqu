@@ -38,8 +38,16 @@ extension SessionRecoveryCoordinator {
         recoveryService.checkForDeletedSessions()
     }
 
+    /// A session the archive still holds as deleted cannot be put back (the
+    /// archive refuses to write it), so the restore stops there and says so
+    /// rather than rebuilding it only to have the write refused.
     func restoreFromTrash(_ sessionId: UUID) async -> HRVSession? {
         recoveryService.restoreFromTrash(sessionId)
+        guard !collector.archive.deletedIds.contains(sessionId) else {
+            debugLog("[Recovery] Could not restore \(sessionId.uuidString.prefix(8)): it is still marked deleted", level: .error)
+            recoveryService.restoreFromTrashFailed(sessionId)
+            return nil
+        }
         if let kept = restoreKeptSession(sessionId) { return kept }
         let restored = await recoverFromBackup(sessionId)
         if restored == nil { recoveryService.restoreFromTrashFailed(sessionId) }
@@ -175,27 +183,31 @@ extension SessionRecoveryCoordinator {
     /// Refuses to trim into nothing — fewer than 30 beats isn't a workout. In
     /// that case the recovered workout is kept as it was, untrimmed, and marked
     /// reviewed like a save, so the card doesn't come back for the same session.
+    /// A rebuild that fails leaves the card up and the session unreviewed, so
+    /// the trim can be saved again instead of being dropped.
     func retrimRecoveredWorkout(sessionId: UUID, endSec: Double) async {
         let clipped = collector.archive.retrieveOrLog(sessionId)?.rrSeries?.points
             .filter { $0.t_ms <= Int64(endSec * 1000) } ?? []
-        guard clipped.count >= 30 else {
-            await MainActor.run {
-                Self.markRecoveredWorkoutReviewed(sessionId)
-                collector.morningCoordination.recoveredWorkoutReview = nil
-            }
-            return
-        }
+        guard clipped.count >= 30 else { return closeRecoveredWorkoutReview(sessionId) }
         let outcome = await WorkoutRecoveryService.recover(
             sessionId: sessionId, reason: .appCrashed,
             archive: collector.archive, rawBackup: collector.rawBackup, cloudSyncManager: collector.cloudSyncManager,
             overrideRRPoints: clipped,
             discardBackupsOnAccept: true // user confirmed — safe to clean up
         )
-        await MainActor.run {
-            if outcome != nil { collector.archiveSignal.notifyChanged() }
-            Self.markRecoveredWorkoutReviewed(sessionId)
-            collector.morningCoordination.recoveredWorkoutReview = nil
+        guard outcome != nil else {
+            debugLog("[Recovery] Trim of recovered workout \(sessionId.uuidString.prefix(8)) failed — keeping the review card", level: .error)
+            return
         }
+        collector.archiveSignal.notifyChanged()
+        closeRecoveredWorkoutReview(sessionId)
+    }
+
+    /// The session is marked reviewed, so its card does not come back, and
+    /// the card closes.
+    private func closeRecoveredWorkoutReview(_ sessionId: UUID) {
+        Self.markRecoveredWorkoutReviewed(sessionId)
+        collector.morningCoordination.recoveredWorkoutReview = nil
     }
 
     /// Discard a recovered workout the user rejected from the review card.
@@ -203,14 +215,12 @@ extension SessionRecoveryCoordinator {
     /// archived), so it can still be re-recovered from Lost Sessions if the
     /// user changes their mind.
     func discardRecoveredWorkout(sessionId: UUID) {
-        // A failed delete leaves the session visible in the archive after the
-        // user explicitly rejected it, which reads as the app ignoring them.
-        // The RR backup is deliberately kept either way, so nothing is lost —
-        // but we need to know the delete did not land.
-        attempt("recoveredWorkout.discard") { try collector.archive.delete(sessionId) }
+        // A failed delete keeps the card up and the session unreviewed, so
+        // the rejected workout is not left in the archive looking accepted
+        // and Discard can be tapped again. The RR backup is kept either way.
+        guard attempt("recoveredWorkout.discard", { try collector.archive.delete(sessionId) }) != nil else { return }
         collector.archiveSignal.notifyChanged()
-        Self.markRecoveredWorkoutReviewed(sessionId)
-        collector.morningCoordination.recoveredWorkoutReview = nil
+        closeRecoveredWorkoutReview(sessionId)
     }
 
     enum WatchRouteRecoveryResult {
@@ -239,9 +249,9 @@ extension SessionRecoveryCoordinator {
         }
         let hkDistance = await collector.healthKit.fetchPassiveDistanceMeters(from: start, to: end)
         // Only worth rewriting when HealthKit meaningfully beats what we recorded.
-        guard hkDistance > (session.workoutMetadata?.distanceMeters ?? 0) + 50,
-              let outcome = await recoverWorkout(sessionId: sessionId, points: series.points, distanceMeters: hkDistance)
-        else { return .noRoute }
+        guard hkDistance > (session.workoutMetadata?.distanceMeters ?? 0) + 50 else { return .noRoute }
+        guard let outcome = await recoverWorkout(sessionId: sessionId, points: series.points, distanceMeters: hkDistance)
+        else { return .failed }
         await MainActor.run { collector.archiveSignal.notifyChanged() }
         return .distanceOnly(distanceMeters: outcome.session.workoutMetadata?.distanceMeters ?? hkDistance)
     }
@@ -353,11 +363,12 @@ extension SessionRecoveryCoordinator {
         await MainActor.run { collector.archiveSignal.notifyChanged() }
         let finalSession = rescored ?? updated
         let mergedBeatCount = finalSession.rrSeries?.points.count ?? 0
-        debugLog("[RRCollector] augmentOvernight: merged \(strapCount) strap + \(streamedCount) streamed → \(mergedBeatCount) beats, source=\(finalSession.dataSourceSummary?.selectedSource ?? "?")")
+        debugLog("[RRCollector] augmentOvernight: merged \(strapCount) strap + \(streamedCount) streamed → \(mergedBeatCount) beats, source=\(finalSession.dataSourceSummary?.selectedSource ?? "?"), rescored=\(rescored != nil)")
+        // A failed rescore reports no score: the archived one predates the merge.
         return .merged(
             source: finalSession.dataSourceSummary?.selectedSource ?? "internal",
             beats: mergedBeatCount,
-            score: finalSession.recoveryScore
+            score: rescored?.recoveryScore
         )
     }
 
@@ -461,12 +472,7 @@ extension SessionRecoveryCoordinator {
     /// for about seven seconds).
     func findInterruptedWorkoutSessionId() async -> UUID? {
         let live = liveRecordingIds()
-        if let state = collector.getPersistedRecordingState(),
-           state.sessionType == .workout,
-           !live.contains(state.sessionId),
-           !collector.archive.exists(state.sessionId) {
-            return state.sessionId
-        }
+        if let flagged = flaggedInterruptedWorkoutId(live: live) { return flagged }
         let archive = collector.archive
         let rawBackup = collector.rawBackup
         return await Task.detached(priority: .userInitiated) {
@@ -477,6 +483,16 @@ extension SessionRecoveryCoordinator {
                 .filter { !live.contains($0) }
             return newestWorkoutBackup(among: candidates, in: rawBackup, capturedSince: cutoff)
         }.value
+    }
+
+    /// The workout the persisted crash flag names, when it is neither live
+    /// nor archived. Read synchronously, without touching the backups.
+    private func flaggedInterruptedWorkoutId(live: Set<UUID>) -> UUID? {
+        guard let state = collector.getPersistedRecordingState(),
+              state.sessionType == .workout,
+              !live.contains(state.sessionId),
+              !collector.archive.exists(state.sessionId) else { return nil }
+        return state.sessionId
     }
 
     /// Direct, strap-first recovery for an interrupted WORKOUT — pulls the
@@ -515,26 +531,39 @@ extension SessionRecoveryCoordinator {
     /// workout from strap" card still offers it (and the user can recover
     /// disk-only, or wait until the strap is next connected to get the merge).
     func autoRecoverInterruptedWorkoutOnLaunch() async {
+        // The flagged workout is registered before the backup scan awaits:
+        // the launch alert's Save waits on it and must find it running.
+        let flagged = flaggedInterruptedWorkoutId(live: liveRecordingIds())
+        if let flagged { InterruptedWorkoutAutoRecovery.begin(flagged) }
+        defer { if let flagged { InterruptedWorkoutAutoRecovery.end(flagged) } }
         guard let sessionId = await findInterruptedWorkoutSessionId() else { return }
-        let attemptKey = "autoRecoverAttempts_\(sessionId.uuidString)"
-        guard recordAutoRecoveryAttempt(sessionId: sessionId, attemptKey: attemptKey) else { return }
         InterruptedWorkoutAutoRecovery.begin(sessionId)
         defer { InterruptedWorkoutAutoRecovery.end(sessionId) }
+        guard AutoRecoveryAttempts.remain(for: sessionId), await strapReachedForAutoRecovery(of: sessionId) else { return }
+        // Counted only now, as the memory-heavy pull starts: a launch with the
+        // strap out of range is not an attempt.
+        AutoRecoveryAttempts.record(sessionId)
+        guard await recoverWorkoutFromBackup(sessionId) != nil else { return }
+        clearPersistedRecordingState(ifItIs: sessionId)
+        AutoRecoveryAttempts.clear(sessionId)
+        debugLog("[RRCollector] Auto-recovery: merged strap + streamed and archived interrupted workout")
+    }
+
+    /// The strap is reached, still records, and no new recording took it over
+    /// while it was being reached. Otherwise recovery is left to the manual card.
+    private func strapReachedForAutoRecovery(of sessionId: UUID) async -> Bool {
         guard await strapReadyForAutoRecovery() else {
             debugLog("[RRCollector] Auto-recovery: strap not reachable — deferring to manual card")
-            return
+            return false
         }
         // A workout started while the strap was being reached: its recording
         // is the one on the strap now, and fetching it would stop it and
         // file its beats under the interrupted workout.
         if let current = collector.getPersistedRecordingState(), current.sessionId != sessionId {
             debugLog("[RRCollector] Auto-recovery: a new recording started — deferring to manual card")
-            return
+            return false
         }
-        guard await recoverWorkoutFromBackup(sessionId) != nil else { return }
-        clearPersistedRecordingState(ifItIs: sessionId)
-        UserDefaults.standard.removeObject(forKey: attemptKey)
-        debugLog("[RRCollector] Auto-recovery: merged strap + streamed and archived interrupted workout")
+        return true
     }
 
     /// Get the strap connected so its on-device recording is reachable, and
@@ -563,6 +592,8 @@ extension SessionRecoveryCoordinator {
             return false
         }
         await MainActor.run { enterPausedState(session) }
+        // Resume arms the strap by the night's own capture choice, not the default.
+        if let usesDeviceBackup = collector.getPersistedCaptureMode() { collector.useDeviceBackupForOvernight = usesDeviceBackup }
         collector.persistPausedSessionState(sessionId: session.id)
         collector.clearPersistedRecordingState()
         return true
@@ -621,27 +652,35 @@ extension SessionRecoveryCoordinator {
     /// parent) in memory at a time. A previous implementation accumulated ALL
     /// candidates into a repairWork array, potentially holding hundreds of MB
     /// simultaneously.
-    ///
-    /// Cooperative cancellation: aborts the migration on app termination or a
-    /// shutdown signal rather than continuing to load ~1.5MB/session.
-    nonisolated func repairMergeDataLoss() async -> Int {
+    nonisolated func repairMergeDataLoss() async -> MergeRepairOutcome {
         debugLog("[Recovery] ========== START repairMergeDataLoss ==========")
         let linkedEntries = await linkedOvernightEntries()
-        guard !linkedEntries.isEmpty else {
-            debugLog("[Recovery] ========== END repairMergeDataLoss: 0 linked sessions ==========")
-            return 0
-        }
-        var repairedCount = 0
+        var outcome = MergeRepairOutcome()
         for entry in linkedEntries {
-            if Task.isCancelled {
-                debugLog("[Recovery] repairMergeDataLoss cancelled after \(repairedCount) repairs")
-                break
+            switch await repairLinkedSession(entry) {
+            case .repaired: outcome.repaired += 1
+            case .failed: outcome.failed += 1
+            case .unchanged: break
             }
-            if await repairLinkedSession(entry) { repairedCount += 1 }
         }
-        if repairedCount > 0 { await MainActor.run { collector.archiveSignal.notifyChanged() } }
-        debugLog("[Recovery] ========== END repairMergeDataLoss: \(repairedCount) sessions repaired ==========")
-        return repairedCount
+        if outcome.repaired > 0 { await MainActor.run { collector.archiveSignal.notifyChanged() } }
+        debugLog("[Recovery] ========== END repairMergeDataLoss: \(outcome.repaired) repaired, \(outcome.failed) failed ==========")
+        return outcome
+    }
+
+    /// How many linked nights were rewritten, and how many needed it but
+    /// could not be written (those are worth another run).
+    struct MergeRepairOutcome {
+        var repaired = 0
+        var failed = 0
+    }
+
+    /// One linked night: rewritten, left as it was (healthy, unreadable or
+    /// implausible), or needing a repair whose write failed.
+    enum LinkedRepairResult {
+        case repaired
+        case unchanged
+        case failed
     }
 
     /// Gather candidates on the main actor (archive access). Pre-filters using
@@ -661,22 +700,23 @@ extension SessionRecoveryCoordinator {
     }
 
     /// Load the child + parent, decide whether anything is wrong, and if so
-    /// rebuild and re-archive. Returns whether a repair was written.
-    nonisolated private func repairLinkedSession(_ entry: SessionArchiveEntry) async -> Bool {
-        guard let parentId = entry.linkedSessionIds?.first else { return false }
+    /// rebuild and re-archive.
+    nonisolated private func repairLinkedSession(_ entry: SessionArchiveEntry) async -> LinkedRepairResult {
+        guard let parentId = entry.linkedSessionIds?.first else { return .unchanged }
         // Full load needed for the rrSeries merge.
         guard let session = await MainActor.run(resultType: HRVSession?.self, body: { collector.archive.retrieveOrLog(entry.sessionId) }),
               let parent = await MainActor.run(resultType: HRVSession?.self, body: { collector.archive.retrieveOrLog(parentId) }),
               let parentSeries = parent.rrSeries, !parentSeries.points.isEmpty,
               let childSeries = session.rrSeries, !childSeries.points.isEmpty
-        else { return false }
+        else { return .unchanged }
         let damage = Self.mergeDamage(session: session, parent: parent, childSeries: childSeries, parentSeries: parentSeries)
-        guard damage.needsRepair else { return false }
+        guard damage.needsRepair else { return .unchanged }
         guard let mergedPoints = Self.repairedPoints(
             entry: entry, session: session, parent: parent,
             childSeries: childSeries, parentSeries: parentSeries, damage: damage
-        ) else { return false }
-        return await rebuildAndArchive(session: session, parent: parent, mergedPoints: mergedPoints)
+        ) else { return .unchanged }
+        let written = await rebuildAndArchive(session: session, parent: parent, mergedPoints: mergedPoints)
+        return written ? .repaired : .failed
     }
 
     /// What (if anything) is wrong with a merged child session.
@@ -732,10 +772,12 @@ extension SessionRecoveryCoordinator {
 
     /// Re-run the morning pipeline over the repaired beats, carry the user's
     /// own edits across, then archive and upload. The repaired session is
-    /// anchored to the PARENT's start; only the beat series differs.
+    /// anchored to the PARENT's start; only the beat series differs. A child
+    /// with no end ends at its last beat, not at the time the repair runs.
     nonisolated private func rebuildAndArchive(session: HRVSession, parent: HRVSession, mergedPoints: [RRPoint]) async -> Bool {
+        let lastBeatEnd = mergedPoints.last.map { parent.startDate.addingTimeInterval(Double($0.endMs) / 1000) }
         let baseSession = HRVSession(
-            id: session.id, startDate: parent.startDate, endDate: session.endDate ?? Date(),
+            id: session.id, startDate: parent.startDate, endDate: session.endDate ?? lastBeatEnd ?? parent.startDate,
             state: .analyzing, sessionType: .overnight,
             rrSeries: nil, analysisResult: nil, artifactFlags: nil,
             deviceProvenance: session.deviceProvenance,
@@ -812,22 +854,44 @@ private func newestWorkoutBackup(among candidates: [UUID], in rawBackup: RawRRBa
         .id
 }
 
-@MainActor
 /// Bound auto-recovery attempts per session. Recovering a large strap
 /// session is memory-heavy; if iOS kills the app mid-recovery BEFORE the
 /// crash flag clears, the next launch retries — a relaunch loop (field log:
 /// one session auto-recovered 5×). After a few tries, stop auto-recovering
 /// and defer to the manual "Recover session" card so we quit fighting the
 /// OS. Data stays safe in the backups either way.
-private func recordAutoRecoveryAttempt(sessionId: UUID, attemptKey: String) -> Bool {
-    let attempts = UserDefaults.standard.integer(forKey: attemptKey)
-    guard attempts < 3 else {
-        debugLog("[RRCollector] Auto-recovery: \(sessionId.uuidString.prefix(8)) hit \(attempts) attempts — deferring to manual card to break the relaunch loop")
-        return false
+///
+/// One dictionary holds the count of the workout being recovered only:
+/// recording an attempt drops any other workout's count and a recovery
+/// clears its own, so counts for workouts that never recover do not pile up.
+@MainActor
+private enum AutoRecoveryAttempts {
+    private static let key = "autoRecoverAttempts"
+    private static let limit = 3
+
+    static func remain(for sessionId: UUID) -> Bool {
+        let attempts = count(for: sessionId)
+        guard attempts < limit else {
+            debugLog("[RRCollector] Auto-recovery: \(sessionId.uuidString.prefix(8)) hit \(attempts) attempts — deferring to manual card to break the relaunch loop")
+            return false
+        }
+        return true
     }
-    UserDefaults.standard.set(attempts + 1, forKey: attemptKey)
-    debugLog("[RRCollector] Auto-recovery: interrupted workout \(sessionId.uuidString.prefix(8)) detected at launch (attempt \(attempts + 1))")
-    return true
+
+    static func record(_ sessionId: UUID) {
+        let attempts = count(for: sessionId) + 1
+        UserDefaults.standard.set([sessionId.uuidString: attempts], forKey: key)
+        debugLog("[RRCollector] Auto-recovery: interrupted workout \(sessionId.uuidString.prefix(8)) — attempt \(attempts)")
+    }
+
+    static func clear(_ sessionId: UUID) {
+        guard count(for: sessionId) > 0 else { return }
+        UserDefaults.standard.removeObject(forKey: key)
+    }
+
+    private static func count(for sessionId: UUID) -> Int {
+        UserDefaults.standard.dictionary(forKey: key)?[sessionId.uuidString] as? Int ?? 0
+    }
 }
 
 /// The interrupted workout launch auto-recovery is working on. The launch

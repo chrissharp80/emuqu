@@ -1,37 +1,23 @@
 {
  "file": "Emuqu/Sources/Services/DataPurgeService.swift",
- "hash": "7e621821637f6cb1",
+ "hash": "603e122fba8dce4e",
  "role": "'Delete All My Data' orchestrator: awaits CloudKit zone deletion, sweeps every file in App Group/Application Support/Documents/Caches/tmp and every UserDefaults key (minus keep-lists), then resets named stores (archive dirs, keychain, AI stores, settings, breadcrumbs, caches, notifications) and returns a localized Report.",
  "types": [
   "DataPurgeService: enum (@MainActor) — static purge steps",
   "DataPurgeService.Report: struct — per-step booleans, residual counts, errors, localized text",
   "DataPurgeService.Report.Outcome: enum — removed|cleared|reset",
-  "DataPurgeService.FallibleSteps: struct"
+  "DataPurgeService.FallibleSteps: struct — debug/crash log outcomes",
+  "DataPurgeService.ReadBack: struct — the outcomes read back from the stores after the steps"
  ],
  "state": [
-  "mem:DataPurgeService.keepList = ['user_settings.json'] (file names spared by the container sweep)",
+  "mem:DataPurgeService.keepList = ['user_settings.json'] (file names spared by the container sweep; the App Group root also spares 'Library')",
   "mem:DataPurgeService.defaultsKeepList = entitlement.anchor.v1, storekit.lastKnownPurchased, storekit.lastKnownTestFlight",
-  "mem:DataPurgeService.defaultsKeepPrefixes = 'FlowRecovery.migration.', 'didRun'",
   "mem:DataPurgeService.systemOwnedPrefixes (Apple, NS, com.apple., WebKit, AK, PK, MSV, INNext, CarCapabilities, ADPrivacy, METAL, GEO, TVRemote, SU)",
-  "mem:DataPurgeService.legacyWidgetKeys = ud(appGroup):widget.todayScore, widget.todayVerdict, widget.todayDate, widget.last3Days, widget.totalSessions",
-  "file:<AppGroup>/debug_log.txt (referenced)",
-  "ud:assistant.disclaimerAccepted (referenced)"
+  "file:<sharedContainer>/debug_log.txt (referenced)",
+  "ud:AssistantViewModel.disclaimerKey (assistant.disclaimerAccepted, referenced)"
  ],
- "toplevel": "Static let tables above. Only entry is purgeAllUserData, called by DeleteAllDataPage.swift:207 and DataPurgeServiceTests.",
+ "toplevel": "Static let tables above. Only entry is purgeAllUserData, called by DeleteAllDataPage.swift and DataPurgeServiceTests. The legacy widget.* keys an earlier build wrote to the App Group suite are removed by sweepAllDefaults (none is kept).",
  "flags": [
-  {
-   "kind": "silent-failure",
-   "sev": "med",
-   "text": "Report hardcodes cloudSyncStateReset, conversationsCleared, userFactsCleared, disclaimerReset, assistantDisclaimerReset, unitsPreferenceReset and breadcrumbsCleared to true; the page shows 'cleared/removed/reset' for those steps whatever the store calls did, so a failed breadcrumb/conversation erase is reported as done.",
-   "evidence": [
-    "Emuqu/Sources/Services/DataPurgeService.swift:202",
-    "Emuqu/Sources/Services/DataPurgeService.swift:203",
-    "Emuqu/Sources/Services/DataPurgeService.swift:204",
-    "Emuqu/Sources/Services/DataPurgeService.swift:206",
-    "Emuqu/Sources/Services/DataPurgeService.swift:207"
-   ],
-   "found": "first read, upheld on second"
-  },
   {
    "kind": "spec-mismatch",
    "sev": "low",
@@ -328,15 +314,16 @@
   },
   {
    "key": "func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:deleteRemote:)",
-   "hash": "d8765891968e0578",
-   "does": "Runs the purge: remote CloudKit deletion (awaited), container file sweep + in-memory archive reset, UserDefaults sweep, named directory/store resets, debug/crash log purge, and returns a Report (several fields hardcoded true).",
+   "hash": "4d205483b7f8d933",
+   "does": "Runs the purge: remote CloudKit deletion (awaited), container file sweep + in-memory archive reset, UserDefaults sweep, named directory/store resets, debug/crash log purge, then reads back every store whose clear reports no failure (readBackClearedStores) and returns a Report whose per-step booleans are those results.",
    "entry": "Button task in DeleteAllDataPage.swift:207; DataPurgeServiceTests",
    "calls": [
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeRemote(cloudSync:deleteRemote:errors:)",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAndForget(archive:rawBackup:errors:)",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAllDefaults(errors:)",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeDirectories(settingsManager:cloudSync:errors:)",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeFallibleStores(errors:)"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeFallibleStores(errors:)",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.readBackClearedStores(settingsManager:cloudSync:)"
    ],
    "reads": [],
    "writes": [],
@@ -344,10 +331,47 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeDirectories(settingsManager:cloudSync:errors:)": "a9167ea804ea5e3d",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeFallibleStores(errors:)": "6f6cfec6f5b1681a",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeFallibleStores(errors:)": "241dc56a5d3c26e3",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeRemote(cloudSync:deleteRemote:errors:)": "d951b20451ad7ecc",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.readBackClearedStores(settingsManager:cloudSync:)": "e30110433925c2a2",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAllDefaults(errors:)": "f7e516b009caba4b",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAndForget(archive:rawBackup:errors:)": "952f885d4a2fa916"
+   }
+  },
+  {
+   "key": "func DataPurgeService.readBackClearedStores(settingsManager:cloudSync:)",
+   "hash": "3139bc7799970efc",
+   "does": "After all purge steps, checks each store the report would otherwise assume cleared: CloudKit lastSyncDate nil and zoneCreated false, ConversationStore.load() empty, UserFactsStore.facts empty, SettingsManager.hasAcceptedDisclaimer false, the assistant view model's disclaimer false, UnitsPreferenceStore.current == .auto, and no breadcrumb active.json or archive.json (checked on the store's queue, after its pending clear/erase).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.hasActiveTrail()",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.hasArchiveFile()",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.zoneCreated"
+   ],
+   "reads": [
+    "ud:cloudKitZoneCreated",
+    "ud:SettingsManager.disclaimerAcceptedKey",
+    "ud(appGroup):fitness.unitsPreference",
+    "file:ConversationStore file",
+    "file:Breadcrumbs/active.json",
+    "file:Breadcrumbs/archive.json",
+    "mem:UserFactsStore.facts",
+    "mem:CloudKitSyncManager.lastSyncDate"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "c52e8d92d07d55d4",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.hasActiveTrail()": "48c8c6fc3970494c",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.hasArchiveFile()": "f587617721f49215",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.lastSyncDate": "286a8e7037609f5f",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.zoneCreated": "81ef19bfa09eb971",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
    }
   },
   {
@@ -369,17 +393,19 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAllContainers(errors:)": "5ded030f6239c54f",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAllContainers(errors:)": "e3e929dd832dc1ea",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.resetInMemoryStateAfterPurge()": "680e37edf08e252a",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.resetInMemoryStateAfterPurge()": "52ac66f403386ab4"
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.resetInMemoryStateAfterPurge()": "ba690bfda53be674"
    }
   },
   {
    "key": "func DataPurgeService.isPurgeable(defaultsKey:)",
-   "hash": "a19b95392183e712",
-   "does": "False for keys on the keep list, keep prefixes or system-owned prefixes; true otherwise.",
+   "hash": "9278dbd631147c1d",
+   "does": "False for keys on the keep list, FlowRecovery.migration.* keys, didRun* keys that carry a _v version marker, and system-owned keys (isSystemKey: a system prefix followed by a capital, digit, underscore or nothing); true otherwise.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.isSystemKey(_:prefix:)"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
@@ -390,28 +416,51 @@
     },
     {
      "at": "+2",
-     "cond": "key has a migration prefix",
+     "cond": "FlowRecovery.migration. prefix",
      "effect": "false"
     },
     {
      "at": "+3",
-     "cond": "key has a system prefix",
+     "cond": "didRun prefix and contains _v",
+     "effect": "false"
+    },
+    {
+     "at": "+4",
+     "cond": "isSystemKey for any system prefix",
      "effect": "false; else true"
     }
    ],
-   "flags": [
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.isSystemKey(_:prefix:)": "be77c70d8d47f770"
+   }
+  },
+  {
+   "key": "func DataPurgeService.isSystemKey(_:prefix:)",
+   "hash": "d6a27fe5207bc71b",
+   "does": "True when key starts with prefix and either the prefix ends with '.', the key is exactly the prefix, or the next character is uppercase, a digit or '_' (Apple's key style); a lowercase continuation is not a system key.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
     {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Prefix 'didRun' and 2-letter system prefixes ('AK','PK','SU','NS') are matched case-sensitively against every app key; any future app key starting with e.g. 'SU' or 'didRun' silently survives the erase.",
-     "evidence": [
-      "Emuqu/Sources/Services/DataPurgeService.swift:338",
-      "Emuqu/Sources/Services/DataPurgeService.swift:349",
-      "Emuqu/Sources/Services/DataPurgeService.swift:356"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+1",
+     "cond": "no prefix match",
+     "effect": "false"
+    },
+    {
+     "at": "+2",
+     "cond": "prefix ends with '.' or nothing follows it",
+     "effect": "true"
+    },
+    {
+     "at": "+3",
+     "cond": "next char uppercase/digit/underscore",
+     "effect": "true; else false"
     }
    ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -474,7 +523,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.defaultsDomains(errors:)": "fd3d52e6eef18c92",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.isPurgeable(defaultsKey:)": "1d27d61813505cf8",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.isPurgeable(defaultsKey:)": "8af1332a5c1d43cd",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.storedKeys(in:)": "e874968fe0f57515"
    }
   },
@@ -526,8 +575,8 @@
   },
   {
    "key": "func DataPurgeService.purgeRoots()",
-   "hash": "fcc26ebe06ba00ea",
-   "does": "Roots to sweep: App Group container (if available), Application Support, Documents, Caches, and the temporary directory.",
+   "hash": "f8e92d4909e2dccf",
+   "does": "Roots to sweep with the entry names each keeps: App Group container (if available; keepList plus 'Library', where iOS keeps the group suite's preferences plist and caches), Application Support, Documents, Caches, and the temporary directory (keepList).",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -556,12 +605,12 @@
   },
   {
    "key": "func DataPurgeService.sweepAllContainers(errors:)",
-   "hash": "c2d181927fc6e26c",
-   "does": "Sweeps every root and sums removed entries.",
+   "hash": "70446125f0655b1e",
+   "does": "Sweeps every root with its kept names and sums removed entries.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeRoots()",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweep(root:errors:)"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweep(root:keeping:errors:)"
    ],
    "reads": [],
    "writes": [],
@@ -574,21 +623,21 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeRoots()": "bf2d56bff250e93c",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweep(root:errors:)": "91839e5676e753ad"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeRoots()": "b4c63f0ddce177b8",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweep(root:keeping:errors:)": "e68619a7818ab3c4"
    }
   },
   {
-   "key": "func DataPurgeService.sweep(root:errors:)",
-   "hash": "9f0a8816edbf0ba7",
-   "does": "Removes every top-level entry of root whose name is not in keepList, counting successes and appending a localized error per failure.",
+   "key": "func DataPurgeService.sweep(root:keeping:errors:)",
+   "hash": "565946ac877e576d",
+   "does": "Removes every top-level entry of root whose name is not in the kept set, counting successes and appending a localized error per failure.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
    "writes": [
-    "file:<AppGroup>/*",
+    "file:<AppGroup>/* (except Library)",
     "file:ApplicationSupport/*",
     "file:Documents/*",
     "file:Caches/*",
@@ -602,7 +651,7 @@
     },
     {
      "at": "+6",
-     "cond": "for entry not in keepList",
+     "cond": "for entry not in kept",
      "effect": "attempts removal"
     },
     {
@@ -611,18 +660,7 @@
      "effect": "appends 'Could not remove <name>: <error>'; continues"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Removes every top-level item in the App Group container including its Library/ (group preferences plist and caches) while UserDefaults(suiteName:) and live stores still hold them in memory; anything they write afterwards is recreated, and the count includes these system directories.",
-     "evidence": [
-      "Emuqu/Sources/Services/DataPurgeService.swift:420",
-      "Emuqu/Sources/Services/DataPurgeService.swift:451"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
@@ -646,20 +684,20 @@
    "deps": {
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.cancelMorningNotifications()": "01cdfb69eff962eb",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeHealthCaches()": "ce90e6d1827a3bfc",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeLocalStores(cloudSync:settingsManager:)": "b99dd2d7bc852d06",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeLocalStores(cloudSync:settingsManager:)": "06e232958dd48433",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.resetAppGroupDirectory(named:label:reportMissingContainer:errors:)": "fe08b105c1fd4c3e",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },
   {
    "key": "func DataPurgeService.purgeFallibleStores(errors:)",
-   "hash": "544c4f03db79f6b4",
-   "does": "Purges debug log and crash logs (reporting each) and legacy shared state.",
+   "hash": "841d8df1df85cdaa",
+   "does": "Purges debug log and crash logs (reporting each) and clears the PendingEncryptionLedger.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeDebugLog(errors:)",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeCrashLogs(errors:)",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeLegacySharedState()"
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clearAll()"
    ],
    "reads": [],
    "writes": [],
@@ -667,8 +705,8 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeCrashLogs(errors:)": "93c429b1e47f665a",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeDebugLog(errors:)": "38a4354681685bbb",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeLegacySharedState()": "bd6e0e9096cc3d48"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeDebugLog(errors:)": "91e4e321261cc4ad",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clearAll()": "15358e501e007799"
    }
   },
   {
@@ -707,8 +745,8 @@
   },
   {
    "key": "func DataPurgeService.purgeLocalStores(cloudSync:settingsManager:)",
-   "hash": "c04424bf59fd656f",
-   "does": "Purges workout GPS backups, resets CloudKit local sync state, removes all API keys from the Keychain, clears the assistant conversation (view model and store) and user facts, resets settings to defaults with iCloud sync OFF, removes ud assistant.disclaimerAccepted, sets units to .auto, clears breadcrumb active trail and archive, and resets in-memory location/contact/artifact stores and AI consents. Returns whether keychain removal fully succeeded.",
+   "hash": "b3bc8bf03860ccb0",
+   "does": "Purges workout GPS backups, resets CloudKit local sync state, removes all API keys from the Keychain, clears the assistant conversation (view model and store) and user facts, resets settings to defaults with iCloud sync OFF, removes ud AssistantViewModel.disclaimerKey (assistant.disclaimerAccepted), sets units to .auto, clears breadcrumb active trail and archive, and resets in-memory location/contact/artifact stores and AI consents. Returns whether keychain removal fully succeeded.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.purgeAll()",
@@ -729,11 +767,11 @@
     "file:<AppGroup>/user_settings.json",
     "mem:SettingsManager.settings",
     "ud:SettingsManager.disclaimerAcceptedKey (set false by resetToDefaults, SettingsManager.swift:220,374)",
-    "ud:assistant.disclaimerAccepted",
+    "ud:AssistantViewModel.disclaimerKey (assistant.disclaimerAccepted)",
     "ud(appGroup):fitness.unitsPreference",
     "file:WorkoutBackup/",
-    "file:Breadcrumbs/active.json (async on BreadcrumbStore queue, result discarded)",
-    "file:Breadcrumbs/archive.json (async, result discarded)",
+    "file:Breadcrumbs/active.json (async on BreadcrumbStore queue; verified by readBackClearedStores)",
+    "file:Breadcrumbs/archive.json (async; verified by readBackClearedStores)",
     "file:ConversationStore file (async)",
     "file:UserFactsStore file"
    ],
@@ -748,7 +786,7 @@
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
     "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.clear()": "46f8393a76f04151",
     "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.eraseArchive()": "826a55d04ff24024",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.forgetInMemoryStores()": "311aeaade1f8fed1",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.forgetInMemoryStores()": "6bebe55abe806747",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.resetLocalSyncState()": "68bf143978c6bac0",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.purgeAll()": "2ccf3980470b20bd",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
@@ -778,10 +816,11 @@
   },
   {
    "key": "func DataPurgeService.forgetInMemoryStores()",
-   "hash": "370e115631d34df0",
-   "does": "Calls forgetAfterPurge on SavedRouteStore, BreadcrumbRecorder, AmbientLocationService, EmailContactStore, AssistantArtifactStore, then revokes assistant agreements.",
+   "hash": "9314acebd9a4d60a",
+   "does": "Disengages the ActiveRouteSession (memory-only turn-by-turn route), then calls forgetAfterPurge on SavedRouteStore, BreadcrumbRecorder, AmbientLocationService, EmailContactStore, AssistantArtifactStore, then revokes assistant agreements.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.disengage()",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.forgetAfterPurge()",
     "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.forgetAfterPurge()",
     "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.forgetAfterPurge()",
@@ -797,8 +836,9 @@
     "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.forgetAfterPurge()": "de1b5cc890aed8d3",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.forgetAfterPurge()": "4667f9e3ed78a09f",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.forgetAfterPurge()": "363317b10eb0eb23",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.disengage()": "8f080754e7f5cfd5",
     "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.forgetAfterPurge()": "2e6daf4ff47b3e7f",
-    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.forgetAfterPurge()": "44cd2ae465dd80c0",
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.forgetAfterPurge()": "fa63d12b5e055ca8",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.forgetAssistantAgreements()": "b981f6dca2fda2b7",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
@@ -839,53 +879,38 @@
   },
   {
    "key": "func DataPurgeService.purgeDebugLog(errors:)",
-   "hash": "d334fc29f829d745",
-   "does": "Clears the in-memory debug log ring buffer, then deletes <AppGroup>/debug_log.txt if present; returns false and records an error only if deletion throws.",
+   "hash": "8a24669707e8fb82",
+   "does": "Clears the debug logger (memory, pending lines, and a queued removal of its file), then synchronously deletes debug_log.txt at the logger's own path (AppConfig.sharedContainerURL(), App Group or its Documents fallback) if present — the log re-created by logging during the purge, after the sweep removed the original; returns false and records an error only if that deletion throws.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.clear()",
+    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
    "writes": [
-    "file:<AppGroup>/debug_log.txt",
+    "file:<sharedContainer>/debug_log.txt",
     "mem:DebugLogger buffer"
    ],
    "branches": [
     {
-     "at": "+3",
-     "cond": "App Group container nil",
-     "effect": "returns true (nothing to delete)"
-    },
-    {
-     "at": "+7",
+     "at": "+4",
      "cond": "file absent",
      "effect": "returns true"
     },
     {
-     "at": "+11",
+     "at": "+8",
      "cond": "catch removeItem",
      "effect": "appends 'Debug log: <error>', returns false"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "The container sweep that runs earlier already removed <AppGroup>/debug_log.txt (it is not on keepList), so the file branch here only acts on a log re-created mid-purge.",
-     "evidence": [
-      "Emuqu/Sources/Services/DataPurgeService.swift:620",
-      "Emuqu/Sources/Services/DataPurgeService.swift:451",
-      "Emuqu/Sources/Services/DataPurgeService.swift:196"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.clear()": "88092cd51ced3d06"
+    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "9cf3a08c95588151",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.clear()": "a59aa682de43648a"
    }
   },
   {
@@ -914,50 +939,6 @@
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.clearAll()": "6cd2a6d86e5ed09f"
-   }
-  },
-  {
-   "key": "func DataPurgeService.purgeLegacySharedState()",
-   "hash": "e0fdde6703a20961",
-   "does": "Clears the PendingEncryptionLedger and removes the five legacy widget.* keys from the App Group suite.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clearAll()"
-   ],
-   "reads": [],
-   "writes": [
-    "ud(appGroup):widget.todayScore",
-    "ud(appGroup):widget.todayVerdict",
-    "ud(appGroup):widget.todayDate",
-    "ud(appGroup):widget.last3Days",
-    "ud(appGroup):widget.totalSessions"
-   ],
-   "branches": [
-    {
-     "at": "+4",
-     "cond": "App Group suite unavailable",
-     "effect": "returns after ledger clear"
-    },
-    {
-     "at": "+5",
-     "cond": "for key in legacyWidgetKeys",
-     "effect": "removeObject each"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "sweepAllDefaults has already removed every widget.* key from the App Group suite (none is kept), so this explicit list is redundant.",
-     "evidence": [
-      "Emuqu/Sources/Services/DataPurgeService.swift:669",
-      "Emuqu/Sources/Services/DataPurgeService.swift:382"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clearAll()": "ea4d87cde09d2117"
    }
   },
   {

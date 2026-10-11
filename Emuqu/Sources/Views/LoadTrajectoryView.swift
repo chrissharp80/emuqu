@@ -56,7 +56,7 @@ struct LoadTrajectoryView: View {
     }
 
     /// Recent-workouts row entry — sport icon + duration + TRIMP + date.
-    /// A row opens the workout only when `onWorkoutTap` is set.
+    /// Display only: the rows do not open the workout.
     struct RecentWorkout: Identifiable {
         let id: UUID
         let sportSymbolName: String
@@ -81,7 +81,6 @@ struct LoadTrajectoryView: View {
     let onComebackTap: () -> Void
     let onPeakingTap: () -> Void
     let onOverreachTap: () -> Void
-    var onWorkoutTap: ((UUID) -> Void)?
     /// Long-press a chart point → "What was happening"
     /// sheet showing workouts that contributed on that day. Loader resolves
     /// the date to the matching workouts from the archive.
@@ -100,13 +99,14 @@ struct LoadTrajectoryView: View {
 
     private var current: DailySample? { samples.last }
 
-    /// Routes through the canonical helper so the dashboard chip and this full
-    /// surface can never disagree.
+    /// Routes through the canonical helper with the same regression slope
+    /// (`rampRate`) the dashboard chip and the ramp-rate card use, so the
+    /// verdicts agree whenever that slope is non-zero.
     ///
     /// The CTL passed in is today's value (`current`); the week-ago CTL
-    /// (`samples[count - 8]`) is only the fallback the verdict uses when it has
-    /// no ramp rate. The verdict's direction comes from `rampRate`, the same
-    /// regression slope the ramp-rate card shows.
+    /// (`samples[count - 8]`) is only the fallback the verdict uses when the
+    /// slope is exactly 0. The dashboard chip's fallback uses yesterday's CTL
+    /// against `series[count - 9]`, so at a zero slope the two can differ.
     ///
     /// `LoadTrajectoryLoader.makeSamples` overrides today's bucket with the
     /// dashboard's live value (`TrainingMetricsCache.current`), so the two
@@ -131,7 +131,16 @@ struct LoadTrajectoryView: View {
         current.map { FormDescriptor(tsb: $0.tsb) }
     }
 
-    private var rampBand: RampBand { RampBand(tssPerDayPerWeek: rampRate) }
+    /// The ramp band as the active modes allow it to be worded, as their
+    /// footers promise: Intentional overreach hides "Rapid increase" (worded
+    /// as the standard building band) and a detected taper hides "Easing
+    /// down" (worded as holding steady). The ramp number itself is unchanged.
+    private var rampBand: RampBand {
+        let band = RampBand(tssPerDayPerWeek: rampRate)
+        if overreachActive, band == .rapidIncrease { return .standard }
+        if peakingDetected, band == .detraining { return .holdingSteady }
+        return band
+    }
 
     var body: some View {
         ScrollView {
@@ -316,7 +325,7 @@ struct LoadTrajectoryView: View {
                 valueChip(label: "CTL", value: last.ctl, color: AppTheme.wongGood)
                 valueChip(label: "ATL", value: last.atl, color: AppTheme.wongCaution)
             }
-            .padding(.top, 24) // clear the legend row
+            .padding(.top, 12) // inside the card's own 12 pt inset; the legend sits above the card
             .padding(.trailing, 8)
             .allowsHitTesting(false)
         }
@@ -584,24 +593,18 @@ struct LoadTrajectoryView: View {
     }
 
     private func recentWorkoutRow(_ row: RecentWorkout) -> some View {
-        Button {
-            onWorkoutTap?(row.id)
-        } label: {
-            HStack(spacing: 12) {
-                sportBadge(row)
-                workoutRowCaption(row)
-                Spacer()
-                workoutRowMetrics(row)
-            }
-            .padding(12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(AppTheme.cardBackground)
-            )
+        HStack(spacing: 12) {
+            sportBadge(row)
+            workoutRowCaption(row)
+            Spacer()
+            workoutRowMetrics(row)
         }
-        .buttonStyle(.plain)
-        .disabled(onWorkoutTap == nil)
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(AppTheme.cardBackground)
+        )
     }
 
     private func sportBadge(_ row: RecentWorkout) -> some View {

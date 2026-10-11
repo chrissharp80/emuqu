@@ -331,12 +331,12 @@
   },
   {
    "key": "init OvernightHRChartCanvas.HRChartGeometry(size:stats:points:)",
-   "hash": "22acaf10243b9525",
+   "hash": "79f075663c22f2ea",
    "does": "Picks plot HR (allHrValues else hrValues), requires some data and a non-degenerate y-range, then stores size, points, y-range, viewport and window bounds.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.HRChartGeometry.yRange(plotHR:healthKitHR:)",
-    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.HRChartGeometry.windowBounds(stats:size:totalPoints:firstMs:totalDurationMs:)"
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.HRChartGeometry.windowBounds(stats:size:points:firstMs:totalDurationMs:)"
    ],
    "reads": [],
    "writes": [],
@@ -359,7 +359,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.HRChartGeometry.windowBounds(stats:size:totalPoints:firstMs:totalDurationMs:)": "9c0ac2ecedf0d6da",
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.HRChartGeometry.windowBounds(stats:size:points:firstMs:totalDurationMs:)": "a4dc74de443044a0",
     "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.HRChartGeometry.yRange(plotHR:healthKitHR:)": "4217656d24696862"
    }
   },
@@ -407,9 +407,9 @@
    "deps": {}
   },
   {
-   "key": "func OvernightHRChartCanvas.HRChartGeometry.windowBounds(stats:size:totalPoints:firstMs:totalDurationMs:)",
-   "hash": "60313b81d6ec0f15",
-   "does": "Window x-bounds from wall-clock ms when available (clamped to 0..width; full if > 80% of viewport), else from point indices over point count; (0,0,full) when there are no points.",
+   "key": "func OvernightHRChartCanvas.HRChartGeometry.windowBounds(stats:size:points:firstMs:totalDurationMs:)",
+   "hash": "d7436690ad3175dd",
+   "does": "The analysis window's x range on the time viewport: from stats.windowStartMs/EndMs when they differ, else from the t_ms of the window's first and last beats (indices clamped to the points) — beat indices are not proportional to x on a viewport widened by HealthKit or gappy. Start fraction clamped ≥ 0, end ≤ 1; isFull when it spans more than OvernightChartDrawing.fullRecordingWindowFraction (0.8). (0, 0, full) with no viewport or no beats, so the highlight is skipped.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -417,27 +417,21 @@
    "branches": [
     {
      "at": "+7",
-     "cond": "duration > 0 && windowStartMs != windowEndMs",
-     "effect": "ms-based bounds"
+     "cond": "totalDurationMs <= 0 or no points",
+     "effect": "(0, 0, true)"
     },
     {
-     "at": "+16",
-     "cond": "totalPoints == 0",
-     "effect": "return (0,0,true) — no highlight"
-    }
-   ],
-   "flags": [
+     "at": "+9",
+     "cond": "windowStartMs != windowEndMs",
+     "effect": "ms bounds; else beat t_ms"
+    },
     {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Index fallback divides by point count while the x axis is a time viewport that can be extended by HK sleep (chartStartMs < first point), so the fallback highlight is drawn at the wrong x on extended or gappy charts; 0.8 full-recording cut-off is a magic number.",
-     "evidence": [
-      "Emuqu/Sources/Views/OvernightChartsView+Charts.swift:325",
-      "Emuqu/Sources/Views/OvernightChartsView+Charts.swift:321"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+17",
+     "cond": "span > 0.8",
+     "effect": "isFull"
     }
    ],
+   "flags": [],
    "deps": {}
   },
   {

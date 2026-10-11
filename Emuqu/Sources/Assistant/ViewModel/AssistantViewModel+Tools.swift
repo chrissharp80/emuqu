@@ -223,18 +223,18 @@ extension AssistantToolRunner {
     /// In-memory FIFO of 10; surfaced in Settings →
     /// Troubleshooting → AI prompt audit.
     ///
-    /// The caller passes the live-state location block to cloud providers;
-    /// an empty `contextRendered` would mean the model never sees the
-    /// "📍 LOCATION:" line that the system prompt instructs it to read ("AI
-    /// has no awareness of my location"). `renderLiveStateForCloud()` emits
-    /// ONLY the location (not the heavy session dump), keeping the Anthropic /
-    /// Gemini prompt-prefix cache hot while giving the model the volatile data
-    /// it's told to use.
+    /// The caller passes the live-state block (`renderLiveStateForCloud()`) to
+    /// every provider round: today's and yesterday's recovery, HRV RMSSD and
+    /// mean HR lines, plus — only while a workout is recording — the
+    /// "📍 LOCATION:" line the system prompt tells the model to read. It is a
+    /// few lines, not the heavy session dump, and it rides in the uncached
+    /// `<live_state>` tail, keeping the Anthropic / Gemini prompt-prefix cache
+    /// hot while giving the model the volatile data it's told to use.
     ///
-    /// Privacy: that location line is emitted only
-    /// while a workout is actively recording (LiveWorkoutBroker snapshot
-    /// non-nil) — matching the ProviderConsentSheet disclosure. Outside a
-    /// workout the render returns "" and no `<live_state>` block is spliced.
+    /// Privacy: the location line is emitted only while a workout is actively
+    /// recording (LiveWorkoutBroker snapshot non-nil) — matching the
+    /// ProviderConsentSheet disclosure. The recovery / HRV / HR lines go to the
+    /// consented provider on every round.
     private func recordPromptAudit(
         provider: AIProvider,
         model: ModelOption,
@@ -340,9 +340,13 @@ extension AssistantToolRunner {
     ///
     /// A round that had tool_use rewinds any pre-tool-use text the model
     /// emitted ("Based on your data…" before actually resolving the data).
-    /// Voice hasn't spoken it yet (the cursor wasn't advanced); chat did
-    /// render it, but replacing is correct — the model itself threw it away by
-    /// deciding to call a tool.
+    /// Chat did render it, but replacing is correct — the model itself threw
+    /// it away by deciding to call a tool. Voice may already have spoken whole
+    /// sentences of it (the buffer advances the cursor per sentence until the
+    /// first tool_use arrives); the rewind pulls the cursor back so the next
+    /// round is still spoken from its start.
+    ///
+    /// The number check runs after the rewind, on the text that stays.
     private func applyRoundEndTextPolicy(
         thisRound: [PendingToolCall],
         budgetExhausted: Bool,
@@ -362,11 +366,9 @@ extension AssistantToolRunner {
     /// existing live-workout-metrics guard separately;
     /// text-mode (chat) needs its own guard, otherwise fabricated
     /// TSB-swing claims reach the chat surface unchallenged.
-    /// Runs on EVERY round-end —
-    /// even mid-tool-loop, so a fabricated number in the
-    /// pre-tool-use "based on your data…" lead-in gets caught
-    /// before the tool result lands. The caller's rewind for tool-use rounds
-    /// runs AFTER this so corrected text doesn't get clobbered.
+    /// Runs on EVERY round-end, after the caller's rewind of a tool-use
+    /// round, so it checks only the text that stays visible (a pre-tool-use
+    /// lead-in has already been cut).
     ///
     /// Use the verifier's pre-built corrected text instead of
     /// splicing ranges here. The verifier matches against its own
@@ -393,7 +395,9 @@ extension AssistantToolRunner {
     /// `runToolUseLoop`. Resolves each pending call through
     /// `CompactToolRouter` (or emits the budget / no-owner.registry missing
     /// envelope) and reports whether this round crossed the per-turn
-    /// budget.
+    /// budget. The budget is per call: the calls that still fit under
+    /// `maxToolCallsPerTurn` resolve, and only the ones past it (the 9th
+    /// onward) get the budget-exceeded envelope.
     ///
     /// Resolver cancellation rule: check `Task.isCancelled`
     /// before dispatching resolver work and between each resolve so a
@@ -407,19 +411,19 @@ extension AssistantToolRunner {
         factRegistry: FactResolverRegistry?
     ) async throws -> (exchanges: [ToolExchange], overBudget: Bool) {
         try Task.checkCancellation()
-        let overBudget = (totalToolCalls + thisRound.count) > Self.maxToolCallsPerTurn
+        let budgetLeft = max(0, Self.maxToolCallsPerTurn - totalToolCalls)
         var exchanges: [ToolExchange] = []
         exchanges.reserveCapacity(thisRound.count)
-        for pending in thisRound {
+        for (offset, pending) in thisRound.enumerated() {
             try Task.checkCancellation()
             exchanges.append(ToolExchange(
                 toolUseID: pending.id,
                 toolName: pending.name,
                 inputJSON: pending.inputJSON,
-                resultJSON: await resultJSON(for: pending, overBudget: overBudget, factRegistry: factRegistry)
+                resultJSON: await resultJSON(for: pending, overBudget: offset >= budgetLeft, factRegistry: factRegistry)
             ))
         }
-        return (exchanges, overBudget)
+        return (exchanges, thisRound.count > budgetLeft)
     }
 
     /// One tool call's result envelope.
@@ -562,6 +566,13 @@ extension AssistantToolRunner {
     /// reflect the actual answering provider rather than the one originally
     /// selected. The badge is what the user reads in the chat transcript ("•
     /// Apple Intelligence"); it MUST match where the visible text came from.
+    /// On failure the fallback's own partial text is cut back to what voice
+    /// already spoke, so a failed fallback never leaves its text under the
+    /// primary provider's badge.
+    ///
+    /// Each fallback gets the history re-cut to ITS budget
+    /// (`fallbackOutbound`), not the primary's: an Apple primary's 1,200-token
+    /// window would otherwise starve a cloud fallback.
     private func runFallback(
         provider: AIProvider,
         model: ModelOption,
@@ -572,14 +583,13 @@ extension AssistantToolRunner {
         voiceMode: Bool
     ) async -> Bool {
         let supportsTools = !tools.isEmpty && provider.id != .apple
-        let prompt = await fallbackSystemPrompt(
-            provider: provider, supportsTools: supportsTools, voiceMode: voiceMode
-        )
+        let prompt = await fallbackSystemPrompt(provider: provider, supportsTools: supportsTools, voiceMode: voiceMode)
         do {
             debugLog("[Assistant] fallback → \(provider.id.rawValue):\(model.apiID)")
             discardUnspokenPartialText(turnID: turnID)
             try await runToolUseLoop(
-                provider: provider, model: model, outbound: outbound, systemPrompt: prompt,
+                provider: provider, model: model,
+                outbound: fallbackOutbound(for: provider, turnID: turnID, primaryOutbound: outbound), systemPrompt: prompt,
                 tools: supportsTools ? tools : [],
                 factRegistry: supportsTools ? factRegistry : nil, turnID: turnID
             )
@@ -589,8 +599,17 @@ extension AssistantToolRunner {
             return true // user-cancelled — treat as resolved
         } catch {
             debugLog("[Assistant] fallback \(provider.id.rawValue) also failed: \(error.localizedDescription)")
+            discardUnspokenPartialText(turnID: turnID)
             return false
         }
+    }
+
+    /// The history before the reserved turn, truncated to `provider`'s own
+    /// token budget. Falls back to the primary's outbound when the reserved
+    /// turn is gone (cleared / regenerated mid-turn).
+    private func fallbackOutbound(for provider: AIProvider, turnID: UUID, primaryOutbound: [ChatTurn]) -> [ChatTurn] {
+        guard let index = owner.liveTurnIndex(for: turnID) else { return primaryOutbound }
+        return AssistantViewModel.truncateForSend(Array(owner.turns[..<index]), provider: provider.id).kept
     }
 
     /// Each fallback gets its own composed system prompt — Apple
@@ -601,27 +620,18 @@ extension AssistantToolRunner {
     /// `nextSendIsVoice` has been cleared by the time we reach here so reading
     /// it would silently lose the voice-brevity overlay.
     ///
-    /// Same recent-user-messages pass as the main dispatch path
-    /// so the composer's `UserCorrectionDetector` can read correction signals.
+    /// Composed by the main dispatch path's own
+    /// `AssistantTurnRouter.composeSystemPromptForTurn`, so the composer's
+    /// `UserCorrectionDetector` reads the same recent user messages.
     private func fallbackSystemPrompt(
         provider: AIProvider,
         supportsTools: Bool,
         voiceMode: Bool
     ) async -> String {
         let contextRendered = await fallbackContextRender(provider: provider, supportsTools: supportsTools)
-        AssistantSystemPrompt.pendingRecentUserMessages = owner.turns.suffix(6)
-            .filter { $0.role == .user && !$0.localOnly }
-            .map(\.text)
-        let prompt = await AssistantSystemPrompt.compose(
-            userFacts: owner.snapshotUserFacts(),
-            priorSummary: owner.priorSummary,
-            contextRendered: contextRendered,
-            compactAppReference: true,
-            voiceMode: voiceMode,
-            toolMode: supportsTools
+        return await owner.router.composeSystemPromptForTurn(
+            rendered: contextRendered, voiceMode: voiceMode, toolMode: supportsTools
         )
-        AssistantSystemPrompt.pendingRecentUserMessages = []
-        return prompt
     }
 
     /// Match the main dispatch path: cloud providers

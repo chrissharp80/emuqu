@@ -8,7 +8,7 @@
   "MorningFeelingTagArray: struct (Codable) — forward-compatible [MorningFeelingTag] wrapper"
  ],
  "state": [],
- "toplevel": "Raw values (case names) are the persisted form inside SessionMetadata.morningFeelingTags and the strings Flo context/fact resolver send (rawValue). Encode of a single tag is synthesized (rawValue string).",
+ "toplevel": "Raw values (case names) are the persisted form inside SessionMetadata.morningFeelingTags and the strings Flo context/fact resolver send (rawValue). Encode and decode of a single tag are the synthesized RawRepresentable Codable (decode throws dataCorrupted on an unknown raw value); arrays go through MorningFeelingTagArray.",
  "flags": [],
  "units": [
   {
@@ -93,77 +93,6 @@
    "deps": {}
   },
   {
-   "key": "var MorningFeelingTag.label",
-   "hash": "cd8e6414478a9129",
-   "does": "Fixed English label per tag.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "case infection",
-     "effect": "English label"
-    },
-    {
-     "at": "+3",
-     "cond": "case allergies",
-     "effect": "English label"
-    },
-    {
-     "at": "+4",
-     "cond": "case hangover",
-     "effect": "English label"
-    },
-    {
-     "at": "+5",
-     "cond": "case stomach",
-     "effect": "English label"
-    },
-    {
-     "at": "+6",
-     "cond": "case sore",
-     "effect": "English label"
-    },
-    {
-     "at": "+7",
-     "cond": "case tired",
-     "effect": "English label"
-    },
-    {
-     "at": "+8",
-     "cond": "case headache",
-     "effect": "English label"
-    },
-    {
-     "at": "+9",
-     "cond": "case stressed",
-     "effect": "English label"
-    },
-    {
-     "at": "+10",
-     "cond": "case down",
-     "effect": "English label"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No reader found: chips use localizedLabel, and Flo/fact-resolver read rawValue (ContextBuilder:370, AppFactResolver+Sleep:695), contradicting the comment that label 'is what Flo and the exports read'.",
-     "evidence": [
-      "Emuqu/Sources/Models/MorningFeelingTag.swift:70",
-      "Emuqu/Sources/Assistant/Context/ContextBuilder.swift:370",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift:695",
-      "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift:203"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
-  },
-  {
    "key": "var MorningFeelingTag.localizedLabel",
    "hash": "54679fde3c1188b9",
    "does": "Localized chip label in the app language bundle.",
@@ -224,37 +153,6 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
-  },
-  {
-   "key": "init MorningFeelingTag(from:)",
-   "hash": "9b315fcf41453ceb",
-   "does": "Decodes a single tag from its raw string; throws DecodingError.dataCorrupted on unknown values.",
-   "entry": "Decodable witness: would run only when a MorningFeelingTag is decoded directly or through a synthesized Codable container; the only such container, TrendAnalyzer.TrendDataPoint (TrendAnalysis.swift:8,27), is never decoded (grep), and SessionMetadata decodes tags through MorningFeelingTagArray (SessionMetadata.swift:551), which reads the raw String itself. Never invoked in app or tests.",
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "raw value unknown",
-     "effect": "throw dataCorrupted; else assign"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Custom init(from:) is never executed: no code decodes MorningFeelingTag.self or a decoded container holding it (SessionMetadata uses MorningFeelingTagArray, TrendDataPoint is Codable but never decoded, MorningFeelingTagCodecTests decode only the wrapper); its behaviour (throw dataCorrupted on unknown raw value) is identical to the synthesized RawRepresentable decode it replaces.",
-     "evidence": [
-      "Emuqu/Sources/Models/MorningFeelingTag.swift:95",
-      "Emuqu/Sources/Models/SessionMetadata.swift:551",
-      "Emuqu/Sources/Analysis/TrendAnalysis.swift:27",
-      "EmuquTests/MorningFeelingTagCodecTests.swift:23"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {}
   },
   {
    "key": "init MorningFeelingTagArray(_:)",

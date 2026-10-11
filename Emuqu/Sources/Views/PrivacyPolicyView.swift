@@ -464,12 +464,15 @@ struct PrivacyPolicyView: View {
 /// and models the app uses. The package list is hand-maintained and
 /// `check_sbom_drift.sh` compares it with `Package.resolved`.
 struct AcknowledgementsView: View {
+    /// Identified by the package name, which is unique in the list and
+    /// stable across re-inits, so `ForEach` keeps each row's identity.
     private struct Pkg: Identifiable {
-        let id = UUID()
         let name: String
         let version: String
         let license: String
         let url: String
+
+        var id: String { name }
     }
 
     // This list must mirror `Package.resolved` 1:1 — every resolved SPM pin

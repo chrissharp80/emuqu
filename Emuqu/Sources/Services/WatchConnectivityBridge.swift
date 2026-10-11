@@ -196,11 +196,8 @@ final class WatchConnectivityBridge: NSObject {
 
     // MARK: Published
 
-    /// Whether a Watch is paired and the WC session is active.
-    var isReachable = false
-
     /// True when a Watch is paired to this iPhone. Independent of
-    /// `isReachable` (which is true only while the Watch app is in
+    /// `WCSession.isReachable` (which is true only while the Watch app is in
     /// the foreground). `isWatchPaired` reads `WCSession.isPaired`,
     /// which iOS sets the moment a Watch is paired in the iOS Watch
     /// app — it stays true even when the Watch is asleep or
@@ -227,7 +224,6 @@ final class WatchConnectivityBridge: NSObject {
     /// workout recorder pipeline) can fold these in as a fallback when
     /// iOS's own PolarManager isn't holding a strap connection.
     var latestWatchStrapHR: Int?
-    var latestWatchStrapRRMillis: [Double] = []
     var latestWatchStrapAt: Date?
     /// Accumulating queue of un-consumed RR samples. The
     /// recorder ticks at 1 Hz; the Watch may forward 2-3 samples per
@@ -239,9 +235,11 @@ final class WatchConnectivityBridge: NSObject {
     let pendingWatchStrapRRLock = NSLock()
 
     /// Pop all queued Watch-routed RR intervals. Returned in arrival
-    /// order. Called by `WorkoutRecorder.incrementalBackupTick` when
-    /// the active workout's HR source is `.strap` and the iPhone-paired
-    /// Polar is silent.
+    /// order. Called by the workout ticker's
+    /// `consumeWatchRoutedStrapFallback` whenever a Watch strap sample is
+    /// under 10 s old (the beats are used only while the phone's own strap
+    /// is silent, but drained either way), and at workout start
+    /// (`StartBaselines`), which discards what queued before the workout.
     func drainPendingWatchStrapRR() -> [Double] {
         pendingWatchStrapRRLock.lock()
         defer { pendingWatchStrapRRLock.unlock() }
@@ -250,11 +248,12 @@ final class WatchConnectivityBridge: NSObject {
         return drained
     }
 
-    /// Highest `ts` field we've already processed from a Watch
-    /// applicationContext payload. Used by `didReceiveApplicationContext` to
-    /// dedupe against the live `didReceiveMessage` path — both can fire for
-    /// the same intent during a foreground transition, and we don't want
-    /// (e.g.) two startWorkoutFromWatch calls in a row.
+    /// Highest `ts` field we've already processed from a queued Watch intent
+    /// (applicationContext or transferUserInfo). `acceptsQueuedIntent` drops
+    /// one not newer than it, so a context delivered again — the framework
+    /// re-delivers the latest on activation — does not run (e.g.) two
+    /// startWorkoutFromWatch calls in a row. The live `didReceiveMessage`
+    /// path does not record it: the Watch sends each intent on one channel.
     @MainActor var lastProcessedContextTimestamp: Double = 0
 
     /// When the workout now recording began, worked out from its first live
@@ -274,7 +273,7 @@ final class WatchConnectivityBridge: NSObject {
 
     /// Dedicated serial queue for all WCSession transport work. Keeping the
     /// bridge @MainActor is right for publishing — SwiftUI needs
-    /// `isReachable` / `latestWatchHR` on main — but `WCSession.sendMessage`
+    /// `latestWatchHR` on main — but `WCSession.sendMessage`
     /// itself is thread-safe and can block briefly on XPC under load (queue
     /// backup when the Watch is unreachable but `isReachable` hasn't flipped
     /// yet, bad transport state, etc.). Running sends on this queue removes
@@ -326,11 +325,16 @@ final class WatchConnectivityBridge: NSObject {
     /// the only observable difference is a few hundred ms of delay before
     /// activation begins, which the Watch-side path tolerates because it
     /// retries pushed state on `sessionReachabilityDidChange` regardless.
+    ///
+    /// The delegate is set here too: `init` sets it only when Watch
+    /// connectivity was on at init, and a flag turned on between the two
+    /// would otherwise activate a session no callback reaches.
     func boot() {
         guard !didActivate.withLock({ $0 }) else { return }
         guard let session else { return }
         guard UserSettings.performanceFlag(.enableWatchConnectivity) else { return }
         didActivate.withLock { $0 = true }
+        session.delegate = self
         // Prime the watchDisplayOnlyMode mirror so the first WCSession
         // callback doesn't see the safe-default `true` placeholder.
         // Then subscribe to settings changes to keep the mirror fresh.
@@ -619,6 +623,9 @@ final class WatchConnectivityBridge: NSObject {
     /// gets immediate realtime delivery; `sendMessage`'s completion runs on an
     /// arbitrary thread, so the fallback hops back to `wcQueue` to stay off
     /// main.
+    ///
+    /// The context is written once per tick, whichever reason applies, and
+    /// only while the tick is still the newest snapshot (`updateLiveStateContextIfLatest`).
     nonisolated func transportLiveStatePayload(_ payload: [String: any Sendable]) {
         guard let session else { return }
         // Cache the latest snapshot regardless of transport
@@ -626,14 +633,13 @@ final class WatchConnectivityBridge: NSObject {
         // demand via `requestCurrentState`. Cheap; overwrites the previous.
         Self.cacheLiveState(payload)
         guard canTransport(session) else { return }
-        if (payload[MessageKey.isRecording.rawValue] as? Bool) ?? false {
-            updateLiveStateContextLocked(payload)
-        }
+        let isRecording = (payload[MessageKey.isRecording.rawValue] as? Bool) ?? false
         let circuitOpen = Self.currentConsecutiveSendTimeouts >= Self.circuitBreakerThreshold
-        guard session.isReachable, !circuitOpen else {
-            updateLiveStateContextLocked(payload)
-            return
+        let canSend = session.isReachable && !circuitOpen
+        if isRecording || !canSend {
+            updateLiveStateContextIfLatest(payload)
         }
+        guard canSend else { return }
         session.sendMessage(payload, replyHandler: nil) { [weak self] error in
             self?.fallBackToContext(payload, after: error)
         }
@@ -649,7 +655,20 @@ final class WatchConnectivityBridge: NSObject {
     /// fallback either runs whole or never starts.
     nonisolated private func fallBackToContext(_ payload: [String: any Sendable], after error: Error) {
         Self.logSendFailure(error)
-        wcQueue.async { self.updateLiveStateContextLocked(payload) }
+        wcQueue.async { self.updateLiveStateContextIfLatest(payload) }
+    }
+
+    /// Writes `payload` to the application context unless a newer snapshot
+    /// has been cached since (`cacheLiveState` keeps the newest by `ts`). A
+    /// send error can arrive seconds after its tick; written then, a
+    /// recording tick replaced the stop `stopWatchWorkoutSession` had already
+    /// written, and a Watch relaunched while the phone was unreachable
+    /// restored a workout that had ended.
+    nonisolated private func updateLiveStateContextIfLatest(_ payload: [String: any Sendable]) {
+        if let ts = payload["ts"] as? Double, let newest = Self.cachedLiveState()?["ts"] as? Double, newest > ts {
+            return
+        }
+        updateLiveStateContextLocked(payload)
     }
 
     /// Seen in a real user log: the OS-level WCSession emits
@@ -663,9 +682,13 @@ final class WatchConnectivityBridge: NSObject {
     /// error; gating on it cuts the noise to zero in that configuration.
     ///
     /// An unpaired Watch is silent too, so we don't spam logs on every tick.
+    /// A session that is not activated (Watch connectivity off in Settings
+    /// leaves it so for the whole process) is logged once per state, through
+    /// the same once-per-message gate as the context errors.
     nonisolated private func canTransport(_ session: WCSession) -> Bool {
         guard session.activationState == .activated else {
-            debugLog("[WatchBridge] skipping sendLiveState — session state=\(session.activationState.rawValue)", level: .warning)
+            let message = "skipping sendLiveState — session state=\(session.activationState.rawValue)"
+            if Self.noteContextError(message) { debugLog("[WatchBridge] \(message)", level: .warning) }
             return false
         }
         return session.isPaired && session.isWatchAppInstalled
@@ -857,15 +880,51 @@ final class WatchConnectivityBridge: NSObject {
     }
 
     /// Fast `sendMessage` when reachable plus a queued `transferUserInfo` that
-    /// lands whenever the Watch app next wakes.
+    /// lands whenever the Watch app next wakes. Issued before the session has
+    /// activated (activation waits for `boot()`), the command is held and
+    /// sent once it has (`sendHeldDualChannelMessages`).
     private func sendDualChannel(_ payload: [String: any Sendable], label: String) {
         wcQueue.async { [weak self] in
-            guard let session = self?.session, session.activationState == .activated else { return }
-            guard session.isPaired, session.isWatchAppInstalled else { return }
-            if session.isReachable {
-                session.sendMessage(payload, replyHandler: nil, errorHandler: Self.logSendFailure(label))
+            guard let session = self?.session else { return }
+            guard session.activationState == .activated else {
+                Self.holdUntilActivated(payload, label: label)
+                return
             }
-            session.transferUserInfo(payload)
+            Self.sendDualChannelNow(payload, on: session, label: label)
+        }
+    }
+
+    nonisolated private static func sendDualChannelNow(_ payload: [String: any Sendable], on session: WCSession, label: String) {
+        guard session.isPaired, session.isWatchAppInstalled else { return }
+        if session.isReachable {
+            session.sendMessage(payload, replyHandler: nil, errorHandler: logSendFailure(label))
+        }
+        session.transferUserInfo(payload)
+    }
+
+    /// Dual-channel commands issued before activation, oldest first; the
+    /// last eight at most (a session that never activates holds no more).
+    nonisolated private static let heldUntilActivation = OSAllocatedUnfairLock<[[String: any Sendable]]>(initialState: [])
+
+    nonisolated private static func holdUntilActivated(_ payload: [String: any Sendable], label: String) {
+        debugLog("[WatchBridge] \(label) before WCSession activation — held until it activates")
+        heldUntilActivation.withLock { held in
+            held.append(payload)
+            if held.count > 8 { held.removeFirst(held.count - 8) }
+        }
+    }
+
+    /// Sends what `sendDualChannel` held, in order. Called when activation
+    /// completes.
+    nonisolated func sendHeldDualChannelMessages() {
+        let held = Self.heldUntilActivation.withLock { held -> [[String: any Sendable]] in
+            defer { held.removeAll() }
+            return held
+        }
+        guard !held.isEmpty else { return }
+        wcQueue.async { [weak self] in
+            guard let session = self?.session else { return }
+            for payload in held { Self.sendDualChannelNow(payload, on: session, label: "held") }
         }
     }
 

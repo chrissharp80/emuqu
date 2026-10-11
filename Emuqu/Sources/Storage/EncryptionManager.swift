@@ -92,16 +92,28 @@ final class EncryptionManager: Sendable {
     /// - Parameter encryptedData: Versioned or legacy encrypted data
     /// - Returns: Original plain data
     ///
-    /// A bare legacy blob whose first nonce byte happens to be 1-127 parses as
-    /// version-prefixed; when that reading fails, the whole blob is tried as
-    /// bare with the v1 key before giving up.
+    /// A bare legacy blob whose first nonce bytes happen to read as a version
+    /// byte (1-127) or as the "FR" magic parses as framed; when that reading
+    /// fails, the whole blob is tried as bare with the v1 key before giving up.
+    /// AES-GCM authentication makes a wrong reading fail rather than return
+    /// wrong bytes, and when both fail the first reading's error is thrown.
     func decrypt(_ encryptedData: Data) throws -> Data {
         let (version, payload) = extractVersion(from: encryptedData)
         do {
             return try openSealed(payload, version: version)
         } catch {
-            guard payload.count < encryptedData.count, magicPrefixed(encryptedData) == nil else { throw error }
-            return try openSealed(encryptedData, version: 1)
+            guard payload.count < encryptedData.count else { throw error }
+            return try openAsBare(encryptedData, otherwise: error)
+        }
+    }
+
+    /// The whole blob opened as bare legacy data with the v1 key, or
+    /// `framedError` (the framed reading's failure) when that fails too.
+    private func openAsBare(_ blob: Data, otherwise framedError: Error) throws -> Data {
+        do {
+            return try openSealed(blob, version: 1)
+        } catch {
+            throw framedError
         }
     }
 
@@ -185,12 +197,18 @@ final class EncryptionManager: Sendable {
     /// Decryption only ever reads keys. Creating one for whatever version
     /// byte a blob carries stored a new random key for every corrupt or bare
     /// legacy file, and that key could never open it.
+    ///
+    /// The Keychain round-trips run outside the lock, so a thread decrypting
+    /// with a cached key (the main thread, on a cold dashboard) never waits
+    /// behind another thread's Keychain IPC. Two threads that miss together
+    /// both read the same stored key; the first to store it wins.
     private func loadKey(version: UInt8) throws -> SymmetricKey {
-        try cachedKeys.withLock { cache in
-            if let cached = cache[version] { return cached }
-            let account = keychainAccount(for: version)
-            let key = SymmetricKey(data: try retrieveKeyFromKeychain(account: account))
-            makeKeyMigratable(account: account)
+        if let cached = cachedKeys.withLock({ $0[version] }) { return cached }
+        let account = keychainAccount(for: version)
+        let key = SymmetricKey(data: try retrieveKeyFromKeychain(account: account))
+        makeKeyMigratable(account: account)
+        return cachedKeys.withLock { cache in
+            if let existing = cache[version] { return existing }
             cache[version] = key
             return key
         }

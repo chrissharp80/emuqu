@@ -22,7 +22,9 @@ struct ReadinessExplainView: View {
 
     private var scoreInt: Int { RecoveryScoreCalculator.displayScore(readiness.score) }
     private var verdict: ScoreVerdict { ScoreVerdict(score: readiness.score) }
-    private var morningInt: Int { Int(readiness.morningRecovery.rounded()) }
+    /// Through the same trap-proof clamp as `scoreInt`: the raw morning
+    /// score is passed through unclamped and may be non-finite.
+    private var morningInt: Int { RecoveryScoreCalculator.displayScore(readiness.morningRecovery) }
     private var morningVerdict: ScoreVerdict { ScoreVerdict(score: readiness.morningRecovery) }
 
     var body: some View {
@@ -166,7 +168,7 @@ struct ReadinessExplainView: View {
             let phrase = w.phrase
             return phrase.prefix(1).uppercased() + phrase.dropFirst()
         }
-        let t = Int(readiness.todayTrimp.rounded())
+        let t = todayTrimpRounded
         if t == 0 { return String(localized: "None yet", bundle: LanguageManager.appBundle) }
         // Accumulated load with no single named workout (multiple short
         // sessions, manual TRIMP, etc). Fall back to the bucketed word
@@ -177,10 +179,14 @@ struct ReadinessExplainView: View {
         return String(localized: "Very hard", bundle: LanguageManager.appBundle)
     }
 
+    /// Today's TRIMP rounded, the one value both the row's word and its tint
+    /// bucket, so 29.6 reads "Moderate" and is tinted as Moderate too.
+    private var todayTrimpRounded: Int { Int(readiness.todayTrimp.rounded()) }
+
     /// Light training is informational (secondary); harder training pulls the
     /// readiness number, so colour the row accordingly.
     private var todayTrainingTint: Color {
-        let t = readiness.todayTrimp
+        let t = todayTrimpRounded
         if t == 0 { return AppTheme.textSecondary }
         if t < 30 { return AppTheme.textPrimary }
         if t < 80 { return AppTheme.wongGood }
@@ -206,7 +212,9 @@ struct ReadinessExplainView: View {
         return String(localized: "High — recent load above usual", bundle: LanguageManager.appBundle)
     }
 
+    /// Same cuts as `acuteFatigueValue`, including its "Low" below 10.
     private var acuteFatigueTint: Color {
+        if readiness.acuteFatigueLoad < 10 { return AppTheme.textPrimary }
         guard let acr = readiness.acuteChronicRatio else {
             // The same cut as the label: below 50 reads Low or Moderate.
             return readiness.acuteFatigueLoad < 50 ? AppTheme.textPrimary : AppTheme.wongCaution

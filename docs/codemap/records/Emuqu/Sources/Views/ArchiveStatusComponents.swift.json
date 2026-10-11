@@ -10,7 +10,7 @@
  "state": [
   "mem:ArchiveStatusLine.showingDetails (@State Bool)"
  ],
- "toplevel": "File-scope private func formatDate (line 244). No global state. Header comment (3-5) states both views are unused in the app and kept only for snapshot tests.",
+ "toplevel": "File-scope private func formatDate. No global state. Header comment (3-5) states both views are unused in the app and kept only for snapshot tests; the ArchiveStatusLine comment says it re-renders on archive writes (via archiveSignal.version) and on sync-state changes.",
  "flags": [
   {
    "kind": "dead",
@@ -19,17 +19,6 @@
    "evidence": [
     "Emuqu/Sources/Views/ArchiveStatusComponents.swift:3",
     "EmuquTests/UncoveredScreenSnapshotTests.swift:133"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Comment says the line observes collector.archiveVersion so it updates live on archive writes, but no unit reads archiveSignal (stored at line 21 and only forwarded to the sheet); isArchived calls SessionArchive.exists, a non-observable lock-guarded lookup, so the Saved/Saving state would not refresh on an archive write.",
-   "evidence": [
-    "Emuqu/Sources/Views/ArchiveStatusComponents.swift:14",
-    "Emuqu/Sources/Views/ArchiveStatusComponents.swift:21",
-    "Emuqu/Sources/Views/ArchiveStatusComponents.swift:26"
    ],
    "found": "first read, upheld on second"
   },
@@ -48,13 +37,14 @@
  "units": [
   {
    "key": "var ArchiveStatusLine.isArchived",
-   "hash": "2c1ee544bf45211f",
-   "does": "Returns whether the session's id is present in the archive index via collector.archive.exists(session.id).",
+   "hash": "0ec617120412531d",
+   "does": "Reads archiveSignal.version (registering an observation dependency so every archive write re-evaluates it), then returns whether the session's id is present in the archive index via collector.archive.exists(session.id).",
    "entry": "SwiftUI evaluates it while rendering the parent view body",
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)"
    ],
    "reads": [
+    "mem:ArchiveSignal.version",
     "archive:SessionArchive.exists (index)"
    ],
    "writes": [],
@@ -174,7 +164,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusLine.isArchived": "16e49925f8596cd9",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusLine.isArchived": "13c75c249a61c29a",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
    }
   },
@@ -221,13 +211,14 @@
   },
   {
    "key": "var ArchiveStatusDetailSheet.archiveEntry",
-   "hash": "86fb52ca58a21f57",
-   "does": "First archive index entry whose sessionId equals session.id, or nil.",
+   "hash": "da965509b70d037c",
+   "does": "Reads archiveSignal.version (observation dependency, so an archive write re-evaluates it), then returns the first archive index entry whose sessionId equals session.id, or nil.",
    "entry": "SwiftUI evaluates it while rendering the parent view body",
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries"
    ],
    "reads": [
+    "mem:ArchiveSignal.version",
     "archive:SessionArchive.entries"
    ],
    "writes": [],
@@ -361,7 +352,7 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/ArchiveStatusComponents.swift::func formatDate(_:)": "22350b5c63fa445d",
     "Emuqu/Sources/Views/ArchiveStatusComponents.swift::init LabeledRow(_:value:)": "294d1be0e1a046c5",
-    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusDetailSheet.archiveEntry": "4b6db8647611c9d4"
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusDetailSheet.archiveEntry": "964c64837c9c9093"
    }
   },
   {
@@ -385,13 +376,13 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.pendingUploadCount": "bdb518106fa1fc30",
     "Emuqu/Sources/Views/ArchiveStatusComponents.swift::init LabeledRow(_:value:)": "294d1be0e1a046c5",
-    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusDetailSheet.icloudStatusRows": "18101d35f39371ab"
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusDetailSheet.icloudStatusRows": "19dc3ffed9b45b65"
    }
   },
   {
    "key": "var ArchiveStatusDetailSheet.icloudStatusRows",
-   "hash": "f666acd209782c7d",
-   "does": "Status rows for iCloud: unavailable, uploaded (+ last sync date), queued for retry, or not uploaded.",
+   "hash": "a8173f7f20c29fa3",
+   "does": "Status rows for iCloud: sync off (the iCloud Sync setting), uploaded (+ last sync date), queued for retry, or not uploaded.",
    "entry": "SwiftUI evaluates it while rendering the parent view body",
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.isCloudKitAvailable",
@@ -412,7 +403,7 @@
     {
      "at": "+2",
      "cond": "!syncManager.isCloudKitAvailable (iCloud Sync setting off)",
-     "effect": "true: Status 'iCloud unavailable'; false: falls to 204"
+     "effect": "true: Status 'iCloud sync is off'; false: falls to the uploaded check"
     },
     {
      "at": "+4",
@@ -430,18 +421,7 @@
      "effect": "true: 'Upload failed — queued for retry'; false: 'Not uploaded'"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "isCloudKitAvailable is only the user's iCloud Sync toggle (CloudKitSyncManager.swift:188-190), so a user who switched sync off is told 'iCloud unavailable' rather than 'sync off'.",
-     "evidence": [
-      "Emuqu/Sources/Views/ArchiveStatusComponents.swift:202",
-      "Emuqu/Sources/Storage/CloudKitSyncManager.swift:188"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPendingRetry(_:)": "160aa90bfaecee28",

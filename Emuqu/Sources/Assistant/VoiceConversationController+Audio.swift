@@ -33,12 +33,12 @@ extension VoiceAudioPipeline {
     // MARK: - Audio session interruption recovery
     //
     // Phone call, Siri, alarm, another app grabbing the mic — all trigger
-    // `AVAudioSession.interruptionNotification`. Without recovery the mic
+    // `AVAudioSession.interruptionNotification`. Without handling the mic
     // goes dead and the chat silently breaks. iOS delivers:
-    //   • .began — our audio is paused by the system; no action needed.
-    //   • .ended — the interruption cleared; if .shouldResume option is set,
-    //     we should re-activate the session + restart the engine + open a
-    //     fresh recognition request so the next user turn captures cleanly.
+    //   • .began — our audio is paused by the system; the recognition task
+    //     and the silence watchdog are dropped.
+    //   • .ended — voice tears down (whatever `.shouldResume` says); the user
+    //     re-taps to resume. See `handleAudioInterruption`.
 
     @MainActor
     func installInterruptionObserver() {
@@ -62,8 +62,9 @@ extension VoiceAudioPipeline {
     }
 
     /// `.began` — the system pre-empted our audio (call, Siri, alarm). The
-    /// recognition task is going to die; clear it so we re-arm cleanly on
-    /// `.ended`. The engine itself resumes when the session reactivates.
+    /// recognition task is going to die; clear it, and stop the silence
+    /// watchdog so its max-turn / empty-transcript paths can't start a new
+    /// recognition task while the session is interrupted.
     ///
     /// `.ended` — do NOT auto-resume voice mode. The user's
     /// context has shifted during the interruption (they took a call,
@@ -77,17 +78,26 @@ extension VoiceAudioPipeline {
         else { return }
         switch type {
         case .began:
-            debugLog("[VoiceConv] audio interrupted (began) — will attempt recovery on end")
-            controller.recognitionTask?.cancel()
-            controller.recognitionTask = nil
-            controller.recognitionRequest?.endAudio()
-            controller.recognitionRequest = nil
+            debugLog("[VoiceConv] audio interrupted (began) — voice ends when the interruption does")
+            pauseForInterruption()
         case .ended:
             debugLog("[VoiceConv] audio interruption ended — tearing down, user must re-tap to resume")
             controller.stop()
         @unknown default:
             break
         }
+    }
+
+    /// `.began`: stop the silence watchdog and drop the recognition task and
+    /// request; the engine stays as the system left it until `.ended`.
+    @MainActor
+    private func pauseForInterruption() {
+        controller.silenceTimer?.invalidate()
+        controller.silenceTimer = nil
+        controller.recognitionTask?.cancel()
+        controller.recognitionTask = nil
+        controller.recognitionRequest?.endAudio()
+        controller.recognitionRequest = nil
     }
 
     /// Release the coordinator claim BEFORE deactivating the
@@ -112,14 +122,19 @@ extension VoiceAudioPipeline {
 
     /// SafeObjC shims. Both can raise NSException on a
     /// degraded audio session; teardown happens AFTER user activity
-    /// so any throw here would crash mid-action. The shim catches.
+    /// so any throw here would crash mid-action. The shim catches, and a
+    /// caught failure is logged.
     @MainActor
     private func stopAudioEngineSafely() {
         var removeErr: NSError?
-        _ = FRSafeRemoveTap(controller.audioEngine.inputNode, 0, &removeErr)
+        if !FRSafeRemoveTap(controller.audioEngine.inputNode, 0, &removeErr) {
+            debugLog("[VoiceConv] removeTap failed during teardown: \(removeErr?.localizedDescription ?? "?")", level: .warning)
+        }
         guard controller.audioEngine.isRunning else { return }
         var stopErr: NSError?
-        _ = FRSafeAudioEngineStop(controller.audioEngine, &stopErr)
+        if !FRSafeAudioEngineStop(controller.audioEngine, &stopErr) {
+            debugLog("[VoiceConv] audioEngine.stop failed during teardown: \(stopErr?.localizedDescription ?? "?")", level: .warning)
+        }
     }
 
     /// Deactivate so Music / Podcasts / etc. resume on `.notifyOthersOnDeactivation`.
@@ -197,11 +212,16 @@ extension VoiceAudioPipeline {
         commitTurnIfSettled()
     }
 
-    /// Max-turn safety cap: the controller.recognizer can stall silently in sustained
-    /// noise. Force-finalize at 30 s regardless of controller.state.
+    /// Max-turn safety cap: the recognizer can stall silently in sustained
+    /// noise. Force-finalize at 30 s — unless the user has simply been silent
+    /// on a live mic (`isSilentTurnOnLiveMic`): that turn is left to the 45 s
+    /// long-idle recognizer restart instead of being finalised empty every
+    /// 30 s, which counted toward the empty-transcript give-up and ended voice
+    /// after a few minutes of quiet. A dead mic (no buffers) still finalises,
+    /// so its give-up still fires.
     @MainActor
     private func hitMaxTurnDuration() -> Bool {
-        guard let started = controller.turnStartedAt,
+        guard let started = controller.turnStartedAt, !isSilentTurnOnLiveMic(),
               Date().timeIntervalSince(started) >= controller.maxTurnDurationSec else { return false }
         debugLog("[VoiceConv] max-turn timeout (\(Int(controller.maxTurnDurationSec))s) — force-finalising")
         finalizeUserTurn()
@@ -219,13 +239,14 @@ extension VoiceAudioPipeline {
     /// Long-idle restart: SFSpeechRecognizer self-terminates after ~60 s of
     /// silence (undocumented but observable) and the next user utterance
     /// vanishes. If 45 s have passed with no partials and no active voice
-    /// (user thinking?), pre-emptively restart.
+    /// (user thinking?), pre-emptively restart. Not capped by the
+    /// first-partial restart count: it guards a different failure.
     @MainActor
     private func restartedStalledRecognizer() -> Bool {
-        guard let started = controller.turnStartedAt, controller.lastTranscriptGrowthAt == nil,
-              controller.firstPartialRestartsThisTurn == 0 else { return false }
+        guard let started = controller.turnStartedAt, controller.lastTranscriptGrowthAt == nil else { return false }
         let elapsed = Date().timeIntervalSince(started)
-        if elapsed >= controller.firstPartialTimeoutSec, controller.totalVoiceSecondsThisTurn >= 2.0 {
+        if controller.firstPartialRestartsThisTurn == 0, elapsed >= controller.firstPartialTimeoutSec,
+           controller.totalVoiceSecondsThisTurn >= 2.0 {
             controller.firstPartialRestartsThisTurn += 1
             debugLog("[VoiceConv] first-partial watchdog: no partials after \(Int(controller.firstPartialTimeoutSec))s despite \(String(format: "%.1f", controller.totalVoiceSecondsThisTurn))s voice — restarting recognition task", level: .warning)
             startFreshRecognitionTask()
@@ -236,6 +257,14 @@ extension VoiceAudioPipeline {
         startFreshRecognitionTask()
         controller.turnStartedAt = Date() // reset the clock
         return true
+    }
+
+    /// The mic is delivering buffers but the user hasn't spoken this turn:
+    /// under half a second of voice and no partial transcript.
+    @MainActor
+    private func isSilentTurnOnLiveMic() -> Bool {
+        controller.buffersSinceTaskStart > 0 && controller.totalVoiceSecondsThisTurn < 0.5
+            && controller.lastTranscriptGrowthAt == nil
     }
 
     /// The two end-of-turn triggers.
@@ -264,6 +293,11 @@ extension VoiceAudioPipeline {
         finalizeUserTurn()
     }
 
+    /// On the WhisperKit path the turn stays `.listening` while it is
+    /// transcribed; clearing `turnStartedAt` marks it as handed over, so a
+    /// second finalize (a tap, push-to-talk) during the transcription is
+    /// ignored instead of starting another one. The re-arm paths stamp a new
+    /// turn start.
     @MainActor
     func finalizeUserTurn() {
         guard controller.state == .listening else {
@@ -276,6 +310,11 @@ extension VoiceAudioPipeline {
             completeFinalizeUserTurn()
             return
         }
+        guard controller.turnStartedAt != nil else {
+            debugLog("[VoiceConv] finalizeUserTurn ignored — this turn is already being transcribed")
+            return
+        }
+        controller.turnStartedAt = nil
         Task { @MainActor [weak controller] in await controller?.audio.finalizeUserTurnViaWhisperKit() }
     }
 
@@ -286,7 +325,7 @@ extension VoiceAudioPipeline {
     /// the WhisperKit result so the downstream "send to AI"
     /// logic sees the same shape regardless of which provider
     /// produced the text. If WhisperKit throws, we fall through to
-    /// whatever Apple's controller.recognizer captured — voice mode never goes dark.
+    /// whatever Apple's recognizer captured — voice mode never goes dark.
     @MainActor
     private func finalizeUserTurnViaWhisperKit() async {
         guard controller.state == .listening else { return }
@@ -318,10 +357,10 @@ extension VoiceAudioPipeline {
     ///     needs a full restart to fix. 3 rather than 2 tolerates one
     ///     more transient before nuking voice.
     ///   • Recognizer confused: buffers > 0 but transcript empty (mic IS
-    ///     hearing audio, controller.recognizer isn't classifying it as speech). Keep
+    ///     hearing audio, recognizer isn't classifying it as speech). Keep
     ///     re-arming, just rotate the recognition task. AirPods auto-pause,
     ///     ambient noise, or low-volume speech land here. Tearing down voice
-    ///     for these is hostile — the user can controller.speak again any second. Capped
+    ///     for these is hostile — the user can speak again any second. Capped
     ///     at 6 so a runaway loop can't burn battery (or corrupt AVFAudio).
     @MainActor
     private func handleEmptyTranscript() {
@@ -346,7 +385,7 @@ extension VoiceAudioPipeline {
         controller.drainPendingTriggersIfIdle()
     }
 
-    /// The user-facing message to controller.stop voice with, or nil to keep re-arming.
+    /// The user-facing message to stop voice with, or nil to keep re-arming.
     @MainActor
     private func emptyTranscriptGiveUpMessage(micIsAlive: Bool) -> String? {
         let peak = String(format: "%.4f", controller.peakRMSSinceTaskStart)
@@ -355,7 +394,7 @@ extension VoiceAudioPipeline {
             return String(localized: "Couldn't hear you. Tap to try again — or check that AirPods aren't in another app.", bundle: LanguageManager.appBundle)
         }
         if micIsAlive, controller.consecutiveEmptyReArms >= 6 {
-            debugLog("[VoiceConv] \(controller.consecutiveEmptyReArms) recognizer-confused re-arms (buffers=\(controller.buffersSinceTaskStart) peak=\(peak)) — tearing down voice as a safety controller.stop", level: .error)
+            debugLog("[VoiceConv] \(controller.consecutiveEmptyReArms) recognizer-confused re-arms (buffers=\(controller.buffersSinceTaskStart) peak=\(peak)) — tearing down voice as a safety stop", level: .error)
             return String(localized: "I'm not picking up what you're saying. Tap to try again.", bundle: LanguageManager.appBundle)
         }
         return nil
@@ -382,7 +421,7 @@ extension VoiceAudioPipeline {
     /// Even with the drain delay, a sentence-end can sneak through over
     /// AirPods; this is the second line of defence.
     ///
-    /// The drop must not be silent: the user could controller.speak, the guard
+    /// The drop must not be silent: the user could speak, the guard
     /// would drop their input, and they'd see / hear NOTHING — they'd tap to
     /// talk again, get the same silent treatment, and start questioning the
     /// app. So it logs at `.warning` (so it surfaces in Troubleshooting →
@@ -424,14 +463,19 @@ extension VoiceAudioPipeline {
     /// Hand the transcript to the shared chat view model. It appends a user
     /// turn, kicks off the streaming send, and the chat UI updates the
     /// moment the assistant turn starts filling in.
+    ///
+    /// `.dispatched` covers three cases: a complete answer appended without a
+    /// stream (`spokeInstantTurn`), a stream that started (the speaking window
+    /// opens), and a dispatch that stopped before streaming — the routed
+    /// provider unavailable or awaiting consent (`handledUnstartedDispatch`).
     private func dispatchTranscript(_ transcript: String) {
         debugLog("[VoiceConv] handing to AssistantViewModel: provider=\(AppDependencies.current.providers.providerRegistry.activeProvider.id.rawValue), available=\(AppDependencies.current.providers.providerRegistry.activeProvider.isAvailable)")
+        let turnsBefore = controller.assistantViewModel.turns.count
         let outcome = controller.assistantViewModel.send(text: transcript, fromVoice: true)
         debugLog("[VoiceConv] send outcome: \(outcome)")
         switch outcome {
         case .dispatched:
-            if spokeInstantTurn() { return }
-            // streaming turn — fall through to TTS observation setup below
+            if spokeInstantTurn(turnsBefore: turnsBefore) || handledUnstartedDispatch() { return }
         case .queued:
             handleQueuedSend()
             return
@@ -451,14 +495,19 @@ extension VoiceAudioPipeline {
     /// `isStreaming` stays false and no `speakableTextCursor` is ever
     /// published for that turn. The streaming observer only speaks text up
     /// to that cursor — so these turns were NEVER spoken, and because the
-    /// controller.synthesizer was never handed an utterance, its `didFinish` (the only
+    /// synthesizer was never handed an utterance, its `didFinish` (the only
     /// thing that re-arms the mic) never fired. Voice wedged in `.speaking`
     /// forever — the user's "afib question just spins calculating." Speak the
     /// finished turn directly; `didFinish` then re-arms listening.
-    private func spokeInstantTurn() -> Bool {
-        guard !controller.assistantViewModel.isStreaming,
-              let last = controller.assistantViewModel.turns.last,
-              last.role == .assistant,
+    ///
+    /// Recognised by what this send appended — exactly a user turn and a
+    /// non-empty assistant turn — not by `isStreaming`: the medical guard
+    /// answers even while another reply streams (a queued voice send), and a
+    /// dispatch the consent gate stopped appends nothing, so the previous
+    /// reply at the end of the list is not mistaken for this answer.
+    private func spokeInstantTurn(turnsBefore: Int) -> Bool {
+        let turns = controller.assistantViewModel.turns
+        guard turns.count == turnsBefore + 2, let last = turns.last, last.role == .assistant,
               !last.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         else { return false }
         debugLog("[VoiceConv] dispatched a complete (non-streamed) turn — speaking it directly so voice doesn't wedge in .speaking")
@@ -466,11 +515,26 @@ extension VoiceAudioPipeline {
         return true
     }
 
+    /// `send` returned `.dispatched` but no stream started and no answer was
+    /// appended: the routed provider was unavailable (its error is set) or
+    /// lacks consent (the request is held for the consent sheet). Handled like
+    /// the matching rejected outcome, instead of opening a speaking window
+    /// that no stream would ever close.
+    private func handledUnstartedDispatch() -> Bool {
+        guard !controller.assistantViewModel.isStreaming else { return false }
+        if let pending = controller.assistantViewModel.pendingConsentRequest {
+            handleConsentRequired(pending.provider)
+        } else {
+            handleRejectedSend(.rejectedNoProvider)
+        }
+        return true
+    }
+
     /// The previous AI turn was still streaming; the view-model queued this
     /// transcript and will dispatch on finishStream.
     ///
     /// Merely re-arming listening and hoping the
-    /// user would controller.speak again is not enough: if they didn't, the queued turn would dispatch
+    /// user would speak again is not enough: if they didn't, the queued turn would dispatch
     /// silently (text in chat, no TTS) and the user reported "messages not
     /// sending" because they never heard a spoken reply. So we eagerly
     /// subscribe to `$isStreaming` so the moment our queued send fires
@@ -529,6 +593,7 @@ extension VoiceAudioPipeline {
         controller.partialTranscript = ""
         controller.lastVoiceDetectedAt = nil
         controller.totalVoiceSecondsThisTurn = 0
+        controller.turnStartedAt = Date()
         startFreshRecognitionTask()
         armSilenceTimer()
         controller.state = .listening
@@ -540,12 +605,12 @@ extension VoiceAudioPipeline {
     /// controller.checkForBargeIn() which has stricter gates than the normal turn-
     /// commit path so passing noise / TTS tails don't false-positive.
     ///
-    /// `controller.ttsStartedAt` is cleared here; the controller.synthesizer delegate sets it when
+    /// `controller.ttsStartedAt` is cleared here; the synthesizer delegate sets it when
     /// audio actually begins playing. Until then barge-in is gated off (it
     /// also checks `controller.synthesizer.isSpeaking`) so ambient noise during the
     /// "thinking" pause can't cancel the response. The barge-in baselines
     /// reset for the same reason — only speech arriving AFTER the AI starts
-    /// counts, not leftovers from listening controller.state.
+    /// counts, not leftovers from listening state.
     private func beginSpeakingWindow() {
         controller.partialTranscript = ""
         // Track the assistant turn dispatch() reserved as the LAST element.
@@ -561,7 +626,7 @@ extension VoiceAudioPipeline {
         // Re-arm the timer so controller.checkForBargeIn() ticks during .speaking.
         armSilenceTimer()
         controller.state = .speaking
-        // Subscribe to the view model's published controller.state so we mirror the
+        // Subscribe to the view model's published state so we mirror the
         // assistant's growing turn into TTS as it streams.
         observeAssistantStreaming()
     }
@@ -587,7 +652,7 @@ extension VoiceAudioPipeline {
     /// what tells the two streams apart (`VoiceTurnPolicy.queuedTurnStarted`).
     @MainActor
     func wireQueuedTurnObserver() {
-        // Bump the controller.speak generation so any in-flight observation
+        // Bump the speak generation so any in-flight observation
         // callbacks from the previous turn no-op when their values land.
         controller.responseSpeakGeneration += 1
         let myGeneration = controller.responseSpeakGeneration
@@ -608,7 +673,7 @@ extension VoiceAudioPipeline {
     }
 
     /// Our queued send just started streaming — reset the speaking-window
-    /// controller.state and wire TTS observation to the new assistant turn.
+    /// state and wire TTS observation to the new assistant turn.
     @MainActor
     private func beginQueuedTurnSpeaking() {
         controller.activeAssistantIndex = controller.assistantViewModel.turns.indices.last
@@ -625,7 +690,7 @@ extension VoiceAudioPipeline {
     }
 
     /// Drops any prior observation before opening a fresh pair, and bumps
-    /// the controller.speak-generation so in-flight callbacks from the
+    /// the speak-generation so in-flight callbacks from the
     /// previous response no-op when they finally fire.
     ///
     /// The `isStreaming` half watches for the AI finishing, so the remainder
@@ -661,12 +726,18 @@ extension VoiceAudioPipeline {
     ///
     /// If no cursor is published yet, treat it as 0 — we're mid-round and
     /// nothing has been marked safe.
+    ///
+    /// A cursor below what was already spoken means the view model rewound
+    /// the round (text spoken before a tool call was cut): the spoken
+    /// position follows it back, so the next round is spoken from its start
+    /// instead of skipping its first characters.
     @MainActor
     private func speakUpToCursor(turns: [ChatTurn], cursors: [UUID: Int]) {
         guard let idx = controller.activeAssistantIndex, idx >= 0, idx < turns.count else { return }
         let turn = turns[idx]
         guard turn.role == .assistant else { return }
         let safeLen = min(cursors[turn.id] ?? 0, turn.text.count)
+        if safeLen < controller.spokenCharCursor { controller.spokenCharCursor = safeLen }
         guard safeLen > controller.spokenCharCursor else { return }
         let start = turn.text.index(turn.text.startIndex, offsetBy: controller.spokenCharCursor)
         let end = turn.text.index(turn.text.startIndex, offsetBy: safeLen)
@@ -709,15 +780,15 @@ extension VoiceAudioPipeline {
     /// talk button again to start over. Brutal hands-free UX.
     ///
     /// The fix: if the stream ended with `errorMessage` set AND we
-    /// captured zero spoken text (so the controller.synthesizer queue is
-    /// empty and `didFinish` will never fire on its own), controller.speak a
+    /// captured zero spoken text (so the synthesizer queue is
+    /// empty and `didFinish` will never fire on its own), speak a
     /// short recovery line ourselves. That line drains through
     /// the synth normally; its `didFinish` delegate then triggers
     /// `scheduleListenAfterAudioDrain` → `beginUserTurn` and the
     /// mic is hot for the user's next utterance — no tap required.
-    /// Also clear `errorMessage` so the visible banner doesn't
-    /// keep nagging once the audio has already announced the
-    /// failure.
+    /// `errorMessage` is left set: the spoken line is generic, and the chat
+    /// banner keeps the real reason (auth, quota, network) until the user
+    /// dismisses it or the next send clears it.
     ///
     /// Only fires when we got NOTHING. Partial responses already
     /// drain through the synth and re-arm listening through the
@@ -734,17 +805,16 @@ extension VoiceAudioPipeline {
             voice: WorkoutVoiceCoach.appLanguageVoice(),
             scripted: true
         )
-        controller.assistantViewModel.errorMessage = nil
     }
 
     /// Speak a COMPLETE assistant turn that arrived without streaming
     /// (MedicalQueryGuard refusal, DeterministicIntent answer). Mirrors the
     /// speaking-window setup the streaming path runs at the tail of
     /// `completeFinalizeUserTurn`, but hands the whole text to the
-    /// controller.synthesizer in one utterance instead of feeding cursor-gated deltas.
+    /// synthesizer in one utterance instead of feeding cursor-gated deltas.
     /// The synth's `didFinish` delegate re-arms the mic via
     /// `scheduleListenAfterAudioDrain`, so voice recovers exactly as it does
-    /// after a streamed response — no wedged `.speaking` controller.state.
+    /// after a streamed response — no wedged `.speaking` state.
     @MainActor
     func speakCompletedTurn(_ text: String) {
         // No LLM backs a canned turn; clear any stale task so the

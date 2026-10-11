@@ -5,6 +5,10 @@ import SwiftUI
 struct PeakCapacityCard: View {
     let capacity: PeakCapacity
     var showInfoButton: Bool = false
+    /// Whether the recording was a sleep (overnight or nap). The "during
+    /// sleep" explanation is shown only then: peak capacity is computed for
+    /// every recording, including a daytime quick reading.
+    var describesSleep: Bool = true
 
     @State private var showingInfo = false
 
@@ -14,13 +18,20 @@ struct PeakCapacityCard: View {
             // Metrics row
             metricsRowSection
 
-            // Brief explanation
+            sleepExplanation
+        }
+        .zenCard()
+    }
+
+    /// Brief explanation, for a sleep recording only.
+    @ViewBuilder
+    private var sleepExplanation: some View {
+        if describesSleep {
             Text(String(localized: "Highest sustained HRV during sleep — your physiological ceiling, separate from readiness.", bundle: LanguageManager.appBundle))
                 .font(.caption)
                 .foregroundColor(AppTheme.textTertiary)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .zenCard()
     }
 
     @ViewBuilder

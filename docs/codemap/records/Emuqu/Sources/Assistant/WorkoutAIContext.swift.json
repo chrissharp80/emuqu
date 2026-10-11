@@ -13,16 +13,6 @@
  "toplevel": "Only stored `let`/`var` properties with doc comments; UpcomingClimb.lengthMeters/gainMeters default 0, roadName nil; RouteTopology.turnsAhead defaults []. Built by WorkoutRecorder+Context.buildContext (Emuqu/Sources/Collection/WorkoutRecorder+Context.swift:70).",
  "flags": [
   {
-   "kind": "dead",
-   "sev": "low",
-   "text": "`weather` is populated every tick from WeatherService.current (WorkoutRecorder+Context.swift:77) but nothing reads WorkoutAIContext.weather: asFactSheet() does not emit it (comment line 111) and no trigger rule uses it; the voice AI therefore never sees weather through this path.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/WorkoutAIContext.swift:112",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift:77"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
    "kind": "unreachable-branch",
    "sev": "low",
    "text": "`hrDriftPercent` is always passed nil by the only production builder, so the hrDriftPercent fact-sheet line never appears.",
@@ -32,25 +22,13 @@
     "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift:73"
    ],
    "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "targetZone doc says the coach nudges back to zone only after a sustained drift ('not single-tick'), but zone.drifted.high/low test a single tick's HR (elapsedSeconds is total workout time, not drift duration) and both rules are .silent, so nothing is ever said.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/WorkoutAIContext.swift:331",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:360",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:388",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:342"
-   ],
-   "found": "first read, upheld on second"
   }
  ],
  "units": [
   {
    "key": "func WorkoutAIContext.asFactSheet()",
-   "hash": "bbdfc467cc18e0e3",
-   "does": "Concatenates all twelve fact-sheet sections (identity, HR, α1, motion, terrain, equipment, target, live trends, historical baselines, readiness, time-in-zone, race predictions) into newline-separated key=value lines for the voice-coach LLM preamble.",
+   "hash": "d537f9de91896308",
+   "does": "Concatenates all thirteen fact-sheet sections (identity, HR, α1, motion, terrain, weather, equipment, target, live trends, historical baselines, readiness, time-in-zone, race predictions) into newline-separated key=value lines for the voice-coach LLM preamble.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.identityLines()",
@@ -58,6 +36,7 @@
     "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.alpha1Lines()",
     "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.motionLines()",
     "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.terrainLines()",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.weatherLines()",
     "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.equipmentLines()",
     "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.targetLines()",
     "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.liveTrendLines()",
@@ -73,9 +52,9 @@
     {
      "kind": "untested",
      "sev": "low",
-     "text": "asFactSheet() and its twelve section builders are the voice coach's live context (installed at WorkoutRecorder+Start.swift:334) but no file in EmuquTests calls asFactSheet; tests only construct WorkoutAIContext for other engines.",
+     "text": "asFactSheet() and its thirteen section builders are the voice coach's live context (installed at WorkoutRecorder+Start.swift:334) but no file in EmuquTests calls asFactSheet; tests only construct WorkoutAIContext for other engines.",
      "evidence": [
-      "Emuqu/Sources/Assistant/WorkoutAIContext.swift:437",
+      "Emuqu/Sources/Assistant/WorkoutAIContext.swift:439",
       "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:334"
      ],
      "found": "second read"
@@ -93,7 +72,8 @@
     "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.readinessLines()": "f694a780da3cebc0",
     "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.targetLines()": "858e1a61ad00fdee",
     "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.terrainLines()": "9ed9f0b80d864928",
-    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.timeInZoneLines()": "70faa71d59f6b90a"
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.timeInZoneLines()": "70faa71d59f6b90a",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.weatherLines()": "1cfdb138199c7297"
    }
   },
   {
@@ -377,6 +357,31 @@
    "deps": {
     "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.compassCardinal(degrees:)": "895a944b104952ce",
     "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatElevation(meters:)": "e9541645225037ce"
+   }
+  },
+  {
+   "key": "func WorkoutAIContext.weatherLines()",
+   "hash": "decc8071907f6a03",
+   "does": "Fact-sheet section for the weather snapshot: nothing when weather is nil; else weatherTemperatureC, weatherWindKMH, weatherWindDirectionDeg, weatherHumidityPercent (each %.0f), weatherConditions, plus weatherApparentTemperatureC when the provider gave one. Units as the weather service reports them (°C, km/h, degrees true).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "weather nil",
+     "effect": "[]"
+    },
+    {
+     "at": "+9",
+     "cond": "apparentTemperatureC present",
+     "effect": "append weatherApparentTemperatureC"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.conditions(forSymbol:)": "b052f9da6abe1efa"
    }
   },
   {

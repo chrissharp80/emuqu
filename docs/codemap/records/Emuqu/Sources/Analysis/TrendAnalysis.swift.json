@@ -172,7 +172,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeAllStatistics(dataPoints:)": "8d32ccbe4d42711c",
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.filteredDataPoints(sessions:period:)": "e2db247ed1223673",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.generateInsights(dataPoints:rmssd:sdnn:hr:stress:readiness:)": "49c6adaf84b943df"
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.generateInsights(dataPoints:rmssd:sdnn:hr:stress:readiness:)": "06a3645ab6a575bd"
    }
   },
   {
@@ -252,7 +252,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeOptionalStatistics(metric:dataPoints:extract:rule:)": "ad91096243908ced",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeStatistics(metric:values:dates:rule:)": "0c467bd9fa808f95",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeStatistics(metric:values:dates:rule:)": "cd8263f3b13d1d5c",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb"
    }
   },
@@ -275,7 +275,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeStatistics(metric:values:dates:rule:)": "0c467bd9fa808f95"
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeStatistics(metric:values:dates:rule:)": "cd8263f3b13d1d5c"
    }
   },
   {
@@ -300,7 +300,18 @@
      "effect": "fallback to values[i]"
     }
    ],
-   "flags": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No production caller: baselineDeviation now reads the latest reading's prior-window mean directly (priorWindowMean) so it never falls back to the value itself; computeRollingBaseline is only called by EmuquTests/TrendAnalysisTests.swift:293/310.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/TrendAnalysis.swift:272",
+      "EmuquTests/TrendAnalysisTests.swift:293"
+     ],
+     "found": "fix pass b04"
+    }
+   ],
    "deps": {
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.priorWindowMean(values:dates:index:windowDays:)": "10ae86dbbad561fd"
    }
@@ -330,16 +341,15 @@
   },
   {
    "key": "func TrendAnalyzer.computeStatistics(metric:values:dates:rule:)",
-   "hash": "27461f027acd2c69",
-   "does": "Per-metric stats: mean, sample SD, CV, sorted min/max, nearest-rank p25/p75, per-day slope, TrendVerdict-based direction, and rolling baseline/deviation of the last value.",
+   "hash": "21196f8b888c63b6",
+   "does": "Per-metric stats: mean, sample SD, CV, sorted min/max, nearest-rank p25/p75, per-day slope, TrendVerdict-based direction, and the latest reading's 7-day baseline and deviation (baselineDeviation, both nil when no reading falls in the 7 days before it).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.insufficientStatistics(metric:values:)",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.emptyRangeStatistics(metric:count:mean:sd:cv:)",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.linearRegressionSlope(values:dates:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.baselineDeviation(values:dates:)",
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.direction(of:rule:)",
     "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(values:dates:scale:)",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.baselineDeviation(values:dates:mean:)"
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.linearRegressionSlope(values:dates:)"
    ],
    "reads": [],
    "writes": [],
@@ -355,66 +365,41 @@
      "effect": "true → CV = sd/mean·100; false → 0"
     },
     {
-     "at": "+12",
+     "at": "+13",
      "cond": "sorted first/last exist",
-     "effect": "false → emptyRangeStatistics (unreachable for n ≥ 2)"
+     "effect": "always true for n ≥ 2; the else returns insufficientStatistics only to avoid a force-unwrap"
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "emptyRangeStatistics is only reachable when a sorted array of ≥2 values has no first/last, which cannot happen.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/TrendAnalysis.swift:304",
-      "Emuqu/Sources/Analysis/TrendAnalysis.swift:309",
-      "Emuqu/Sources/Analysis/TrendAnalysis.swift:356"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.deviation(for:)": "eb395310f3a332ff",
     "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(values:dates:scale:)": "336025d22ce6dde9",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.baselineDeviation(values:dates:mean:)": "f1f8de40b0f82f62",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.baselineDeviation(values:dates:)": "4c37c981f6b40baf",
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.direction(of:rule:)": "ea239b2a5bfa10e4",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.emptyRangeStatistics(metric:count:mean:sd:cv:)": "8fbcf539efc74a29",
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.insufficientStatistics(metric:values:)": "9422f1f3a728c638",
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.linearRegressionSlope(values:dates:)": "275a434bcd54f1d5",
     "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincareGeometry.scale(_:)": "bc287f5cdfc2a532"
    }
   },
   {
-   "key": "func TrendAnalyzer.baselineDeviation(values:dates:mean:)",
-   "hash": "eff37c17f1ff1861",
-   "does": "Last value of computeRollingBaseline(7 days) as baseline and (current−baseline)/baseline·100 as deviation.",
+   "key": "func TrendAnalyzer.baselineDeviation(values:dates:)",
+   "hash": "7fa766d56dd981fb",
+   "does": "The latest reading's 7-day baseline — priorWindowMean of the readings dated in the 7 days before it — and (latest − baseline)/baseline·100. Both nil when the arrays differ in length, are empty, no reading falls in that window, or the baseline is 0: the latest value is never its own baseline.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeRollingBaseline(values:dates:windowDays:)"
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.priorWindowMean(values:dates:index:windowDays:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+6",
-     "cond": "values.last nil",
-     "effect": "fallback mean (unreachable for n ≥ 2)"
+     "at": "+1",
+     "cond": "length mismatch, no values, no prior reading in 7 days, or baseline 0",
+     "effect": "(nil, nil); else (baseline, % deviation)"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "When no reading falls in the 7 days before the last one, the 'baseline' is the last value itself, so deviation is 0% and TrendStatistics.baseline reports today's value as the baseline.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/TrendAnalysis.swift:279",
-      "Emuqu/Sources/Analysis/TrendAnalysis.swift:331"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeRollingBaseline(values:dates:windowDays:)": "122b382b28e66610"
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.priorWindowMean(values:dates:index:windowDays:)": "10ae86dbbad561fd"
    }
   },
   {
@@ -452,18 +437,6 @@
      "effect": "p75 0"
     }
    ],
-   "flags": [],
-   "deps": {}
-  },
-  {
-   "key": "func TrendAnalyzer.emptyRangeStatistics(metric:count:mean:sd:cv:)",
-   "hash": "99a2d7d77433f1fc",
-   "does": "Stats with zeroed range and .insufficient trend.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
    "flags": [],
    "deps": {}
   },
@@ -539,13 +512,14 @@
    "deps": {}
   },
   {
-   "key": "func TrendAnalyzer.rmssdInsights(_:)",
-   "hash": "2927c19d9b6576c7",
-   "does": "RMSSD insights: trend sentence (improving/declining/stable), high-variability note when CV > 25%, plus baseline-deviation insights.",
+   "key": "func TrendAnalyzer.rmssdInsights(_:latestReading:)",
+   "hash": "5f968a0690f05bf6",
+   "does": "RMSSD insights: trend sentence (improving/declining/stable), high-variability note when CV > 25%, plus baseline-deviation insights for the latest reading (dated latestReading).",
    "entry": null,
    "calls": [
     "ext:String(localized:bundle:)",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.baselineDeviationInsights(_:)"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.baselineDeviationInsights(_:latestReading:)"
    ],
    "reads": [],
    "writes": [],
@@ -578,53 +552,42 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.baselineDeviationInsights(_:)": "0d019d2dfb4d03b3",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.baselineDeviationInsights(_:latestReading:)": "a239a187738d8390",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.coefficientOfVariation(_:)": "9686a279442b4e4a"
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.coefficientOfVariation(_:)": "94ce03fd602b388d"
    }
   },
   {
-   "key": "func TrendAnalyzer.baselineDeviationInsights(_:)",
-   "hash": "1a81277b47907609",
-   "does": "Last-value deviation < −15% → 'below baseline. Consider a rest day'; > +15% → 'above baseline'; else none.",
+   "key": "func TrendAnalyzer.baselineDeviationInsights(_:latestReading:)",
+   "hash": "f25d2df761c78108",
+   "does": "Only when the deviation exists and the latest reading is last night's (dated today or yesterday by Calendar.current — an overnight is dated by its start): deviation < −15% → \"Today's HRV is N% below your baseline. Consider a rest day.\"; > +15% → \"Today's HRV is N% above your baseline.\"; else none. An older latest reading yields nothing, since the copy calls it today's.",
    "entry": null,
    "calls": [
-    "ext:String(localized:bundle:)"
+    "ext:String(localized:bundle:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "ext:Calendar.isDateInToday(_:)",
+    "ext:Calendar.isDateInYesterday(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+1",
-     "cond": "deviation present",
-     "effect": "false → []"
+     "cond": "no deviation, no date, or the latest reading is not dated today/yesterday",
+     "effect": "[]"
     },
     {
-     "at": "+2",
+     "at": "+4",
      "cond": "deviation < −15",
      "effect": "rest-day line"
     },
     {
-     "at": "+5",
+     "at": "+7",
      "cond": "deviation > 15",
      "effect": "above-baseline line; else []"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "The insight calls the LAST reading in the period 'Today's HRV' and advises a rest day, whatever its date. analyze() is run over .month/.all and over period-windowed archives for the assistant, so a reading days or weeks old is reported to Flo as today's HRV with rest-day advice.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/TrendAnalysis.swift:332",
-      "Emuqu/Sources/Analysis/TrendAnalysis.swift:437",
-      "Emuqu/Sources/Analysis/TrendAnalysis.swift:442",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift:762",
-      "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift:93"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
@@ -707,11 +670,11 @@
   },
   {
    "key": "func TrendAnalyzer.generateInsights(dataPoints:rmssd:sdnn:hr:stress:readiness:)",
-   "hash": "7ba44154ee2231cc",
-   "does": "Concatenates RMSSD, autonomic and HR/quality insights.",
+   "hash": "a6a7c7155ad53e74",
+   "does": "Concatenates RMSSD insights (with the last data point's date as the latest reading), autonomic and HR/quality insights.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.rmssdInsights(_:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.rmssdInsights(_:latestReading:)",
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.autonomicInsights(stress:readiness:)",
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.heartRateAndQualityInsights(hr:dataPoints:)"
    ],
@@ -722,7 +685,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.autonomicInsights(stress:readiness:)": "6d2edb1c807fa0f3",
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.heartRateAndQualityInsights(hr:dataPoints:)": "127505ddfa6a5471",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.rmssdInsights(_:)": "847179b40442906c"
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.rmssdInsights(_:latestReading:)": "fe151cd66b457bb4"
    }
   },
   {

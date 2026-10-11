@@ -5,13 +5,11 @@ import SwiftUI
 /// Post-recording results card for quick/streaming readings.
 /// Shows key metrics (RMSSD, HR, readiness) with options to view the full report or dismiss.
 struct QuickResultsCard: View {
-    @Environment(\.dependencies) var dependencies
     let session: HRVSession
     let result: HRVAnalysisResult
     let onViewReport: () -> Void
     let onDone: () -> Void
 
-    private var settingsManager: SettingsManager { dependencies.app.settingsManager }
     var body: some View {
         v2Body
     }

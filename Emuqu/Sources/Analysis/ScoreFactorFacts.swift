@@ -39,6 +39,9 @@ struct ScoreFactorFacts: Codable, Equatable, Sendable {
     enum Note: String, Sendable {
         case hrvNoBaseline
         case hrvNoBaselineUsingReadiness
+        /// A baseline exists but the night has no usable RMSSD.
+        case hrvNoReading
+        case hrvNoReadingUsingReadiness
         case hrvWithAssessment
         case noSleepData
         case noVitals
@@ -49,6 +52,10 @@ struct ScoreFactorFacts: Codable, Equatable, Sendable {
                 String(localized: "No baseline yet", bundle: NarrativeLanguage.bundle)
             case .hrvNoBaselineUsingReadiness:
                 String(localized: "No baseline yet (using readiness score)", bundle: NarrativeLanguage.bundle)
+            case .hrvNoReading:
+                String(localized: "No usable HRV reading", bundle: NarrativeLanguage.bundle)
+            case .hrvNoReadingUsingReadiness:
+                String(localized: "No usable HRV reading (using readiness score)", bundle: NarrativeLanguage.bundle)
             case .hrvWithAssessment:
                 String(localized: "Baseline HRV + your assessment (recording was unusable)", bundle: NarrativeLanguage.bundle)
             case .noSleepData:

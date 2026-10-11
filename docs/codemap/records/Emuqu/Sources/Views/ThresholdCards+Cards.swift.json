@@ -22,11 +22,12 @@
  "units": [
   {
    "key": "var ThresholdCards.alpha1LT1EstimateCard",
-   "hash": "a9f1fa25af8c6f11",
-   "does": "Runs the crossing detector on the session's workout samples and, if a downward AT1 crossing with HR exists, shows a card with that HR as the α1-estimated LT1, its time offset and an accuracy caveat (±10 bpm); otherwise renders nothing.",
+   "hash": "48d23ba2c5a6dcf6",
+   "does": "Takes the α1 report's first sustained AT1 crossing (Alpha1ReportCards.alpha1BandTotals over the samples with ectopicShadows excluded) and, when it carries an HR, shows a card with that HR as the α1-estimated LT1, its time offset and an accuracy caveat (±10 bpm); otherwise renders nothing.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.detectAlpha1Crossings(samples:)",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1BandTotals(samples:shadows:)",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.lt1CardHeader",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func lt1Readout(lt1HR:offsetSec:)"
    ],
@@ -36,11 +37,11 @@
     {
      "at": "+2",
      "cond": "session.workoutMetadata?.samples ?? []",
-     "effect": "no metadata: empty samples → no crossings → no card"
+     "effect": "no metadata: empty samples → no crossing → no card"
     },
     {
-     "at": "+5",
-     "cond": "first .downAT1 crossing with non-nil hr exists",
+     "at": "+4",
+     "cond": "firstCrossing exists and has an HR",
      "effect": "true: LT1 card; false: empty"
     }
    ],
@@ -59,9 +60,10 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1BandTotals(samples:shadows:)": "10a49c142b438673",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "9173c8e9337e06b4",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.detectAlpha1Crossings(samples:)": "5b701a2276624df8",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func lt1Readout(lt1HR:offsetSec:)": "835a6d74d7727411",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.lt1CardHeader": "df033a3e5a600785"
    }
@@ -108,7 +110,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.crossingsList(_:)": "1256f2aea963f9de",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.detectAlpha1Crossings(samples:)": "5b701a2276624df8"
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.detectAlpha1Crossings(samples:)": "ef9c79e9211736ad"
    }
   },
   {
@@ -132,10 +134,12 @@
   },
   {
    "key": "func ThresholdCards.detectAlpha1Crossings(samples:)",
-   "hash": "3f8fcb75df5e4937",
-   "does": "Walks α1 samples: per sample dt = max(1, offset − previous α1 offset), skips the first 120 s, and feeds AT1 (0.75) and AT2 (0.50) BandTrackers; a down-crossing commits after 180 s of accumulated sub-threshold time and an up-crossing is emitted on recovery after a committed down. Returns at most 6 events.",
+   "hash": "ad8f856517e84575",
+   "does": "Walks Alpha1ReportCards.timedCleanAlpha1 readings (beat-artifact dips excluded, each reading timed against the previous α1 sample and capped at 5 s) from the 120 s warm-up on, and feeds AT1 (0.75) and AT2 (0.50) BandTrackers; a down-crossing needs a reading at or above the threshold after the warm-up first, commits after 180 s of sub-threshold time, and an up-crossing is emitted on recovery after a committed down-crossing. Returns at most 6 events; its first AT1 down-crossing is the report's first crossing.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.timedCleanAlpha1(samples:shadows:)",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.advance(_:prev:current:sample:dt:into:)"
    ],
    "reads": [],
@@ -143,44 +147,16 @@
    "branches": [
     {
      "at": "+6",
-     "cond": "for each sample",
-     "effect": "loop over all workout samples"
+     "cond": "each clean reading at or after the 120 s warm-up",
+     "effect": "loop; earlier readings are not fed in"
     },
     {
-     "at": "+7",
-     "cond": "s.alpha1 is nil",
-     "effect": "skip sample (prevOff not advanced)"
-    },
-    {
-     "at": "+12",
-     "cond": "offsetSec < 120 OR no previous α1 value",
-     "effect": "skip as warm-up/priming (last still updated via defer)"
+     "at": "+8",
+     "cond": "no previous post-warm-up reading",
+     "effect": "skip (records it as previous via defer)"
     }
    ],
    "flags": [
-    {
-     "kind": "broken",
-     "sev": "high",
-     "text": "dt is the raw gap since the previous α1 sample with no cap, so after a strap dropout one sub-0.75 sample is credited the whole gap and can satisfy the 180 s sustain alone, committing a 'Through AT1' crossing and an LT1 HR. Alpha1ReportCards fixed exactly this by capping each sample at 5 s (sampleSeconds/maxSampleGapSec) and excluding ectopic-shadow samples; this detector does neither, contradicting its own comment that one ectopic 'can no longer drive a crossing event'.",
-     "evidence": [
-      "Emuqu/Sources/Views/ThresholdCards+Cards.swift:137",
-      "Emuqu/Sources/Views/ThresholdCards+Cards.swift:125",
-      "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift:451",
-      "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift:421"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "duplicate",
-     "sev": "med",
-     "text": "Second AT1-crossing detector alongside Alpha1ReportCards.AT1CrossDetector.step / alpha1BandTotals (used by the α1 report, snapshot builder and PDF). Rules differ (gap cap, shadow exclusion), so the LT1 card's crossing time/HR can disagree with the α1 report's firstAT1Crossing for the same workout.",
-     "evidence": [
-      "Emuqu/Sources/Views/ThresholdCards+Cards.swift:129",
-      "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift:400",
-      "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift:432"
-     ],
-     "found": "first read, upheld on second"
-    },
     {
      "kind": "untested",
      "sev": "low",
@@ -193,6 +169,8 @@
     }
    ],
    "deps": {
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "9173c8e9337e06b4",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.timedCleanAlpha1(samples:shadows:)": "36a3c2fe1f0be971",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.advance(_:prev:current:sample:dt:into:)": "09c803422060c406"
    }
   },
@@ -459,7 +437,7 @@
    "deps": {
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.calorieRateRow(samples:duration:)": "60a1b612ca4695c1",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.gradeAdjustedPaceRow(samples:meta:duration:)": "f172433a0b1cf20b",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.gradeAdjustedPaceRow(samples:meta:duration:)": "b806a2d182f22a48",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.powerToHRRow(meta:)": "2930e40a31d83190",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.strideLengthRow(samples:meta:duration:)": "f160b56ded349420",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.vamRow(meta:duration:)": "fd369e379e51d5ef",
@@ -508,10 +486,11 @@
   },
   {
    "key": "func ThresholdCards.gradeAdjustedPaceRow(samples:meta:duration:)",
-   "hash": "9d4712e11de4e653",
-   "does": "Grade-adjusted pace from elapsed duration ÷ distance minus 2 s/km per % net grade, when ≥30 paced samples, duration >300 s and distance >500 m.",
+   "hash": "4b81c6e15f8c7abe",
+   "does": "Grade-adjusted pace from moving time (min(duration, movingSeconds)) ÷ distance minus 2 s/km per % net grade, when ≥30 paced samples, duration >300 s, distance >500 m and some moving time.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func movingSeconds(samples:)",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func gradeAdjustedSecondsPerMetre(distanceMetres:duration:meta:)",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.unitsPref",
     "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)"
@@ -533,6 +512,11 @@
     },
     {
      "at": "+4",
+     "cond": "moving time 0",
+     "effect": "nil"
+    },
+    {
+     "at": "+6",
      "cond": "formatPace returns nil",
      "effect": "nil (no row)"
     }
@@ -554,6 +538,7 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func gradeAdjustedSecondsPerMetre(distanceMetres:duration:meta:)": "fc68e56f56166fcf",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func movingSeconds(samples:)": "bfa9541378ee4ed8",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.unitsPref": "830b1ee930df0d0f"
    }
   },
@@ -632,7 +617,7 @@
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func stepCount(samples:)": "6c00c4d3ab2ac3d3",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func stepCount(samples:)": "9a93aaea45f42fab",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.unitsPref": "830b1ee930df0d0f",
     "Emuqu/Sources/Views/WorkoutStatsCards.swift::func LocalizedUnit.format(_:_:fractionDigits:)": "540942cff4253f1a"
    }
@@ -664,11 +649,11 @@
   },
   {
    "key": "var ThresholdCards.hrZoneDistributionCard",
-   "hash": "c07299c219f55f39",
-   "does": "Computes per-zone seconds with the user's max HR and shows the zone card when any zone time exists.",
+   "hash": "7d484d1597b93c6d",
+   "does": "Computes per-zone seconds with WorkoutPDFRenderer.hrZoneSeconds (the PDF's timing: each sample 1–5 s) and the user's max HR, and shows the zone card when any zone time exists.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.hrZoneSeconds(samples:maxHR:)",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.hrZoneSeconds(samples:maxHR:)",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func UserSettingsBridge.snapshot()",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneDistributionBody(zoneSecs:total:)"
    ],
@@ -690,8 +675,8 @@
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.hrZoneSeconds(samples:maxHR:)": "09a2884ba4c224ba",
     "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.userMaxHR": "49805330e3ae7d57",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.hrZoneSeconds(samples:maxHR:)": "3b2322044d015c0d",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneDistributionBody(zoneSecs:total:)": "5387d514dc82b206",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func UserSettingsBridge.snapshot()": "147cb8362c0717f8"
    }
@@ -762,7 +747,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneColor(idx:)": "181abb094e1cfeae",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneColor(idx:)": "7911b0c05881cf9d",
     "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
    }
   },
@@ -810,7 +795,7 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneColor(idx:)": "181abb094e1cfeae",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneColor(idx:)": "7911b0c05881cf9d",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneRangeLabel(idx:maxHR:)": "d8f086c6a1644880",
     "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
    }
@@ -861,121 +846,26 @@
    }
   },
   {
-   "key": "func ThresholdCards.hrZoneSeconds(samples:maxHR:)",
-   "hash": "565e2493bcaba443",
-   "does": "Per-zone seconds by HR/maxHR: 50-60/60-70/70-80/80-90/90+ %, each sample credited max(1, offset − previous offset) seconds; samples without HR still advance the clock.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+5",
-     "cond": "for each sample",
-     "effect": "loop"
-    },
-    {
-     "at": "+8",
-     "cond": "heartRate nil or maxHR ≤ 0",
-     "effect": "skip sample (time not credited)"
-    },
-    {
-     "at": "+11",
-     "cond": "frac < 0.50",
-     "effect": "not counted"
-    },
-    {
-     "at": "+12",
-     "cond": "0.50..<0.60",
-     "effect": "Z1"
-    },
-    {
-     "at": "+13",
-     "cond": "0.60..<0.70",
-     "effect": "Z2"
-    },
-    {
-     "at": "+14",
-     "cond": "0.70..<0.80",
-     "effect": "Z3"
-    },
-    {
-     "at": "+15",
-     "cond": "0.80..<0.90",
-     "effect": "Z4"
-    },
-    {
-     "at": "+16",
-     "cond": "≥0.90",
-     "effect": "Z5"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "med",
-     "text": "Zone time is computed four ways: here and in WorkoutAnalysisSnapshotBuilder (uncapped dt, first sample credited its full offset), WorkoutPDFReport.hrZoneSeconds (each sample capped at 5 s, first sample 1 s) and WorkoutZoneBreakdown.compute (max(0,dt)). After a strap dropout the summary card credits the whole gap to the next sample's zone while the exported PDF credits 5 s, so the on-screen and PDF zone minutes for the same workout differ.",
-     "evidence": [
-      "Emuqu/Sources/Views/ThresholdCards+Cards.swift:463",
-      "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift:345",
-      "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift:73",
-      "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift:273"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
-  },
-  {
    "key": "func ThresholdCards.zoneColor(idx:)",
-   "hash": "1ca639dcdf85345c",
-   "does": "Fixed RGB color per zone index (green, lime, yellow, orange, red).",
+   "hash": "5192409001d2c490",
+   "does": "HRZone.color of zone idx+1 (z5 for an out-of-range index), the colour every other zone display uses.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Views/HRZone.swift::var HRZone.color"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+2",
-     "cond": "0",
-     "effect": "green"
-    },
-    {
-     "at": "+3",
-     "cond": "1",
-     "effect": "lime"
-    },
-    {
-     "at": "+4",
-     "cond": "2",
-     "effect": "yellow"
-    },
-    {
-     "at": "+5",
-     "cond": "3",
-     "effect": "orange"
-    },
-    {
-     "at": "+6",
-     "cond": "default",
-     "effect": "red"
+     "at": "+1",
+     "cond": "HRZone(rawValue: idx+1) nil",
+     "effect": "z5 colour"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Zone colours disagree with the app's HRZone.color: this card paints Z1 with the RGB HRZone uses for Z2 (0.40,0.80,0.55) and Z2 lime, whereas HRZone paints Z1 blue; the zone bins in hrZoneSeconds also re-implement HRZone.classify. The same zone shows different colours on this card and other zone UI.",
-     "evidence": [
-      "Emuqu/Sources/Views/ThresholdCards+Cards.swift:481",
-      "Emuqu/Sources/Views/HRZone.swift:66",
-      "Emuqu/Sources/Views/HRZone.swift:67",
-      "Emuqu/Sources/Views/HRZone.swift:37"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {}
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HRZone.swift::var HRZone.color": "08df8497ff6f56c8"
+   }
   },
   {
    "key": "func ThresholdCards.zoneRangeLabel(idx:maxHR:)",
@@ -1200,15 +1090,17 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func hasMovementSignal(_:)": "e7d9310489d5c73b",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func movingSeconds(samples:)": "386762caa0eef914"
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func movingSeconds(samples:)": "bfa9541378ee4ed8"
    }
   },
   {
    "key": "func stepCount(samples:)",
-   "hash": "51bd2bc096b44272",
-   "does": "Integrates cadence (steps/min) × dt/60 over samples; dt = max(1, offset − previous offset).",
+   "hash": "fbaa2eb9d3d1327d",
+   "does": "Integrates cadence (steps/min) × dt/60 over samples; dt = Alpha1ReportCards.sampleSeconds (1–5 s, 1 for the first).",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.sampleSeconds(at:previous:)"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
@@ -1223,29 +1115,19 @@
      "effect": "adds steps; else none"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "dt is uncapped and starts from offset 0, so the first sample and any sample after a dropout are credited the whole preceding gap of steps (and moving time in movingSeconds), skewing stride length and Moving time; the PDF path caps each sample at 5 s.",
-     "evidence": [
-      "Emuqu/Sources/Views/ThresholdCards+Cards.swift:687",
-      "Emuqu/Sources/Views/ThresholdCards+Cards.swift:698",
-      "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift:340"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "d9315eaf78873e8c"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "d9315eaf78873e8c",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.sampleSeconds(at:previous:)": "0befeb7b3281987b"
    }
   },
   {
    "key": "func movingSeconds(samples:)",
-   "hash": "4872db511432c290",
-   "does": "Sums dt of samples that isMoving.",
+   "hash": "35b5cce0cdbdcd95",
+   "does": "Sums dt (Alpha1ReportCards.sampleSeconds: 1–5 s, 1 for the first) of samples that isMoving.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.sampleSeconds(at:previous:)",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func isMoving(_:)"
    ],
    "reads": [],
@@ -1264,6 +1146,7 @@
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.sampleSeconds(at:previous:)": "0befeb7b3281987b",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func isMoving(_:)": "30ec5a019c6877eb"
    }
   },

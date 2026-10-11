@@ -37,31 +37,17 @@
    "branches": [
     {
      "at": "+14",
-     "cond": "PoincareScale init fails (no clean pairs)",
+     "cond": "PoincareScale init fails (no clean pairs in the window)",
      "effect": "returns y+plotSize+20 leaving an empty framed box with no stats; else draws contents"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "Poincaré pairs require artifact flags for both beats (isCleanPair returns false when i ≥ flags.count), while the tachogram and PSD on the same page treat missing flags as clean. A session with raw RR but nil/short artifactFlags (SessionMerger sets them nil; generateReportURL never passes flags) gets an empty Poincaré box with no SD1/SD2 stats beside a populated tachogram and PSD.",
-     "evidence": [
-      "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift:54",
-      "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift:414",
-      "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift:454",
-      "Emuqu/Sources/Export/PDFReportGenerator.swift:409",
-      "Emuqu/Sources/Storage/SessionMerger.swift:349"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPoincareDots(_:scale:in:)": "ebe5c90ae1ef35a0",
     "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPoincareEllipse(result:scale:in:context:)": "a2e64fe6d91a5d23",
     "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPoincareLabels(in:)": "fda21a6c429b2b0e",
     "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPoincareStats(result:pointCount:x:y:)": "1cbc53cc83712dbc",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.poincarePairs(series:flags:result:)": "b7415ab5b145e1a0",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.poincarePairs(series:flags:result:)": "af28db906e88f8cd",
     "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func drawPoincareFrame(_:)": "5d15670328a1f7ad",
     "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func drawPoincareIdentityLine(in:)": "27309849da784c3e",
     "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::init ReportSectionRenderer.PoincareScale(pairs:plotSize:)": "816e5e21d5351827",
@@ -72,8 +58,8 @@
   },
   {
    "key": "func ReportSectionRenderer.poincarePairs(series:flags:result:)",
-   "hash": "4aa8ac2d2e9cc0be",
-   "does": "Collects (RR[i], RR[i+1]) pairs for i in windowStart..<min(windowEnd,count)-1 whose both beats are flagged clean.",
+   "hash": "e6a8dded7dbb473a",
+   "does": "Collects (RR[i], RR[i+1]) pairs for i in windowStart..<min(windowEnd,count)-1 where neither beat is flagged as an artifact (an unflagged beat counts as clean) — the pairs PoincarePlotView.beatPairs draws on screen.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.isCleanPair(at:flags:)"
@@ -83,7 +69,7 @@
    "branches": [
     {
      "at": "+3",
-     "cond": "clamped windowEnd <= windowStart+1 (degenerate window)",
+     "cond": "windowStart < 0 or clamped windowEnd <= windowStart+1 (degenerate window)",
      "effect": "returns [] to avoid an invalid range; else iterates"
     },
     {
@@ -95,37 +81,28 @@
    "flags": [
     {
      "kind": "duplicate",
-     "sev": "med",
-     "text": "Re-implements PoincarePlotView.beatPairs with a different missing-flag policy: the on-screen plot treats beats beyond artifactFlags as clean, the PDF drops them, so for a session whose artifactFlags is nil (SessionMerger, streaming/device-recording builders) the app shows a populated Poincare plot while the PDF shows an empty box.",
+     "sev": "low",
+     "text": "Same pair selection as PoincarePlotView.beatPairs (MorningResultsCharts.swift), now with the same missing-flag policy, but two copies kept in step by hand.",
      "evidence": [
-      "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift:54",
-      "Emuqu/Sources/Views/MorningResultsCharts.swift:66",
-      "Emuqu/Sources/Views/MorningResultsCharts.swift:73",
-      "Emuqu/Sources/Storage/SessionMerger.swift:349"
+      "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift:43",
+      "Emuqu/Sources/Views/MorningResultsCharts.swift:66"
      ],
-     "found": "second read"
+     "found": "fix batch b13"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.isCleanPair(at:flags:)": "3aad87ce9961b0e5",
-    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)": "c275ddb86778fcf0"
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.isCleanPair(at:flags:)": "12e5cc9e2da0b1e0"
    }
   },
   {
    "key": "func ReportSectionRenderer.isCleanPair(at:flags:)",
-   "hash": "66c28bc2511a56fe",
-   "does": "True only when both i and i+1 are inside the flags array and neither is an artifact.",
+   "hash": "d826ce391f7e8b87",
+   "does": "True when neither beat i nor i+1 is flagged as an artifact; a beat beyond the flags array (nil or short artifactFlags) counts as clean, as in the tachogram, the PSD and the on-screen plot.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "i or i+1 is beyond flags.count",
-     "effect": "returns false (pair treated as dirty, so empty/short flags drop every pair); else returns !artifact(i) && !artifact(i+1)"
-    }
-   ],
+   "branches": [],
    "flags": [],
    "deps": {}
   },

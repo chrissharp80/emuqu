@@ -15,30 +15,40 @@ struct OvernightStatsComputer: Sendable {
     let healthKitSleep: SleepData?
 
     func computeOvernightStats() -> OvernightStats {
-        guard let series = session.rrSeries, !series.points.isEmpty else { return OvernightStats.empty }
+        guard let series = session.rrSeries, !series.points.isEmpty,
+              let firstPoint = series.points.first, let lastPoint = series.points.last
+        else { return OvernightStats.empty }
         let (flags, points) = (session.artifactFlags ?? [], series.points)
         // Prefer live HealthKit boundaries over stored session data.
-        let (sleepStartMs, sleepEndMs) = resolveSleepBoundaries(points: points)
-        let segmentRanges = resolveSleepSegmentRanges(points: points)
-        let hasStoredHR = points.contains { $0.hr != nil }
-        let allHrValues = computeHRValues(
-            points: points, flags: flags, hasStoredHR: hasStoredHR, rangeStart: nil, rangeEnd: nil)
-        let hrValues = sleepWindowHRValues(
-            points: points, flags: flags, hasStoredHR: hasStoredHR, segmentRanges: segmentRanges,
-            sleepStartMs: sleepStartMs, sleepEndMs: sleepEndMs, fallback: allHrValues)
-        guard let nadirPoint = hrValues.min(by: { $0.hr < $1.hr }),
-              let peakPoint = hrValues.max(by: { $0.hr < $1.hr }),
-              let firstPoint = points.first, let lastPoint = points.last
-        else { return OvernightStats.empty }
+        let (sleepStartMs, sleepEndMs) = resolveSleepBoundaries(series: series)
+        let segmentRanges = resolveSleepSegmentRanges(series: series)
+        let hr = sleepHR(points: points, flags: flags, segmentRanges: segmentRanges, sleepStartMs: sleepStartMs, sleepEndMs: sleepEndMs)
         return makeStats(StatsInputs(
-            series: series, points: points, flags: flags, hrValues: hrValues, allHrValues: allHrValues,
+            series: series, points: points, flags: flags, hrValues: hr.sleep, allHrValues: hr.all,
             rollingRMSSD: computeRollingRMSSD(points: points, flags: flags),
-            nadirPoint: nadirPoint, peakPoint: peakPoint, firstPoint: firstPoint, lastPoint: lastPoint,
+            nadirPoint: hr.sleep.min(by: { $0.hr < $1.hr }), peakPoint: hr.sleep.max(by: { $0.hr < $1.hr }),
+            firstPoint: firstPoint, lastPoint: lastPoint,
             segmentRanges: segmentRanges, sleepStartMs: sleepStartMs, sleepEndMs: sleepEndMs))
     }
 
+    /// The full-recording HR and the sleep-window HR (falling back to the
+    /// full set). Both are empty when no beat yields a plausible HR; the HRV
+    /// side of the stats does not need HR, so it is still computed then.
+    private func sleepHR(
+        points: [RRPoint], flags: [ArtifactFlags], segmentRanges: [(startMs: Int64, endMs: Int64)],
+        sleepStartMs: Int64, sleepEndMs: Int64
+    ) -> (sleep: [(index: Int, hr: Double, timeMs: Int64)], all: [(index: Int, hr: Double, timeMs: Int64)]) {
+        let hasStoredHR = points.contains { $0.hr != nil }
+        let all = computeHRValues(points: points, flags: flags, hasStoredHR: hasStoredHR, rangeStart: nil, rangeEnd: nil)
+        let sleep = sleepWindowHRValues(
+            points: points, flags: flags, hasStoredHR: hasStoredHR, segmentRanges: segmentRanges,
+            sleepStartMs: sleepStartMs, sleepEndMs: sleepEndMs, fallback: all)
+        return (sleep, all)
+    }
+
     /// Everything `makeStats` needs, bundled so the assembly step reads as one
-    /// wide field table rather than a fifteen-parameter signature.
+    /// wide field table rather than a fifteen-parameter signature. Nadir and
+    /// peak are nil when no HR survived.
     private struct StatsInputs {
         let series: RRSeries
         let points: [RRPoint]
@@ -46,8 +56,8 @@ struct OvernightStatsComputer: Sendable {
         let hrValues: [(index: Int, hr: Double, timeMs: Int64)]
         let allHrValues: [(index: Int, hr: Double, timeMs: Int64)]
         let rollingRMSSD: [(index: Int, rmssd: Double, timeMs: Int64)]
-        let nadirPoint: (index: Int, hr: Double, timeMs: Int64)
-        let peakPoint: (index: Int, hr: Double, timeMs: Int64)
+        let nadirPoint: (index: Int, hr: Double, timeMs: Int64)?
+        let peakPoint: (index: Int, hr: Double, timeMs: Int64)?
         let firstPoint: RRPoint
         let lastPoint: RRPoint
         let segmentRanges: [(startMs: Int64, endMs: Int64)]
@@ -57,17 +67,19 @@ struct OvernightStatsComputer: Sendable {
 
     /// Assemble the rendered stats. Everything here is projection and
     /// formatting — the analysis itself already happened. The peak-HRV search
-    /// stays inside the 30-70% sleep band.
+    /// stays inside the 30-70% band of the resolved sleep window. With no HR,
+    /// the HR fields are 0 with an empty nadir time (the HealthKit gap fill
+    /// treats 0 as missing); with no rolling RMSSD, the peak time is empty.
     private func makeStats(_ inputs: StatsInputs) -> OvernightStats {
-        let durationMs = inputs.lastPoint.t_ms - inputs.firstPoint.t_ms
-        let (peakHRV, avgRMSSD) = findPeakHRV(rollingRMSSD: inputs.rollingRMSSD, recordingDurationMs: durationMs)
-        let (window, sleep) = (windowFields(inputs), sleepFields(inputs, durationMs: durationMs))
-        let (rolling, nadir) = (inputs.rollingRMSSD.map { ($0.index, $0.rmssd) }, inputs.nadirPoint)
+        let band = Self.peakSearchBand(sleepStartMs: inputs.sleepStartMs, sleepEndMs: inputs.sleepEndMs)
+        let (peakHRV, avgRMSSD) = findPeakHRV(rollingRMSSD: inputs.rollingRMSSD, band: band)
+        let (window, sleep) = (windowFields(inputs), sleepFields(inputs, durationMs: inputs.lastPoint.t_ms - inputs.firstPoint.t_ms))
+        let (rolling, nadir) = (inputs.rollingRMSSD.map { ($0.index, $0.rmssd) }, inputs.nadirPoint ?? (index: 0, hr: 0, timeMs: 0))
         return OvernightStats(
             nadirHR: nadir.hr, nadirIndex: nadir.index, nadirTimeMs: nadir.timeMs,
-            nadirTimeFormatted: formatClockTime(inputs.series.wallClockTime(forTMs: nadir.timeMs)),
-            minHR: nadir.hr, maxHR: inputs.peakPoint.hr, avgHR: Self.trimmedMeanHR(inputs.hrValues), peakRMSSD: peakHRV?.rmssd ?? 0,
-            peakHRVIndex: peakHRV?.index ?? 0, peakHRVTimeMs: peakHRV?.timeMs ?? 0, peakHRVTimeFormatted: formatClockTime(inputs.series.wallClockTime(forTMs: peakHRV?.timeMs ?? 0)),
+            nadirTimeFormatted: inputs.nadirPoint.map { formatClockTime(inputs.series.wallClockTime(forTMs: $0.timeMs)) } ?? "",
+            minHR: nadir.hr, maxHR: inputs.peakPoint?.hr ?? 0, avgHR: Self.trimmedMeanHR(inputs.hrValues), peakRMSSD: peakHRV?.rmssd ?? 0,
+            peakHRVIndex: peakHRV?.index ?? 0, peakHRVTimeMs: peakHRV?.timeMs ?? 0, peakHRVTimeFormatted: peakHRV.map { formatClockTime(inputs.series.wallClockTime(forTMs: $0.timeMs)) } ?? "",
             avgRMSSD: avgRMSSD, rollingRMSSD: rolling, hrValues: inputs.hrValues.map { ($0.index, $0.hr) },
             allHrValues: inputs.allHrValues.map { ($0.index, $0.hr) }, allRollingRMSSD: rolling,
             windowStartIndex: result.windowStart, windowEndIndex: result.windowEnd, windowStartMs: window.startMs, windowEndMs: window.endMs,
@@ -76,8 +88,8 @@ struct OvernightStatsComputer: Sendable {
             deepSleepMinutes: sleep.deepMinutes, awakeningsCount: sleep.awakenings, sleepEfficiency: sleep.efficiency,
             isHealthKitData: sleep.isFromHealthKit, sleepSegmentRanges: inputs.segmentRanges, chartStartMs: Self.chartStart(firstPoint: inputs.firstPoint, segmentRanges: inputs.segmentRanges),
             chartEndMs: Self.chartEnd(lastPoint: inputs.lastPoint, segmentRanges: inputs.segmentRanges), healthKitHR: [],
-            organizedRecoveryZones: organizedZones(
-                series: inputs.series, flags: inputs.flags, sleepStartMs: inputs.sleepStartMs, sleepEndMs: inputs.sleepEndMs)
+            organizedRecoveryZones: organizedZones(series: inputs.series, flags: inputs.flags, sleepStartMs: inputs.sleepStartMs, sleepEndMs: inputs.sleepEndMs),
+            peakSearchBandMs: hasKnownSleepBoundaries ? band : nil
         )
     }
 
@@ -140,13 +152,15 @@ struct OvernightStatsComputer: Sendable {
         return hrValues
     }
 
-    /// Trimmed mean (5th–95th percentile) for a robust overnight average.
+    /// Trimmed mean (5th–95th percentile) for a robust overnight average;
+    /// 0 when there is no HR at all.
     /// Brief ectopic runs, arrhythmia episodes, or apnea-related HR spikes
     /// (e.g. 146 bpm during sleep) inflate a simple mean by several bpm.
     /// Trimming is standard in polysomnography for this reason.
     private static func trimmedMeanHR(_ hrValues: [(index: Int, hr: Double, timeMs: Int64)]) -> Double {
         let sorted = hrValues.map(\.hr).sorted()
         let count = sorted.count
+        guard count > 0 else { return 0 }
         guard count >= 10 else { return sorted.reduce(0, +) / Double(count) }
         let trimmed = Array(sorted[Int(Double(count) * 0.05) ..< Int(Double(count) * 0.95)])
         return trimmed.reduce(0, +) / Double(trimmed.count)
@@ -228,11 +242,13 @@ struct OvernightStatsComputer: Sendable {
     /// Compute organized-recovery zones on-demand for sessions that don't have
     /// them pre-stored (recorded before the feature existed, or imported).
     /// Uses the same WindowSelector the analysis pipeline uses, so what the
-    /// user sees matches what the scorer picked.
+    /// user sees matches what the scorer picked. Internal so every screen
+    /// that needs the fallback runs this one copy.
     ///
     /// Two-level cache:
-    ///   1. In-memory `OrganizedZonesCache` — survives view recreations
-    ///      within the same app launch. Zero cost after the first compute.
+    ///   1. In-memory `OrganizedZonesCache`, keyed by the session AND the
+    ///      sleep window the scan used, so a changed sleep boundary rescans
+    ///      instead of serving the old window's zones.
     ///   2. On-disk backfill via async archive update — the next app launch
     ///      finds the zones already baked into `HRVAnalysisResult` and skips
     ///      the scan entirely (same cache hit path newly-analyzed sessions get).
@@ -240,31 +256,36 @@ struct OvernightStatsComputer: Sendable {
     ///      `.task(id:)` block in `body`, not from inside this compute
     ///      function, so the archive write is a task-boundary side effect
     ///      rather than something buried in the stats pipeline.)
-    private static func computeOrganizedZonesOnDemand(
+    static func computeOrganizedZonesOnDemand(
         sessionId: UUID,
         series: RRSeries,
         flags: [ArtifactFlags],
         sleepStartMs: Int64,
         sleepEndMs: Int64
     ) -> [HRVAnalysisResult.TimeRange] {
-        // Level 1: memory cache.
-        if let cached = AppDependencies.current.app.organizedZonesCache.get(sessionId) {
+        let cache = AppDependencies.current.app.organizedZonesCache
+        if let cached = cache.get(sessionId, sleepStartMs: sleepStartMs, sleepEndMs: sleepEndMs) {
             return cached
         }
         let selector = WindowSelector()
         // Invoke findBestWindow for its side effect: populating lastOrganizedZones.
         // The returned window is irrelevant here — we only want the zone array.
-        _ = selector.findBestWindow(
-            in: series,
-            flags: flags,
-            sleepStartMs: sleepStartMs,
-            wakeTimeMs: sleepEndMs
-        )
+        _ = selector.findBestWindow(in: series, flags: flags, sleepStartMs: sleepStartMs, wakeTimeMs: sleepEndMs)
         let zones = selector.lastOrganizedZones
-        AppDependencies.current.app.organizedZonesCache.set(sessionId, zones: zones)
+        cache.set(sessionId, sleepStartMs: sleepStartMs, sleepEndMs: sleepEndMs, zones: zones)
         // Level 2 (disk backfill) is triggered by the caller — see the
         // `.task(id:)` block in `body`.
         return zones
+    }
+
+    /// True when the stats about to be computed will run the on-demand zone
+    /// scan: no zones on the result and none cached for this session's
+    /// current sleep window. The view checks it before computing, so the disk
+    /// backfill fires only after a scan that actually ran.
+    func willScanOrganizedZones() -> Bool {
+        guard result.organizedRecoveryZones == nil, let series = session.rrSeries, !series.points.isEmpty else { return false }
+        let (start, end) = resolveSleepBoundaries(series: series)
+        return AppDependencies.current.app.organizedZonesCache.get(session.id, sleepStartMs: start, sleepEndMs: end) == nil
     }
 
     /// Persist computed zones back to the session's analysisResult so future
@@ -281,68 +302,106 @@ struct OvernightStatsComputer: Sendable {
         }
     }
 
-    /// Only writes when the field is actually empty — we might race with
-    /// ReanalysisService or the main pipeline.
+    /// Only writes when there are zones and the archived field is still
+    /// empty — we might race with ReanalysisService or the main pipeline. The
+    /// read-check-write runs under the archive lock (`SessionArchive.update`),
+    /// so a score or sleep update landing meanwhile is kept, and as a field
+    /// backfill it neither merges same-night sessions nor requests a
+    /// re-upload. The `retrieve` first skips the write (and its
+    /// archive-changed broadcast) when there is nothing to fill.
     private static func writeZonesIfStillEmpty(
         sessionId: UUID,
         zones: [HRVAnalysisResult.TimeRange]
     ) {
+        guard !zones.isEmpty else { return }
+        let archive = AppDependencies.current.storage.sessionArchive
         do {
-            guard var session = try AppDependencies.current.storage.sessionArchive.retrieve(sessionId),
-                  session.analysisResult != nil,
-                  session.analysisResult?.organizedRecoveryZones == nil
-            else { return }
-            session.analysisResult?.organizedRecoveryZones = zones.isEmpty ? nil : zones
-            _ = try AppDependencies.current.storage.sessionArchive.archive(session)
+            guard let stored = try archive.retrieve(sessionId), Self.zonesMissing(in: stored) else { return }
+            try archive.update(sessionId, requestingReupload: false) { Self.fillMissingZones(zones, in: &$0) }
             debugLog("[OvernightCharts] 💾 backfilled organizedRecoveryZones for session \(sessionId.uuidString.prefix(8)) (\(zones.count) zones)")
         } catch {
             debugLog("[OvernightCharts] backfill failed for \(sessionId.uuidString.prefix(8)): \(error)", level: .warning)
         }
     }
 
-    /// Resolve sleep boundaries from HealthKit or stored session data, clamped to recording range
-    private func resolveSleepBoundaries(points: [RRPoint]) -> (start: Int64, end: Int64) {
-        let recordingEnd = points.last?.t_ms ?? Int64.max
-        if let hkSleep = healthKitSleep,
-           let hkStart = hkSleep.sleepStart,
-           let hkEnd = hkSleep.sleepEnd {
-            let start = max(0, MillisecondOffset.between(hkStart, and: session.startDate, fallback: 0))
-            let end = min(recordingEnd, MillisecondOffset.between(hkEnd, and: session.startDate, fallback: 0))
-            return (start, end)
-        } else {
-            let start = session.sleepStartMs ?? 0
-            let rawEnd = session.sleepEndMs ?? recordingEnd
-            let end = (rawEnd > start && rawEnd >= 0) ? rawEnd : recordingEnd
+    /// The session has an analysis result whose zones were never stored.
+    private static func zonesMissing(in session: HRVSession) -> Bool {
+        session.analysisResult != nil && session.analysisResult?.organizedRecoveryZones == nil
+    }
+
+    /// Stores `zones` on the session's analysis result, only when it has one
+    /// whose zones are still missing (re-checked on the locked copy).
+    private static func fillMissingZones(_ zones: [HRVAnalysisResult.TimeRange], in session: inout HRVSession) {
+        guard zonesMissing(in: session) else { return }
+        session.analysisResult?.organizedRecoveryZones = zones
+    }
+
+    /// Resolve sleep boundaries from HealthKit or stored session data, clamped
+    /// to the recording range, on the beats' `t_ms` axis (`onBeatClock`).
+    private func resolveSleepBoundaries(series: RRSeries) -> (start: Int64, end: Int64) {
+        let recordingEnd = series.points.last?.t_ms ?? Int64.max
+        if let hkSleep = healthKitSleep, let hkStart = hkSleep.sleepStart, let hkEnd = hkSleep.sleepEnd {
+            let start = max(0, onBeatClock(MillisecondOffset.between(hkStart, and: session.startDate, fallback: 0), series))
+            let end = min(recordingEnd, onBeatClock(MillisecondOffset.between(hkEnd, and: session.startDate, fallback: 0), series))
             return (start, end)
         }
+        let start = session.sleepStartMs.map { onBeatClock($0, series) } ?? 0
+        let rawEnd = session.sleepEndMs.map { onBeatClock($0, series) } ?? recordingEnd
+        let end = (rawEnd > start && rawEnd >= 0) ? rawEnd : recordingEnd
+        return (start, end)
+    }
+
+    /// Whether the night has real sleep boundaries (HealthKit, else stored),
+    /// rather than the whole recording standing in for them.
+    private var hasKnownSleepBoundaries: Bool {
+        if let hk = healthKitSleep, hk.sleepStart != nil, hk.sleepEnd != nil { return true }
+        return session.sleepStartMs != nil && session.sleepEndMs != nil
     }
 
     /// Resolve individual sleep segment ranges for split-night support.
     /// Returns per-segment boundaries from HealthKit segments or session.sleepSegments,
-    /// falling back to a single envelope range for normal nights.
+    /// falling back to a single envelope range for normal nights, all on the
+    /// beats' `t_ms` axis (`onBeatClock`).
     /// Ranges are NOT clamped to recording bounds so that charts can extend to
     /// cover the full HealthKit sleep envelope (e.g., a segment that started
     /// hours before the Polar recording).
-    private func resolveSleepSegmentRanges(points: [RRPoint]) -> [(startMs: Int64, endMs: Int64)] {
+    private func resolveSleepSegmentRanges(series: RRSeries) -> [(startMs: Int64, endMs: Int64)] {
         // Prefer live HealthKit segment data
         if let hkSleep = healthKitSleep, hkSleep.effectiveSegments.count > 1 {
             return hkSleep.effectiveSegments.map { seg in
                 let start = MillisecondOffset.between(seg.sleepStart, and: session.startDate, fallback: 0)
                 let end = MillisecondOffset.between(seg.sleepEnd, and: session.startDate, fallback: 0)
-                return (startMs: start, endMs: end)
+                return (startMs: onBeatClock(start, series), endMs: onBeatClock(end, series))
             }
         }
-
         // Fall back to stored sleep segments on the session
         if let segments = session.sleepSegments, segments.count > 1 {
-            return segments.map { seg in
-                (startMs: seg.startMs, endMs: seg.endMs)
-            }
+            return segments.map { (startMs: onBeatClock($0.startMs, series), endMs: onBeatClock($0.endMs, series)) }
         }
-
         // Single-segment: return the overall envelope
-        let (start, end) = resolveSleepBoundaries(points: points)
+        let (start, end) = resolveSleepBoundaries(series: series)
         return [(startMs: start, endMs: end)]
+    }
+
+    private func onBeatClock(_ offsetMs: Int64, _ series: RRSeries) -> Int64 {
+        Self.tMs(forSessionOffset: offsetMs, series: series, sessionStart: session.startDate)
+    }
+
+    /// A session-clock offset (ms after `sessionStart`, as HealthKit dates
+    /// and the stored sleep fields are) moved onto the `t_ms` axis the beats
+    /// are filtered and plotted on. Streamed `t_ms` is cumulative RR time and
+    /// falls behind the wall clock after a Bluetooth drop, so the offset is
+    /// shifted by the drift (`t_ms` minus wall clock) of the beat nearest to
+    /// it in wall-clock time; past either end of the recording the drift at
+    /// that end applies. A beat without a wall-clock stamp has no drift: its
+    /// `t_ms` already is the session clock (strap recordings, and sessions
+    /// `DataSourceSelector` re-based), so the offset is returned unchanged.
+    static func tMs(forSessionOffset offsetMs: Int64, series: RRSeries, sessionStart: Date) -> Int64 {
+        let date = sessionStart.addingTimeInterval(TimeInterval(offsetMs) / 1000)
+        guard let index = series.indexClosestToWallClock(date),
+              let wallMs = series.points[index].wallClockMs else { return offsetMs }
+        let seriesShiftMs = MillisecondOffset.between(series.startDate, and: sessionStart, fallback: 0)
+        return offsetMs + series.points[index].t_ms - (wallMs + seriesShiftMs)
     }
 
     /// Compute HR values from RR data within an optional time range.
@@ -457,14 +516,12 @@ struct OvernightStatsComputer: Sendable {
         return out
     }
 
-    /// Find peak HRV within the 30-70% sleep band, matching WindowSelector's search region.
-    /// Uses the overall sleep envelope (or full recording) — no segment-specific restriction
-    /// so that users can sample any portion of the night.
+    /// Peak rolling RMSSD within `band` (the whole series when nothing falls
+    /// inside it), and the mean rolling RMSSD.
     private func findPeakHRV(
         rollingRMSSD: [(index: Int, rmssd: Double, timeMs: Int64)],
-        recordingDurationMs: Int64
+        band: (earlyMs: Int64, lateMs: Int64)
     ) -> (peak: (index: Int, rmssd: Double, timeMs: Int64)?, avgRMSSD: Double) {
-        let band = searchBand(recordingDurationMs: recordingDurationMs)
         let constrained = rollingRMSSD.filter { $0.timeMs >= band.earlyMs && $0.timeMs <= band.lateMs }
         let peak = (constrained.isEmpty ? rollingRMSSD : constrained).max(by: { $0.rmssd < $1.rmssd })
         let avg = rollingRMSSD.isEmpty
@@ -473,19 +530,15 @@ struct OvernightStatsComputer: Sendable {
         return (peak, avg)
     }
 
-    /// The 30–70% slice of the sleep envelope, or of the whole recording when
-    /// HealthKit gave us no boundaries.
-    private func searchBand(recordingDurationMs: Int64) -> (earlyMs: Int64, lateMs: Int64) {
-        var boundaryStart: Int64 = 0
-        var boundaryEnd = recordingDurationMs
-        if let hk = healthKitSleep, let sleepStart = hk.sleepStart, let sleepEnd = hk.sleepEnd {
-            boundaryStart = max(0, MillisecondOffset.between(sleepStart, and: session.startDate, fallback: 0))
-            boundaryEnd = min(recordingDurationMs, MillisecondOffset.between(sleepEnd, and: session.startDate, fallback: 0))
-        }
-        let sleepDuration = boundaryEnd - boundaryStart
+    /// The 30–70% slice of the resolved sleep window (`resolveSleepBoundaries`:
+    /// HealthKit, else the stored sleep period, else the whole recording), on
+    /// the `t_ms` axis — the window the organized-zone scan uses and the band
+    /// the chart's 30%/70% markers show.
+    static func peakSearchBand(sleepStartMs: Int64, sleepEndMs: Int64) -> (earlyMs: Int64, lateMs: Int64) {
+        let sleepDuration = sleepEndMs - sleepStartMs
         return (
-            boundaryStart + Int64(Double(sleepDuration) * 0.30),
-            boundaryStart + Int64(Double(sleepDuration) * 0.70)
+            sleepStartMs + Int64(Double(sleepDuration) * 0.30),
+            sleepStartMs + Int64(Double(sleepDuration) * 0.70)
         )
     }
 
@@ -631,7 +684,14 @@ extension OvernightChartsView {
         }
         let winStart = session.startDate.addingTimeInterval(Double(win.start) / 1000.0)
         let winEnd = session.startDate.addingTimeInterval(Double(win.end) / 1000.0)
-        let samples = (try? await AppDependencies.current.collection.healthKitManager.fetchHeartRateSamples(from: winStart, to: winEnd)) ?? []
+        let samples: [(date: Date, hr: Double)]
+        do {
+            samples = try await AppDependencies.current.collection.healthKitManager.fetchHeartRateSamples(from: winStart, to: winEnd)
+        } catch {
+            // Logged, not shown: the chart degrades to the Polar data alone.
+            debugLog("[ChartGate] seg[\(segIdx)] HK HR fetch failed: \(error)", level: .warning)
+            return []
+        }
         debugLog("[ChartGate] seg[\(segIdx)] sub-window \(winStart.formatted(date: .omitted, time: .shortened))→\(winEnd.formatted(date: .omitted, time: .shortened)) returned \(samples.count) HK HR samples")
         return samples.map {
             (timeMs: Int64($0.date.timeIntervalSince(session.startDate) * 1000), hr: $0.hr)

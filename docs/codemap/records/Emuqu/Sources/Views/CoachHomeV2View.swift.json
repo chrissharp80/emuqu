@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/CoachHomeV2View.swift",
- "hash": "4b189a0aa02c3ad2",
+ "hash": "7071bb799c0500e0",
  "role": "Flo (coach) tab wrapper around AssistantChatView: adds a model badge opening a model/routing picker sheet, a strip of context chips (latest recovery, last workout, mode flags) with explainer sheets, and a categorized suggested-prompts sheet.",
  "types": [
   "CoachHomeV2View: struct View — coach tab chrome",
@@ -8,10 +8,13 @@
   "CoachHomeV2View.IdentifiedChip: struct (private) Identifiable — sheet item wrapper",
   "CoachSuggestedPromptsSheet: struct View (private) — categorized prompt list",
   "CoachModelPickerSheet: struct View (private) — routing mode + provider/model picker",
-  "CoachContextDetailSheet: struct View (private) — explainer for a chip"
+  "CoachContextDetailSheet: struct View (private) — explainer for a chip",
+  "CoachHomeV2View.RecoveryChipData: struct (private) — recovery chip score + recorded date, label formatted at render",
+  "CoachHomeV2View.WorkoutChipData: struct (private) — last-workout chip parts + recorded date, label formatted at render"
  ],
  "state": [
-  "mem:CoachHomeV2View.recoveryChipText/workoutChipText (@State)"
+  "mem:CoachHomeV2View.recoveryChipData/workoutChipData (@State)",
+  "mem:CoachHomeV2View.chipSessionLimit = 8 (sessions of each type the chips read)"
  ],
  "toplevel": "",
  "flags": [
@@ -47,7 +50,7 @@
   {
    "key": "var CoachHomeV2View.assistantInbox",
    "hash": "83f3a9ec6f5cf136",
-   "does": "Shorthand for dependencies.assistant.assistantInbox.",
+   "does": "Shorthand for dependencies.assistant.assistantInbox (used by withCoachSheets).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantInbox"
@@ -55,19 +58,7 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "The private assistantInbox accessor is never used: withCoachSheets writes dependencies.assistant.assistantInbox directly.",
-     "evidence": [
-      "Emuqu/Sources/Views/CoachHomeV2View.swift:27",
-      "Emuqu/Sources/Views/CoachHomeV2View.swift:91",
-      "Emuqu/Sources/Views/CoachHomeV2View.swift:92"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantInbox": "47f501e735e2bb93"
@@ -111,7 +102,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.contextChipStrip": "2188430977ebfccd",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.contextChipStrip": "da51fad206161e92",
     "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.modelBadge": "0f4a79ea1ebb9528",
     "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.promptsToolbarItem": "2632c89c39e6de49"
    }
@@ -136,13 +127,13 @@
   },
   {
    "key": "func CoachHomeV2View.withCoachSheets(_:)",
-   "hash": "335e825102d8de6f",
+   "hash": "578bcb4007a3bf08",
    "does": "Attaches the suggested-prompts sheet (picking a prompt dismisses it, sets assistantInbox.pendingDraft and calls requestOpen), the model-picker sheet, and the context-detail sheet bound through IdentifiedChip.",
    "entry": "Sheet presentations driven by @State flags; prompt pick is a user tap in CoachSuggestedPromptsSheet.",
    "calls": [
     "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.suggestedPromptsCategorized",
     "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.providerRegistry",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantInbox",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.assistantInbox",
     "Emuqu/Sources/Assistant/Chat/AssistantInbox.swift::func AssistantInbox.requestOpen()",
     "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachSuggestedPromptsSheet.body",
     "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachModelPickerSheet.body",
@@ -157,9 +148,8 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/AssistantInbox.swift::func AssistantInbox.requestOpen()": "40b37a16b89fae33",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantInbox": "47f501e735e2bb93",
     "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachContextDetailSheet.body": "8390973edd590a82",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.assistantInbox": "77566666b3ec57fd",
     "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.providerRegistry": "31869709dabfb9d6",
     "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.suggestedPromptsCategorized": "17ee68b9d060fd50",
     "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachModelPickerSheet.body": "1d141b626e3cb558",
@@ -287,14 +277,15 @@
   },
   {
    "key": "var CoachHomeV2View.contextChipStrip",
-   "hash": "c225c7057c04e8bd",
-   "does": "Horizontal scroll of contextChips; .task(id: archiveSignal.version) reruns loadChipData once per archive mutation.",
-   "entry": ".task(id:) SwiftUI lifecycle — on appear and whenever ArchiveSignal.version changes.",
+   "hash": "86c2e600263c1387",
+   "does": "Horizontal scroll holding a TimelineView(.everyMinute) that re-renders contextChips(now:) each minute (keeps relative times current); .task(id: archiveSignal.version) reruns loadChipData once per archive mutation.",
+   "entry": ".task(id:) SwiftUI lifecycle — on appear and whenever ArchiveSignal.version changes; TimelineView(.everyMinute) re-render each minute.",
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.keyboardPerfSignpost",
     "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:)",
-    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.contextChips",
-    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.loadChipData()"
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.contextChips(now:)",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.loadChipData()",
+    "ext:TimelineView(.everyMinute)"
    ],
    "reads": [
     "mem:ArchiveSignal.version"
@@ -306,18 +297,20 @@
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.keyboardPerfSignpost": "a1807dd53a6f5ed4",
     "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:)": "17747315684bc090",
-    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.loadChipData()": "e7d9506d913385f0",
-    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.contextChips": "3d43469beed2ace8",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.contextChips(now:)": "e94dc1d22f1e3a00",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.loadChipData()": "8fc11e1dbd8f137c",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
    }
   },
   {
-   "key": "var CoachHomeV2View.contextChips",
-   "hash": "0e5c39bb25f0d7f5",
-   "does": "HStack of recovery chip, workout chip (when their texts are loaded) and one chip per active mode flag.",
+   "key": "func CoachHomeV2View.contextChips(now:)",
+   "hash": "139e55631351e156",
+   "does": "HStack of the recovery chip and workout chip (when their data is loaded, labels formatted relative to `now`) and one chip per active mode flag.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.chipButton(label:kind:)",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.RecoveryChipData.label(now:)",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.WorkoutChipData.label(now:)",
     "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.modeChips"
    ],
    "reads": [],
@@ -325,17 +318,19 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "recoveryChipText non-nil",
+     "cond": "recoveryChipData non-nil",
      "effect": "shows recovery chip; otherwise omitted"
     },
     {
      "at": "+5",
-     "cond": "workoutChipText non-nil",
+     "cond": "workoutChipData non-nil",
      "effect": "shows last-workout chip; otherwise omitted"
     }
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.RecoveryChipData.label(now:)": "01f5a0311469eeb5",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.WorkoutChipData.label(now:)": "8985a0951cd4b723",
     "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.chipButton(label:kind:)": "36d2c1ac178b55f3",
     "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.modeChips": "bee86444444ce618"
    }
@@ -361,106 +356,62 @@
   },
   {
    "key": "func CoachHomeV2View.loadChipData()",
-   "hash": "3aa142a95e9b2b0f",
-   "does": "Loads the 8 most recent archive sessions off-main (recentSessionsAsync), computes the recovery and workout chip strings, and sets both @State texts on the main actor.",
+   "hash": "999822bf9c8456a4",
+   "does": "Loads off-main (recentSessionsAsync(limit:before:type:), lightweight) the 8 most recent overnight sessions and, separately, the 8 most recent workouts, builds the recovery chip data from the nights and the workout chip data from the workouts, and sets both @State values on the main actor.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.recentSessionsAsync(limit:)",
+    "Emuqu/Sources/Collection/RRCollector+PriorSessions.swift::func RRCollector.recentSessionsAsync(limit:before:type:)",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.daysCollected",
     "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.recoveryChip(_:baselineNights:)",
     "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.workoutChip(_:)"
    ],
    "reads": [
-    "archive:SessionArchive.entries (prefix 8, lightweight sessions)",
+    "archive:SessionArchive.entries (8 newest overnight + 8 newest workout entries, lightweight sessions)",
     "mem:BaselineTracker.historicalData (daysCollected)"
    ],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "The chip strings embed a RelativeDateTimeFormatter result ('2 hr. ago') computed once per archive version; the .task only reruns on archiveSignal.version, so the relative time goes stale while the tab stays alive (e.g. still '5 min. ago' hours later).",
-     "evidence": [
-      "Emuqu/Sources/Views/CoachHomeV2View.swift:186",
-      "Emuqu/Sources/Views/CoachHomeV2View.swift:255",
-      "Emuqu/Sources/Views/CoachHomeV2View.swift:263",
-      "Emuqu/Sources/Views/CoachHomeV2View.swift:271"
-     ],
-     "found": "second read"
-    }
+   "writes": [
+    "mem:CoachHomeV2View.recoveryChipData/workoutChipData @State"
    ],
+   "branches": [],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.daysCollected": "d383f3d97b242464",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.recentSessionsAsync(limit:)": "b016442b3cd5698d",
-    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.recoveryChip(_:baselineNights:)": "2ecdad0cf365efe0",
-    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.workoutChip(_:)": "bd6e181236f9710f"
+    "Emuqu/Sources/Collection/RRCollector+PriorSessions.swift::func RRCollector.recentSessionsAsync(limit:before:type:)": "9990f6bb66c1edd2",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.recoveryChip(_:baselineNights:)": "d4a614182d309c0a",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.workoutChip(_:)": "c52ae3f12ce4c590"
    }
   },
   {
    "key": "func CoachHomeV2View.recoveryChip(_:baselineNights:)",
-   "hash": "ba7d68e1e70e2093",
-   "does": "Returns 'Recovery <score×10> · <relative time>' for the first of the recent sessions that is overnight, reliable for HRV aggregates and has a recoveryScore; nil before the 14-night baseline or if none qualifies.",
+   "hash": "eaaa46cec46e0be3",
+   "does": "Returns RecoveryChipData(score×10 display score, night start date) for the overnight DashboardSessionPolicy.latestOvernightComplete picks from the given nights (most recent night's longest reliable, analysed overnight — the dashboard hero's rule), when it has a recoveryScore; nil before the 14-night baseline or if none qualifies.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func ScoreAppearancePolicy.showsScore(baselineNights:)",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates",
-    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)",
-    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.relativeWhen(_:)",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestOvernightComplete(in:calendar:)",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+1",
-     "cond": "baseline nights < 14 (showsScore false)",
-     "effect": "returns nil, chip hidden"
-    },
-    {
-     "at": "+2",
-     "cond": "no overnight+reliable+scored session among the 8 most recent",
-     "effect": "returns nil; otherwise formats the score"
+     "cond": "baseline nights < 14, no latestOvernightComplete among the nights, or its recoveryScore nil",
+     "effect": "returns nil, chip hidden; otherwise the chip data"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Comment says it 'Mirrors the dashboard's latestOvernightComplete', but it takes the newest qualifying session, while latestOvernightComplete groups by night and picks the LONGEST session of the most recent night (and also requires analysisResult). On a night with a split recording the chip can show a different score than the dashboard ring.",
-     "evidence": [
-      "Emuqu/Sources/Views/CoachHomeV2View.swift:245",
-      "Emuqu/Sources/Views/CoachHomeV2View.swift:251",
-      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:176",
-      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:185"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Only the 8 newest archive entries are searched (loadChipData limit: 8), so after 8+ workouts/spot-checks since the last good night the chip disappears even though a reliable overnight score exists.",
-     "evidence": [
-      "Emuqu/Sources/Views/CoachHomeV2View.swift:233",
-      "Emuqu/Sources/Views/CoachHomeV2View.swift:251"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestOvernightComplete(in:calendar:)": "75d7e979eb62914e",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func ScoreAppearancePolicy.showsScore(baselineNights:)": "1a88ccd14afefff8",
-    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "243c4d1d41c669f4",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.relativeWhen(_:)": "278118ed9d1e2973"
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "243c4d1d41c669f4"
    }
   },
   {
-   "key": "func CoachHomeV2View.relativeWhen(_:)",
-   "hash": "345206b5ce9d3fa2",
-   "does": "Abbreviated RelativeDateTimeFormatter string for date relative to now in the app locale.",
+   "key": "func CoachHomeV2View.relativeWhen(_:now:)",
+   "hash": "21cd7efbecd35868",
+   "does": "Abbreviated RelativeDateTimeFormatter string for date relative to `now` in the app locale. Nonisolated so the chip-data structs can call it.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
@@ -476,14 +427,14 @@
   },
   {
    "key": "func CoachHomeV2View.workoutChip(_:)",
-   "hash": "a0fe3a4c4462ecac",
-   "does": "Returns 'Last workout: <sport> · <distance or indoor> · <relative time>' for the newest workout session with metadata among the recent 8, else nil.",
+   "hash": "c7202dfbe74b244a",
+   "does": "Returns WorkoutChipData(sport name, distance in the user's units, start date) for the newest of the given workouts with metadata, else nil. Without a distance: 'indoor' for a sport with no GPS, '—' for an outdoor (usesGPS) sport whose distance was not recorded.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
     "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.usesGPS",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.localizedName",
-    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.relativeWhen(_:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [
@@ -493,35 +444,58 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "no workout session with workoutMetadata in the recent 8",
+     "cond": "no workout with workoutMetadata",
      "effect": "returns nil"
     },
     {
      "at": "+3",
      "cond": "distanceMeters nil",
-     "effect": "?? 'indoor' — used for any workout with no distance, including outdoor ones whose GPS distance was not recorded"
+     "effect": "'—' when sport.usesGPS, else 'indoor'"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Any workout without distanceMeters is labelled 'indoor', including GPS sports (Sport.usesGPS) whose distance was not recorded, e.g. location denied on an outdoor run.",
-     "evidence": [
-      "Emuqu/Sources/Views/CoachHomeV2View.swift:269",
-      "Emuqu/Sources/Views/CoachHomeV2View.swift:270",
-      "Emuqu/Sources/Models/WorkoutMetadata.swift:83"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
     "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "a36dafa82ad91f58",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.localizedName": "dbe667c792d47f39",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.usesGPS": "e1e254fffc25bef1",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func CoachHomeV2View.RecoveryChipData.label(now:)",
+   "hash": "1ea33dd26d7860eb",
+   "does": "Formats 'Recovery <score> · <relative time to now>' (localized).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.relativeWhen(_:now:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.relativeWhen(_:)": "278118ed9d1e2973"
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.relativeWhen(_:now:)": "901dd906ff075b44"
+   }
+  },
+  {
+   "key": "func CoachHomeV2View.WorkoutChipData.label(now:)",
+   "hash": "8872046c2bb2c8a4",
+   "does": "Formats 'Last workout: <sport> · <distance> · <relative time to now>' (localized).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.relativeWhen(_:now:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.relativeWhen(_:now:)": "901dd906ff075b44"
    }
   },
   {

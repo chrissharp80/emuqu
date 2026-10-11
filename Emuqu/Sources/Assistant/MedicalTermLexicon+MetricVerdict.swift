@@ -81,7 +81,7 @@ extension MedicalTermLexicon {
             "gullsta[ðd]al\\w*",                                                            // is
             "золот(?:ой|ым|ого)\\s+стандарт\\w*",                                            // ru
             "porteur\\s+de\\s+charge", "s[ée]curit[ée]\\s+clinique", "v[ée]ritable\\s+r[ée]cup[ée]ration",
-            "syst[èe]me\\s+d'alerte\\s+pr[ée]coce", "pr[ée]dicteur\\s+puissant",                    // fr
+            "syst[èe]me\\s+d['’]alerte\\s+pr[ée]coce", "pr[ée]dicteur\\s+puissant",                    // fr
             "seguridad\\s+cl[íi]nica", "recuperaci[óo]n\\s+real", "espejismo",
             "sistema\\s+de\\s+alerta\\s+temprana", "fuerte\\s+predictor",                           // es
             "seguran[çc]a\\s+cl[íi]nica", "recupera[çc][ãa]o\\s+real", "miragem",

@@ -1,30 +1,13 @@
 {
  "file": "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift",
  "hash": "e01231502ba24f45",
- "role": "Extension of RecoveryScoreCalculator holding the Tier-1 HRV sub-score (ln(RMSSD) z-score + RHR/DFA/CV/ANS/staleness adjustments, readiness and absolute-RMSSD fallbacks) and the sleep sub-score.",
+ "role": "Extension of RecoveryScoreCalculator holding the Tier-1 HRV sub-score (ln(RMSSD) z-score + RHR/DFA/CV/ANS/staleness adjustments, readiness and absolute-RMSSD fallbacks) and the sleep sub-score. The adjustment functions are the single source of each adjustment's arithmetic: ScoreDetailBuilder reads them to write the shown adjustments.",
  "types": [
   "RecoveryScoreCalculator: extension — tier sub-score computations"
  ],
  "state": [],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "The Tier-1 adjustment arithmetic (RHR clamp, staleness penalty, DFA bands, CV bands) is re-implemented in ScoreDetailBuilder to produce the detail text instead of being shared, so a constant/branch change in one copy silently desyncs the shown adjustments from the score.",
-   "evidence": [
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift:67",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift:80",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift:213",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift:230",
-    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift:216",
-    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift:239",
-    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift:407",
-    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift:418"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)",
@@ -57,13 +40,13 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.absoluteRMSSDScore(_:)": "fdc70796780caa95",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineNormalisedScore(rmssd:meanHR:dfaAlpha1:stats:ansBalance:referenceDate:)": "01ab74499441f595"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineNormalisedScore(rmssd:meanHR:dfaAlpha1:stats:ansBalance:referenceDate:)": "4c8862ede6aff1de"
    }
   },
   {
    "key": "func RecoveryScoreCalculator.baselineNormalisedScore(rmssd:meanHR:dfaAlpha1:stats:ansBalance:referenceDate:)",
-   "hash": "7ca5744b8177b018",
-   "does": "Primary Tier-1 path: zToRecoveryScore((ln rmssd - lnRmssdMean)/lnRmssdSD) plus rhrAdjustment, dfaAlpha1Adjustment, cvAdjustment(lnRmssdCV7Day), ansBalanceAdjustment, minus stalenessPenalty; unclamped sum returned.",
+   "hash": "ccdd44e93ad9d9ba",
+   "does": "Primary Tier-1 path: zToRecoveryScore((ln rmssd - lnRmssdMean)/lnRmssdSD) plus rhrAdjustment, the points of dfaAlpha1Adjustment and cvAdjustment(lnRmssdCV7Day) (0 when they return nil), ansBalanceAdjustment, minus the penalty of baselineStaleness (0 when not stale); unclamped sum returned.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)",
@@ -71,25 +54,41 @@
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.dfaAlpha1Adjustment(_:)",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.cvAdjustment(_:)",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.ansBalanceAdjustment(_:)",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.stalenessPenalty(stats:referenceDate:)"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineStaleness(stats:referenceDate:)"
    ],
    "reads": [],
    "writes": [],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "dfaAlpha1Adjustment returns nil",
+     "effect": "adds 0"
+    },
+    {
+     "at": "+16",
+     "cond": "cvAdjustment returns nil",
+     "effect": "adds 0"
+    },
+    {
+     "at": "+18",
+     "cond": "baselineStaleness returns nil",
+     "effect": "subtracts 0"
+    }
+   ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.ansBalanceAdjustment(_:)": "c24879b45c062893",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.cvAdjustment(_:)": "a58186e30ed60f27",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.dfaAlpha1Adjustment(_:)": "1677a6c322363f55",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.rhrAdjustment(meanHR:stats:)": "d68d0b1671fb7b94",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.stalenessPenalty(stats:referenceDate:)": "429f3bcd1feba0ed",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineStaleness(stats:referenceDate:)": "66664776677e00f4",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.cvAdjustment(_:)": "4098c0951c0e136a",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.dfaAlpha1Adjustment(_:)": "689def0d1a18a3e0",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.rhrAdjustment(meanHR:stats:)": "0b1fd39e61da12f8",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)": "2f5772bdaa1b8b54"
    }
   },
   {
    "key": "func RecoveryScoreCalculator.rhrAdjustment(meanHR:stats:)",
-   "hash": "73f9d2c73961a17e",
-   "does": "Resting-HR adjustment: zHR=(meanHR-meanHRBaseline)/meanHRSD times -5, clamped to [-10,+10]; 0 when meanHR nil.",
+   "hash": "1b879cc834ed2475",
+   "does": "Resting-HR adjustment: zHR=(meanHR-meanHRBaseline)/meanHRSD times rhrZScoreMultiplier (-5), clamped to [rhrClampMin, rhrClampMax] = [-10,+10]; 0 when meanHR nil. Internal: the one copy of this arithmetic, read by calculateTier1's baselineNormalisedScore and by ScoreDetailBuilder.restingHRAdjustments for the shown adjustment.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -105,9 +104,9 @@
    "deps": {}
   },
   {
-   "key": "func RecoveryScoreCalculator.stalenessPenalty(stats:referenceDate:)",
-   "hash": "98ee6f7f3f8051a2",
-   "does": "Baseline staleness penalty: 0 if no lastDataPointDate or fewer than 7 days since it (vs referenceDate); else min(20, 5*(1+(days-7)/7)).",
+   "key": "func RecoveryScoreCalculator.baselineStaleness(stats:referenceDate:)",
+   "hash": "31d23c6c0f7fa01d",
+   "does": "Baseline-staleness penalty: nil when stats.lastDataPointDate is nil or the baseline is under BaselineStaleness.staleAfterDays old at referenceDate (baselineStalenessDays); otherwise (days, penalty) with penalty = min(maxPenalty, penaltyPerWeek × (1 + weeksStale)). The one copy, read by baselineNormalisedScore (deducts penalty) and ScoreDetailBuilder.baselineStalenessAdjustments (shows days and rounded penalty).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+DetailForwarding.swift::func RecoveryScoreCalculator.baselineStalenessDays(baselineDate:referenceDate:)"
@@ -118,12 +117,12 @@
     {
      "at": "+4",
      "cond": "stats.lastDataPointDate is nil",
-     "effect": "returns 0 (no penalty)"
+     "effect": "returns nil"
     },
     {
      "at": "+6",
-     "cond": "daysSince >= staleAfterDays (7)",
-     "effect": "false: returns 0; true: returns min(maxPenalty 20, 5*(1+weeksStale))"
+     "cond": "daysSince < staleAfterDays",
+     "effect": "returns nil; else returns (daysSince, capped penalty)"
     }
    ],
    "flags": [],
@@ -166,12 +165,12 @@
   },
   {
    "key": "func RecoveryScoreCalculator.calculateSleepScore(sleepData:typicalSleepHours:userAge:)",
-   "hash": "23e4c0f29b029bcf",
-   "does": "Sleep sub-score: nil without sleepData; SleepScienceAnalyzer.analyze(...).enhancedScore when analyze returns non-nil; otherwise basicSleepScore.",
+   "hash": "fd434a3f1aa36c99",
+   "does": "Sleep sub-score: nil without sleepData; SleepScienceAnalyzer.analyze(...).enhancedScore for every night with sleep minutes (staged or not; the analyzer gives unmeasured sections neutral credit); zeroMinuteNightScore for the zero-minute night analyze declines.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyze(sleepData:userAge:typicalSleepHours:)",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.basicSleepScore(_:typicalSleepHours:)"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.zeroMinuteNightScore(_:typicalSleepHours:)"
    ],
    "reads": [],
    "writes": [],
@@ -183,15 +182,15 @@
     },
     {
      "at": "+6",
-     "cond": "SleepScienceAnalyzer.analyze returns non-nil",
-     "effect": "returns analysis.enhancedScore; nil (only when nightSleepMinutes<=0 per doc comment 141-143) falls to basicSleepScore"
+     "cond": "SleepScienceAnalyzer.analyze returns non-nil (nightSleepMinutes > 0)",
+     "effect": "returns analysis.enhancedScore; otherwise zeroMinuteNightScore"
     }
    ],
    "flags": [
     {
      "kind": "spec-mismatch",
      "sev": "low",
-     "text": "docs/FLOWCHART.md describes the Tier-2 sleep sub-score as duration 35%/efficiency 25%/deep 25%/REM 15% (basicSleepScore weights), but any night with sleep minutes is scored by SleepScienceAnalyzer.enhancedScore; the weighted formula only runs for zero-minute nights.",
+     "text": "docs/FLOWCHART.md describes the Tier-2 sleep sub-score as duration 35%/efficiency 25%/deep 25%/REM 15% (the weighted formula), but any night with sleep minutes is scored by SleepScienceAnalyzer.enhancedScore; the weighted formula (now zeroMinuteNightScore) only runs for zero-minute nights. The code's own doc comment now says so; the doc page still needs correcting.",
      "evidence": [
       "docs/FLOWCHART.md:355",
       "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift:121",
@@ -202,70 +201,36 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.basicSleepScore(_:typicalSleepHours:)": "624d97ea54017aa4",
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyze(sleepData:userAge:typicalSleepHours:)": "caebdd2209a1efbc"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.zeroMinuteNightScore(_:typicalSleepHours:)": "5c61a6ae4d0ea566",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyze(sleepData:userAge:typicalSleepHours:)": "61d4d4775e117e68",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.enhancedScore(of:sleepData:typicalSleepHours:)": "1a54bc3d0cfff497"
    }
   },
   {
-   "key": "func RecoveryScoreCalculator.basicSleepScore(_:typicalSleepHours:)",
-   "hash": "e2554927f37a601c",
-   "does": "Basic weighted sleep score: duration ratio (24h incl. nap / typical, capped 1.2), efficiency (measured or neutral 0.5), deep and REM stage ratios, weighted by ScoringWeights.Sleep, *100 clamped 0-100.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.stageRatio(_:of:target:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+7",
-     "cond": "measuredSleepEfficiency ?? 0.5",
-     "effect": "nil (unmeasured efficiency) uses neutral 0.5; else min(eff,100)/100"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Per its own doc comment the stage branch can never affect output: this runs only when SleepScienceAnalyzer.analyze returns nil, i.e. nightSleepMinutes<=0, so stageRatio always returns neutral 0.5; the documented 'fallback when stage data is missing' never happens for a night with duration but no stages.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift:135",
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift:141",
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift:150",
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift:185"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.stageRatio(_:of:target:)": "1cd57c951605f516",
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency": "ec0ed6304aee409d",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.totalSleepIncludingNapMinutes": "a4a2d3868396b45f"
-   }
-  },
-  {
-   "key": "func RecoveryScoreCalculator.stageRatio(_:of:target:)",
-   "hash": "9872efafd3f0c2e3",
-   "does": "Stage share of the night divided by target proportion, capped at 1.0; neutral 0.5 when stage minutes nil or nightMinutes<=0.",
+   "key": "func RecoveryScoreCalculator.zeroMinuteNightScore(_:typicalSleepHours:)",
+   "hash": "91c051fad8a43d1c",
+   "does": "Sleep sub-score for a night with no sleep minutes (the only night SleepScienceAnalyzer.analyze declines): (min(totalSleepIncludingNapMinutes/60 / max(typicalSleepHours,1), 1.2)·Sleep.duration + measured efficiency/100 (neutral 0.5 when unmeasured)·Sleep.efficiency + 0.5·Sleep.deepSleep + 0.5·Sleep.remSleep)·100, clamped to ScoringBounds 0...100. A qualifying nap still credits duration; deep and REM take the neutral half credit since a zero-minute night has no stage share. Same arithmetic as the former basicSleepScore, whose stage branch could never run here.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+1",
-     "cond": "stageMinutes non-nil and nightMinutes > 0",
-     "effect": "false: returns 0.5; true: min((stage/night)/target, 1.0)"
+     "at": "+7",
+     "cond": "sleep.measuredSleepEfficiency is nil (HR-estimated night)",
+     "effect": "efficiency term uses neutral 0.5"
     }
    ],
    "flags": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency": "ec0ed6304aee409d",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.totalSleepIncludingNapMinutes": "a4a2d3868396b45f"
+   }
   },
   {
    "key": "func RecoveryScoreCalculator.dfaAlpha1Adjustment(_:)",
-   "hash": "e3aadfb8554b218f",
-   "does": "DFA α1 adjustment: +5 if 0.75<=α1<=1.0, -5 if α1>1.2, -3 if α1<0.60, else 0; 0 when nil.",
+   "hash": "18462d3bf8e08d5c",
+   "does": "DFA α1 adjustment as (kind, points): (.alphaBalanced, dfaOptimalBonus +5) for 0.75<=α1<=1.0, (.alphaStrained, dfaFatiguePenalty -5) for α1>1.2, (.alphaReduced, dfaIrregularPenalty -3) for α1<0.60; nil for nil α1 or the neutral margins 0.60-0.75 and 1.0-1.2. The one copy: baselineNormalisedScore adds the points, ScoreDetailBuilder.dfaAlpha1Adjustments shows the kind.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -274,46 +239,31 @@
     {
      "at": "+1",
      "cond": "dfaAlpha1 nil",
-     "effect": "returns 0"
+     "effect": "returns nil"
     },
     {
      "at": "+2",
      "cond": "α1 within [0.75, 1.0]",
-     "effect": "returns dfaOptimalBonus +5"
+     "effect": "returns (.alphaBalanced, +5)"
     },
     {
      "at": "+5",
      "cond": "α1 > dfaAlpha1Fatigue (1.2)",
-     "effect": "returns -5"
+     "effect": "returns (.alphaStrained, -5)"
     },
     {
      "at": "+8",
      "cond": "α1 < dfaAlpha1FlexibleLower (0.60)",
-     "effect": "returns -3; otherwise (0.60-0.75 or 1.0-1.2) returns 0"
+     "effect": "returns (.alphaReduced, -3); otherwise (0.60-0.75 or 1.0-1.2) returns nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Doc comment says values above and below the 0.75-1.0 band are 'both treated as small deductions', but α1 in (1.0,1.2] and [0.60,0.75) get 0; only >1.2 and <0.60 are deducted.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift:196",
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift:197",
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift:218",
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift:221",
-      "Emuqu/Sources/Analysis/HRVThresholds.swift:135",
-      "Emuqu/Sources/Analysis/HRVThresholds.swift:138"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
    "key": "func RecoveryScoreCalculator.cvAdjustment(_:)",
-   "hash": "cf3541c4e42eabf2",
-   "does": "7-day ln(RMSSD) CV adjustment: -5 when cv<2.0 (flat), -3 when cv>12.0 (erratic), else 0; 0 when nil.",
+   "hash": "b04e44a8dac24dfc",
+   "does": "7-day ln(RMSSD) CV adjustment as (kind, points): (.variabilityFlat, cvFlatPenalty -5) when cv<2.0, (.variabilityErratic, cvErraticPenalty -3) when cv>12.0; nil for nil or in-range CV. The one copy: baselineNormalisedScore adds the points, ScoreDetailBuilder.cvAdjustments shows the kind.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -322,17 +272,17 @@
     {
      "at": "+1",
      "cond": "cv7Day nil",
-     "effect": "returns 0"
+     "effect": "returns nil"
     },
     {
      "at": "+2",
      "cond": "cv < cvFlatThreshold (2.0)",
-     "effect": "returns -5"
+     "effect": "returns (.variabilityFlat, -5)"
     },
     {
      "at": "+5",
      "cond": "cv > cvErraticThreshold (12.0)",
-     "effect": "returns -3; else 0"
+     "effect": "returns (.variabilityErratic, -3); else nil"
     }
    ],
    "flags": [],

@@ -182,16 +182,27 @@ extension AIAssistantSettingsPage {
         .disabled(registry.activeProvider.id != .apple)
     }
 
+    /// "Every mode answers on Apple Intelligence" holds only when no cloud
+    /// model may take a turn at all: none available, switched on AND with an
+    /// accepted data-sharing notice (`TurnRouter` routes to consented clouds
+    /// only). A saved key alone is not enough.
     @ViewBuilder
     var noCloudProviderNotice: some View {
-        if settingsManager.settings.routingMode != .manual,
-           !TierProviderMapper.hasCloudProvider(in: registry) {
+        if settingsManager.settings.routingMode != .manual, !anyCloudMayAnswer {
             HStack(alignment: .top, spacing: 6) {
                 Image(systemName: "info.circle")
                     .foregroundStyle(.secondary)
                     .padding(.top, 2)
                 noCloudProviderText
             }
+        }
+    }
+
+    private var anyCloudMayAnswer: Bool {
+        let consent = dependencies.providers.providerConsentTracker
+        return registry.allProviders.contains { provider in
+            provider.id != .apple && provider.isAvailable && ProviderRegistry.isEnabled(provider.id)
+                && !consent.requiresConsent(provider.id)
         }
     }
 
@@ -335,8 +346,13 @@ extension AIAssistantSettingsPage {
         }
     }
 
+    /// A failed Keychain delete is logged; the key stays saved and the page
+    /// keeps showing it (masked placeholder, Remove button), so the user
+    /// sees it is still there.
     func removeTavilyKey() {
-        dependencies.providers.apiKeyStore.removeServiceKey(for: .tavilyWebSearch)
+        if !dependencies.providers.apiKeyStore.removeServiceKey(for: .tavilyWebSearch) {
+            debugLog("[Settings] Tavily key removal failed — the key is still in the keychain", level: .warning)
+        }
         // Turn search off when no route is left, so the toggle cannot sit on
         // while greyed out and the AI does not keep getting `missingKey` errors.
         if !canSearchWeb {
@@ -448,9 +464,12 @@ extension AIAssistantSettingsPage {
         }
     }
 
+    /// Resolves every offset to its fact's id before removing any, so a
+    /// multi-row delete doesn't index into an array already shifted.
     func forgetFacts(at indexSet: IndexSet) {
-        for i in indexSet {
-            facts.remove(facts.facts[i].id)
+        let ids = indexSet.map { facts.facts[$0].id }
+        for id in ids {
+            facts.remove(id)
         }
     }
 
@@ -574,14 +593,25 @@ extension AIAssistantSettingsPage {
         }
     }
 
+    /// Shows the recognizer a voice session would actually use
+    /// (`STTProviderKind.effective`), so a stored WhisperKit preference that
+    /// the app language filters out reads as Apple Speech selected rather
+    /// than nothing selected. Picking an option stores it as the preference.
     var speechRecognizerPicker: some View {
-        Picker(String(localized: "Speech recognizer", bundle: LanguageManager.appBundle), selection: Bindable(settingsManager).settings.preferredSTTProvider) {
+        Picker(String(localized: "Speech recognizer", bundle: LanguageManager.appBundle), selection: effectiveSTTSelection) {
             ForEach(STTProviderKind.allCases.filter { $0.supports(languageCode: appLanguageCode) }) { kind in
                 sttOptionLabel(kind)
             }
         }
         .pickerStyle(.inline)
         .labelsHidden()
+    }
+
+    private var effectiveSTTSelection: Binding<STTProviderKind> {
+        Binding(
+            get: { STTProviderKind.effective(preferred: settingsManager.settings.preferredSTTProvider, languageCode: appLanguageCode) },
+            set: { settingsManager.settings.preferredSTTProvider = $0 }
+        )
     }
 
     /// The app language's ISO 639 code. The recognizer picker leaves out
@@ -639,7 +669,16 @@ extension AIAssistantSettingsPage {
         }
     }
 
+    /// Shown only while `FeatureFlags.medicalGuardEnabled` — the flag the send
+    /// path gates on — is on, so the row never claims a guard that is off.
+    @ViewBuilder
     var medicalGuardStatusRow: some View {
+        if dependencies.app.featureFlags.value(for: .medicalGuardEnabled) {
+            medicalGuardActiveRow
+        }
+    }
+
+    private var medicalGuardActiveRow: some View {
         HStack {
             Image(systemName: "checkmark.shield.fill")
                 .foregroundStyle(Color.green)

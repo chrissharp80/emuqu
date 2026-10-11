@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Emuqu.entitlements",
- "hash": "34a47db94d6e0cd5",
+ "hash": "484c53ea9b4ae66c",
  "role": "Code-signing entitlements of the iOS app target.",
  "types": [],
  "state": [
@@ -9,20 +9,8 @@
   "appgroup:group.com.chrissharp.flowrecovery",
   "ck:iCloud.com.chrissharp.flowrecovery (CloudKit service)"
  ],
- "toplevel": "Grants HealthKit, HealthKit background delivery, App Group group.com.chrissharp.flowrecovery (used by AppConfig.appGroupIdentifier, Emuqu/Sources/Utilities/Constants.swift:9, for archive/raw-RR/crash/breadcrumb/feedback containers and the UnitsPreference suite), and iCloud CloudKit container iCloud.com.chrissharp.flowrecovery (Constants.swift:12). Comment (lines 3-10) says both identifiers predate the Emuqu rename and must never change because they address live user data. No aps-environment (no push / CloudKit subscriptions; grep finds no CKSubscription or registerForRemoteNotifications), no ubiquity-kvstore-identifier (EntitlementAnchor.swift:20-24 deliberately uses Keychain instead of NSUbiquitousKeyValueStore), no keychain-access-groups.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "The comment says the App Group 'holds the shared archive the widget and the app both read', but the project has no widget target (pbxproj targets list 3600-3605) and no Swift file imports WidgetKit or defines WidgetDataPublisher (referenced only by EmuquUITests/WidgetIntegrationUITests.swift and a DataPurgeService comment). Only the app itself uses the group.",
-   "evidence": [
-    "Emuqu/Emuqu.entitlements:5",
-    "Emuqu.xcodeproj/project.pbxproj:3600",
-    "EmuquUITests/WidgetIntegrationUITests.swift:8"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "Grants HealthKit, HealthKit background delivery, App Group group.com.chrissharp.flowrecovery (used by AppConfig.appGroupIdentifier, Emuqu/Sources/Utilities/Constants.swift:9, for archive/raw-RR/crash/breadcrumb/feedback containers and the UnitsPreference suite), and iCloud CloudKit container iCloud.com.chrissharp.flowrecovery (Constants.swift:12). Comment (lines 3-11) says both identifiers predate the Emuqu rename and must never change because they address live user data: the App Group container holds the app's session archive, raw RR backups and saved routes, and the CloudKit container holds every synced session. No aps-environment (no push / CloudKit subscriptions; grep finds no CKSubscription or registerForRemoteNotifications), no ubiquity-kvstore-identifier (EntitlementAnchor.swift:20-24 deliberately uses Keychain instead of NSUbiquitousKeyValueStore), no keychain-access-groups.",
+ "flags": [],
  "units": [],
  "deps": {}
 }

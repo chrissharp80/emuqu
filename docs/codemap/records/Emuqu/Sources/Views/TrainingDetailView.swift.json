@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/TrainingDetailView.swift",
- "hash": "bf33cfc2ca326067",
+ "hash": "d10bd09c321b8e88",
  "role": "Training Load detail screen (ACR gauge, ATL/CTL/TSB, ACWR zone legend, Foster monotony banner, recent workouts) plus shared TrainingLoadVisibility gate and TrainingLoadPausedCard used by other load screens.",
  "types": [
   "TrainingDetailView: struct View — training-load detail page fed a live TrainingMetrics and/or frozen TrainingContext",
@@ -14,14 +14,16 @@
  "state": [
   "@State isRefreshing: Bool (TrainingDetailView, re-entrancy guard for runRefresh)",
   "@Environment(\\.dependencies) dependencies",
-  "static ACRGaugeBar.scaleMin = 0.5, scaleMax = 2.0"
+  "static ACRGaugeBar.scaleMin = 0.5, scaleMax = 2.0",
+  "followsLiveLoad: Bool = false (TrainingDetailView, caller-set: show the shared TrainingMetricsCache when no metrics are passed)",
+  "mem:TrainingMetricsCache.current (read through liveMetrics)"
  ],
- "toplevel": "Stored lets trainingMetrics/trainingContext set by the caller; #Preview builds the view with both nil. MetricColumn/ZoneRow/ACRGaugeBar are memberwise-initialised private structs.",
+ "toplevel": "Stored lets trainingMetrics/trainingContext and var followsLiveLoad (default false) set by the caller; #Preview builds the view with both nil. MetricColumn/ZoneRow/ACRGaugeBar are memberwise-initialised private structs.",
  "flags": [
   {
    "kind": "broken",
    "sev": "high",
-   "text": "The only production caller passes trainingMetrics: nil (MorningResultsView:371-374), so everything that depends on the live cache never runs in the app: metrics always comes from the frozen TrainingContext, the live recent-workouts card and the Foster monotony banner never render, and the auto-refresh/pull-to-refresh update TrainingMetricsCache, which this view never reads. A session whose frozen context is atl=0/ctl=0 keeps showing ATL 0 / CTL 0 / '--' ACR even though the comments (lines 36-46, 113-133) say this is self-healing.",
+   "text": "The only production caller passes trainingMetrics: nil (MorningResultsView:371-374), so everything that depends on the live cache never runs in the app: metrics always comes from the frozen TrainingContext, the live recent-workouts card and the Foster monotony banner never render, and the auto-refresh/pull-to-refresh update TrainingMetricsCache, which this view never reads. A session whose frozen context is atl=0/ctl=0 keeps showing ATL 0 / CTL 0 / '--' ACR even though the comments (lines 36-46, 113-133) say this is self-healing. TrainingDetailView now reads the shared cache (liveMetrics) when followsLiveLoad is true, but MorningResultsView does not pass it yet (handoff), so production still takes the frozen path.",
    "evidence": [
     "Emuqu/Sources/Views/MorningResultsView.swift:371",
     "Emuqu/Sources/Views/TrainingDetailView.swift:35",
@@ -93,11 +95,36 @@
    "deps": {}
   },
   {
+   "key": "var TrainingDetailView.liveMetrics",
+   "hash": "c383618794e0da4c",
+   "does": "The live metrics on screen: trainingMetrics when passed, else TrainingMetricsCache.current when followsLiveLoad, else nil. Observed, so a cache refresh re-renders the screen.",
+   "entry": "Read by metrics, recentWorkoutsSection and monotonyBannerIfHigh.",
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AnalysisServices.trainingMetricsCache"
+   ],
+   "reads": [
+    "mem:TrainingMetricsCache.current"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "trainingMetrics nil",
+     "effect": "followsLiveLoad ? cache.current : nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AnalysisServices.trainingMetricsCache": "c54dab42e8e86c14"
+   }
+  },
+  {
    "key": "var TrainingDetailView.metrics",
-   "hash": "da90f4e4bad24b56",
-   "does": "Chooses the numbers to display: live metrics if they look real, else frozen context if it looks real, else live, else frozen, else nil.",
+   "hash": "05612af9689c8b52",
+   "does": "Chooses the numbers to display: liveMetrics if they look real, else frozen context if it looks real, else live, else frozen, else nil.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.liveMetrics",
     "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.liveLooksReal(_:)",
     "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.frozenLooksReal(_:)",
     "Emuqu/Sources/Views/TrainingDetailView.swift::init TrainingDetailView.LoadMetrics(_: HealthKitManager.TrainingMetrics)",
@@ -108,30 +135,30 @@
    "branches": [
     {
      "at": "+9",
-     "cond": "trainingMetrics non-nil and liveLooksReal",
-     "effect": "return LoadMetrics(live); else fall through. In production trainingMetrics is always nil (MorningResultsView:372) so this never fires."
+     "cond": "liveMetrics non-nil and liveLooksReal",
+     "effect": "return LoadMetrics(live)"
     },
     {
      "at": "+10",
      "cond": "trainingContext non-nil and atl>0 or ctl>0",
-     "effect": "return LoadMetrics(frozen); else fall through"
+     "effect": "return LoadMetrics(frozen)"
     },
     {
      "at": "+12",
-     "cond": "trainingMetrics non-nil (cold/zero)",
-     "effect": "return live zeros; else fall through (never true in production)"
+     "cond": "liveMetrics non-nil (cold/zero)",
+     "effect": "return live zeros"
     },
     {
      "at": "+13",
      "cond": "trainingContext non-nil (all-zero frozen)",
-     "effect": "return frozen zeros (displayed as ATL 0 / CTL 0 / ACR '--'); else return nil"
+     "effect": "return frozen zeros; else nil"
     }
    ],
    "flags": [
     {
      "kind": "unreachable-branch",
      "sev": "med",
-     "text": "Lines 44 and 47 need a non-nil trainingMetrics, which no production caller passes; the 'prefer the live cache' fix described in the comment is inert.",
+     "text": "Lines 44 and 47 need a non-nil trainingMetrics, which no production caller passes; the 'prefer the live cache' fix described in the comment is inert. TrainingDetailView now reads the shared cache (liveMetrics) when followsLiveLoad is true, but MorningResultsView does not pass it yet (handoff), so production still takes the frozen path.",
      "evidence": [
       "Emuqu/Sources/Views/TrainingDetailView.swift:44",
       "Emuqu/Sources/Views/TrainingDetailView.swift:47",
@@ -144,7 +171,8 @@
     "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.frozenLooksReal(_:)": "44db115201fa77e8",
     "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.liveLooksReal(_:)": "225d773a31e2dc82",
     "Emuqu/Sources/Views/TrainingDetailView.swift::init TrainingDetailView.LoadMetrics(_: HealthKitManager.TrainingMetrics)": "2348fe8d29a0008b",
-    "Emuqu/Sources/Views/TrainingDetailView.swift::init TrainingDetailView.LoadMetrics(_: TrainingContext)": "7fc9eee515f5cc4e"
+    "Emuqu/Sources/Views/TrainingDetailView.swift::init TrainingDetailView.LoadMetrics(_: TrainingContext)": "7fc9eee515f5cc4e",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.liveMetrics": "18ebd0e7678b8293"
    }
   },
   {
@@ -243,15 +271,15 @@
    "deps": {
     "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.acrCard": "db5b7165daf8da13",
     "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.metricsCard": "7ca8d2edfebb7a47",
-    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.monotonyBannerIfHigh": "bee7bf6b347a1e26",
-    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.recentWorkoutsSection": "3896e85d3f8c8b90",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.monotonyBannerIfHigh": "a85a5f34a72bb26e",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.recentWorkoutsSection": "91ef336948b56258",
     "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.zonesExplanation": "e52dc44d1ef5aa43"
    }
   },
   {
    "key": "var TrainingDetailView.recentWorkoutsSection",
-   "hash": "d7748962288a858d",
-   "does": "Shows the live recent-workouts card when live metrics have workouts, else the frozen snapshot card when the context has workouts, else nothing.",
+   "hash": "b78f6c1993d8fcea",
+   "does": "Shows the live recent-workouts card when liveMetrics have workouts, else the frozen snapshot card when the context has workouts, else nothing.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.liveWorkoutsCard(_:)",
@@ -262,19 +290,20 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "trainingMetrics?.recentWorkouts non-empty",
-     "effect": "liveWorkoutsCard (never in production: trainingMetrics nil)"
+     "cond": "liveMetrics?.recentWorkouts non-empty",
+     "effect": "liveWorkoutsCard"
     },
     {
      "at": "+4",
      "cond": "trainingContext.recentWorkouts non-nil and non-empty",
-     "effect": "recentWorkoutsCard of frozen snapshots; else nothing rendered"
+     "effect": "recentWorkoutsCard of frozen snapshots; else nothing"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.liveWorkoutsCard(_:)": "35209f735a5c6467",
-    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.recentWorkoutsCard(_:)": "a0a26dc5e3e60bb5"
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.recentWorkoutsCard(_:)": "a0a26dc5e3e60bb5",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.liveMetrics": "18ebd0e7678b8293"
    }
   },
   {
@@ -295,8 +324,8 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115",
-    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.refreshIfCold()": "9f6aa0fffd81d340",
-    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.runRefresh()": "88b788c4f3aa6e5c"
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.refreshIfCold()": "3de50a95c650cc1c",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.runRefresh()": "dc8822c9bb140bbf"
    }
   },
   {
@@ -326,7 +355,7 @@
     {
      "kind": "broken",
      "sev": "med",
-     "text": "The refresh updates TrainingMetricsCache but the view renders only its injected trainingMetrics/trainingContext lets, and production injects trainingMetrics: nil; the refresh never changes what is on screen, contrary to the 'self-healing' doc comment.",
+     "text": "The refresh updates TrainingMetricsCache but the view renders only its injected trainingMetrics/trainingContext lets, and production injects trainingMetrics: nil; the refresh never changes what is on screen, contrary to the 'self-healing' doc comment. TrainingDetailView now reads the shared cache (liveMetrics) when followsLiveLoad is true, but MorningResultsView does not pass it yet (handoff), so production still takes the frozen path.",
      "evidence": [
       "Emuqu/Sources/Views/TrainingDetailView.swift:113",
       "Emuqu/Sources/Views/TrainingDetailView.swift:139",
@@ -336,15 +365,15 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.runRefresh()": "88b788c4f3aa6e5c",
-    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.metrics": "1a35f384906e33d7",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.runRefresh()": "dc8822c9bb140bbf",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.metrics": "7d6116727c0d1911",
     "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
    }
   },
   {
    "key": "func TrainingDetailView.runRefresh()",
-   "hash": "7a0db66d0d0b4a08",
-   "does": "Re-entrancy-guarded await of TrainingMetricsCache.refresh(forMorningReading:false); isRefreshing true for the duration.",
+   "hash": "217a494b11ad53c3",
+   "does": "Refreshes TrainingMetricsCache (forMorningReading:false) only when this screen shows the cache (followsLiveLoad and no trainingMetrics passed) and no refresh is running; isRefreshing true for the duration. The result reaches the screen through liveMetrics.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.refresh(reference:forMorningReading:)",
@@ -359,22 +388,23 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "isRefreshing already true",
-     "effect": "return immediately; else set flag, await refresh, defer clears flag"
+     "cond": "not followsLiveLoad, metrics passed in, or already refreshing",
+     "effect": "return without refreshing"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.refresh(reference:forMorningReading:)": "91671447087aacfe",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.refresh(reference:forMorningReading:)": "261edc49e75a859f",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AnalysisServices.trainingMetricsCache": "c54dab42e8e86c14"
    }
   },
   {
    "key": "var TrainingDetailView.monotonyBannerIfHigh",
-   "hash": "672a492a9c435af1",
-   "does": "Renders the Foster monotony banner when live dailyTrimp yields a monotony/strain pair that FosterMonotonyWarning raises.",
+   "hash": "55c2cb6e49840239",
+   "does": "Renders the Foster monotony banner when liveMetrics dailyTrimp yields a monotony/strain pair that FosterMonotonyWarning raises.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.liveMetrics",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)",
     "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift::func FosterMonotonyWarning.isRaised(_:)",
     "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.monotonyBanner(_:)"
@@ -384,15 +414,15 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "trainingMetrics?.dailyTrimp present, fosterMonotonyStrain non-nil (7-day sum>0) and isRaised (monotony and strain above thresholds)",
-     "effect": "banner shown; else nothing. Requires live trainingMetrics, which production never passes, so the banner never shows in the app."
+     "cond": "liveMetrics?.dailyTrimp present, fosterMonotonyStrain non-nil and isRaised",
+     "effect": "banner shown; else nothing"
     }
    ],
    "flags": [
     {
      "kind": "unreachable-branch",
      "sev": "med",
-     "text": "Banner depends solely on trainingMetrics, which is nil in the only production caller, so the Foster warning documented for this page never appears.",
+     "text": "Banner depends solely on trainingMetrics, which is nil in the only production caller, so the Foster warning documented for this page never appears. TrainingDetailView now reads the shared cache (liveMetrics) when followsLiveLoad is true, but MorningResultsView does not pass it yet (handoff), so production still takes the frozen path.",
      "evidence": [
       "Emuqu/Sources/Views/TrainingDetailView.swift:152",
       "Emuqu/Sources/Views/MorningResultsView.swift:372"
@@ -402,7 +432,7 @@
     {
      "kind": "spec-mismatch",
      "sev": "med",
-     "text": "TRAINING_LOAD.md says the Training Load screen shows the same Foster monotony warning as Load & Trajectory, but the banner reads only trainingMetrics, which the sole production caller passes as nil, so it never appears in the app.",
+     "text": "TRAINING_LOAD.md says the Training Load screen shows the same Foster monotony warning as Load & Trajectory, but the banner reads only trainingMetrics, which the sole production caller passes as nil, so it never appears in the app. TrainingDetailView now reads the shared cache (liveMetrics) when followsLiveLoad is true, but MorningResultsView does not pass it yet (handoff), so production still takes the frozen path.",
      "evidence": [
       "Emuqu/Sources/Views/TrainingDetailView.swift:152",
       "Emuqu/Sources/Views/MorningResultsView.swift:372",
@@ -426,8 +456,9 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift::func FosterMonotonyWarning.isRaised(_:)": "2dc1e8ad595eac0d",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)": "afd78f8aece889c0",
-    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.monotonyBanner(_:)": "0d76734a10fd6eaf"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)": "ccb3c6f568b7e996",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.monotonyBanner(_:)": "0d76734a10fd6eaf",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.liveMetrics": "18ebd0e7678b8293"
    }
   },
   {
@@ -513,7 +544,7 @@
    "deps": {
     "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.acrGauge(_:)": "09af62f38020a2e0",
     "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.acrPlaceholder": "39a70554bf9d8525",
-    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.metrics": "1a35f384906e33d7"
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.metrics": "7d6116727c0d1911"
    }
   },
   {
@@ -603,7 +634,7 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
     "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.loadColumnRow(_:)": "105d65061d62cc07",
-    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.metrics": "1a35f384906e33d7"
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.metrics": "7d6116727c0d1911"
    }
   },
   {
@@ -639,7 +670,7 @@
   },
   {
    "key": "var TrainingDetailView.zoneRows",
-   "hash": "2cd10582a8d1c85d",
+   "hash": "2a0bbf42759597c1",
    "does": "ForEach over ACWRBand.allCases building ZoneRow(rangeText,label,detail,zoneColor).",
    "entry": null,
    "calls": [
@@ -669,15 +700,15 @@
     "Emuqu/Sources/Collection/TrainingMetrics.swift::var ACWRBand.detail": "1ed042da75f55834",
     "Emuqu/Sources/Collection/TrainingMetrics.swift::var ACWRBand.label": "9ea37e9b11a3009c",
     "Emuqu/Sources/Collection/TrainingMetrics.swift::var ACWRBand.rangeText": "24fc941d7ace4739",
-    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.zoneColor(_:)": "290073ebebb6b0ef",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.zoneColor(_:)": "ed8a20a928839136",
     "Emuqu/Sources/Views/TrainingDetailView.swift::var ZoneRow.body": "9e0764f6063ffeee"
    }
   },
   {
    "key": "func TrainingDetailView.zoneColor(_:)",
-   "hash": "3ed5f8a06d02370c",
-   "does": "Maps ACWRBand to legend fill colour.",
-   "entry": null,
+   "hash": "eaaf18d32925c180",
+   "does": "Static: maps ACWRBand to its fill colour, shared by the legend rows and ACRGaugeBar's bands.",
+   "entry": "Called from zoneRows and ACRGaugeBar.bandEdges.",
    "calls": [],
    "reads": [],
    "writes": [],
@@ -708,18 +739,7 @@
      "effect": "alert"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Legend gives maintenance (0.8-1.0) a distinct sage@0.7 colour, but ACRGaugeBar draws a single sage band from 0.8 to 1.3, so the gauge and legend disagree on band boundaries.",
-     "evidence": [
-      "Emuqu/Sources/Views/TrainingDetailView.swift:308",
-      "Emuqu/Sources/Views/TrainingDetailView.swift:535"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -1090,15 +1110,19 @@
   },
   {
    "key": "var ACRGaugeBar.bandEdges",
-   "hash": "4762b835dd3e33e3",
-   "does": "Band upper edges with colours: 0.8 mist, 1.3 sage, 1.5 softGold, 2.0 alert.",
+   "hash": "fd4de2712f0fa946",
+   "does": "The five ACWRBand bands' upper edges (0.8, 1.0, 1.3, 1.5, then scaleMax 2.0 for the open-ended sharp increase) with TrainingDetailView.zoneColor of each, so the gauge matches the legend.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.zoneColor(_:)"
+   ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.zoneColor(_:)": "ed8a20a928839136"
+   }
   },
   {
    "key": "var ACRGaugeBar.body",
@@ -1223,7 +1247,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/TrainingDetailView.swift::func ACRGaugeBar.fraction(_:)": "17baa63cb605576d",
-    "Emuqu/Sources/Views/TrainingDetailView.swift::var ACRGaugeBar.bandEdges": "af99754b00bcaefe",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var ACRGaugeBar.bandEdges": "e8a1f7f0a1e4fdb8",
     "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
    }
   },

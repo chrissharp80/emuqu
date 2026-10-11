@@ -17,16 +17,13 @@ struct FitnessRecordingView: View {
     private var coach: WorkoutVoiceCoach
     var conversation: VoiceConversationController
     private var intervals: IntervalController
-    // Explicit sub-object observation. The recorder itself
-    // has ZERO observable properties (all live state lives on
-    // lifecycle / workoutHR / motion / dfa). Without observing them
-    // here, the view reads
-    // `recorder.elapsedSeconds`, `recorder.distanceMeters`,
-    // `recorder.workoutHR.currentHR` etc. via computed forwarders, but
-    // SwiftUI doesn't know to re-render when those observable values
-    // change — so the metrics show as zeros until the user navigates
-    // away and back (which destroys + recreates the view, body
-    // re-evaluates with the latest values). User report:
+    // Explicit sub-object references. The recorder is `@Observable`, but
+    // the live metrics (`recorder.elapsedSeconds`, `recorder.distanceMeters`,
+    // `recorder.workoutHR.currentHR` etc.) are computed forwarders onto
+    // lifecycle / workoutHR / motion / dfa, which hold that state; only a
+    // few things, such as the planned route, live on the recorder itself.
+    // Holding the sub-objects here keeps their observation explicit after
+    // the metrics once showed as zeros until a re-mount. User report:
     // "Workout metrics do not display until the user navigates to a
     // different screen (or AI chat) and then comes back."
     private var lifecycle: WorkoutLifecycle
@@ -42,6 +39,9 @@ struct FitnessRecordingView: View {
     @State var holdProgress: Double = 0
     @State var holdTimer: Timer?
     @State var isHolding = false
+    /// True while a finger is on the stop button. Reset by SwiftUI when the
+    /// press ends or the gesture is cancelled, which is what cancels the hold.
+    @GestureState var stopPressActive = false
     let holdDurationSec: Double = 1.2
     /// Two-phase body render. The first body() call paints
     /// ONLY the cheap header + heart-rate hero + control bar — that's
@@ -60,6 +60,7 @@ struct FitnessRecordingView: View {
     init(recorder: WorkoutRecorder, onStop: @escaping () -> Void) {
         self.recorder = recorder
         self.onStop = onStop
+        units = UnitsPreferenceStore.current
         coach = recorder.voiceCoach
         conversation = recorder.conversation
         intervals = recorder.intervalController
@@ -71,7 +72,9 @@ struct FitnessRecordingView: View {
 
     private var sport: Sport? { recorder.currentSession?.sport }
     var usesGPS: Bool { sport?.usesGPS == true }
-    var units: UnitsPreference { UnitsPreferenceStore.current }
+    /// Read once when the screen is built (the parent rebuilds it), not from
+    /// UserDefaults by every tile on every 1 Hz body pass.
+    let units: UnitsPreference
     /// User's max HR (from Settings → Biometrics → Max HR, else 208 − 0.7 × age, else 180).
     /// Used as the denominator for zone classification — never the session peak.
     private var userMaxHR: Int { settingsManager.settings.effectiveMaxHR }
@@ -115,7 +118,7 @@ struct FitnessRecordingView: View {
     private static var _labelsCache: (rev: Int, labels: Labels)?
     /// The localized labels for this view, cached per language revision.
     var labels: Labels {
-        let rev = AppDependencies.current.services.languageManager.revision
+        let rev = dependencies.services.languageManager.revision
         if let c = Self._labelsCache, c.rev == rev { return c.labels }
         let l = Labels(LanguageManager.appBundle)
         Self._labelsCache = (rev, l)
@@ -359,8 +362,7 @@ struct FitnessRecordingView: View {
         return parts.joined(separator: ", ")
     }
 
-    /// Live interval banner. Shows the step number, label, target, and a
-    /// progress bar for time-based steps. Tap the ⏭ button to skip ahead.
+    /// Card ground for the HR hero, outlined in the current zone's colour.
     private func hrHeroBackground(_ zoneColor: Color) -> some View {
         RoundedRectangle(cornerRadius: 18, style: .continuous)
             .fill(AppTheme.cardBackground)
@@ -414,6 +416,8 @@ struct FitnessRecordingView: View {
         }
     }
 
+    /// Live interval banner. Shows the step number, label, target, and a
+    /// progress bar for time-based steps. Tap the ⏭ button to skip ahead.
     private var intervalBanner: some View {
         HStack(alignment: .center, spacing: 10) {
             intervalStepLabel

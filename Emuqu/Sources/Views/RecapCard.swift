@@ -12,10 +12,11 @@ import SwiftUI
 ///
 /// Two variants:
 ///   • `.recovery(score, verdict, date)`   — recovery score reveal
-///   • `.workout(distance, duration, pace, polyline, verdict, summary, date)` — post-workout
+///   • `.workout(distance, duration, pace, verdict, summary, date, routeMap)` — post-workout
 ///
-/// Render with `ImageRenderer` at scale 1 to get a 1080×1920 PNG for the
-/// share sheet's image target.
+/// Laid out on a 360×640 pt canvas; `renderImage()` draws it with
+/// `ImageRenderer` at scale 3 to get a 1080×1920 PNG for the share sheet's
+/// image target.
 struct RecapCard: View {
     // The hard-coded `.font(.system(size: N))` literals in
     // this file are DELIBERATE and are exempt from the Dynamic
@@ -37,7 +38,7 @@ struct RecapCard: View {
             summary: String,
             date: Date,
             /// Optional pre-rendered route map snapshot (build via
-            /// `RecapCard.renderRouteMap(_:)`). When nil, the workout
+            /// `RecapCard.renderRouteMap(coordinates:tint:)`). When nil, the workout
             /// variant falls back to a gradient strip.
             routeMap: UIImage? = nil
         )
@@ -241,7 +242,8 @@ struct RecapCard: View {
             .background(Capsule().strokeBorder(AppTheme.wongOptimal.opacity(0.5), lineWidth: 1))
     }
 
-    /// Bottom 1/3 — AI Coach summary + attribution.
+    /// Bottom 1/3 — the caller's one-line summary (the workout's load, e.g.
+    /// "TRIMP 84", or the app name) + attribution.
     private func summaryPanel(summary: String, date: Date) -> some View {
         VStack(spacing: 16) {
             Spacer()

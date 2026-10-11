@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Assistant/MedicalTermLexicon.swift",
- "hash": "8763aa5236f3eba9",
+ "hash": "e1f9525287b692db",
  "role": "Shared regulated-language vocabulary: one Concept per regulated idea with latin (\\b-wrapped) and unbounded (substring) alternatives in 17 locales; groups for the input guard (refuseAsRhythm/Emergency/GeneralConcern/Symptom/BeforeSending), the output guard (scrubFromOutput), the static-copy linter (neverInStaticCopy) and the sync gate (all), plus the cached regex compiler.",
  "types": [
   "MedicalTermLexicon: enum — namespace of Concept constants and groups",
@@ -43,35 +43,8 @@
   "mem:MedicalTermLexicon.physiologicalCertainty",
   "mem:MedicalTermLexicon.all"
  ],
- "toplevel": "All content is static let Concept constants and [Concept] groups; refuseAsSymptom/refuseBeforeSending are unions read by MedicalQueryGuardTests and refuseBeforeSending/neverInStaticCopy are parsed by Tools/copy_linter/lint.py; scrubFromOutput is consumed by CoachVoiceGuard; all by tests and the perimeter sync gate.",
+ "toplevel": "All content is static let Concept constants and [Concept] groups; refuseAsSymptom/refuseBeforeSending are unions read by MedicalQueryGuardTests and refuseBeforeSending/neverInStaticCopy are parsed by Tools/copy_linter/lint.py; scrubFromOutput is consumed by CoachVoiceGuard; all by tests and the perimeter sync gate. Apostrophes in the alternatives are written ['’] so model output and typed input with a typographic ’ match (can't breathe, m'inquiéter, d'une maladie, you're definitely, d'important); syncope matches 'faint' only as a verb form (fainted/faints/fainting/faintness) or after a feeling verb ('feel/felt/going to ... faint'), not the adjective ('a faint trace').",
  "flags": [
-  {
-   "kind": "broken",
-   "sev": "med",
-   "text": "physiologicalCertainty's English alternative \"you\\\\s+(?:are|'re)\\\\s+(?:definitely|clearly|certainly)\" requires whitespace before 're, so the contracted \"You're definitely ...\" / \"you’re clearly ...\" (the common model phrasing) is never scrubbed by the output guard; only \"you are definitely\" matches.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift:936"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "Repeated alternatives inside concepts: \"palpitations?\" twice in irregularHeartbeat, \"bradycardie\"/\"tachycardie\" and \"bradykardi\"/\"takykardi\" twice in namedCardiacCondition, \"patologia\" twice in pathology, \"farlig(?:t)?\" plus \"farligt\" in dangerJudgement.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift:266",
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift:267",
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift:152",
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift:158",
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift:160",
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift:162",
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift:476",
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift:478",
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift:623",
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift:624"
-   ],
-   "found": "first read, upheld on second"
-  },
   {
    "kind": "broken",
    "sev": "low",
@@ -81,17 +54,6 @@
     "Emuqu/Sources/Utilities/DebugLog.swift:415"
    ],
    "found": "first read, upheld on second"
-  },
-  {
-   "kind": "broken",
-   "sev": "low",
-   "text": "Output-side French alternatives 'quelque chose d'important' (physiologicalCertainty) and 'symptômes d'une maladie' (symptomOfDisease) accept only an ASCII apostrophe; model text using ’ is not scrubbed. The English injury and self-harm patterns use ['’] for exactly this reason.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift:937",
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift:697",
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift:645"
-   ],
-   "found": "second read"
   }
  ],
  "units": [

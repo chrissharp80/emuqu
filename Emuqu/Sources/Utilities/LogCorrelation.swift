@@ -47,9 +47,9 @@ import os
 enum LogCorrelation {
     /// The active flow's identifier, or `nil` outside any flow.
     ///
-    /// `private` because callers should go through ``scope(_:_:)`` or the
-    /// ``begin(_:)``/``end(_:)`` pair rather than assigning; a stack is easier
-    /// to reason about than a setter when flows nest.
+    /// `private` because callers should go through the ``begin(_:)``/``end(_:)``
+    /// pair rather than assigning; a stack is easier to reason about than a
+    /// setter when flows nest.
     private static let storage = OSAllocatedUnfairLock<[Entry]>(initialState: [])
 
     private struct Entry {
@@ -109,31 +109,5 @@ enum LogCorrelation {
         storage.withLock { entries in
             entries.removeAll { $0.token == token }
         }
-    }
-
-    /// Runs `body` inside a correlation scope, closing it however `body` exits.
-    ///
-    /// Prefer this to the `begin`/`end` pair wherever the flow is
-    /// scope-shaped — it cannot leak a scope.
-    static func scope<T>(_ name: String, _ body: () throws -> T) rethrows -> T {
-        let token = begin(name)
-        defer { end(token) }
-        return try body()
-    }
-
-    /// `async` counterpart to ``scope(_:_:)``.
-    static func scope<T>(_ name: String, _ body: () async throws -> T) async rethrows -> T {
-        let token = begin(name)
-        defer { end(token) }
-        return try await body()
-    }
-
-    /// Drops every open scope.
-    ///
-    /// Only for test teardown — a test that opens a scope and fails an
-    /// assertion before closing it would otherwise tag every later test's
-    /// output with a dead flow.
-    static func resetForTesting() {
-        storage.withLock { $0.removeAll() }
     }
 }

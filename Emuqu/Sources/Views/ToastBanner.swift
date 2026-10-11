@@ -2,8 +2,9 @@ import SwiftUI
 import UIKit
 
 /// Transient notification (memory updated, sync
-/// complete, brief errors). Slides in over 250ms, holds 2.5s, slides out
-/// 200ms. Soft material background, glyph + 13pt text.
+/// complete, brief errors). Slides in over 250ms, holds 2.5s, fades out over
+/// 200ms; with Reduce Motion on it appears and goes without animation. Soft
+/// material background, glyph + 13pt text.
 ///
 /// Usage:
 ///   .modifier(ToastBannerModifier(toast: $toast))
@@ -53,10 +54,11 @@ struct ToastPayload: Equatable, Identifiable {
 
 struct ToastBannerModifier: ViewModifier {
     @Binding var toast: ToastPayload?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func body(content: Content) -> some View {
         content.overlay(alignment: .top) { banner }
-            .animation(.easeOut(duration: 0.25), value: toast?.id)
+            .animation(.zenInterface(.easeOut(duration: 0.25), reduceMotion: reduceMotion), value: toast?.id)
     }
 
     @ViewBuilder
@@ -80,7 +82,7 @@ struct ToastBannerModifier: ViewModifier {
         await sleepQuietly(2_500_000_000, context: "announceThenDismiss")
         // A newer toast cancels this task; clearing then would wipe the new one.
         guard !Task.isCancelled, self.toast?.id == toast.id else { return }
-        withAnimation(.easeOut(duration: 0.2)) { self.toast = nil }
+        withAnimation(.zenInterface(.easeOut(duration: 0.2), reduceMotion: reduceMotion)) { self.toast = nil }
     }
 }
 

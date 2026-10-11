@@ -15,28 +15,7 @@
   "RouteProgress.tieToleranceMeters = 25"
  ],
  "toplevel": "Route and Route.Point use synthesized Codable; Climb has custom CodingKeys and decoder for old saved routes lacking roadName.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Doc comment says the next climb is the first climb that ENDS beyond the current position, but RouteProgress.compute picks the first climb whose START is beyond it, so while on a climb nextClimb is the following climb.",
-   "evidence": [
-    "Emuqu/Sources/Models/Route.swift:31",
-    "Emuqu/Sources/Models/Route.swift:262"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "broken",
-   "sev": "low",
-   "text": "totalAscentMeters/totalDescentMeters sum raw unsmoothed GPS altitude deltas, so GPS altitude noise inflates both totals (climb detection smooths, totals do not).",
-   "evidence": [
-    "Emuqu/Sources/Models/Route.swift:140",
-    "Emuqu/Sources/Models/Route.swift:141"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "var Route.Climb.lengthMeters",
@@ -77,7 +56,7 @@
   {
    "key": "func Route.fromGPX(name:track:)",
    "hash": "be7e45dd77bb7d34",
-   "does": "Builds a Route from a CLLocation track: empty Route for <2 points, else trackpoints with altitude, cumulative distance, raw ascent/descent, detected climbs and total distance.",
+   "does": "Builds a Route from a CLLocation track: empty Route for <2 points, else trackpoints with altitude, cumulative distance, ascent/descent over the smoothed altitude, detected climbs and total distance.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/Route.swift::func Route.empty(named:)",
@@ -101,7 +80,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Models/Route.swift::func Route.detectClimbs(track:cumulative:)": "d5e07dd5ed59be9d",
-    "Emuqu/Sources/Models/Route.swift::func Route.elevationProfile(track:)": "56efa429d022b9b3",
+    "Emuqu/Sources/Models/Route.swift::func Route.elevationProfile(track:)": "3cf3184ca459b874",
     "Emuqu/Sources/Models/Route.swift::func Route.empty(named:)": "419d55931ca63cde"
    }
   },
@@ -119,10 +98,12 @@
   },
   {
    "key": "func Route.elevationProfile(track:)",
-   "hash": "ae4755e12b5359f3",
-   "does": "Computes cumulative distance per trackpoint plus raw ascent and descent from consecutive altitude differences.",
+   "hash": "bb82335113fe71ce",
+   "does": "Computes cumulative distance per trackpoint plus ascent and descent from consecutive differences of the 5-point smoothed altitude (Route.smooth, the same smoothing climb detection uses).",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Models/Route.swift::func Route.smooth(_:window:)"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
@@ -132,18 +113,20 @@
      "effect": "iterate; otherwise return ([0],0,0)"
     },
     {
-     "at": "+8",
+     "at": "+9",
      "cond": "loop i in 1..<count",
-     "effect": "append cumulative distance and altitude delta"
+     "effect": "append cumulative distance and smoothed altitude delta"
     },
     {
-     "at": "+11",
+     "at": "+12",
      "cond": "dh > 0",
      "effect": "add to ascent; else add |dh| to descent (zero adds 0)"
     }
    ],
    "flags": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Models/Route.swift::func Route.smooth(_:window:)": "eb1acf20848b2767"
+   }
   },
   {
    "key": "func Route.detectClimbs(track:cumulative:)",

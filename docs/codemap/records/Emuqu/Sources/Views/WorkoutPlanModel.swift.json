@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/WorkoutPlanModel.swift",
- "hash": "eea6cd75a35576db",
+ "hash": "6e67b298f8976c3b",
  "role": "@Observable @MainActor state for the Fitness tab pre-flight surface (sport, route, coaching options, HR source, sensor sheet, start-in-progress), owned by FitnessTabView and injected via environment.",
  "types": [
   "WorkoutPlanModel: class (@Observable @MainActor) — plan picker state + start gating helpers"
@@ -13,33 +13,10 @@
   "mem:WorkoutPlanModel.selectedThresholds",
   "mem:WorkoutPlanModel.selectedPlan",
   "mem:WorkoutPlanModel.selectedTargetZone",
-  "mem:WorkoutPlanModel.explicitHRSource",
-  "mem:WorkoutPlanModel.sensorSheetPresented",
-  "mem:WorkoutPlanModel.startInProgress",
-  "mem:WorkoutPlanModel.startProgressLabel"
+  "mem:WorkoutPlanModel.sensorSheetPresented"
  ],
  "toplevel": "Stored-property defaults only; instance created as @State in FitnessTabView.swift:46.",
  "flags": [
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "startProgressLabel is never assigned anywhere in the repo (only read at WorkoutPreflightView:258), so the 'Connecting H10…' progress text it documents never appears.",
-   "evidence": [
-    "Emuqu/Sources/Views/WorkoutPlanModel.swift:70",
-    "Emuqu/Sources/Views/WorkoutPreflightView.swift:258"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "explicitHRSource is never assigned anywhere in the repo; there is no UI for an explicit HR source pick, so it is always nil.",
-   "evidence": [
-    "Emuqu/Sources/Views/WorkoutPlanModel.swift:54",
-    "Emuqu/Sources/Views/WorkoutPlanModel.swift:77"
-   ],
-   "found": "first read, upheld on second"
-  },
   {
    "kind": "untested",
    "sev": "low",
@@ -54,8 +31,8 @@
  "units": [
   {
    "key": "func WorkoutPlanModel.resolvedSource(strapConnected:hasKnownStrap:)",
-   "hash": "bd9bfae53affe3f5",
-   "does": "Returns the HR source the next start will use: explicit pick, else strap if connected or a strap is known, else watch.",
+   "hash": "6bb34a41c73eb9f5",
+   "does": "HR source the next start uses (no user control): strap if connected or a strap is known, else watch.",
    "entry": null,
    "calls": [],
    "reads": [
@@ -65,31 +42,11 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "explicitHRSource non-nil",
-     "effect": "return it (never true: nothing assigns explicitHRSource)"
-    },
-    {
-     "at": "+2",
-     "cond": "strapConnected",
-     "effect": "return .strap"
-    },
-    {
-     "at": "+3",
-     "cond": "hasKnownStrap",
-     "effect": "return .strap (caller kicks a reconnect); else fall through to line 80 return .watch"
+     "cond": "strapConnected || hasKnownStrap",
+     "effect": ".strap, else .watch"
     }
    ],
    "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "explicitHRSource is never set, so line 77 never returns.",
-     "evidence": [
-      "Emuqu/Sources/Views/WorkoutPlanModel.swift:77",
-      "Emuqu/Sources/Views/WorkoutPlanModel.swift:54"
-     ],
-     "found": "first read, upheld on second"
-    },
     {
      "kind": "spec-mismatch",
      "sev": "med",
@@ -106,42 +63,42 @@
   },
   {
    "key": "func WorkoutPlanModel.canStart(recorderPhase:)",
-   "hash": "a31e77a2862b9bc3",
-   "does": "True iff no start is in progress and the recorder phase is idle, finished or failed.",
+   "hash": "fa7d6a746b35486f",
+   "does": "True iff the recorder phase exists and is idle, finished or failed (the phase is the double-tap gate).",
    "entry": null,
    "calls": [],
-   "reads": [
-    "mem:WorkoutPlanModel.startInProgress",
-    "mem:WorkoutRecorder.phase"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+1",
-     "cond": "startInProgress",
-     "effect": "return false"
+     "cond": "phase nil",
+     "effect": "false"
     },
     {
      "at": "+2",
-     "cond": "recorderPhase nil",
-     "effect": "return false"
-    },
-    {
-     "at": "+4",
-     "cond": "idle or finished",
-     "effect": "return true"
-    },
-    {
-     "at": "+5",
-     "cond": "failed",
-     "effect": "return true"
-    },
-    {
-     "at": "+6",
-     "cond": "recording or finalizing",
-     "effect": "return false"
+     "cond": "switch phase",
+     "effect": "idle/finished/failed true; recording/finalizing false"
     }
    ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutPlanModel.clearPerWorkoutPicks()",
+   "hash": "3ae63cb24b49dc0a",
+   "does": "Clears selectedRoute, routeExpanded, selectedPlan, selectedTargetZone and selectedThresholds; keeps selectedSport.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:WorkoutPlanModel.selectedRoute",
+    "mem:WorkoutPlanModel.routeExpanded",
+    "mem:WorkoutPlanModel.selectedPlan",
+    "mem:WorkoutPlanModel.selectedTargetZone",
+    "mem:WorkoutPlanModel.selectedThresholds"
+   ],
+   "branches": [],
    "flags": [],
    "deps": {}
   }

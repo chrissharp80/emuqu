@@ -192,8 +192,9 @@ extension FitnessStrapSection {
         return Button {
             // Tapping the hero opens the full summary sheet — most users
             // will want the report, not just the card, so the whole card
-            // is the affordance.
-            lastCompletedSession = session
+            // is the affordance. Opened as a history item: Done must not
+            // acknowledge the recorder as if this were the just-recorded run.
+            selectedHistorySession = session
         } label: {
             heroCardBody(session: session, latest: latest, facts: facts)
         }
@@ -245,7 +246,8 @@ extension FitnessStrapSection {
     /// Everything the hero card renders, resolved once so the view body stays a
     /// layout description rather than a mix of layout and arithmetic.
     struct HeroFacts {
-        let sport: Sport
+        /// Nil when the session carries no sport; the hero then says "Workout".
+        let sport: Sport?
         let distance: String
         let duration: String
         let pace: String?
@@ -263,7 +265,7 @@ extension FitnessStrapSection {
         // Power-equipped sessions show their accurate load number on the
         // hero card, matching the post-summary tile.
         return HeroFacts(
-            sport: meta?.sport ?? .walk,
+            sport: meta?.sport,
             distance: meta?.distanceMeters.map { units.formatDistance(meters: $0) } ?? "—",
             duration: Self.heroDurationString(session.duration),
             pace: heroPaceString(session: session, meta: meta),
@@ -295,9 +297,9 @@ extension FitnessStrapSection {
     }
 
     /// Sport + relative time.
-    private func heroTopRow(sport: Sport, latest: SessionArchiveEntry) -> some View {
+    private func heroTopRow(sport: Sport?, latest: SessionArchiveEntry) -> some View {
         HStack(spacing: 10) {
-            Image(systemName: sport.icon)
+            Image(systemName: sport?.icon ?? SessionType.workout.icon)
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(AppTheme.fitnessAccent)
                 .frame(width: 40, height: 40)
@@ -312,9 +314,9 @@ extension FitnessStrapSection {
         }
     }
 
-    private func heroSportLabel(sport: Sport, latest: SessionArchiveEntry) -> some View {
+    private func heroSportLabel(sport: Sport?, latest: SessionArchiveEntry) -> some View {
         VStack(alignment: .leading, spacing: 1) {
-            Text(sport.localizedName.uppercased())
+            Text((sport?.localizedName ?? String(localized: "Workout", bundle: LanguageManager.appBundle)).uppercased())
                 .font(.caption.weight(.heavy))
                 .tracking(1.0)
                 .foregroundStyle(AppTheme.fitnessAccent)
@@ -549,7 +551,7 @@ extension FitnessStrapSection {
     func computeWeeklyTrimp() -> Double? {
         let cutoff = Calendar.current.date(byAdding: .day, value: -7, to: Date())
             ?? Date().addingTimeInterval(-7 * 24 * 3600)
-        let samples = AppDependencies.current.analysis.trainingMetricsCache.samplesSince(cutoff)
+        let samples = trainingCache.samplesSince(cutoff)
         let withWork = samples.filter { $0.trimp > 0 }
         guard !withWork.isEmpty else { return nil }
         return withWork.reduce(0.0) { $0 + $1.trimp }
@@ -606,7 +608,8 @@ extension FitnessStrapSection {
     /// button action. For workout sessions the rrSeries is what makes the file
     /// heavy (1+ MB on long activities), so that tap visibly froze the row while
     /// the SHA256 + decrypt ran. The summary view tolerates a lightweight load
-    /// and lazy-fetches details if needed.
+    /// and lazy-fetches details if needed. An unreadable file raises the
+    /// tab's "Couldn't load this workout." alert instead of doing nothing.
     private func openRecentWorkout(_ entry: SessionArchiveEntry) {
         let archive = collector.archive
         let id = entry.sessionId
@@ -616,6 +619,8 @@ extension FitnessStrapSection {
             }.value
             if let session {
                 selectedHistorySession = session
+            } else {
+                recentWorkoutLoadFailed = true
             }
         }
     }

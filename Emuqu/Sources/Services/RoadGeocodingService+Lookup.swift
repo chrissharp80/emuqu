@@ -31,19 +31,23 @@ extension RoadGeocodingService {
     /// CLGeocoder remains the fallback for (a) areas where MKLocalSearch's
     /// tile data has no thoroughfare indexed (rural / private property)
     /// and (b) when the tile-search path itself errors out.
+    ///
+    /// A lookup cancelled by `reset()` publishes nothing.
     func performLookup(at location: CLLocation, enrichCrossStreet: Bool = true) async {
         let lookupStartedAt = Date()
         if let tileResolved = await resolveCurrentRoadFromMapTiles(at: location) {
+            guard !Task.isCancelled else { return }
             debugLog("[GeocodingLatency] tiles resolved in \(String(format: "%.3f", Date().timeIntervalSince(lookupStartedAt)))s — \(tileResolved.road ?? "?")", level: .info)
             publishContext(tileResolved, at: location, source: "tiles")
             await enrich(location: location, road: tileResolved.road, enabled: enrichCrossStreet)
             return
         }
-        guard let placemark = await reverseGeocode(location, lookupStartedAt: lookupStartedAt) else {
+        guard let placemark = await reverseGeocode(location, lookupStartedAt: lookupStartedAt),
+              !Task.isCancelled else {
             return
         }
         publishContext(
-            Self.context(from: placemark, at: location), at: location, source: "geocoder-fallback"
+            Self.context(from: placemark, at: location.coordinate), at: location, source: "geocoder-fallback"
         )
         await enrich(location: location, road: placemark.thoroughfare, enabled: enrichCrossStreet)
     }
@@ -100,10 +104,11 @@ extension RoadGeocodingService {
         debugLog("[GeocodingLatency] geocoder no-placemark in \(String(format: "%.3f", Date().timeIntervalSince(geocoderStartedAt)))s (total \(String(format: "%.3f", Date().timeIntervalSince(lookupStartedAt)))s)", level: .info)
     }
 
-    /// Provisional context with no cross-street — published immediately so
-    /// the AI sees the road name without waiting on the additional
-    /// MKLocalSearch round-trip.
-    private static func context(from p: CLPlacemark, at location: CLLocation) -> RoadContext {
+    /// A placemark as a `RoadContext` observed at `coordinate`, with no
+    /// cross-street: the reverse lookups publish it immediately so the AI
+    /// sees the road name without waiting on the cross-street round-trip,
+    /// and `geocodeAddress` builds the user's override from it.
+    static func context(from p: CLPlacemark, at coordinate: CLLocationCoordinate2D) -> RoadContext {
         RoadContext(
             road: p.thoroughfare,
             locality: p.locality ?? p.subLocality,
@@ -117,7 +122,7 @@ extension RoadGeocodingService {
             timeZoneIdentifier: p.timeZone?.identifier,
             areaOfInterest: p.areasOfInterest?.first,
             observedAt: Date(),
-            observedAtCoord: location.coordinate
+            observedAtCoord: coordinate
         )
     }
 
@@ -163,7 +168,7 @@ extension RoadGeocodingService {
         guard let response = await runWithTimeout(seconds: 5.0, operation: {
             try await MKLocalSearch(request: Self.tileSearchRequest(around: location)).start()
         }) else {
-            debugLog("[RoadGeocoding] tile search timed out (>5s) — falling back to CLGeocoder", level: .info)
+            debugLog("[RoadGeocoding] tile search gave no response (error logged above, or >5 s) — falling back to CLGeocoder", level: .info)
             return nil
         }
         guard let best = bestTileCandidate(in: response, near: location) else { return nil }
@@ -175,7 +180,7 @@ extension RoadGeocodingService {
             debugLog("[RoadGeocoding] tile search closest=\(best.placemark.thoroughfare ?? "?") at \(Int(best.distance))m — too far for tile-confidence; falling back to CLGeocoder", level: .info)
             return nil
         }
-        return Self.context(from: best.placemark, at: location)
+        return Self.context(from: best.placemark, at: location.coordinate)
     }
 
     /// ~120 m bounding box; tight enough that the closest indexed road is
@@ -199,19 +204,24 @@ extension RoadGeocodingService {
     /// closest result by raw distance at an intersection routinely
     /// returns the CROSS street instead of the road the user is actually
     /// walking on. When the user has a
-    /// usable course (course >= 0 means "valid heading from CL"), we compute
-    /// the bearing from user to each candidate and SCORE candidates by
-    /// `distance * (1 + 1.5 * |angleDelta|/90)`. The angle delta is the
-    /// smaller of the two possible alignments (a road runs both ways), so a
-    /// road parallel to the user's heading scores 1.0× distance and a road
-    /// perpendicular scores 2.5× distance — usually flipping the choice to
-    /// the right one without making rural-area selection broken.
+    /// usable course (course >= 0 means "valid heading from CL"), each
+    /// candidate is SCORED by `distance * (1 + 1.5 * |angleDelta|/90)`, where
+    /// the angle is between the user's heading and the ROAD's direction —
+    /// estimated from the two results on that road farthest apart. The
+    /// bearing to a single address point says nothing about the road: an
+    /// address on the user's own road sits beside them. The angle delta is
+    /// the smaller of the two possible alignments (a road runs both ways), so
+    /// a road parallel to the user's heading scores 1.0× distance and a road
+    /// perpendicular scores 2.5× distance. A road with one result has no
+    /// known direction and scores its plain distance.
     private func bestTileCandidate(
         in response: MKLocalSearch.Response, near location: CLLocation
     ) -> (placemark: MKPlacemark, distance: Double, score: Double)? {
         let userCourseDeg: Double? = location.course >= 0 ? location.course : nil
-        let scored = response.mapItems.compactMap { item in
-            score(item.placemark, from: location, userCourseDeg: userCourseDeg)
+        let placemarks = response.mapItems.map(\.placemark)
+        let roadBearings = Self.roadBearings(placemarks)
+        let scored = placemarks.compactMap { placemark in
+            score(placemark, from: location, userCourseDeg: userCourseDeg, roadBearing: roadBearings[placemark.thoroughfare ?? ""])
         }
         guard let best = scored.min(by: { $0.score < $1.score }) else {
             // Only log this transition once
@@ -228,17 +238,34 @@ extension RoadGeocodingService {
     }
 
     private func score(
-        _ placemark: MKPlacemark, from location: CLLocation, userCourseDeg: Double?
+        _ placemark: MKPlacemark, from location: CLLocation, userCourseDeg: Double?, roadBearing: Double?
     ) -> (placemark: MKPlacemark, distance: Double, score: Double)? {
         guard placemark.thoroughfare != nil else { return nil }
         let coord = placemark.coordinate
         let dist = CLLocation(latitude: coord.latitude, longitude: coord.longitude).distance(from: location)
-        guard let userBearing = userCourseDeg else { return (placemark, dist, dist) }
-        let candBearing = bearingDegrees(from: location.coordinate, to: coord)
-        let raw = abs(((candBearing - userBearing).truncatingRemainder(dividingBy: 180)) + 180)
+        guard let userBearing = userCourseDeg, let roadBearing else { return (placemark, dist, dist) }
+        let raw = abs(((roadBearing - userBearing).truncatingRemainder(dividingBy: 180)) + 180)
             .truncatingRemainder(dividingBy: 180)
         let aligned = min(raw, 180 - raw) // 0 = parallel, 90 = perpendicular
         return (placemark, dist, dist * (1 + 1.5 * aligned / 90))
+    }
+
+    /// Each road's direction, from the bearing between the two of its
+    /// results that lie farthest apart (at least 20 m, or the direction is
+    /// too noisy to use). Roads with a single result are left out.
+    private static func roadBearings(_ placemarks: [MKPlacemark]) -> [String: Double] {
+        let byRoad = Dictionary(grouping: placemarks.filter { $0.thoroughfare != nil }) { $0.thoroughfare ?? "" }
+        return byRoad.compactMapValues { marks in
+            guard let first = marks.first?.coordinate,
+                  let far = marks.map(\.coordinate).max(by: { separation(first, $0) < separation(first, $1) }),
+                  separation(first, far) >= 20
+            else { return nil }
+            return bearingDegrees(from: first, to: far)
+        }
+    }
+
+    private static func separation(_ a: CLLocationCoordinate2D, _ b: CLLocationCoordinate2D) -> Double {
+        CLLocation(latitude: a.latitude, longitude: a.longitude).distance(from: CLLocation(latitude: b.latitude, longitude: b.longitude))
     }
 
     /// Publish a freshly-resolved `RoadContext` and reset the failure
@@ -307,7 +334,6 @@ extension RoadGeocodingService {
                 osmHit.name,
                 distance: osmHit.distance,
                 radius: osmHit.distance,
-                for: location,
                 searchedAgainstRoad: currentRoad
             )
             debugLog("[RoadGeocoding] cross-street via OSM road graph: \(osmHit.name) at \(Int(osmHit.distance))m", level: .info)
@@ -331,8 +357,7 @@ extension RoadGeocodingService {
                 continue
             }
             await applyCrossStreet(
-                best.0, distance: best.1, radius: radius,
-                for: location, searchedAgainstRoad: currentRoad
+                best.0, distance: best.1, radius: radius, searchedAgainstRoad: currentRoad
             )
             return
         }
@@ -368,9 +393,9 @@ extension RoadGeocodingService {
     /// Same 5 s wall-clock cap as the tile-search path. A
     /// real-world log showed this hanging 30+ s on workout start; the 30 s log
     /// line ("cross-street MKLocalSearch radius 200m in 30.724s") was the
-    /// smoking gun. A per-radius cap plus escalating fallback means a stalled
-    /// tile service caps total cross-street latency at ~20 s across all four
-    /// radii instead of multiplying.
+    /// smoking gun. A per-radius cap means a stalled tile service caps the
+    /// scan's cross-street latency at ~10 s across its two radii instead of
+    /// multiplying.
     private func crossStreetCandidates(
         near location: CLLocation, radius: CLLocationDistance, currentRoad: String?
     ) async -> [(String, Double)]? {
@@ -379,7 +404,7 @@ extension RoadGeocodingService {
             try await MKLocalSearch(request: Self.crossStreetRequest(near: location, radius: radius)).start()
         })
         guard let response = responseOpt else {
-            debugLog("[GeocodingLatency] cross-street MKLocalSearch radius \(Int(radius))m TIMED OUT (>5s) — trying next radius", level: .info)
+            debugLog("[GeocodingLatency] cross-street MKLocalSearch radius \(Int(radius))m gave no response (error logged above, or >5 s) — trying next radius", level: .info)
             return nil
         }
         let candidates = response.mapItems.compactMap { item -> (String, Double)? in
@@ -443,7 +468,12 @@ extension RoadGeocodingService {
     }
 
     /// Every intersection node on the user's road contributes the OTHER ways
-    /// meeting there as cross-street candidates; the closest one wins.
+    /// meeting there as cross-street candidates; the closest one within
+    /// `crossStreetRadiusMeters` wins. The tile spans 800 m, so without the
+    /// cap a crossing hundreds of metres away was reported as the nearest
+    /// cross street; beyond it the caller falls back to the 200 m scan.
+    private static let crossStreetRadiusMeters: CLLocationDistance = 200
+
     private static func nearestCrossing(
         in tile: RoadGraphService.Tile,
         from location: CLLocation,
@@ -458,7 +488,7 @@ extension RoadGeocodingService {
                 at: node, in: tile, currentWayIds: currentWayIds, currentRoad: currentRoad
             ).map { (name: $0, distance: nodeLoc.distance(from: location)) })
         }
-        return candidates.min(by: { $0.distance < $1.distance })
+        return candidates.filter { $0.distance <= crossStreetRadiusMeters }.min(by: { $0.distance < $1.distance })
     }
 
     /// The named ways meeting at this node that aren't the road the user is on
@@ -493,22 +523,27 @@ extension RoadGeocodingService {
     /// (`searchedAgainstRoad`); THAT is compared against the current road to
     /// detect mid-search road changes. Comparing `existing.road` against
     /// itself would be a no-op self-comparison that always passes.
+    ///
+    /// The upgraded context is mirrored into `AmbientLocationService`, as
+    /// `publishContext` does, so the ambient snapshot and the cached-road
+    /// fallback see the cross street too. A lookup cancelled by `reset()`
+    /// applies nothing.
     func applyCrossStreet(
         _ name: String,
         distance: Double,
         radius: CLLocationDistance,
-        for location: CLLocation,
         searchedAgainstRoad: String?
     ) async {
-        guard let existing = current else { return }
+        guard !Task.isCancelled, let existing = current else { return }
         let searchedKnown = !Self.normalizeStreetName(searchedAgainstRoad).isEmpty
         let nowKnown = !Self.normalizeStreetName(existing.road).isEmpty
         if searchedKnown, nowKnown, !Self.isSameStreet(searchedAgainstRoad, existing.road) {
             return
         }
-        current = Self.withCrossStreet(name, on: existing)
+        let upgraded = Self.withCrossStreet(name, on: existing)
+        current = upgraded
+        AppDependencies.current.location.ambientLocationService.recordResolvedAddress(upgraded)
         debugLog("[RoadGeocoding] cross-street resolved: \(name) (\(Int(distance))m away, search radius \(Int(radius))m)", level: .info)
-        _ = location  // location parameter retained for caller-side logging consistency
     }
 
     /// A copy of `existing` with only the cross-street filled in.
@@ -532,14 +567,28 @@ extension RoadGeocodingService {
     }
 
     /// Whether two names are the same road: equal once suffixes and
-    /// directionals are dropped, and not carrying two DIFFERENT street types.
-    /// "N Cedar Ln" and "Cedar Lane" match; "Maple Ave" and
-    /// "Maple Pl" do not; "Main" and "Main St" do.
+    /// directionals are dropped, and not carrying two DIFFERENT street types
+    /// or two DIFFERENT directionals. "N Cedar Ln" and "Cedar Lane" match;
+    /// "Maple Ave" and "Maple Pl" do not; "N Main St" and "S Main St" do
+    /// not; "Main" and "Main St" do.
     nonisolated static func isSameStreet(_ a: String?, _ b: String?) -> Bool {
         guard normalizeStreetName(a) == normalizeStreetName(b) else { return false }
+        if let dirA = directional(a), let dirB = directional(b), dirA != dirB { return false }
         guard let typeA = streetType(a), let typeB = streetType(b) else { return true }
         return typeA == typeB
     }
+
+    /// The directional a name starts with ("n", "sw"), or nil when it has
+    /// none. A name that is only a directional plus a type ("E St") is a
+    /// lettered street; its letter is the name, not a directional.
+    nonisolated private static func directional(_ name: String?) -> String? {
+        let words = (name ?? "").lowercased().components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }
+        guard let first = words.first, directionals.contains(first),
+              words.dropFirst().contains(where: { streetTypeCanonical[$0] == nil }) else { return nil }
+        return first
+    }
+
+    nonisolated private static let directionals: Set<String> = ["n", "s", "e", "w", "ne", "nw", "se", "sw"]
 
     /// The canonical street type a name ends with ("dr" and "drive" both
     /// read "drive"), or nil when it names none.

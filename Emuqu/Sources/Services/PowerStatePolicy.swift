@@ -19,9 +19,11 @@ import UIKit
 /// `ProcessInfo.processInfo.isLowPowerModeEnabled` that updates reactively
 /// via the system notification and exposes observable state for SwiftUI.
 ///
-/// The launch housekeeping (`EmuquApp.scheduleLaunchHousekeeping`) reads
-/// `launchDelayMultiplier` to stretch its delays, and skips its optional
-/// jobs in Low Power Mode. Recording sessions (HRV, workouts) ignore this — once the user
+/// The launch housekeeping (`AppLaunchTasks.scheduleLaunchHousekeeping`)
+/// stretches only its road-context and workout-haptics prewarm sleeps by
+/// `launchDelayMultiplier`; migrations, backfill, rescore and sync are ordered
+/// by `LaunchCoordinator` phases, which take no delay, and its optional jobs
+/// are skipped in Low Power Mode. Recording sessions (HRV, workouts) ignore this — once the user
 /// explicitly starts a recording, we run it through to completion.
 @Observable
 @MainActor

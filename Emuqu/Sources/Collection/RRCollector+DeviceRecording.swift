@@ -47,9 +47,10 @@ extension DeviceRecordingSession {
             throw RRCollector.CollectorError.sessionExists
         }
         try await collector.polarManager.startRecording()
-        // Persisted at once: survives app crashes, phone reboots, etc.
-        collector.persistRecordingState(sessionId: session.id, startTime: startTime, sessionType: sessionType)
         await publishDeviceRecordingStarted(session: session, startTime: startTime)
+        // Persisted at once, with the phase just set: survives app crashes,
+        // phone reboots, etc.
+        collector.persistRecordingState(sessionId: session.id, startTime: startTime, sessionType: sessionType)
     }
 
     /// Captured before starting — tracks source device and collection method.
@@ -97,8 +98,10 @@ extension DeviceRecordingSession {
         return await assembleDownloadedSession(recording, placement: await placement(for: recording, base: base))
     }
 
-    /// The session on record keeps its id and clock. With none, the
-    /// recording is filed as its own night, dated by its own start.
+    /// The session on record keeps its id and clock, and merges with its
+    /// archived copy when there is one (a placeholder night found in the
+    /// archive), as Recover does. With none, the recording is filed as its
+    /// own night, dated by its own start.
     private func placement(for recording: StrapRecording, base: HRVSession?) async -> DownloadPlacement {
         guard let base else {
             return DownloadPlacement(
@@ -107,9 +110,10 @@ extension DeviceRecordingSession {
                 deviceProvenance: deviceRecordingProvenance(), existing: nil
             )
         }
+        let archived = collector.archive.exists(base.id) ? collector.archive.retrieveOrLog(base.id) : nil
         return DownloadPlacement(
             sessionId: base.id, sessionType: base.sessionType, startDate: base.startDate,
-            deviceProvenance: base.deviceProvenance ?? deviceRecordingProvenance(), existing: nil
+            deviceProvenance: base.deviceProvenance ?? deviceRecordingProvenance(), existing: archived
         )
     }
 
@@ -216,10 +220,12 @@ extension DeviceRecordingSession {
         return analyzingSession
     }
 
-    /// When the recording's last beat ended, never later than now.
+    /// When the recording's last beat ended, never later than now. The beats
+    /// are on the session's clock (a recording armed after the session began
+    /// is shifted later by the gap), so the end counts from the session start.
     static func lastBeatDate(of series: RRSeries) -> Date {
-        guard let first = series.points.first, let last = series.points.last else { return Date() }
-        let end = series.startDate.addingTimeInterval(Double(last.endMs - first.t_ms) / 1000)
+        guard let last = series.points.last else { return Date() }
+        let end = series.startDate.addingTimeInterval(Double(last.endMs) / 1000)
         return min(end, Date())
     }
 
@@ -337,7 +343,8 @@ extension DeviceRecordingSession {
             sessionType: base.sessionType,
             rrSeries: nil,
             analysisResult: nil,
-            artifactFlags: nil
+            artifactFlags: nil,
+            deviceProvenance: base.deviceProvenance
         )
         collector.currentSession = failedSession
         collector.lastError = error

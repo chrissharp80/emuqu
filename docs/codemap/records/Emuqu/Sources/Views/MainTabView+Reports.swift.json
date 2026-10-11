@@ -1,9 +1,10 @@
 {
  "file": "Emuqu/Sources/Views/MainTabView+Reports.swift",
- "hash": "925d46a23d2b0d57",
+ "hash": "fbd2e4e51c55a69c",
  "role": "MainTabView extension rendering the dashboard Send-report PDFs off the main actor: recovery (PDFReportGenerator), daily (HolisticDailyReport) and workout (WorkoutPDFReport), to tmp/emuqu-report-<epoch>.pdf.",
  "types": [
-  "MainTabView.ReportHRSettings: struct — maxHR/restingHR/LTHR/units/temperature unit bundle"
+  "MainTabView.ReportHRSettings: struct — maxHR/restingHR/LTHR/units/temperature unit bundle",
+  "ReportBaselineNights: enum — before(_:archive:), the up-to-60 overnights strictly before a reported night"
  ],
  "state": [
   "file:tmp/emuqu-report-<epoch seconds>.pdf"
@@ -13,7 +14,7 @@
   {
    "kind": "duplicate",
    "sev": "med",
-   "text": "The three renderers duplicate ReportsListView's: renderRecoveryReport/recoveryPDFURL are line-for-line the same generator call and temp-file move as ReportsListView.renderRecovery/recoveryPDFURL, and renderDailyReport/renderWorkoutReport rebuild HolisticDailyReport/WorkoutPDFReport like renderHolistic/renderWorkoutOnly; a change to report inputs must be made in both places.",
+   "text": "The three renderers duplicate ReportsListView's: renderRecoveryReport/recoveryPDFURL are the same generator call and temp-file move as ReportsListView.renderRecovery/recoveryPDFURL, and renderDailyReport/renderWorkoutReport rebuild HolisticDailyReport/WorkoutPDFReport like renderHolistic/renderWorkoutOnly; a change to report inputs must be made in both places. The baseline-night selection is now shared (ReportBaselineNights); the rest is handed off (fix batch b22).",
    "evidence": [
     "Emuqu/Sources/Views/MainTabView+Reports.swift:71",
     "Emuqu/Sources/Views/MainTabView+Reports.swift:88",
@@ -74,24 +75,40 @@
    }
   },
   {
-   "key": "func MainTabView.withFullSessions(_:)",
-   "hash": "62b78170b3f34d2b",
-   "does": "Replaces the lightweight recovery/workout/pair sessions with full archive reads (RR series included), keeping the lightweight copy when a read fails.",
+   "key": "func MainTabView.withFullSessions(_:kind:)",
+   "hash": "3b7e6c3374fd301b",
+   "does": "Inside the detached render: replaces the lightweight recovery/workout/pair sessions with full archive reads (falling back to the lightweight copy), and for a recovery or daily report re-reads the baseline nights from the whole archive — up to 60 overnights strictly before the reported night (ReportBaselineNights) — instead of the dashboard slice's reliable overnights, which included the reported night; a workout report keeps the passed list.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current"
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func ReportBaselineNights.before(_:archive:)"
    ],
    "reads": [
-    "archive:retrieve (full session)"
+    "archive:SessionArchive.retrieve (full sessions)",
+    "archive:SessionArchive.entries",
+    "archive:SessionArchive.retrieveLightweight"
    ],
    "writes": [],
    "branches": [
     {
-     "at": "+2",
-     "cond": "archive.retrieveOrLog(id) ?? lightweight",
-     "effect": "falls back to the RR-stripped copy when the full read returns nil; the PDF then lacks raw-RR sections"
+     "at": "+4",
+     "cond": "recovery report",
+     "effect": "night = the recovery overnight"
+    },
+    {
+     "at": "+5",
+     "cond": "daily report",
+     "effect": "night = the pair overnight"
+    },
+    {
+     "at": "+6",
+     "cond": "workout report",
+     "effect": "no night: recentOvernight kept"
+    },
+    {
+     "at": "+12",
+     "cond": "night known",
+     "effect": "recentOvernight = nights before it; else the passed list"
     }
    ],
    "flags": [],
@@ -100,7 +117,7 @@
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "f0a309cc2b24de13",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive": "2c8002649ba22b7f",
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func ReportBaselineNights.before(_:archive:)": "85943064251a02a3",
     "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d"
    }
   },
@@ -254,6 +271,28 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)": "9076ca04b3bf1372"
+   }
+  },
+  {
+   "key": "func ReportBaselineNights.before(_:archive:)",
+   "hash": "7f8c0459f49cc118",
+   "does": "Overnight index entries dated strictly before the night, newest first, at most 60 (count), each decoded lightweight (entries that fail to decode are skipped).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries",
+    "archive:SessionArchive.retrieveLightweight"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
    }
   }
  ],

@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Collection/OvernightStreamingCoordinator.swift",
  "hash": "01c27af6d8baa9bf",
- "role": "Declares the empty value type `OvernightStreamingCoordinator` (holds RRCollector strongly); its behaviour lives in extensions in RRCollector+OvernightStreaming.swift and RRCollector+OvernightArming.swift. The morning gather the doc comment lists is not on this type: gatherOvernightData is an extension of MorningSessionPipeline (RRCollector+OvernightGather.swift:12,20) that only uses this type's nested OvernightDataResult and static hasSufficientOvernightData. Built by `RRCollector.overnightStreaming` (RRCollector+OvernightStreamingForwarding.swift:14).",
+ "role": "Declares the empty value type `OvernightStreamingCoordinator` (holds RRCollector strongly); its behaviour lives in extensions in RRCollector+OvernightStreaming.swift and RRCollector+OvernightArming.swift. The morning gather is not on this type (the doc comment says so): gatherOvernightData is an extension of MorningSessionPipeline (RRCollector+OvernightGather.swift:12,20) that only uses this type's nested OvernightDataResult and static hasSufficientOvernightData. Built by `RRCollector.overnightStreaming` (RRCollector+OvernightStreamingForwarding.swift:14).",
  "types": [
   "OvernightStreamingCoordinator: struct (@MainActor) — transient handle for overnight-streaming extensions"
  ],
@@ -9,18 +9,7 @@
   "collector: RRCollector (strong let)"
  ],
  "toplevel": "No code: struct declaration only.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Doc comment says this type covers 'the morning gather', but gatherOvernightData lives on MorningSessionPipeline, not on OvernightStreamingCoordinator.",
-   "evidence": [
-    "Emuqu/Sources/Collection/OvernightStreamingCoordinator.swift:4",
-    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift:12"
-   ],
-   "found": "second read"
-  }
- ],
+ "flags": [],
  "units": [],
  "deps": {}
 }

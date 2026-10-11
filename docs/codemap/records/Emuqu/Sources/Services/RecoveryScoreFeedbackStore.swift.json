@@ -1,91 +1,43 @@
 {
  "file": "Emuqu/Sources/Services/RecoveryScoreFeedbackStore.swift",
- "hash": "aad83f14a67536ec",
- "role": "Legacy store of daily thumbs-up/down feedback on the recovery score, kept only so Delete All My Data can clear what earlier versions wrote; nothing records entries any more.",
+ "hash": "9289ac502f829155",
+ "role": "Legacy recovery-score feedback log: holds only the path earlier versions saved daily feedback to, so Delete All My Data can delete that file; nothing records or reads feedback any more.",
  "types": [
-  "RecoveryScoreFeedbackStore: final class (@Observable, @MainActor) — JSON-file-backed feedback log",
-  "RecoveryScoreFeedbackStore.Sentiment: enum (matched, mismatched)",
-  "RecoveryScoreFeedbackStore.Entry: struct (Codable, Identifiable) — one day's rating"
+  "RecoveryScoreFeedbackStore: final class (@MainActor) — the legacy feedback file's location and its deletion"
  ],
  "state": [
   "mem:RecoveryScoreFeedbackStore.shared",
-  "file:<AppGroup|Documents|tmp>/Feedback/recovery_score_feedback.json (complete file protection, ISO8601 dates)",
-  "mem:RecoveryScoreFeedbackStore.entries",
-  "mem:RecoveryScoreFeedbackStore.unreadableOnDisk"
+  "file:<AppGroup|Documents|tmp>/Feedback/recovery_score_feedback.json (written only by earlier versions; deleted by clearAll)"
  ],
- "toplevel": "Entry/[Entry] Codable synthesis for the JSON file.",
- "flags": [
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "No code adds entries (the class has no append API and Entry.init has no caller); the store loads legacy entries into memory on first access and its only reachable operation is clearAll from DataPurgeService.",
-   "evidence": [
-    "Emuqu/Sources/Services/RecoveryScoreFeedbackStore.swift:53",
-    "Emuqu/Sources/Services/RecoveryScoreFeedbackStore.swift:124",
-    "Emuqu/Sources/Services/DataPurgeService.swift:703"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "No top-level code.",
+ "flags": [],
  "units": [
   {
-   "key": "init RecoveryScoreFeedbackStore.Entry(id:date:recoveryScore:tier:sentiment:comebackModeActive:)",
-   "hash": "adb496ae06a115f6",
-   "does": "Memberwise init for Entry with a generated UUID by default.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Entry.init has no caller in app or tests (grep for RecoveryScoreFeedbackStore.Entry / Entry( with sentiment: finds none).",
-     "evidence": [
-      "Emuqu/Sources/Services/RecoveryScoreFeedbackStore.swift:53"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
-  },
-  {
    "key": "init RecoveryScoreFeedbackStore()",
-   "hash": "76c617ae319a3cfa",
-   "does": "Private init: computes the file URL, loads entries, and marks unreadableOnDisk when the file exists, decoded empty, and a raw read fails (file locked by complete protection).",
+   "hash": "a65c43df2770f7ed",
+   "does": "Private init: computes the legacy file URL. Reads nothing.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/RecoveryScoreFeedbackStore.swift::func RecoveryScoreFeedbackStore.storeURL()",
-    "Emuqu/Sources/Services/RecoveryScoreFeedbackStore.swift::func RecoveryScoreFeedbackStore.loadEntries(from:)",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)"
+    "Emuqu/Sources/Services/RecoveryScoreFeedbackStore.swift::func RecoveryScoreFeedbackStore.storeURL()"
    ],
-   "reads": [
-    "file:<AppGroup|Documents|tmp>/Feedback/recovery_score_feedback.json"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RecoveryScoreFeedbackStore.swift::func RecoveryScoreFeedbackStore.loadEntries(from:)": "7fc4f5359fe0b4ef",
-    "Emuqu/Sources/Services/RecoveryScoreFeedbackStore.swift::func RecoveryScoreFeedbackStore.storeURL()": "cb670813c9b9d4a2",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Services/RecoveryScoreFeedbackStore.swift::func RecoveryScoreFeedbackStore.storeURL()": "fb9e156bb9ae3f2a"
    }
   },
   {
    "key": "func RecoveryScoreFeedbackStore.storeURL()",
-   "hash": "182407a156858a40",
-   "does": "Picks the App Group container, else Documents, else tmp, creates a Feedback directory there, returns .../recovery_score_feedback.json.",
+   "hash": "6dd1561013e3cb22",
+   "does": "Picks the App Group container, else Documents, else tmp, and returns <base>/Feedback/recovery_score_feedback.json, where earlier versions saved the log. Creates nothing.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
-    "ext:FileManager.containerURL(forSecurityApplicationGroupIdentifier:)",
-    "ext:FileManager.createDirectory"
+    "ext:FileManager.containerURL(forSecurityApplicationGroupIdentifier:)"
    ],
    "reads": [],
-   "writes": [
-    "file:Feedback/ directory"
-   ],
+   "writes": [],
    "branches": [
     {
      "at": "+3",
@@ -100,132 +52,33 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5",
     "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
    }
   },
   {
-   "key": "func RecoveryScoreFeedbackStore.loadEntries(from:)",
-   "hash": "0e4e483d26068fa3",
-   "does": "Reads and decodes [Entry]; [] when the file is missing/unreadable or fails to decode (decode failure logged).",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
-   ],
-   "reads": [
-    "file:<AppGroup|Documents|tmp>/Feedback/recovery_score_feedback.json"
-   ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "Data(contentsOf:) fails (missing or locked)",
-     "effect": "returns [] silently via try?"
-    },
-    {
-     "at": "+6",
-     "cond": "decode throws",
-     "effect": "logs error, returns []"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
-   }
-  },
-  {
    "key": "func RecoveryScoreFeedbackStore.clearAll()",
-   "hash": "07b0d70e6111d9dc",
-   "does": "Clears entries, drops the unreadable flag, and persists an empty array. Called by DataPurgeService (Delete All My Data).",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Services/RecoveryScoreFeedbackStore.swift::func RecoveryScoreFeedbackStore.persist()"
-   ],
-   "reads": [],
-   "writes": [
-    "file:<AppGroup|Documents|tmp>/Feedback/recovery_score_feedback.json",
-    "mem:RecoveryScoreFeedbackStore.entries"
-   ],
-   "branches": [],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Services/RecoveryScoreFeedbackStore.swift::func RecoveryScoreFeedbackStore.persist()": "b837050b6f1e7f0b"
-   }
-  },
-  {
-   "key": "func RecoveryScoreFeedbackStore.persist()",
-   "hash": "7c0f910afe7966ec",
-   "does": "Writes entries as pretty-printed sorted ISO8601 JSON atomically with complete file protection; when the disk copy was unreadable at load, first merges it in or holds the write.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Services/RecoveryScoreFeedbackStore.swift::func RecoveryScoreFeedbackStore.mergeSavedFeedbackOnceReadable()",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
-   ],
-   "reads": [],
-   "writes": [
-    "file:<AppGroup|Documents|tmp>/Feedback/recovery_score_feedback.json"
-   ],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "unreadableOnDisk",
-     "effect": "attempt merge first; otherwise write directly"
-    },
-    {
-     "at": "+2",
-     "cond": "merge fails (still unreadable)",
-     "effect": "logs and returns without writing"
-    },
-    {
-     "at": "+10",
-     "cond": "encode succeeded",
-     "effect": "writes file (failure logged by attempt); otherwise nothing written"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Services/RecoveryScoreFeedbackStore.swift::func RecoveryScoreFeedbackStore.mergeSavedFeedbackOnceReadable()": "ba63f4cbc40c9867",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
-   }
-  },
-  {
-   "key": "func RecoveryScoreFeedbackStore.mergeSavedFeedbackOnceReadable()",
-   "hash": "70fa200c1543b2bc",
-   "does": "Rereads the on-disk file; if readable, merges disk entries for days not already in memory, sorts by date, clears unreadableOnDisk, returns true; false while still unreadable.",
+   "hash": "269bc29ccb201795",
+   "does": "Deletes the legacy feedback file when it exists (failure logged through attempt). Called by DataPurgeService (Delete All My Data).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
-    "Emuqu/Sources/Services/RecoveryScoreFeedbackStore.swift::func RecoveryScoreFeedbackStore.loadEntries(from:)"
+    "ext:FileManager.removeItem(at:)"
    ],
    "reads": [
-    "file:<AppGroup|Documents|tmp>/Feedback/recovery_score_feedback.json"
+    "file:<AppGroup|Documents|tmp>/Feedback/recovery_score_feedback.json (exists?)"
    ],
-   "writes": [],
+   "writes": [
+    "file:<AppGroup|Documents|tmp>/Feedback/recovery_score_feedback.json (deleted)"
+   ],
    "branches": [
     {
      "at": "+1",
-     "cond": "raw reread fails",
-     "effect": "returns false"
+     "cond": "file does not exist",
+     "effect": "return; nothing to delete"
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Unreachable: persist() is only called from clearAll(), which sets unreadableOnDisk = false before calling it, so the merge path never runs.",
-     "evidence": [
-      "Emuqu/Sources/Services/RecoveryScoreFeedbackStore.swift:124",
-      "Emuqu/Sources/Services/RecoveryScoreFeedbackStore.swift:126",
-      "Emuqu/Sources/Services/RecoveryScoreFeedbackStore.swift:127",
-      "Emuqu/Sources/Services/RecoveryScoreFeedbackStore.swift:131"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RecoveryScoreFeedbackStore.swift::func RecoveryScoreFeedbackStore.loadEntries(from:)": "7fc4f5359fe0b4ef",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
    }
   }

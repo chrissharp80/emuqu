@@ -7,9 +7,11 @@ import SwiftUI
 extension SleepDetailV2View {
     // MARK: - Stage breakdown
 
+    /// Only for a staged night: without deep or REM data there is no
+    /// breakdown to show, and the whole night is not Light sleep.
     @ViewBuilder
     var stageBreakdownSection: some View {
-        if let sleep = sleepData, sleep.nightSleepMinutes > 0 {
+        if let sleep = sleepData, sleep.nightSleepMinutes > 0, Self.isStaged(sleep) {
             VStack(alignment: .leading, spacing: 10) {
                 sectionHeading(String(localized: "Stage breakdown", bundle: LanguageManager.appBundle))
                 let totalMin = sleep.nightSleepMinutes
@@ -31,6 +33,9 @@ extension SleepDetailV2View {
         }
     }
 
+    /// Deep, REM and Light are shares of the night's sleep. Light leaves out
+    /// unstaged sleep, which the hypnogram labels "Asleep". Awake is the share
+    /// of time in bed, as its explanation describes it.
     private func stagePills(_ sleep: SleepData, totalMin: Int) -> some View {
         HStack(spacing: 8) {
             if let deep = sleep.deepSleepMinutes {
@@ -39,12 +44,26 @@ extension SleepDetailV2View {
             if let rem = sleep.remSleepMinutes {
                 stagePill(kind: .rem, minutes: rem, totalMin: totalMin, color: AppTheme.wongCaution)
             }
-            let lightMin = max(0, totalMin - (sleep.deepSleepMinutes ?? 0) - (sleep.remSleepMinutes ?? 0))
+            let lightMin = max(0, totalMin - (sleep.deepSleepMinutes ?? 0) - (sleep.remSleepMinutes ?? 0) - Self.unstagedMinutes(sleep))
             stagePill(kind: .light, minutes: lightMin, totalMin: totalMin, color: AppTheme.primary)
             if sleep.measuredSleepEfficiency != nil {
                 stagePill(kind: .awake, minutes: sleep.awakeMinutes, totalMin: sleep.inBedMinutes, color: AppTheme.wongAttention.opacity(0.7))
             }
         }
+    }
+
+    /// Whether the night carries any stage data (deep or REM minutes).
+    static func isStaged(_ sleep: SleepData) -> Bool {
+        sleep.deepSleepMinutes != nil || sleep.remSleepMinutes != nil
+    }
+
+    /// Minutes of sleep with no stage (user-added, or a source without
+    /// stages): the hypnogram calls them "Asleep", not Light.
+    static func unstagedMinutes(_ sleep: SleepData) -> Int {
+        let seconds = sleep.stageIntervals
+            .filter { $0.stage == .unspecified }
+            .reduce(0.0) { $0 + $1.end.timeIntervalSince($1.start) }
+        return Int(seconds / 60)
     }
 
     /// Tappable stage pill. Wrapped in a Button so
@@ -146,10 +165,10 @@ extension SleepDetailV2View {
 
     @ViewBuilder
     var scoreBreakdownSection: some View {
-        if let sleep = sleepData, sleep.nightSleepMinutes > 0 {
+        if let analysis = sleepAnalysis {
             VStack(alignment: .leading, spacing: 10) {
                 sectionHeading(String(localized: "Score breakdown", bundle: LanguageManager.appBundle))
-                let breakdowns = computeSleepBreakdowns(sleep: sleep)
+                let breakdowns = computeSleepBreakdowns(analysis)
                 scoreBreakdownRows(breakdowns)
                 // The rows mirror `SleepScienceAnalyzer.computeEnhancedScore`, the
                 // formula behind the Sleep score shown above, with its weights.
@@ -176,20 +195,19 @@ extension SleepDetailV2View {
         let ok: Bool
     }
 
-    /// Per-part scores (0–100) of the enhanced Sleep score, weighted by the
-    /// analyzer's own point table so the rows can't drift from the formula.
-    func computeSleepBreakdowns(sleep: SleepData) -> [SleepBreakdownEntry] {
-        guard let analysis = SleepScienceAnalyzer.analyze(
-            sleepData: sleep, userAge: userAge, typicalSleepHours: typicalSleepHours
-        ) else { return [] }
+    /// Per-part scores (0–100) of the enhanced Sleep score: each section's
+    /// points as the analyzer built the score from them, over that section's
+    /// maximum, so the rows read the same numbers as the ring.
+    func computeSleepBreakdowns(_ analysis: SleepScienceAnalyzer.SleepAnalysis) -> [SleepBreakdownEntry] {
         typealias Wts = SleepScienceAnalyzer.EnhancedScoreWeights
         let bundle = LanguageManager.appBundle
-        let duration = breakdownDurationScore(sleep)
-        let efficiency = breakdownEfficiencyScore(sleep, norms: analysis.ageNorms)
-        let stages = breakdownStagesScore(sleep, norms: analysis.ageNorms)
-        let continuity = max(0, 100 - analysis.fragmentationIndex)
-        let cycles = breakdownCyclesScore(sleep, cycleCount: analysis.cycleCount)
-        let architecture = analysis.architecture.architectureScore
+        let parts = analysis.sections
+        let duration = parts.duration / Wts.durationPoints * 100
+        let efficiency = parts.efficiency / Wts.efficiencyPoints * 100
+        let stages = parts.stages / (Wts.stageHalfPoints * 2) * 100
+        let continuity = parts.continuity / Wts.fragmentationPoints * 100
+        let cycles = parts.cycles / Wts.cyclePoints * 100
+        let architecture = parts.architecture / Wts.architecturePoints * 100
         return [
             SleepBreakdownEntry(label: String(localized: "Duration", bundle: bundle), score: duration, weight: Wts.durationPoints / 100, ok: duration >= Wts.durationDebtRatioThreshold * 100),
             SleepBreakdownEntry(label: String(localized: "Efficiency", bundle: bundle), score: efficiency, weight: Wts.efficiencyPoints / 100, ok: efficiency >= 90),
@@ -198,63 +216,6 @@ extension SleepDetailV2View {
             SleepBreakdownEntry(label: String(localized: "Cycles", bundle: bundle), score: cycles, weight: Wts.cyclePoints / 100, ok: cycles >= 70),
             SleepBreakdownEntry(label: String(localized: "Architecture", bundle: bundle), score: architecture, weight: Wts.architecturePoints / 100, ok: architecture >= 70)
         ]
-    }
-
-    /// Night plus qualifying nap against the sleep target, as the score uses
-    /// it. The formula lets the ratio reach `ratioCap` (1.1), so a long night
-    /// reads up to 110 here too.
-    private func breakdownDurationScore(_ sleep: SleepData) -> Double {
-        typealias Wts = SleepScienceAnalyzer.EnhancedScoreWeights
-        let target = max(typicalSleepHours, 1.0) * 60
-        return min(Double(sleep.totalSleepIncludingNapMinutes) / target, Wts.ratioCap) * 100
-    }
-
-    /// Efficiency against the age-expected value when age is known, capped
-    /// at `ratioCap` as in the formula. A night whose wake was not measured
-    /// gets the formula's neutral half credit.
-    private func breakdownEfficiencyScore(_ sleep: SleepData, norms: SleepScienceAnalyzer.AgeAdjustedNorms?) -> Double {
-        typealias Wts = SleepScienceAnalyzer.EnhancedScoreWeights
-        guard let efficiency = sleep.measuredSleepEfficiency else { return Wts.unmeasuredEfficiencyRatio * 100 }
-        let expected = norms?.expectedEfficiency ?? SleepConstants.goodEfficiency
-        return min(efficiency / expected, Wts.ratioCap) * 100
-    }
-
-    /// Deep and REM adequacy, half each. A stage the night carried no data
-    /// for gets neutral half credit for its half, as in the formula, so a
-    /// source that staged deep but not REM is not scored as if REM were absent.
-    private func breakdownStagesScore(_ sleep: SleepData, norms: SleepScienceAnalyzer.AgeAdjustedNorms?) -> Double {
-        typealias Wts = SleepScienceAnalyzer.EnhancedScoreWeights
-        let night = Double(sleep.nightSleepMinutes)
-        guard night > 0 else { return 50 }
-        let deep = sleep.deepSleepMinutes.map { minutes in
-            Self.breakdownStageHalf(minutes: minutes, night: night, targetPct: Wts.populationDeepTargetPct,
-                                    norm: norms.map { (inRange: $0.isDeepInRange, deviation: $0.deepDeviation) })
-        }
-        let rem = sleep.remSleepMinutes.map { minutes in
-            Self.breakdownStageHalf(minutes: minutes, night: night, targetPct: Wts.populationREMTargetPct,
-                                    norm: norms.map { (inRange: $0.isREMInRange, deviation: $0.remDeviation) })
-        }
-        return (deep ?? 25) + (rem ?? 25)
-    }
-
-    /// One recorded stage's half (0–50). Against age norms only a below-range
-    /// share loses points; without norms the share of the night is scored
-    /// against the population target.
-    private static func breakdownStageHalf(
-        minutes: Int, night: Double, targetPct: Double,
-        norm: (inRange: Bool, deviation: Double)?
-    ) -> Double {
-        typealias Wts = SleepScienceAnalyzer.EnhancedScoreWeights
-        guard let norm else { return min(50, Double(minutes) / night * 100 / targetPct * 50) }
-        guard !norm.inRange, norm.deviation <= 0 else { return 50 }
-        return max(0, 50 - abs(norm.deviation) * Wts.deviationPenaltySlope * 5)
-    }
-
-    private func breakdownCyclesScore(_ sleep: SleepData, cycleCount: Int) -> Double {
-        typealias Wts = SleepScienceAnalyzer.EnhancedScoreWeights
-        let hours = Double(sleep.nightSleepMinutes) / 60
-        let expected = max(Wts.minimumExpectedCycles, Int(hours / Wts.cycleLengthHours))
-        return min(Double(cycleCount) / Double(expected), 1.0) * 100
     }
 
     func sleepBreakdownRow(label: String, score: Double, weight: Double, ok: Bool) -> some View {
@@ -339,17 +300,22 @@ extension SleepDetailV2View {
         return Array(out.prefix(3))
     }
 
-    /// The deep-sleep share this screen calls typical, matching the 13–23%
-    /// typical share in the deep-stage explanation.
-    static var typicalDeepShare: ClosedRange<Double> { 0.13 ... 0.23 }
+    /// The deep-sleep share this screen calls typical: the Ohayon range for
+    /// the user's age when it is known (the range the age-group card shows),
+    /// else the population 13–23% of the deep-stage explanation.
+    static func typicalDeepShare(for norms: SleepScienceAnalyzer.AgeAdjustedNorms?) -> ClosedRange<Double> {
+        guard let range = norms?.expectedDeepPercent else { return 0.13 ... 0.23 }
+        return (range.lowerBound / 100) ... (range.upperBound / 100)
+    }
 
     /// "Typical" only for a typical share of the night.
     private func deepShareInsight(_ sleep: SleepData) -> String? {
         guard let deep = sleep.deepSleepMinutes, sleep.nightSleepMinutes > 0 else { return nil }
         let share = Double(deep) / Double(sleep.nightSleepMinutes)
+        let typical = Self.typicalDeepShare(for: sleepAnalysis?.ageNorms)
         let bundle = LanguageManager.appBundle
-        if share > Self.typicalDeepShare.upperBound { return String(localized: "Deep sleep made up more of the night than is typical.", bundle: bundle) }
-        if share >= Self.typicalDeepShare.lowerBound { return String(localized: "Deep sleep made up a typical share of the night.", bundle: bundle) }
+        if share > typical.upperBound { return String(localized: "Deep sleep made up more of the night than is typical.", bundle: bundle) }
+        if share >= typical.lowerBound { return String(localized: "Deep sleep made up a typical share of the night.", bundle: bundle) }
         return nil
     }
 
@@ -423,25 +389,26 @@ extension SleepDetailV2View {
 
     /// Static with explicit inputs so the `.task` keyed on
     /// `trendInputsKey` can run it on a detached task without capturing
-    /// the view.
+    /// the view. One bar per night: sessions are newest first, and a later
+    /// session whose snapshot ends on a day already shown is skipped, so two
+    /// sessions sharing one night do not draw two bars.
     nonisolated static func buildTrend(
         recentSessions: [HRVSession],
         typicalSleepHours: Double,
         userAge: Int?
     ) -> [TrendNight] {
-        recentSessions
+        var seenNights = Set<Date>()
+        return recentSessions
             .compactMap { s -> TrendNight? in
-                guard let snap = s.sleepSnapshot, snap.nightSleepMinutes > 0 else { return nil }
+                guard let snap = s.sleepSnapshot, snap.nightSleepMinutes > 0,
+                      seenNights.insert(Calendar.current.startOfDay(for: snap.sleepEnd ?? snap.date)).inserted else { return nil }
                 let score = RecoveryScoreCalculator.calculateSleepScore(
-                    sleepData: snap,
-                    typicalSleepHours: typicalSleepHours,
-                    userAge: userAge
+                    sleepData: snap, typicalSleepHours: typicalSleepHours, userAge: userAge
                 ) ?? 0
                 return TrendNight(date: s.startDate, minutes: snap.nightSleepMinutes, score: score)
             }
             .prefix(15)
             .sorted { $0.date < $1.date }
-            .map { $0 }
     }
 
     /// Narrow weekday symbol ("M", "T"…) in the app language.
@@ -470,25 +437,22 @@ extension SleepDetailV2View {
         }
     }
 
-    /// Cycles, awakenings and continuity come from the same analysis as the
-    /// Score breakdown rows, so each reads the same in both places.
+    /// Cycles, awakenings, continuity and architecture come from the same
+    /// analysis as the Score breakdown rows, so each reads the same in both places.
     private func structureCells(_ sleep: SleepData) -> some View {
-        let analysis = SleepScienceAnalyzer.analyze(
-            sleepData: sleep, userAge: userAge, typicalSleepHours: typicalSleepHours
-        )
+        let analysis = sleepAnalysis
         return HStack(spacing: 8) {
             structureCell(label: String(localized: "Cycles", bundle: LanguageManager.appBundle), value: cyclesDescriptor(sleep, analysis: analysis))
             structureCell(label: String(localized: "Awakenings", bundle: LanguageManager.appBundle), value: awakeningsDescriptor(analysis))
             structureCell(label: String(localized: "Continuity", bundle: LanguageManager.appBundle), value: continuityDescriptor(analysis))
-            structureCell(label: String(localized: "Architecture", bundle: LanguageManager.appBundle), value: architectureDescriptor(sleep))
+            structureCell(label: String(localized: "Architecture", bundle: LanguageManager.appBundle), value: architectureDescriptor(sleep, analysis: analysis))
         }
     }
 
     /// Complete cycles the analyzer detected in the staged night; a night
     /// without stage data has none to count.
     func cyclesDescriptor(_ sleep: SleepData, analysis: SleepScienceAnalyzer.SleepAnalysis?) -> String {
-        let staged = sleep.deepSleepMinutes != nil || sleep.remSleepMinutes != nil
-        guard staged, let analysis else { return "—" }
+        guard Self.isStaged(sleep), let analysis else { return "—" }
         return "\(analysis.cycleCount)"
     }
 
@@ -509,12 +473,11 @@ extension SleepDetailV2View {
         return String(localized: "Low", bundle: LanguageManager.appBundle)
     }
 
-    func architectureDescriptor(_ sleep: SleepData) -> String {
-        guard let deep = sleep.deepSleepMinutes, let rem = sleep.remSleepMinutes,
-              sleep.nightSleepMinutes > 0 else { return "—" }
-        let deepPct = Double(deep) / Double(sleep.nightSleepMinutes)
-        let remPct = Double(rem) / Double(sleep.nightSleepMinutes)
-        if deepPct >= Self.typicalDeepShare.lowerBound && remPct >= 0.20 { return String(localized: "Typical", bundle: LanguageManager.appBundle) }
+    /// The analyzer's architecture score, read against the same 70 the Score
+    /// breakdown's Architecture row warns below, so the two agree.
+    func architectureDescriptor(_ sleep: SleepData, analysis: SleepScienceAnalyzer.SleepAnalysis?) -> String {
+        guard sleep.deepSleepMinutes != nil, sleep.remSleepMinutes != nil, let analysis else { return "—" }
+        if analysis.architecture.architectureScore >= 70 { return String(localized: "Typical", bundle: LanguageManager.appBundle) }
         return String(localized: "Atypical", bundle: LanguageManager.appBundle)
     }
 
@@ -542,10 +505,13 @@ extension SleepDetailV2View {
     /// A user seeing 42% deep deserves to know both that it is outside the
     /// typical range AND that its accuracy is unknown — hence the footnote at
     /// the bottom of this card on nights with HRV-classified stages.
+    ///
+    /// The norms are the ones the Sleep score graded against, which the
+    /// analyzer sets only for a staged night with a known age.
     @ViewBuilder
     var ageGroupCard: some View {
-        if let age = userAge, let sleep = sleepData, sleep.nightSleepMinutes > 0 {
-            ageGroupStack(age: age, sleep: sleep)
+        if let age = userAge, let sleep = sleepData, let norms = sleepAnalysis?.ageNorms {
+            ageGroupStack(age: age, sleep: sleep, norms: norms)
                 .padding(14)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(
@@ -555,10 +521,10 @@ extension SleepDetailV2View {
         }
     }
 
-    private func ageGroupStack(age: Int, sleep: SleepData) -> some View {
+    private func ageGroupStack(age: Int, sleep: SleepData, norms: SleepScienceAnalyzer.AgeAdjustedNorms) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             sectionHeading(String(localized: "You vs your age group · age \(age)", bundle: LanguageManager.appBundle))
-            ageComparisonRows(sleep, norms: ageNorms(age: age, sleep: sleep))
+            ageComparisonRows(sleep, norms: norms)
             Text(String(localized: "Based on Ohayon et al. (2004). The range in brackets is typical for your age group.", bundle: LanguageManager.appBundle))
                 .font(.system(size: dt11))
                 .foregroundStyle(AppTheme.textTertiary)
@@ -586,17 +552,6 @@ extension SleepDetailV2View {
             ageRow(label: String(localized: "REM sleep", bundle: LanguageManager.appBundle), value: remPctText(sleep: sleep), rangeText: rangeText(norms.expectedREMPercent))
             ageRow(label: String(localized: "Efficiency", bundle: LanguageManager.appBundle), value: Self.efficiencyText(sleep), rangeText: "(≥\(Int(norms.expectedEfficiency))%)")
         }
-    }
-
-    /// The Ohayon 2004 age norms the Sleep score itself grades against.
-    func ageNorms(age: Int, sleep: SleepData) -> SleepScienceAnalyzer.AgeAdjustedNorms {
-        let night = Double(max(sleep.nightSleepMinutes, 1))
-        return SleepScienceAnalyzer.computeAgeNorms(
-            age: age,
-            deepPercent: Double(sleep.deepSleepMinutes ?? 0) / night * 100,
-            remPercent: Double(sleep.remSleepMinutes ?? 0) / night * 100,
-            efficiency: sleep.measuredSleepEfficiency ?? 0
-        )
     }
 
     /// The night's efficiency as a percentage, or "Not measured" when its

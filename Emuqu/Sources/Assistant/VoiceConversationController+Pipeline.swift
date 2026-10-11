@@ -237,14 +237,23 @@ extension VoiceAudioPipeline {
         controller.buffersSinceTaskStart = 0
         controller.peakRMSSinceTaskStart = 0
         controller.lastBufferRMS = 0
+        controller.recognitionTaskGeneration += 1
+        let generation = controller.recognitionTaskGeneration
         debugLog("[VoiceConv] new recognition task started (onDevice=\(request.requiresOnDeviceRecognition))")
         controller.recognitionTask = recognizer.recognitionTask(with: request) { [weak controller] result, error in
-            Task { @MainActor in controller?.audio.applyRecognition(result, error) }
+            Task { @MainActor in controller?.audio.applyRecognition(result, error, generation: generation) }
         }
     }
 
+    /// A task this pipeline replaced or tore down still calls back: with its
+    /// cancellation (kLSRErrorDomain:301, which `handleRecognitionError`
+    /// restarts on) or a late result. Acting on it would restart recognition
+    /// over the fresh task, dropping the audio it had buffered (the start of
+    /// the user's turn), or write the old transcript over the new turn's. Only
+    /// the current task's callbacks count.
     @MainActor
-    private func applyRecognition(_ result: SFSpeechRecognitionResult?, _ error: Error?) {
+    private func applyRecognition(_ result: SFSpeechRecognitionResult?, _ error: Error?, generation: Int) {
+        guard generation == controller.recognitionTaskGeneration, controller.recognitionRequest != nil else { return }
         if let error {
             reportRecognitionError(error as NSError)
         } else if let result {
@@ -255,6 +264,12 @@ extension VoiceAudioPipeline {
     /// Prefer on-device recognition when supported — works offline, is
     /// faster, and avoids the silent failure when the device can't reach
     /// Apple's server-side controller.recognizer.
+    ///
+    /// When the recognizer has no on-device model for the locale, the audio
+    /// goes to Apple's speech service. The speech-recognition permission
+    /// prompt (`NSSpeechRecognitionUsageDescription`) tells the user on-device
+    /// recognition is used only where the device and language support it, and
+    /// every task logs which path it took (`onDevice=`).
     ///
     /// `.search` biases the language model toward shorter chat-style
     /// utterances rather than long-form prose. Per Apple Developer Forums
@@ -402,16 +417,31 @@ extension VoiceAudioPipeline {
             controller.stop()
             return
         }
-        // The user ended voice while the engine was starting: close the mic
-        // again rather than listening after End.
-        guard controller.state != .idle else {
-            controller.stop()
-            return
-        }
+        guard !stateMovedOnDuringRestart() else { return }
         // Fresh recognition request resets the transcript the engine holds.
         startFreshRecognitionTask()
         armSilenceTimer()
         controller.state = .listening
+    }
+
+    /// The engine restart awaits, and the conversation can move on meanwhile.
+    /// The user ended voice: close the mic again rather than listening after
+    /// End. A trigger started: its line is playing, so listening now would
+    /// transcribe the alert and leave `.triggerSpeaking` before the
+    /// synthesizer's `didFinish` could restore the prior state; that finish
+    /// re-arms listening once the line is over.
+    @MainActor
+    private func stateMovedOnDuringRestart() -> Bool {
+        switch controller.state {
+        case .idle:
+            controller.stop()
+            return true
+        case .triggerSpeaking:
+            debugLog("[VoiceConv] beginUserTurn: a trigger started during the engine restart — leaving listening to its finish")
+            return true
+        default:
+            return false
+        }
     }
 
     /// Everything a new turn has to forget: VAD voice + silence accumulators,
@@ -462,14 +492,10 @@ extension VoiceAudioPipeline {
             debugLog("[VoiceConv] tap tick #\(controller.bufferTickCount), frames=\(buffer.frameLength)")
         }
         guard let rms = Self.rms(of: buffer) else { return }
-        let now = Date()
         recordBufferRMS(rms)
-        // Hop to the main actor for controller.state mutation. Buffers come on a high-priority
-        // audio thread; we only need a quick atomic store of the most recent
-        // voice timestamp + duration accumulator.
-        Task { @MainActor [weak controller] in
-            controller?.audio.processVAD(rms: rms, at: now)
-        }
+        // Already on the main actor: the tap block hopped here with its deep
+        // copy (`makeMicTapBlock`), so VAD runs in buffer order.
+        processVAD(rms: rms, at: Date())
     }
 
     /// Root-mean-square amplitude of the buffer's first channel, or nil when

@@ -21,6 +21,7 @@ extension PDFReportGenerator {
             result: inputs.result,
             ans: inputs.result.ansMetrics,
             compositeScore: inputs.compositeRecoveryScore,
+            baselineRMSSD: inputs.baselineStats.map { exp($0.lnRmssdMean) },
             yPosition: y,
             in: context,
             pageRect: pageRect
@@ -33,48 +34,66 @@ extension PDFReportGenerator {
     }
 
     /// The optional stat sections, each drawn only when its data exists and the
-    /// caller asked for it.
+    /// caller asked for it. Each starts a new page first when its full height
+    /// (heading included) would run past the bottom limit.
     func drawPage1Sections(
         _ inputs: ReportInputs,
         y: CGFloat,
         pageNumber: inout Int,
         in context: UIGraphicsPDFRendererContext, pageRect: CGRect
     ) -> CGFloat {
-        var y = y
-        y = drawOvernightStatsIfAvailable(inputs, y: y, in: context, pageRect: pageRect)
+        var y = drawOvernightStatsIfAvailable(inputs, y: y, pageNumber: &pageNumber, in: context, pageRect: pageRect)
         if inputs.sections.contains(.sleep), let sleep = inputs.sleepData, sleep.totalSleepMinutes > 0 {
+            let stages = sleep.deepSleepMinutes != nil || sleep.remSleepMinutes != nil
+            y = ensureSpace(needed: stages ? 130 : 86, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
             y = drawSleepAnalysisSection(sleep: sleep, yPosition: y, in: context, pageRect: pageRect)
         }
         if inputs.sections.contains(.trainingLoad), let training = inputs.trainingContext {
+            y = ensureSpace(needed: 86, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
             y = drawTrainingLoadSection(training: training, yPosition: y, in: context, pageRect: pageRect)
         }
         if inputs.sections.contains(.vitals), let vitalsData = inputs.vitals, vitalsData.hasAnyData {
+            y = ensureSpace(needed: 86, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
             y = drawVitalsSection(vitals: vitalsData, yPosition: y, in: context, pageRect: pageRect)
         }
-        if inputs.sections.contains(.scoreBreakdown), let breakdown = inputs.scoreBreakdown {
-            y = ensureSpace(needed: 120, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
-            y = drawScoreBreakdownSection(
-                breakdown: breakdown, loadLevel: adviceLoadLevel(inputs), yPosition: y, in: context, pageRect: pageRect
-            )
-        }
-        return y
+        return drawScoreBreakdownIfSelected(inputs, y: y, pageNumber: &pageNumber, in: context, pageRect: pageRect)
     }
 
-    /// The advice gate's read of the report's training load. The report's
-    /// steps read `inputs.trainingContext` (today's live load, else the
-    /// night's frozen load), so the breakdown message reads the same.
+    /// The score breakdown, on a new page when its measured height does not fit.
+    func drawScoreBreakdownIfSelected(
+        _ inputs: ReportInputs,
+        y: CGFloat,
+        pageNumber: inout Int,
+        in context: UIGraphicsPDFRendererContext, pageRect: CGRect
+    ) -> CGFloat {
+        guard inputs.sections.contains(.scoreBreakdown), let breakdown = inputs.scoreBreakdown else { return y }
+        let loadLevel = adviceLoadLevel(inputs)
+        let contentWidth = pageRect.width - config.margins.left - config.margins.right
+        let needed = scoreBreakdownHeight(breakdown: breakdown, loadLevel: loadLevel, contentWidth: contentWidth)
+        let top = ensureSpace(needed: needed, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
+        return drawScoreBreakdownSection(breakdown: breakdown, loadLevel: loadLevel, yPosition: top, in: context, pageRect: pageRect)
+    }
+
+    /// The advice gate's read of the report's training load: today's live
+    /// load when the caller captured one for today's session, else the
+    /// session's frozen load — what MorningResultsViewModel.adviceLoadLevel
+    /// and the report's steps read, so the breakdown message reads the same.
     func adviceLoadLevel(_ inputs: ReportInputs) -> TrainingAdviceGate.LoadLevel {
-        TrainingAdviceGate.level(.preferring(live: nil, frozen: inputs.trainingContext))
+        TrainingAdviceGate.level(.preferring(live: inputs.adviceLiveLoad, frozen: inputs.frozenTrainingContext))
     }
 
-    /// Sleep, nadir and peak HRV — only meaningful with a raw RR series.
+    /// Sleep, nadir and peak HRV — only meaningful with a raw RR series. The
+    /// section is 135 pt (heading, card, gap); a new page starts first when
+    /// that does not fit.
     func drawOvernightStatsIfAvailable(
         _ inputs: ReportInputs,
         y: CGFloat,
+        pageNumber: inout Int,
         in context: UIGraphicsPDFRendererContext, pageRect: CGRect
     ) -> CGFloat {
         guard inputs.sections.contains(.overnightStats), inputs.hasRawData, let series = inputs.series else { return y }
-        return drawOvernightStatsSection(inputs, series: series, yPosition: y, pageRect: pageRect)
+        let top = ensureSpace(needed: 135, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
+        return drawOvernightStatsSection(inputs, series: series, yPosition: top, pageRect: pageRect)
     }
 
     /// Detailed tables, tags/notes, and the imported-data caveat.
@@ -94,14 +113,29 @@ extension PDFReportGenerator {
                 pageRect: pageRect
             )
         }
-        if !inputs.session.tags.isEmpty || inputs.session.notes != nil {
-            y = ensureSpace(needed: 50, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
-            y = drawTagsAndNotesSection(session: inputs.session, yPosition: y, in: context, pageRect: pageRect)
-        }
+        y = drawTagsAndNotesIfAny(inputs.session, y: y, pageNumber: &pageNumber, in: context, pageRect: pageRect)
         if !inputs.hasRawData {
+            let needed = importedDataNoteHeight(session: inputs.session, pageRect: pageRect)
+            y = ensureSpace(needed: needed, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
             y = drawImportedDataNote(yPosition: y, session: inputs.session, in: context, pageRect: pageRect)
         }
         return y
+    }
+
+    /// Tags and notes, when the session has tags or a non-empty note: room for
+    /// the heading and a row of tags plus the whole note (up to one page body)
+    /// is made first.
+    func drawTagsAndNotesIfAny(
+        _ session: HRVSession,
+        y: CGFloat,
+        pageNumber: inout Int,
+        in context: UIGraphicsPDFRendererContext, pageRect: CGRect
+    ) -> CGFloat {
+        guard !session.tags.isEmpty || !(session.notes ?? "").isEmpty else { return y }
+        let pageBody = pageRect.height - config.margins.top - config.margins.bottom - 70
+        let notesHeight = min(sessionNotesHeight(session: session, pageRect: pageRect), pageBody)
+        let top = ensureSpace(needed: 50 + notesHeight, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
+        return drawTagsAndNotesSection(session: session, yPosition: top, in: context, pageRect: pageRect)
     }
 
     /// Draw detailed metric tables (time domain, frequency domain, nonlinear, ANS)
@@ -129,15 +163,16 @@ extension PDFReportGenerator {
     }
 
     /// Draw Page 2: visualizations (overnight HR chart, Poincare, PSD, tachogram)
+    /// for the report's RR series.
     @discardableResult
     func drawPage2_Visualizations(
         _ inputs: ReportInputs,
+        series: RRSeries,
         pageNumber: inout Int,
         in context: UIGraphicsPDFRendererContext, pageRect: CGRect
     ) -> CGFloat {
         PDFReadingDirection.beginPage(context)
         var y = config.margins.top
-        guard let series = inputs.series else { return y }
         y = drawOvernightHRChart(series: series, result: inputs.result, yPosition: y, in: context, pageRect: pageRect)
         y = drawPoincarePlot(series: series, flags: inputs.artifactFlags, result: inputs.result, yPosition: y, in: context, pageRect: pageRect)
 

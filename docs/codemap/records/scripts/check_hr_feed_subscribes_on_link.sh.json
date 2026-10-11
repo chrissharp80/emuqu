@@ -18,16 +18,6 @@
     "Makefile:53"
    ],
    "found": "first read, upheld on second"
-  },
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "WAITS matches readiness waits only when their argument is `.heartRate`. StrapHeartRateFeed.resolveKind awaits `.onlineStreaming` readiness with `until: nil` (no deadline) before subscribing on the Verity Sense PPI path, and the gate passes.",
-   "evidence": [
-    "scripts/check_hr_feed_subscribes_on_link.sh:87",
-    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift:119"
-   ],
-   "found": "second read"
   }
  ],
  "units": [],

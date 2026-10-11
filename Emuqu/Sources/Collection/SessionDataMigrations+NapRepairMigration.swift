@@ -26,7 +26,8 @@ extension SessionDataMigrations {
     /// Idempotency is doubly guarded: the global flag skips the whole scan once it
     /// has converged, and `session.napRepaired == true` skips any individual
     /// session already handled — so a session is never processed twice even if the
-    /// flag is somehow cleared. Every scanned session is marked `napRepaired`
+    /// flag is somehow cleared. Each night is decoded off the main actor, as
+    /// hundreds of them held the screen. Every scanned session is marked `napRepaired`
     /// whether or not a nap was found, so "already checked" is unambiguous. Runs
     /// exactly once per install.
     func runNapRepairMigrationIfNeeded() async {
@@ -40,7 +41,7 @@ extension SessionDataMigrations {
         var scanned = 0
         var adjustedNights: [String] = []
         for entry in overnightEntries {
-            guard var session = try? archive.retrieve(entry.sessionId) else { continue }
+            guard var session = await retrieveOffMain(entry.sessionId, caller: "NapRepairMigration") else { continue }
             if session.napRepaired == true { continue } // per-session idempotency
             scanned += 1
             if let napMinutes = await repairNap(&session, entry: entry) {

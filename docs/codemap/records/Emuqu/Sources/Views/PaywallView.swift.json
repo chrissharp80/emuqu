@@ -72,7 +72,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.withPaywallChrome(_:)": "28f58a8ce6b593f4",
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.withPaywallChrome(_:)": "c9deabc36b511494",
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.paywallStack": "089af9a3698a9979"
    }
   },
@@ -162,15 +162,15 @@
   },
   {
    "key": "func PaywallView.withPaywallChrome(_:)",
-   "hash": "d1e3e8e7570b32b8",
-   "does": "Applies the paywall chrome: theme background, interactiveDismissDisabled when isGate and the user has no active access, an onAppear NSLog, a .task that loads products, and an 'Error' alert bound to storeKit.errorMessage whose dismissal clears it.",
+   "hash": "1b3428404dead0c8",
+   "does": "Applies the paywall chrome: theme background, an onAppear debugLog, a .task that loads products, and an 'Error' alert bound to storeKit.errorMessage whose dismissal clears it. No swipe-dismiss control: the launch gate is a full-screen cover and Settings/More push it, so the gated user leaves through continueWithAccessButton.",
    "entry": "SwiftUI view-body evaluation (composed into PaywallView.body); .onAppear and .task fire on presentation; alert binding setter fires on alert dismissal",
    "calls": [
-    "Emuqu/Sources/Services/StoreKitManager.swift::var hasActiveAccess",
     "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.loadProducts()",
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.paywallErrorActions",
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.paywallErrorMessage",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
     "mem:StoreKitManager.errorMessage",
@@ -185,43 +185,17 @@
    ],
    "branches": [
     {
-     "at": "+10",
+     "at": "+9",
      "cond": "alert binding set with false (alert dismissed)",
-     "effect": "clears storeKit.errorMessage = nil; set with true does nothing"
+     "effect": "clears storeKit.errorMessage; true does nothing"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "interactiveDismissDisabled only affects sheet swipe-dismiss, but the gate is presented as a fullScreenCover (cannot be swiped away anyway) and the Settings/More entries push it with NavigationLink; the comment at lines 76-82 describes a non-dismissible 'sheet'. The modifier is a no-op in every current presentation; the real escape is continueWithAccessButton.",
-     "evidence": [
-      "Emuqu/Sources/Views/PaywallView.swift:86",
-      "Emuqu/Sources/Views/PaywallView.swift:76",
-      "Emuqu/EmuquApp.swift:332",
-      "Emuqu/EmuquApp.swift:352",
-      "Emuqu/Sources/Views/PaywallView.swift:686",
-      "Emuqu/Sources/Views/MoreMenuView.swift:78"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "hack",
-     "sev": "low",
-     "text": "Unconditional NSLog calls (onAppear here, two in loadProducts) ship in release builds and write to the unified log on every paywall show, unlike the rest of the store code which uses debugLog.",
-     "evidence": [
-      "Emuqu/Sources/Views/PaywallView.swift:87",
-      "Emuqu/Sources/Views/PaywallView.swift:103",
-      "Emuqu/Sources/Views/PaywallView.swift:105",
-      "Emuqu/Sources/Services/StoreKitManager.swift:262"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorMessage(from:)": "bc3a2c0e8f35a1b9",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/StoreKitManager.swift::var hasActiveAccess": "06ce3985fbd581c7",
-    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.loadProducts()": "4e04365b5f1743db",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.loadProducts()": "2cab41a221fa02fb",
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.paywallErrorActions": "c7168d7015e1e77e",
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.paywallErrorMessage": "d71bc591e785c853",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
@@ -229,11 +203,12 @@
   },
   {
    "key": "func PaywallView.loadProducts()",
-   "hash": "9ddff5b563dbe3b0",
-   "does": "NSLogs, awaits storeKit.loadProducts() (fetches the unlock and trial Products; no-op when paywallEnabled is false), NSLogs again.",
+   "hash": "dd94be56de023a9e",
+   "does": "debugLogs, awaits storeKit.loadProducts() (fetches the unlock and trial Products; no-op when paywallEnabled is false), debugLogs again.",
    "entry": ".task on the paywall chrome (line 88)",
    "calls": [
-    "Emuqu/Sources/Services/StoreKitManager.swift::func loadProducts()"
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loadProducts()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
    "writes": [
@@ -246,7 +221,8 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::func loadProducts()": "44d0e6cc3ae26171"
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loadProducts()": "44d0e6cc3ae26171",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
@@ -519,8 +495,8 @@
   },
   {
    "key": "var PaywallView.trialTerms",
-   "hash": "90eef2d9cefb2f7a",
-   "does": "Caption above the trial button: full trial terms (30 days, locks after, price, never charges) when the trial is offered and both products are loaded; otherwise, if the trial has ended, the 'Your free trial has ended…' caption; otherwise nothing.",
+   "hash": "18387017b2e9ccc9",
+   "does": "Caption above the trial button: full trial terms (30 days, locks after, price, never charges) when the trial is offered and both products are loaded; otherwise, if the trial has ended and no trial is on offer, the 'Your free trial has ended…' caption (never beside a trial retry that would offer a fresh one); otherwise nothing.",
    "entry": "SwiftUI view-body evaluation (composed into PaywallView.body)",
    "calls": [
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.offersTrial",
@@ -535,30 +511,17 @@
    "writes": [],
    "branches": [
     {
-     "at": "+2",
-     "cond": "offersTrial && trialProduct loaded && unlock product price available",
-     "effect": "shows trialTermsText(price) caption (id paywall.trialTerms)"
+     "at": "+1",
+     "cond": "offersTrial && trialProduct loaded && unlock price available",
+     "effect": "trial terms caption (id paywall.trialTerms)"
     },
     {
-     "at": "+5",
-     "cond": "else trialHasEnded (no active access and a local trial start exists)",
-     "effect": "shows the trial-ended caption; otherwise nothing"
+     "at": "+4",
+     "cond": "trialHasEnded && !offersTrial",
+     "effect": "trial-ended caption; otherwise nothing"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "When the offer is .trialAndUnlock (StoreKit says this Apple ID has no trial transaction) but trialProduct failed to load and a local trial start from an earlier build/Apple ID has expired, the screen shows 'Your free trial has ended' while the trial slot offers a retry that, once it succeeds, offers a fresh trial — contradictory messaging in that narrow case.",
-     "evidence": [
-      "Emuqu/Sources/Views/PaywallView.swift:311",
-      "Emuqu/Sources/Views/PaywallView.swift:314",
-      "Emuqu/Sources/Views/PaywallView.swift:478",
-      "Emuqu/Sources/Services/PaywallGatePolicy.swift:70"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.bottomCaption(_:)": "fb1757a57cf04d78",
@@ -631,7 +594,7 @@
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.purchaseButtons": "a8179d2a24d3fd5a",
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.skipDebugButton": "a11dcdf4fa2e5535",
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.trialButton": "600448ed2d189c2f",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.trialTerms": "3faeed22e6626be4",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.trialTerms": "4d3bb73511e5d9f0",
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.unlockedNote": "d6c61af6d1ec8345"
    }
   },
@@ -1313,18 +1276,7 @@
      "effect": "true: section shown; false: nothing"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "paywallEnabled is `static let paywallEnabled = true`, so the hidden-section path is compile-time unreachable in the shipped code.",
-     "evidence": [
-      "Emuqu/Sources/Views/PaywallView.swift:645",
-      "Emuqu/Sources/Services/StoreKitManager.swift:138"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/PaywallView.swift::var PurchaseStatusView.purchaseStatusRow": "a27a41a48d613d9c"

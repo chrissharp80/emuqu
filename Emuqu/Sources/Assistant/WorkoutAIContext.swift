@@ -108,7 +108,7 @@ struct WorkoutAIContext: Equatable {
     /// Current weather at the user's GPS coordinate. Refreshed every
     /// ~30 minutes during the workout (workout start + every 1800s tick).
     /// Nil when no fix yet, weather fetch failed, or workout is indoor.
-    /// Not emitted by `asFactSheet()`.
+    /// Emitted by `asFactSheet()` (`weatherLines`).
     let weather: WeatherSnapshot?
 
     struct WeatherSnapshot: Equatable {
@@ -329,10 +329,12 @@ struct WorkoutAIContext: Equatable {
     // MARK: Target
 
     /// User-selected target zone for this workout (1–5). Nil = no target set,
-    /// in which case zone-based trigger rules stay silent. When present, the
-    /// voice coach will gently nudge the user back to zone if they drift
-    /// above or below it for a sustained period (not single-tick, not
-    /// rare spikes).
+    /// in which case the zone-drift trigger rules don't fire. When present,
+    /// `zone.drifted.high` / `zone.drifted.low` test each tick's HR against
+    /// the zone's band (once the workout is 1 / 3 minutes in) with a 2.5-min
+    /// cooldown. Both are `.silent`: they are recorded in the trigger
+    /// engine's history and nothing is spoken. The fact sheet carries it as
+    /// `targetZone=`.
     let targetZone: Int?
 
     /// User-defined hard thresholds for ambient coaching. The user pre-sets
@@ -441,6 +443,7 @@ struct WorkoutAIContext: Equatable {
             alpha1Lines(),
             motionLines(),
             terrainLines(),
+            weatherLines(),
             equipmentLines(),
             targetLines(),
             liveTrendLines(),
@@ -595,6 +598,24 @@ struct WorkoutAIContext: Equatable {
         if let grade = currentGradePercent { out.append(String(format: "currentGradePercent=%.1f", grade)) }
         if let climb = upcomingClimb {
             out.append(String(format: "upcomingClimbM=%.0f@%.1fpct", climb.distanceMeters, climb.gradePercent))
+        }
+        return out
+    }
+
+    /// Fact-sheet section: weather at the user's position, in the units the
+    /// weather service reports (°C, km/h, degrees true), so "is it raining?"
+    /// or "how hot is it?" answers from the observation rather than a guess.
+    private func weatherLines() -> [String] {
+        guard let weather else { return [] }
+        var out = [
+            String(format: "weatherTemperatureC=%.0f", weather.temperatureC),
+            String(format: "weatherWindKMH=%.0f", weather.windKMH),
+            String(format: "weatherWindDirectionDeg=%.0f", weather.windDirectionDegrees),
+            String(format: "weatherHumidityPercent=%.0f", weather.humidityPercent),
+            "weatherConditions=\(weather.conditions)"
+        ]
+        if let apparent = weather.apparentTemperatureC {
+            out.append(String(format: "weatherApparentTemperatureC=%.0f", apparent))
         }
         return out
     }

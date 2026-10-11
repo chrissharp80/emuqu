@@ -16,8 +16,11 @@ import Foundation
 ///   no "go hard". The ratio counts only once the chronic load reaches the
 ///   level at which the readiness model trusts it (`ctlThreshold`); below
 ///   that one walk swings it.
-/// - Training-load balance (CTL − ATL) at −15 or lower is heavy accumulated
-///   fatigue, an easier session whatever the ratio.
+/// - Training-load balance (CTL − ATL) below −15 is heavy accumulated
+///   fatigue, an easier session whatever the ratio. The line is the
+///   trajectory's high-strain line (`TrajectoryVerdict.deepFatigueOverreachTSB`,
+///   the Working → Tired form boundary), so the advice and the trajectory chip
+///   change together.
 /// - The Foster (1998) monotony warning (`FosterMonotonyWarning`, the rule
 ///   Load & Trajectory and the Training Load screen use) holds the push: a
 ///   heavy week of very same-y training is the accumulated-fatigue pattern.
@@ -33,16 +36,15 @@ enum TrainingAdviceGate {
         var strain: Double?
     }
 
-    /// How far the load lets today's advice go, mildest first.
-    enum LoadLevel: Int, Comparable, Sendable {
+    /// How far the load lets today's advice go, mildest first. Callers
+    /// compare levels for equality only.
+    enum LoadLevel: Int, Sendable {
         /// Nothing in the load argues against a hard day.
         case clear
         /// Normal training is fine; no "go hard".
         case holdPush
         /// An easier session helps the body absorb the work.
         case easier
-
-        static func < (lhs: Self, rhs: Self) -> Bool { lhs.rawValue < rhs.rawValue }
     }
 
     /// Why the load holds the advice back, for the surfaces that explain it.
@@ -60,8 +62,8 @@ enum TrainingAdviceGate {
         static let clear = Assessment(level: .clear, reasons: [])
     }
 
-    /// TSB at or below this is heavy accumulated fatigue.
-    static let heavyFatigueTSB = -15.0
+    /// TSB below this is heavy accumulated fatigue.
+    static let heavyFatigueTSB = TrajectoryVerdict.deepFatigueOverreachTSB
 
     // MARK: - Decision
 
@@ -98,7 +100,7 @@ enum TrainingAdviceGate {
     }
 
     private static func fatigueReasons(_ load: Load) -> [Reason] {
-        guard let tsb = load.tsb, tsb.isFinite, tsb <= heavyFatigueTSB else { return [] }
+        guard let tsb = load.tsb, tsb.isFinite, tsb < heavyFatigueTSB else { return [] }
         return [.heavyFatigue]
     }
 
@@ -119,6 +121,9 @@ extension TrainingAdviceGate.Load {
     }
 
     /// A session's frozen training context, for advice about that morning.
+    /// The context stores no daily TRIMP, so it carries no Foster monotony or
+    /// strain and can never raise `.monotonous`, which a live load for the
+    /// same week may.
     init(context: TrainingContext) {
         self.init(acwr: context.acuteChronicRatio, ctl: context.ctl, tsb: context.tsb, monotony: nil, strain: nil)
     }
@@ -143,10 +148,14 @@ extension TrainingAdviceGate.Load {
 
 extension TrainingAdviceGate.Assessment {
     /// One sentence naming the load reason that matters most, in `bundle`'s
-    /// language. Nil when the load is clear.
+    /// language. Nil when the load is clear. An easier day from a sharp ratio
+    /// increase names the load; one from heavy fatigue alone names the
+    /// fatigue, since the ratio may be within the usual range.
     func reasonLine(bundle: Bundle) -> String? {
         if level == .easier {
-            return String(localized: "Recent load is above your usual range — a lighter session helps you absorb the work.", bundle: bundle)
+            return reasons.contains(.sharpIncrease)
+                ? String(localized: "Recent load is above your usual range — a lighter session helps you absorb the work.", bundle: bundle)
+                : String(localized: "Carrying significant fatigue — consider a lighter session", bundle: bundle)
         }
         if reasons.contains(.aboveUsual) {
             return String(localized: "Recent load is above average — listen to your body.", bundle: bundle)

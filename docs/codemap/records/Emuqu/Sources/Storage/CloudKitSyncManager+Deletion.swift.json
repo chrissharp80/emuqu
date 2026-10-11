@@ -115,7 +115,7 @@
     "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.deleteCustomZonesOnce()": "0426945a3e30ef4d",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.remoteDeletionSucceeded(_:)": "6720aa1d0c2b20fa",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::var CloudDeletionCoordinator.allCustomZoneIDs": "4197c0ee35846f64",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.withTimeoutResult(seconds:operation:)": "5a13564cc987fdbc",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.withTimeoutResult(seconds:operation:)": "9d9f53d6c6cb5f26",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.resetLocalSyncState()": "68bf143978c6bac0",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
@@ -310,13 +310,13 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.flagRecordDeleted(_:)": "8e61b42ed755d373",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.flagRecordDeleted(_:)": "eb4887009d453a15",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.noteTombstoneConfirmed(_:)": "61d3e05ba91828cd",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.ensureZoneExists()": "2c8e5502f2210d3a",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.ensureZoneExists()": "ebb1292d51647262",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.flagSchemaUnavailable(reason:)": "0c7a2d7f90ef31a3",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPermanentSchemaError(_:)": "087e62a749fe1de1",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.trashRestore": "c06a7370dc0f2a56",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markDeleted(_:)": "5423f0d392aeff36",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markDeleted(_:)": "6392ca5f0e9c18b2",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncState()": "4b9d91d2dd778a9c",
     "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.adoptFromAnotherDevice(_:)": "f830825f449094f6",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
@@ -324,8 +324,8 @@
   },
   {
    "key": "func CloudDeletionCoordinator.flagRecordDeleted(_:)",
-   "hash": "3b508077db0c4952",
-   "does": "Fetches the session's CKRecord; returns false if it carries a restore marker newer than this device's recorded deletion time; returns true if already isDeleted == 1; else sets isDeleted = 1, removes sessionData and saves. If the record does not exist, saves a bare tombstone and returns true.",
+   "hash": "af8316c5f196219b",
+   "does": "Fetches the session's CKRecord; returns false if it carries a restore marker newer than this device's recorded deletion time (seen at once, even before its UserDefaults write lands); returns true if already a tombstone with no payload; else sets isDeleted = 1, removes sessionData (also clearing the payload older builds left on tombstones) and saves. If the record does not exist, saves a bare tombstone and returns true.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB",
@@ -351,8 +351,8 @@
     },
     {
      "at": "+9",
-     "cond": "record already isDeleted == 1",
-     "effect": "returns true without rewrite (sessionData left as is)"
+     "cond": "record already isDeleted == 1 and has no sessionData",
+     "effect": "returns true without rewrite; a tombstone still holding sessionData is rewritten without it"
     },
     {
      "at": "+17",
@@ -360,33 +360,10 @@
      "effect": "saveNewTombstone and true; other errors propagate"
     }
    ],
-   "flags": [
-    {
-     "kind": "privacy",
-     "sev": "low",
-     "text": "A tombstone already flagged isDeleted == 1 by an older build is returned as done without clearing its sessionData, so encrypted payloads of deleted sessions written before the clearing was added stay in iCloud and are re-checked daily without being removed.",
-     "evidence": [
-      "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift:179",
-      "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift:181",
-      "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift:184"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "deletionTime is written asynchronously on a dispatch queue (ArchiveStore.recordDeletionTime); if this fetch completes first, deletedAt is nil and any restore marker wins, undoing the user's fresh deletion via adoptFromAnotherDevice.",
-     "evidence": [
-      "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift:174",
-      "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift:71",
-      "Emuqu/Sources/Storage/Archive+Internal.swift:755"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "d095a70f8795f9e9",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "7c257547ad1cd2d2",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.deletionTime(of:)": "1fa5c41fa1184a82",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.saveNewTombstone(_:recordID:)": "ddf58cd255e0a8ef",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB": "0472c6d550eaafca",

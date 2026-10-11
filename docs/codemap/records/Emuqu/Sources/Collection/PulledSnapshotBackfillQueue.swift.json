@@ -75,8 +75,8 @@
   },
   {
    "key": "func PulledSnapshotBackfillQueue.deferring(_:)",
-   "hash": "8ffc62313cdb52a3",
-   "does": "For ids Health had nothing for: increments each id's miss counter; ids below maxAttempts are moved to the back of the queue, ids reaching maxAttempts are dropped from the queue and their counter removed.",
+   "hash": "9f34afc9212bd25b",
+   "does": "For ids Health had nothing for that are still queued (ids removed meanwhile, e.g. by Delete All My Data, are ignored and never written back): increments each id's miss counter; ids below maxAttempts are moved to the back of the queue, ids reaching maxAttempts are dropped from the queue and their counter removed.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.storedAttempts()",
@@ -93,45 +93,32 @@
    ],
    "branches": [
     {
-     "at": "+1",
-     "cond": "ids is empty",
+     "at": "+3",
+     "cond": "none of the ids is still queued",
      "effect": "returns with no writes"
     },
     {
-     "at": "+4",
-     "cond": "for each deferred id",
+     "at": "+6",
+     "cond": "for each deferred id still queued",
      "effect": "computes count = previous+1"
     },
     {
-     "at": "+5",
+     "at": "+7",
      "cond": "attempts[id] ?? 0",
      "effect": "no counter yet → treated as 0 so first miss gives 1"
     },
     {
-     "at": "+6",
+     "at": "+8",
      "cond": "count < maxAttempts (5) ?:",
      "effect": "true: stores count; false: removes counter (id given up)"
     },
     {
-     "at": "+7",
+     "at": "+9",
      "cond": "count < maxAttempts",
      "effect": "true: id appended to retry (re-queued at back); false: id dropped from queue permanently"
     }
    ],
-   "flags": [
-    {
-     "kind": "race",
-     "sev": "low",
-     "text": "deferring re-appends every missed id to the stored queue whether or not it is still there: if Delete All My Data sweeps UserDefaults (removing cloudkit.pendingSnapshotBackfill) while backfillPass is suspended, the pass's removing/deferring calls afterwards write the purged session ids back into the queue.",
-     "evidence": [
-      "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift:51",
-      "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift:520",
-      "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift:522",
-      "Emuqu/Sources/Services/DataPurgeService.swift:197"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.save(_:)": "61376b2a000f9ed9",
     "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.stored()": "8a0406aca10066ee",

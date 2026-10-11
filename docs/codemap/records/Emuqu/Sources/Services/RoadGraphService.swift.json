@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Services/RoadGraphService.swift",
- "hash": "691faa243c4997c4",
+ "hash": "e3474f54f860c8f7",
  "role": "Actor that fetches and caches OSM road-graph tiles (250 m cells, 800 m Overpass radius) for road awareness, cross-street lookup and saved-route naming.",
  "types": [
   "RoadGraphService: actor — OSM tile cache",
@@ -14,8 +14,7 @@
  "state": [
   "mem:RoadGraphService.cache (≤64 tiles)",
   "mem:RoadGraphService.inflight",
-  "mem:RoadGraphService.lastRequestAt",
-  "constants: 250 m cell, 800 m radius, 6 h TTL, 10 min empty TTL, 1.1 s gap, 8 s timeout",
+  "constants: 250 m cell, 800 m radius, 6 h TTL, 10 min empty TTL, 8 s timeout (request spacing is OverpassClient's 1.1 s)",
   "overpass: OverpassClient (shared with TrailDiscoveryService; instance created in AppDependencies.swift:635)"
  ],
  "toplevel": "Header comment documents the throttle policy; the Overpass decodable structs use synthesized Codable.",
@@ -46,29 +45,6 @@
    "deps": {}
   },
   {
-   "key": "var RoadGraphService.Point.coord",
-   "hash": "abc2baab82d5089a",
-   "does": "Converts a Point to CLLocationCoordinate2D.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No reader: every '.coord' use in the repo is GraphNode.coord (a Point) read as .lat/.lon, or hit.coord typed as Point in RoadAwarenessEngine; Point.coord itself is never accessed.",
-     "evidence": [
-      "Emuqu/Sources/Services/RoadGraphService.swift:140",
-      "Emuqu/Sources/Services/RoadAwarenessEngine.swift:395"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
-  },
-  {
    "key": "init RoadGraphService(overpass:)",
    "hash": "6170e41976162f10",
    "does": "Stores the shared OverpassClient.",
@@ -82,8 +58,8 @@
   },
   {
    "key": "func RoadGraphService.tile(for:)",
-   "hash": "4c3aed9b43418e0f",
-   "does": "Returns the road-graph tile for the 250 m cell containing a coordinate: a cached tile within TTL (6 h, or 10 min if empty); else joins an in-flight fetch for the cell; else, inside 1.1 s of the last request, returns whatever is cached (possibly expired or nil); else fetches, coalescing via inflight.",
+   "hash": "059a658861b80ec6",
+   "does": "Returns the road-graph tile for the 250 m cell containing a coordinate: a cached tile within TTL (6 h, or 10 min if empty); else joins an in-flight fetch for the cell; else fetches (waiting its turn in OverpassClient, which spaces requests 1.1 s apart), coalescing via inflight. Nil when the fetch fails or the reply is incomplete.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.cellKey(latitude:longitude:)",
@@ -91,8 +67,7 @@
    ],
    "reads": [
     "mem:RoadGraphService.cache",
-    "mem:RoadGraphService.inflight",
-    "mem:RoadGraphService.lastRequestAt"
+    "mem:RoadGraphService.inflight"
    ],
    "writes": [
     "mem:RoadGraphService.inflight",
@@ -113,30 +88,13 @@
      "at": "+6",
      "cond": "fetch for this cell already in flight",
      "effect": "await and return its result"
-    },
-    {
-     "at": "+7",
-     "cond": "last request <1.1 s ago",
-     "effect": "return cache[cell] (expired tile or nil) without fetching"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "Inside the 1.1 s gap the call returns nil instead of waiting, so sequential lookups that enter a new cell right after a fetch (SavedRouteStepBuilder.resolveNames, cross-street lookup alongside RoadAwarenessEngine) get no tile. Saved-route turns in a second cell come back unnamed even though the builder's doc says new tiles 'fetch sequentially under the 1.1 s OSM throttle'.",
-     "evidence": [
-      "Emuqu/Sources/Services/RoadGraphService.swift:206",
-      "Emuqu/Sources/Services/RoadGraphService.swift:207",
-      "Emuqu/Sources/Services/SavedRouteStepBuilder.swift:34",
-      "Emuqu/Sources/Services/SavedRouteStepBuilder.swift:178"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "428ceef7932431a2",
     "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.cellKey(latitude:longitude:)": "825f6c17037e0691",
-    "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.fetchTile(cellKey:centerLat:centerLon:cellLatIndex:cellLonIndex:)": "83f74b14faa3ed8a"
+    "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.fetchTile(cellKey:centerLat:centerLon:cellLatIndex:cellLonIndex:)": "fd9137d5197e68d3"
    }
   },
   {
@@ -180,8 +138,8 @@
   },
   {
    "key": "func RoadGraphService.fetchTile(cellKey:centerLat:centerLon:cellLatIndex:cellLonIndex:)",
-   "hash": "a6fb7b6c48451953",
-   "does": "Stamps lastRequestAt, POSTs the Overpass query (800 m around the cell centre, 8 s timeout) via OverpassClient; on error logs and returns nil; parses; caches a parsed tile, evicts overflow, logs and returns it.",
+   "hash": "6cf0f916c60af50f",
+   "does": "POSTs the Overpass query (800 m around the cell centre, 8 s timeout) via OverpassClient; on error logs and returns nil; parses; caches a parsed tile, evicts overflow, logs and returns it.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.buildQuery(centerLat:centerLon:radiusMeters:)",
@@ -192,30 +150,30 @@
    ],
    "reads": [],
    "writes": [
-    "mem:RoadGraphService.lastRequestAt",
     "mem:RoadGraphService.cache",
     "net:Overpass (overpass.private.coffee / overpass-api.de)"
    ],
    "branches": [
     {
-     "at": "+13",
+     "at": "+12",
      "cond": "overpass.post throws (catch)",
      "effect": "error logged, nil returned; nothing cached so the next call refetches"
     },
     {
-     "at": "+17",
+     "at": "+16",
      "cond": "parse returns nil (decode error / remark)",
      "effect": "return nil, nothing cached"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.post(query:timeout:cacheFor:)": "002bbc2e1b1b76cd",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "428ceef7932431a2",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.post(query:timeout:cacheFor:)": "1e42ef5fe163e390",
     "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.buildQuery(centerLat:centerLon:radiusMeters:)": "dd35c218602d5bd8",
     "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.cellKey(latitude:longitude:)": "825f6c17037e0691",
     "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.evictOldestTilesIfNeeded()": "4175882ec5c7c5a5",
     "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.parse(data:cellLatIndex:cellLonIndex:centerLat:centerLon:)": "ebce40fdb89adbfb",
-    "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.tile(for:)": "2e08747508278555",
+    "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.tile(for:)": "fd87f5d717cc65f4",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },

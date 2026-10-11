@@ -12,8 +12,8 @@
  "units": [
   {
    "key": "func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
-   "hash": "4dcdc17840c94db8",
-   "does": "Returns DFAResult for >=64 RR intervals: integrates the series, builds log-spaced box sizes for alpha1 (4..min(16,n/4)) and alpha2 (16..min(64,n/4)), regresses log F(n) on log n for alpha1, and adds alpha2 only when alpha2Exponent allows; nil when fewer than 64 beats or fewer than 3 alpha1 box sizes.",
+   "hash": "b1e3a725c6459428",
+   "does": "Returns DFAResult for >=64 RR intervals: integrates the series, builds log-spaced box sizes for alpha1 (4..min(16,n/4)) and alpha2 (16..min(64,n/4)), regresses log F(n) on log n for alpha1, and adds alpha2 only when alpha2Exponent allows; nil when fewer than 64 beats, fewer than 3 alpha1 box sizes, or the alpha1 regression has no exponent (a degenerate series such as constant intervals).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)",
@@ -33,31 +33,21 @@
     {
      "at": "+14",
      "cond": "alpha1Sizes.count >= 3",
-     "effect": "false: returns nil; true: computes alpha1. With default ranges and n>=64, maxBox>=16 so sizes 4..16 always give >=3 entries; only a custom alpha1Range (test DFAAnalysisTests.swift:139) can hit false"
-    }
-   ],
-   "flags": [
+     "effect": "false: returns nil (reachable through a narrow custom alpha1Range); true: computes alpha1"
+    },
     {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "With the default alpha1 range the alpha1Sizes.count >= 3 guard can never fail because the earlier rr.count >= 64 guard makes maxBox >= 16; only the test's custom range exercises it.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/DFAAnalysis.swift:34",
-      "Emuqu/Sources/Analysis/DFAAnalysis.swift:40",
-      "Emuqu/Sources/Analysis/DFAAnalysis.swift:43",
-      "EmuquTests/DFAAnalysisTests.swift:139"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+16",
+     "cond": "logLogRegression nil",
+     "effect": "returns nil (no alpha1 exponent)"
     }
    ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)": "3fe033cde5824936",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)": "ff10fadb59725343",
     "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)": "5e2d210eaaa5ec53",
     "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "2016475f9338aaaf",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "122daaa56131b662",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "6da94147dc9db2eb",
-    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.lowerBound": "42532e07486db197",
-    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.upperBound": "cc499f4494650948"
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "40d4e06584f15088",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "6da94147dc9db2eb"
    }
   },
   {
@@ -82,8 +72,8 @@
   },
   {
    "key": "func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)",
-   "hash": "26b2ffc77a302e7a",
-   "does": "Alpha2 exponent and R²: nil unless there are >=3 alpha2 box sizes and >=256 beats; otherwise log-log regression over those sizes.",
+   "hash": "a63c1b61d957d0bb",
+   "does": "Alpha2 exponent and R²: nil unless there are >=3 alpha2 box sizes and >=256 beats and the log-log regression yields an exponent.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)",
@@ -95,13 +85,13 @@
     {
      "at": "+5",
      "cond": "alpha2Sizes.count >= 3 && beatCount >= 256",
-     "effect": "false: returns nil (DFAResult.alpha2/alpha2R2 nil); true: returns (slope, r2)"
+     "effect": "false: returns nil (DFAResult.alpha2/alpha2R2 nil); true: the regression's (slope, r2), or nil when it has none"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)": "5e2d210eaaa5ec53",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "122daaa56131b662"
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "40d4e06584f15088"
    }
   },
   {
@@ -216,8 +206,8 @@
   },
   {
    "key": "func DFAAnalyzer.logLogRegression(sizes:fluctuations:)",
-   "hash": "47286672d8e61675",
-   "does": "Regresses log(fluctuation) on log(box size) via Statistics.linearRegression; zero fluctuations become log value -10; returns (0,0) for <2 sizes or a failed regression.",
+   "hash": "18a0c4df58706677",
+   "does": "Regresses log(fluctuation) on log(box size) via Statistics.linearRegression over the box sizes with a positive fluctuation (a zero one has no logarithm and is left out); nil when fewer than two remain or the regression fails, rather than an exponent of 0.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)"
@@ -227,33 +217,16 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "n >= 2",
-     "effect": "false: returns (0,0); true: continues"
+     "cond": "fewer than two positive fluctuations",
+     "effect": "nil"
     },
     {
      "at": "+5",
-     "cond": "fluctuation > 0 ?:",
-     "effect": "true: log(F); false: sentinel -10.0"
-    },
-    {
-     "at": "+7",
-     "cond": "linearRegression non-nil",
-     "effect": "false: returns (0,0) — alpha 0 reported as a value, not nil; true: (slope, r2)"
+     "cond": "linearRegression nil",
+     "effect": "nil; else (slope, r2)"
     }
    ],
-   "flags": [
-    {
-     "kind": "hack",
-     "sev": "low",
-     "text": "A zero fluctuation is replaced by the magic log value -10 and a failed regression returns alpha 0 with R² 0 rather than nil, so a degenerate (constant) series reports alpha1 = 0 as a real exponent to callers.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/DFAAnalysis.swift:164",
-      "Emuqu/Sources/Analysis/DFAAnalysis.swift:167",
-      "Emuqu/Sources/Analysis/DFAAnalysis.swift:45"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "0849ec6ef37bc3ef"
    }

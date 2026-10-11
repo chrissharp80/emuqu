@@ -49,9 +49,8 @@
    "deps": {
     "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)": "52219c5df437cf7d",
     "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.backgroundAggregateQueryTimeoutSec": "00a18740404fa9ba",
-    "Emuqu/Sources/Collection/HealthKitManager+Heat.swift::func HealthKitManager.heatInputs(from:)": "3787598bd73d831d",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "6a80ac7c585d4e2f",
-    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+    "Emuqu/Sources/Collection/HealthKitManager+Heat.swift::func HealthKitManager.heatInputs(from:)": "2cb067915cb57b05",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "6a80ac7c585d4e2f"
    }
   },
   {
@@ -77,28 +76,17 @@
      "effect": "dropped (nil from compactMap); otherwise converted to a HeatWorkoutInput"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Swimming is in outdoorCapableTypes and only HKMetadataKeyIndoorWorkout is consulted, so a pool swim (Apple records pool vs open water in HKMetadataKeySwimmingLocationType, not the indoor flag) without an indoor flag counts as outdoor heat exposure.",
-     "evidence": [
-      "Emuqu/Sources/Collection/HealthKitManager+Heat.swift:62",
-      "Emuqu/Sources/Collection/HealthKitManager+Heat.swift:76"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+Heat.swift::func HealthKitManager.isOutdoorWorkout(_:)": "51e125904c8c3988",
+    "Emuqu/Sources/Collection/HealthKitManager+Heat.swift::func HealthKitManager.isOutdoorWorkout(_:)": "eca27707e66eae97",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutWeatherSnapshot(healthKitMetadata:observedAt:)": "9e97f23c0995ddd9",
     "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.metadata(powerTSS:hrTSS:mets:luciaTRIMP:extrapolatedTRIMP:)": "ff28774b93800246"
    }
   },
   {
    "key": "func HealthKitManager.isOutdoorWorkout(_:)",
-   "hash": "48361999cfe85ca1",
-   "does": "Returns !indoor when the workout metadata carries HKMetadataKeyIndoorWorkout as Bool; otherwise returns whether the activity type is in outdoorCapableTypes.",
+   "hash": "260203ff6658b24d",
+   "does": "Returns !indoor when the workout metadata carries HKMetadataKeyIndoorWorkout as Bool; else, for a swim carrying HKMetadataKeySwimmingLocationType, whether it was open water (a pool swim is not heat exposure); otherwise whether the activity type is in outdoorCapableTypes.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -107,11 +95,23 @@
     {
      "at": "+1",
      "cond": "metadata has HKMetadataKeyIndoorWorkout Bool",
-     "effect": "returns !indoor; else falls back to outdoorCapableTypes.contains(activityType)"
+     "effect": "returns !indoor"
+    },
+    {
+     "at": "+6",
+     "cond": "metadata has a swimming location type",
+     "effect": "returns location == openWater"
+    },
+    {
+     "at": "+12",
+     "cond": "neither key",
+     "effect": "outdoorCapableTypes.contains(activityType)"
     }
    ],
    "flags": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::var AnthropicProvider.RequestBody.ToolDecl.AnyKey.intValue": "5b3e3e88bcb958f6"
+   }
   }
  ],
  "deps": {}

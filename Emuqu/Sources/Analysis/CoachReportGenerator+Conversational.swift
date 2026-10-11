@@ -11,47 +11,19 @@ import Foundation
 // reach across files.
 
 extension CoachReportGenerator {
+    /// How many past workouts the comparison may decode: it reads at most 30
+    /// same-sport sessions, so decoding the whole archive would be wasted work.
+    static let historyLimit = 120
+
     /// Short, conversational coach voice — used as the body of the
     /// auto Coach Report email. Pairs with the PDF attachment
     /// (WorkoutPDFReport) so the user gets a quick read inline plus
     /// the full clinical breakdown attached. The caller appends
     /// `pdfFootnote` only when the PDF is actually attached.
     ///
-    /// Only the most recent `historyLimit` workouts are decoded: the
-    /// comparison reads at most 30 same-sport sessions, so decoding the whole
-    /// archive was wasted work.
-    static func renderConversationalSummary(
-        session: HRVSession,
-        archive: SessionArchive?,
-        units: UnitsPreference,
-        userMaxHR: Int,
-        userRestingHR: Int
-    ) -> String {
-        renderConversationalSummary(
-            session: session,
-            pastWorkouts: archive.map { recentPastWorkouts(in: $0, excluding: session.id) } ?? [],
-            units: units,
-            userMaxHR: userMaxHR,
-            userRestingHR: userRestingHR
-        )
-    }
-
-    /// How many past workouts the comparison may decode.
-    static let historyLimit = 120
-
-    /// The newest past workouts, newest first, decoded lightweight.
-    static func recentPastWorkouts(in archive: SessionArchive, excluding id: UUID) -> [HRVSession] {
-        archive.entries
-            .filter { $0.sessionType == .workout && $0.sessionId != id }
-            .sorted { $0.date > $1.date }
-            .prefix(historyLimit)
-            .compactMap { archive.retrieveLightweightOrLog($0.sessionId, caller: "CoachReportGenerator") }
-    }
-
-    /// Pre-fetched-history entry point. Lets callers (notably the
-    /// post-workout email scheduler) walk the archive once on the
-    /// MainActor and then run the rendering itself on a detached task,
-    /// instead of holding MainActor for the whole render.
+    /// Takes the history already fetched: the post-workout email scheduler
+    /// picks the newest `historyLimit` workouts from the archive index on the
+    /// MainActor and decodes and renders on a detached task.
     ///
     /// The list below is the report's running order. `nil` means "this
     /// section had nothing to say" and drops out.
@@ -91,7 +63,8 @@ extension CoachReportGenerator {
         )
     }
 
-    /// "# Run — Tuesday, 3 June 2026 at 07:14\n\n5.20 km on **River Loop**, 28:40."
+    /// "**Run — Tuesday, 3 June 2026 at 07:14**\n\n5.20 km on **River Loop**, 28:40."
+    /// A bold line rather than a Markdown heading: the email body is prose.
     static func summaryHeadline(
         session: HRVSession,
         meta: WorkoutMetadata,
@@ -108,23 +81,34 @@ extension CoachReportGenerator {
         } else {
             String(localized: "\(dist), \(dur).", bundle: LanguageManager.appBundle)
         }
-        return "# \(meta.sport.localizedName) — \(dateFormatter.string(from: session.startDate))\n\n\(line)"
+        return "**\(meta.sport.localizedName) — \(dateFormatter.string(from: session.startDate))**\n\n\(line)"
     }
 
-    static func openingVerdict(session _: HRVSession, meta: WorkoutMetadata, userMaxHR: Int) -> String {
-        let hrSamples = (meta.samples ?? []).compactMap { $0.heartRate }
-        let avgHR = hrSamples.isEmpty ? nil : Double(hrSamples.reduce(0, +)) / Double(hrSamples.count)
-        let pct = (avgHR.map { userMaxHR > 0 ? $0 / Double(userMaxHR) : 0 }) ?? 0
+    /// The intensity verdict needs a heart rate and a max HR; without them it
+    /// is left out rather than read as 0 % of max ("easy"). Nil when neither
+    /// HR nor α1 was recorded.
+    static func openingVerdict(session _: HRVSession, meta: WorkoutMetadata, userMaxHR: Int) -> String? {
         let alphas = (meta.samples ?? []).compactMap { $0.alpha1 }
         let avgAlpha = alphas.isEmpty ? nil : alphas.reduce(0, +) / Double(alphas.count)
-        let label = intensityLabel(percentOfMax: pct)
-        var sentences = [String(localized: "**Verdict:** \(label).", bundle: LanguageManager.appBundle)]
-        if let avg = avgHR, userMaxHR > 0 {
+        var sentences: [String] = []
+        if let avg = meanHeartRate(meta), userMaxHR > 0 {
+            let pct = avg / Double(userMaxHR)
+            let label = intensityLabel(percentOfMax: pct)
             let bpm = Int(round(avg)), pctOfMax = Int(round(pct * 100))
+            sentences.append(String(localized: "**Verdict:** \(label).", bundle: LanguageManager.appBundle))
             sentences.append(String(localized: "You averaged \(bpm) bpm, \(pctOfMax)% of your max.", bundle: LanguageManager.appBundle))
         }
         if let alphaSentence = alpha1Verdict(avgAlpha) { sentences.append(alphaSentence) }
-        return sentences.joined(separator: " ")
+        return sentences.isEmpty ? nil : sentences.joined(separator: " ")
+    }
+
+    /// Mean of the session's heart-rate samples, ignoring the zeros a strap
+    /// dropout records (as `WorkoutHistoryBaselines` does for the baseline).
+    /// Nil without a positive sample.
+    static func meanHeartRate(_ meta: WorkoutMetadata) -> Double? {
+        let hrs = (meta.samples ?? []).compactMap { $0.heartRate }.filter { $0 > 0 }
+        guard !hrs.isEmpty else { return nil }
+        return Double(hrs.reduce(0, +)) / Double(hrs.count)
     }
 
     static func intensityLabel(percentOfMax pct: Double) -> String {
@@ -290,8 +274,9 @@ extension CoachReportGenerator {
     }
 
     /// Like-for-like comparison against previous laps of the same recognised
-    /// route, where terrain is identical and the read is therefore cleaner than
-    /// the sport-wide baseline above.
+    /// route in the same sport, where terrain is identical and the read is
+    /// therefore cleaner than the sport-wide baseline above. A ride on the
+    /// route a run is compared with is not a lap of it.
     static func routeComparisonSentences(
         session: HRVSession,
         meta: WorkoutMetadata,
@@ -299,7 +284,7 @@ extension CoachReportGenerator {
         units: UnitsPreference
     ) -> [String] {
         guard let routeName = meta.recognizedRouteName, !routeName.isEmpty else { return [] }
-        let routePeers = pastWorkouts.filter { $0.workoutMetadata?.recognizedRouteName == routeName }.prefix(20)
+        let routePeers = pastWorkouts.filter { isSameRoute($0, routeName: routeName, sport: meta.sport) }.prefix(20)
         guard routePeers.count >= 2 else {
             return [String(localized: "First (or near-first) outing on \(routeName) — once you have 3-4 sessions there, route-specific comparisons get reliable.", bundle: LanguageManager.appBundle)]
         }
@@ -311,6 +296,14 @@ extension CoachReportGenerator {
             routeName: routeName,
             pace: PaceDelta(secPerKm: dur * 1_000.0 / dist - routeAvgPace, units: units)
         )]
+    }
+
+    /// Whether `candidate` is an earlier lap of `routeName`: the recogniser
+    /// matched it to the same named route, and, when `sport` is given, it was
+    /// the same sport.
+    static func isSameRoute(_ candidate: HRVSession, routeName: String, sport: Sport?) -> Bool {
+        guard let meta = candidate.workoutMetadata, meta.recognizedRouteName == routeName else { return false }
+        return sport.map { meta.sport == $0 } ?? true
     }
 
     /// Distance-weighted average pace across prior laps of the same route. Nil
@@ -348,10 +341,7 @@ extension CoachReportGenerator {
         userMaxHR _: Int
     ) -> String? {
         let sportPeers = pastWorkouts.filter { $0.workoutMetadata?.sport == meta.sport }.prefix(30)
-        guard sportPeers.count >= 2 else {
-            guard let routeName = meta.recognizedRouteName, !routeName.isEmpty else { return nil }
-            return String(localized: "**How it compared:** first time on \(routeName) in your archive, so no route baseline yet. Sport-wide history is also too thin to compare confidently — give it a few more sessions.", bundle: LanguageManager.appBundle)
-        }
+        guard sportPeers.count >= 2 else { return thinHistoryParagraph(meta: meta, pastWorkouts: pastWorkouts) }
         let baselines = WorkoutHistoryBaselines.compute(from: Array(sportPeers), sport: meta.sport, limit: 30)
         guard baselines.sampleCount >= 2 else { return nil }
         let deltas = comparisonDeltas(session: session, meta: meta, baselines: baselines)
@@ -362,6 +352,18 @@ extension CoachReportGenerator {
         ) + routeComparisonSentences(session: session, meta: meta, pastWorkouts: pastWorkouts, units: units)
         guard !sentences.isEmpty else { return nil }
         let body = sentences.joined(separator: " ")
+        return String(localized: "**How it compared:** \(body)", bundle: LanguageManager.appBundle)
+    }
+
+    /// Sport history too thin for a baseline. The route is called a first
+    /// outing only when no earlier workout of any sport is on it; otherwise
+    /// the route sentence's "first (or near-first)" wording is used.
+    static func thinHistoryParagraph(meta: WorkoutMetadata, pastWorkouts: [HRVSession]) -> String? {
+        guard let routeName = meta.recognizedRouteName, !routeName.isEmpty else { return nil }
+        guard pastWorkouts.contains(where: { isSameRoute($0, routeName: routeName, sport: nil) }) else {
+            return String(localized: "**How it compared:** first time on \(routeName) in your archive, so no route baseline yet. Sport-wide history is also too thin to compare confidently — give it a few more sessions.", bundle: LanguageManager.appBundle)
+        }
+        let body = String(localized: "First (or near-first) outing on \(routeName) — once you have 3-4 sessions there, route-specific comparisons get reliable.", bundle: LanguageManager.appBundle)
         return String(localized: "**How it compared:** \(body)", bundle: LanguageManager.appBundle)
     }
 
@@ -380,8 +382,7 @@ extension CoachReportGenerator {
         meta: WorkoutMetadata,
         baselines: WorkoutHistoryBaselines
     ) -> ComparisonDeltas {
-        let hrSamples = (meta.samples ?? []).compactMap { $0.heartRate }
-        let todayAvgHR = hrSamples.isEmpty ? nil : Double(hrSamples.reduce(0, +)) / Double(hrSamples.count)
+        let todayAvgHR = meanHeartRate(meta)
         var todayPace: Double?
         var paceDelta: Double?
         if let p = baselines.avgPaceSecPerKm,

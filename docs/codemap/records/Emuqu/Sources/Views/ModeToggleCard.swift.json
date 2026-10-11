@@ -8,18 +8,7 @@
  ],
  "state": [],
  "toplevel": "Constructed at LoadTrajectoryView.swift:684,694,704.",
- "flags": [
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "statusColor repeats the colour half of statusBadgeStyle's switch (textTertiary / wongOptimal / wongGood); two switches over the same status must be kept in sync.",
-   "evidence": [
-    "Emuqu/Sources/Views/ModeToggleCard.swift:62",
-    "Emuqu/Sources/Views/ModeToggleCard.swift:83"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "var ModeToggleCard.body",
@@ -75,7 +64,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/ModeToggleCard.swift::var ModeToggleCard.statusBadge": "cba90d4f1d645580",
-    "Emuqu/Sources/Views/ModeToggleCard.swift::var ModeToggleCard.statusColor": "8e33fa8fd6d899fc",
+    "Emuqu/Sources/Views/ModeToggleCard.swift::var ModeToggleCard.statusColor": "e92d176c0975bc47",
     "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
    }
@@ -93,7 +82,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ModeToggleCard.swift::var ModeToggleCard.statusColor": "8e33fa8fd6d899fc",
+    "Emuqu/Sources/Views/ModeToggleCard.swift::var ModeToggleCard.statusColor": "e92d176c0975bc47",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
     "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
    }
@@ -152,32 +141,18 @@
   },
   {
    "key": "var ModeToggleCard.statusColor",
-   "hash": "f3050244fa7ab3d7",
-   "does": "Accent colour per status.",
+   "hash": "9c0766bfaf99cbad",
+   "does": "The colour half of statusBadgeStyle for the current status (one switch over the status, shared with the badge).",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Views/ModeToggleCard.swift::var ModeToggleCard.statusBadgeStyle"
+   ],
    "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "case .off",
-     "effect": "textTertiary"
-    },
-    {
-     "at": "+3",
-     "cond": "case .on",
-     "effect": "wongOptimal"
-    },
-    {
-     "at": "+4",
-     "cond": "case .autoDetected",
-     "effect": "wongGood"
-    }
-   ],
+   "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Views/ModeToggleCard.swift::var ModeToggleCard.statusBadgeStyle": "0ebd0729aa4fd4fb"
    }
   }
  ],

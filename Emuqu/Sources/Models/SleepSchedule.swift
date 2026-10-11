@@ -55,8 +55,12 @@ struct SleepSchedule {
     func overnightWindowStart(relativeTo date: Date) -> Date {
         let calendar = Calendar.current
         let dayStart = calendar.startOfDay(for: date)
-        var start = calendar.date(bySettingHour: bedtimeHour, minute: bedtimeMinute, second: 0, of: dayStart) ?? dayStart
-        start = start.addingTimeInterval(-2 * 60 * 60)
+        // Bedtime − 2h on the wall clock (not 7200 s earlier), so an AM
+        // bedtime on a DST-change night still anchors at the clock time.
+        let anchorMinute = bedtimeHour * 60 + bedtimeMinute - 120
+        let anchorDay = anchorMinute < 0 ? calendar.date(byAdding: .day, value: -1, to: dayStart) ?? dayStart : dayStart
+        let wallMinute = (anchorMinute + 1440) % 1440
+        var start = calendar.date(bySettingHour: wallMinute / 60, minute: wallMinute % 60, second: 0, of: anchorDay) ?? anchorDay
         if start > date {
             start = calendar.date(byAdding: .day, value: -1, to: start) ?? start
         }

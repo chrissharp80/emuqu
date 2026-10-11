@@ -46,28 +46,19 @@
   },
   {
    "key": "var ReadinessExplainView.morningInt",
-   "hash": "d3c07ff2fbe22006",
-   "does": "Integer of the morning recovery score, rounded with Int(...rounded()) directly.",
+   "hash": "71f6aec616cd2b0f",
+   "does": "The morning recovery score as the trap-proof display integer (RecoveryScoreCalculator.displayScore: clamped 0–100, non-finite → 0, rounded), like scoreInt.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)"
+   ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "med",
-     "text": "Uses Int(readiness.morningRecovery.rounded()) instead of RecoveryScoreCalculator.displayScore, which the sibling scoreInt (line 23) uses precisely because Int() traps on NaN/Inf and the raw score is not clamped (RecoveryScoreCalculator+Composite.swift:55-61). A non-finite morningRecovery (raw recoveryScore passed straight through at LiveReadiness.swift:103/123) crashes this screen; an out-of-range value prints unclamped.",
-     "evidence": [
-      "Emuqu/Sources/Views/ReadinessExplainView.swift:25",
-      "Emuqu/Sources/Views/ReadinessExplainView.swift:23",
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift:59",
-      "Emuqu/Sources/Analysis/LiveReadiness.swift:103"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "df038a321f56f948"
+   }
   },
   {
    "key": "var ReadinessExplainView.morningVerdict",
@@ -199,7 +190,7 @@
     "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord": "36e143abcc4cadb1",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/ReadinessExplainView.swift::func ReadinessExplainView.row(label:value:tint:)": "3bfc41b471d1a5a3",
-    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.morningInt": "7997c05691a7e27c",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.morningInt": "2e4d703bd6199405",
     "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.morningVerdict": "e3cc7c2ae792b742"
    }
   },
@@ -220,7 +211,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/ReadinessExplainView.swift::func ReadinessExplainView.row(label:value:tint:)": "3bfc41b471d1a5a3",
-    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.todayTrainingTint": "7a12553e5497986f",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.todayTrainingTint": "e69d26c234921153",
     "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.todayTrainingValue": "a383991ca796527b"
    }
   },
@@ -241,8 +232,8 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/ReadinessExplainView.swift::func ReadinessExplainView.row(label:value:tint:)": "3bfc41b471d1a5a3",
-    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.acuteFatigueTint": "a7afe2bc8ae39046",
-    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.acuteFatigueValue": "2ff714fd87c37fbe"
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.acuteFatigueTint": "5652571424ee31a7",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.acuteFatigueValue": "28870e9ded7590a3"
    }
   },
   {
@@ -348,11 +339,12 @@
   },
   {
    "key": "var ReadinessExplainView.todayTrainingValue",
-   "hash": "47a5412e727542be",
+   "hash": "4f5a443d61f898ce",
    "does": "Today's training text: capitalised workout phrase if a primary workout exists, else bucket of rounded TRIMP.",
    "entry": "SwiftUI view-tree evaluation of ReadinessExplainView",
    "calls": [
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::var WorkoutDescriptor.phrase"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::var WorkoutDescriptor.phrase",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.todayTrimpRounded"
    ],
    "reads": [],
    "writes": [],
@@ -386,15 +378,30 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::var WorkoutDescriptor.phrase": "27d5529f8df02124",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.todayTrimpRounded": "5d0d3f4827e76873"
    }
   },
   {
-   "key": "var ReadinessExplainView.todayTrainingTint",
-   "hash": "2d543bb570b3fac4",
-   "does": "Tint for today's training from raw TRIMP.",
-   "entry": "SwiftUI view-tree evaluation of ReadinessExplainView",
+   "key": "var ReadinessExplainView.todayTrimpRounded",
+   "hash": "dcade0f5c31b874d",
+   "does": "Today's TRIMP rounded to an Int — the value both the row's word and its tint bucket.",
+   "entry": null,
    "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ReadinessExplainView.todayTrainingTint",
+   "hash": "5a9f7d2784138cf6",
+   "does": "Tint for today's training from the rounded TRIMP (todayTrimpRounded), the same value the word buckets.",
+   "entry": "SwiftUI view-tree evaluation of ReadinessExplainView",
+   "calls": [
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.todayTrimpRounded"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
@@ -419,23 +426,9 @@
      "effect": "wongCaution; else wongAttention"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Tint buckets raw todayTrimp while the label (todayTrainingValue) buckets the ROUNDED value: TRIMP 0.3 reads 'None yet' but is tinted textPrimary (not the t==0 secondary), and 29.6 reads 'Moderate' but gets the 'Easy' tint; same mismatch at 79.5 and 149.5.",
-     "evidence": [
-      "Emuqu/Sources/Views/ReadinessExplainView.swift:169",
-      "Emuqu/Sources/Views/ReadinessExplainView.swift:170",
-      "Emuqu/Sources/Views/ReadinessExplainView.swift:174",
-      "Emuqu/Sources/Views/ReadinessExplainView.swift:183",
-      "Emuqu/Sources/Views/ReadinessExplainView.swift:184",
-      "Emuqu/Sources/Views/ReadinessExplainView.swift:185"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.todayTrimpRounded": "5d0d3f4827e76873",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
    }
@@ -480,27 +473,15 @@
      "effect": "'Elevated'; else 'High — recent load above usual'"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Label and tint disagree when acuteFatigueLoad < 10 but ACR >= 1.0: the value reads 'Low' (line 195) while acuteFatigueTint ignores the af<10 short-circuit and paints it wongCaution/wongAttention (lines 214-216).",
-     "evidence": [
-      "Emuqu/Sources/Views/ReadinessExplainView.swift:195",
-      "Emuqu/Sources/Views/ReadinessExplainView.swift:210",
-      "Emuqu/Sources/Views/ReadinessExplainView.swift:215"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },
   {
    "key": "var ReadinessExplainView.acuteFatigueTint",
-   "hash": "43eb6e3ea8cb2df8",
-   "does": "Tint for acute fatigue from ACR (or absolute af when no ACR).",
+   "hash": "898b8c10ba29feb3",
+   "does": "Tint for acute fatigue on the same cuts as acuteFatigueValue: textPrimary for the 'Low' under 10; without an ACR af<50 → textPrimary else wongCaution; with ACR wongOptimal <1.0, wongCaution <1.3, else wongAttention.",
    "entry": "SwiftUI view-tree evaluation of ReadinessExplainView",
    "calls": [],
    "reads": [],
@@ -508,21 +489,21 @@
    "branches": [
     {
      "at": "+1",
+     "cond": "acuteFatigueLoad < 10",
+     "effect": "textPrimary"
+    },
+    {
+     "at": "+2",
      "cond": "acuteChronicRatio nil",
-     "effect": "guard else: af<50 → textPrimary, else wongCaution"
+     "effect": "af<50 → textPrimary, else wongCaution"
     },
     {
-     "at": "+3",
-     "cond": "acuteFatigueLoad < 50 (no ACR) ?:",
-     "effect": "true: textPrimary; false: wongCaution"
-    },
-    {
-     "at": "+5",
+     "at": "+6",
      "cond": "acr < 1.0",
      "effect": "wongOptimal"
     },
     {
-     "at": "+6",
+     "at": "+7",
      "cond": "acr < 1.3",
      "effect": "wongCaution; else wongAttention"
     }

@@ -1,9 +1,9 @@
 {
  "file": "Emuqu/Sources/Assistant/TurnAlertEngine.swift",
- "hash": "d2adfb29a40b448f",
+ "hash": "1b28cce444dc3c4c",
  "role": "Pure evaluator for pre-turn navigation alerts (150 m / 60 m / at-turn thresholds and 25 m arrival) on the active route, plus the formatter that renders them in feet or meters.",
  "types": [
-  "TurnAlertState: struct — lastStepIndex/lastThresholdLevel carried by WorkoutVoiceCoach",
+  "TurnAlertState: struct — lastStepIndex/lastThresholdLevel/arrivalAnnounced carried by WorkoutVoiceCoach",
   "TurnAlertPayload: struct — instruction, distance, level, destination, isArrival",
   "TurnAlertEngine: enum — threshold state machine",
   "TurnAlertFormatter: enum — localized utterance rendering"
@@ -12,13 +12,13 @@
   "mem:TurnAlertEngine.farMeters=150/farWindowMeters=30/nearMeters=60/nearWindowMeters=15/atTurnMeters=25/arrivalMeters=25 (static lets)",
   "mem:TurnAlertState held as WorkoutVoiceCoach.turnAlertState"
  ],
- "toplevel": "Static tunables (far fires <=165 m, near <=67.5 m, at-turn <=25 m, arrival <=25 m remaining).",
+ "toplevel": "Static tunables (far fires <=165 m, near <=67.5 m, at-turn <=25 m, arrival <=25 m remaining). TurnAlertState.arrivalAnnounced defaults false and survives step changes.",
  "flags": [],
  "units": [
   {
    "key": "func TurnAlertEngine.evaluate(step:state:isFinalStep:)",
-   "hash": "40d05c1b34504a6c",
-   "does": "Resets state when the step index changed; if arrived or remaining distance <=25 m returns arrivalAlert; otherwise (non-final step) returns the newly crossed threshold's payload and updated level, else (nil, state).",
+   "hash": "6cf346867e96b419",
+   "does": "On a step-index change starts a fresh threshold state for the new step, carrying arrivalAnnounced over; if arrived or remaining distance <=25 m returns arrivalAlert (which speaks once per route); otherwise (non-final step) returns the newly crossed threshold's payload and updated level, else (nil, state).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.arrivalAlert(step:working:)",
@@ -31,15 +31,15 @@
     {
      "at": "+8",
      "cond": "step.currentStepIndex != state.lastStepIndex",
-     "effect": "true: fresh state (level 0) for the new step"
+     "effect": "true: fresh state (level 0) for the new step, arrivalAnnounced kept"
     },
     {
-     "at": "+11",
+     "at": "+13",
      "cond": "step.arrived or remaining distance <= 25 m",
-     "effect": "true: arrivalAlert (fires once at level 4)"
+     "effect": "true: arrivalAlert"
     },
     {
-     "at": "+14",
+     "at": "+16",
      "cond": "not final step and crossedThreshold returned a level",
      "effect": "false: (nil, working); true: level recorded and payload returned"
     }
@@ -48,45 +48,33 @@
     {
      "kind": "fragile",
      "sev": "low",
-     "text": "Arrival suppression is stored per step (level 4 on lastStepIndex); if the step index changes while still within 25 m of the destination the state resets and the arrival line is spoken again.",
+     "text": "The arrival test also fires on step.remainingDistanceMeters <= 25, which bypasses the _hasLeftEnd loop guard used by step.arrived on every step but the last; at commit 8d32097 remainingDistanceMeters was the sum of the full lengths of the current and later steps, not the distance left from the user's position. The working tree's ActiveRouteSession (another batch) now measures it from the position; until that lands, entering steps whose total length is <= 25 m announces arrival wherever the user is on them.",
      "evidence": [
-      "Emuqu/Sources/Assistant/TurnAlertEngine.swift:123",
-      "Emuqu/Sources/Assistant/TurnAlertEngine.swift:124",
-      "Emuqu/Sources/Assistant/TurnAlertEngine.swift:144"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "The arrival test also fires on remainingDistanceMeters <= 25, but that value is the sum of the full lengths of the current and later steps (ActiveRouteSession.swift:181), not the distance left from the user's position, and it bypasses the _hasLeftEnd loop guard used by step.arrived. Entering steps whose total length is <= 25 m announces arrival wherever the user is on them.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/TurnAlertEngine.swift:126",
-      "Emuqu/Sources/Services/ActiveRouteSession.swift:181",
-      "Emuqu/Sources/Services/ActiveRouteSession.swift:191"
+      "Emuqu/Sources/Assistant/TurnAlertEngine.swift:132",
+      "Emuqu/Sources/Services/ActiveRouteSession.swift:202"
      ],
      "found": "second read"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.arrivalAlert(step:working:)": "592cdc718dc81f20",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.arrivalAlert(step:working:)": "593b57880f00dbea",
     "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.crossedThreshold(distance:alreadyFired:)": "d8737d1a1abea704",
     "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.payload(step:distance:level:)": "b239d70435168b09"
    }
   },
   {
    "key": "func TurnAlertEngine.arrivalAlert(step:working:)",
-   "hash": "0e197f4f29bb9811",
-   "does": "Fires the arrival payload once: if level already 4 returns (nil, state); else sets level 4 and returns an isArrival payload.",
+   "hash": "147e3817faabcb66",
+   "does": "Marks the step done (level 4), then fires the arrival payload once per route: if arrivalAnnounced is already set returns (nil, state); else sets it and returns an isArrival payload.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+4",
-     "cond": "lastThresholdLevel < 4",
-     "effect": "false: nil (already announced); true: arrival payload"
+     "at": "+5",
+     "cond": "arrivalAnnounced",
+     "effect": "true: nil (already announced for this route); false: sets it and returns the arrival payload"
     }
    ],
    "flags": [],
@@ -167,14 +155,14 @@
    "deps": {
     "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.payload(step:distance:level:)": "b239d70435168b09",
     "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.formatDistance(meters:imperial:)": "36ad7df6c942a31c",
-    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.lowercaseFirst(_:)": "4a6800db21803085",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.lowercaseFirst(_:)": "7ae2fa39646325c4",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },
   {
    "key": "func TurnAlertFormatter.lowercaseFirst(_:)",
-   "hash": "cef2a060cf7d5303",
-   "does": "Lowercases the first character of s when the app language is English; otherwise returns s.",
+   "hash": "e0d49d68aea02c49",
+   "does": "Lowercases the first character of s when the app language is English; otherwise returns s. Shared with TurnMarkerFormatter (internal, not private).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
@@ -188,18 +176,7 @@
      "effect": "true: first letter lowercased; false: s unchanged"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Identical to TurnMarkerFormatter.lowercaseFirst.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/TurnAlertEngine.swift:217",
-      "Emuqu/Sources/Assistant/TurnMarkerEngine.swift:190"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
    }

@@ -62,8 +62,8 @@
   },
   {
    "key": "func WorkoutGeometry.localPace(in:at:)",
-   "hash": "2a18aa52d036b506",
-   "does": "Pace in sec/km over fixes [idx-5, idx+5] clamped to the track: (end.timestamp-start.timestamp)/(straight-line distance/1000); nil when the straight-line span <=5 m or <=1 s. Straight-line (not path) distance overstates pace on curves. Crashes (index out of range) on an empty track since hi = -1. Used by AppFactResolver+WorkoutDetail.swift:728 after nearestFix.",
+   "hash": "a20b62115f6cdd91",
+   "does": "Pace in sec/km over fixes [idx-5, idx+5] clamped to the track: (end.timestamp-start.timestamp)/(straight-line distance/1000); nil when idx is not an index of the track (an empty track has none) or the straight-line span <=5 m or <=1 s. Straight-line (not path) distance overstates pace on curves. Used by AppFactResolver+WorkoutDetail.swift:728 after nearestFix.",
    "entry": null,
    "calls": [
     "ext:CLLocation.distance(from:)"
@@ -72,23 +72,17 @@
    "writes": [],
    "branches": [
     {
-     "at": "+7",
+     "at": "+1",
+     "cond": "closestIdx is an index of track",
+     "effect": "false: returns nil (no trap on an empty track); true: continue"
+    },
+    {
+     "at": "+8",
      "cond": "localDist > 5 m AND localDur > 1 s",
      "effect": "returns duration/(km); otherwise nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Indexes track[lo]/track[hi] without an emptiness guard; an empty track gives hi=-1 and traps. Only safe because the caller passes a non-empty track.",
-     "evidence": [
-      "Emuqu/Sources/Collection/WorkoutGeometry.swift:54",
-      "Emuqu/Sources/Collection/WorkoutGeometry.swift:55"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -226,25 +220,13 @@
      "effect": "zone 4; otherwise zone 5"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Doc says anything below 60% reads as zone 1 \"so a zone threshold and the zone shown to the user always agree\", but the displayed zone breakdown WorkoutZoneBreakdown.zoneIndex returns nil (uncounted) below 50%, so a sub-50% HR is zone 1 for thresholds but no zone in the breakdown; two separate implementations of the same band model.",
-     "evidence": [
-      "Emuqu/Sources/Collection/WorkoutGeometry.swift:106",
-      "Emuqu/Sources/Collection/WorkoutGeometry.swift:111",
-      "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift:294"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
    "key": "func WorkoutGeometry.decimatedBreadcrumbFixes(track:origin:)",
-   "hash": "2edafb5d52c01ec0",
-   "does": "Decimates a track into breadcrumb fixes: starts with origin, then appends each later fix with horizontalAccuracy>0 that is >=25 m from or >=30 s after the last committed fix. Returns [] for an empty track.",
+   "hash": "f8d6a76f204d095a",
+   "does": "Decimates a track into breadcrumb fixes with BreadcrumbRecorder's live gates: starts with the caller's origin (the first fix is the reference, kept as given), then appends each later fix whose horizontalAccuracy is in (0, 100] m and that is >=25 m from or >=30 s after the last committed fix. Returns [] for an empty track.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/BreadcrumbStore.swift::init BreadcrumbFix(from:)",
@@ -265,7 +247,7 @@
     },
     {
      "at": "+5",
-     "cond": "horizontalAccuracy <= 0",
+     "cond": "horizontalAccuracy <= 0 or > 100 m",
      "effect": "skips the fix"
     },
     {
@@ -274,19 +256,7 @@
      "effect": "skips; otherwise appends BreadcrumbFix and makes it the new reference"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Comment calls this a 'mirror of BreadcrumbRecorder throttle' but it omits BreadcrumbRecorder's horizontalAccuracy<=100 m rejection, so post-hoc decimated breadcrumbs can include fixes the live recorder would drop; the first track fix is also never accuracy-checked (used only as reference).",
-     "evidence": [
-      "Emuqu/Sources/Collection/WorkoutGeometry.swift:118",
-      "Emuqu/Sources/Collection/WorkoutGeometry.swift:126",
-      "Emuqu/Sources/Services/BreadcrumbRecorder.swift:226"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/BreadcrumbStore.swift::init BreadcrumbFix(from:)": "bfaeb7475391b53c"
    }
@@ -316,8 +286,8 @@
   },
   {
    "key": "func WorkoutGeometry.trailingGradeWindow(track:)",
-   "hash": "a3b1127a12dcde9e",
-   "does": "Walks the track backwards summing step distances until >=100 m; returns the start index of that window and the metres covered (whole track, start 0, when shorter). Includes paused steps since track keeps paused fixes.",
+   "hash": "06c121f546ef5fae",
+   "does": "Walks the track backwards summing step distances until >=100 m; returns the start index of that window and the metres covered (whole track, start 0, when shorter; (0, 0) for fewer than two fixes). Includes paused steps since track keeps paused fixes.",
    "entry": null,
    "calls": [
     "ext:CLLocation.distance(from:)"
@@ -326,28 +296,22 @@
    "writes": [],
    "branches": [
     {
-     "at": "+3",
+     "at": "+1",
+     "cond": "fewer than two fixes",
+     "effect": "returns (0, 0)"
+    },
+    {
+     "at": "+4",
      "cond": "for i from last down to 1",
      "effect": "adds step distance"
     },
     {
-     "at": "+5",
+     "at": "+6",
      "cond": "accumulated >= 100 m",
      "effect": "sets startIdx=i-1 and stops; otherwise continues to start (startIdx stays 0)"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "`1 ..< track.count` traps (lowerBound > upperBound) on an empty track; safe only because the sole caller guards track.count >= 2.",
-     "evidence": [
-      "Emuqu/Sources/Collection/WorkoutGeometry.swift:155",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift:517"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {}
   }
  ],

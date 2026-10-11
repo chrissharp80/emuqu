@@ -1,10 +1,10 @@
 {
  "file": "Emuqu/Sources/Analysis/ScoreFactorFacts.swift",
- "hash": "94d2d67fbdb12777",
+ "hash": "5e578190ca19a7e0",
  "role": "Codable numbers behind a factor's detail line so the line can be re-rendered in the current app language and temperature unit; unknown kinds fall back to the stored detail text.",
  "types": [
   "ScoreFactorFacts: struct (Codable) — hrv/sleep/vitals/note facts",
-  "ScoreFactorFacts.Note: enum — numberless lines",
+  "ScoreFactorFacts.Note: enum — numberless lines (hrvNoBaseline, hrvNoBaselineUsingReadiness, hrvNoReading, hrvNoReadingUsingReadiness, hrvWithAssessment, noSleepData, noVitals)",
   "ScoreFactorFacts.HRV: struct — rmssd, z, base score, stored adjustments",
   "ScoreFactorFacts.StoredAdjustment: struct — kind string + points/days",
   "ScoreFactorFacts.Adjustment: enum — typed HRV adjustments",
@@ -115,15 +115,15 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::var ScoreFactorFacts.HRV.line": "1de79986aedb065d",
-    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::var ScoreFactorFacts.Note.text": "44c833ca98a11e63",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::var ScoreFactorFacts.Note.text": "e1d316e2213c2af0",
     "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::var ScoreFactorFacts.Sleep.line": "f1d0284d60f6119f",
     "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.vitalsLine(_:temperatureUnit:)": "5f0b8f7a0cbca219"
    }
   },
   {
    "key": "var ScoreFactorFacts.Note.text",
-   "hash": "83c86f5740f0de5e",
-   "does": "Localised text for each Note case.",
+   "hash": "1cbe99f714312fa7",
+   "does": "Localised text for each Note case (NarrativeLanguage). The two hrvNoReading cases' keys are not yet in the string catalog, so they show the English key until it is added.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
@@ -143,16 +143,26 @@
     },
     {
      "at": "+6",
+     "cond": "hrvNoReading",
+     "effect": "'No usable HRV reading'"
+    },
+    {
+     "at": "+8",
+     "cond": "hrvNoReadingUsingReadiness",
+     "effect": "'No usable HRV reading (using readiness score)'"
+    },
+    {
+     "at": "+10",
      "cond": "hrvWithAssessment",
      "effect": "'Baseline HRV + your assessment…'"
     },
     {
-     "at": "+8",
+     "at": "+12",
      "cond": "noSleepData",
      "effect": "'No sleep data'"
     },
     {
-     "at": "+10",
+     "at": "+14",
      "cond": "noVitals",
      "effect": "'No overnight vitals captured'"
     }

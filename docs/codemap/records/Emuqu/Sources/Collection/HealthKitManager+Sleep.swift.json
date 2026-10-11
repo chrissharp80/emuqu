@@ -1,12 +1,12 @@
 {
  "file": "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift",
  "hash": "868fac26a4621b1a",
- "role": "SleepHealthQueries extension holding every HealthKit sleep READ: last-night and per-recording sleep (with cache-first read and plausibility gate), daytime naps, additional-sleep probe, HR-based sleep estimation, plus two file-private helpers (cachedSleepData, plausibleForRecording).",
+ "role": "SleepHealthQueries extension holding every HealthKit sleep READ: last-night and per-recording sleep (per-recording always through the recording's own pipeline, with a plausibility gate), daytime naps, additional-sleep probe, HR-based sleep estimation, plus one file-private helper (plausibleForRecording).",
  "types": [
   "SleepHealthQueries: extension — sleep queries and estimation (struct declared in SleepHealthQueries.swift, @MainActor, holds manager)"
  ],
  "state": [],
- "toplevel": "Two file-scope private functions (cachedSleepData, plausibleForRecording) outside the extension; no global state.",
+ "toplevel": "One file-scope private function (plausibleForRecording) outside the extension; no global state.",
  "flags": [],
  "units": [
   {
@@ -26,7 +26,7 @@
   {
    "key": "func SleepHealthQueries.fetchLastNightSleep(relativeTo:)",
    "hash": "fc1bacf92990c416",
-   "does": "Computes the overnight window around startOfDay(referenceDate) from the user's SleepSchedule, reads non-own sleepAnalysis samples overlapping [windowStart, min(windowEnd, now)], builds a watch-only SleepResolver.Context and resolves it off-main into SleepData. Throws notAvailable/typeUnavailable; a query timeout yields [] samples.",
+   "does": "Computes the overnight window around startOfDay(referenceDate) from the user's SleepSchedule, reads non-own sleepAnalysis samples overlapping [windowStart, min(windowEnd, now)], builds a watch-only SleepResolver.Context and resolves it off-main into SleepData. Throws notAvailable/typeUnavailable; a sample query that times out throws queryTimedOut.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.sleepSchedule",
@@ -64,8 +64,7 @@
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "6a80ac7c585d4e2f",
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.sleepSchedule": "9f9b64b2ec14e342",
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "6fcc761d41125b66",
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
-    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb"
    }
   },
   {
@@ -140,17 +139,16 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.executeSleepQuery(sleepType:predicate:sort:)": "f262e9b45fd7482b",
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.executeSleepQuery(sleepType:predicate:sort:)": "2e1c0db73cb2d7b7",
     "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.sleepReadExcludingOwnWrites(dateRange:)": "df8ff618ee78e4c8"
    }
   },
   {
    "key": "func SleepHealthQueries.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)",
-   "hash": "477c4fa02fca394d",
-   "does": "Per-recording sleep: returns cached SleepData when cache-eligible; otherwise reads non-own sleep samples for the recording's schedule window (end extended to the AutoSleep extension end), builds config from settings, processes off-main with SleepMergingPipeline, rejects results that don't plausibly belong to the recording (returns .empty), warms the cache and returns the result. Protocol witness via HealthKitManager.fetchSleepData.",
+   "hash": "32f3d4bc6af8427e",
+   "does": "Per-recording sleep, always resolved through the recording's own pipeline: reads non-own sleep samples for the recording's schedule window (end extended to the AutoSleep extension end), builds config from settings, processes off-main with SleepMergingPipeline, rejects results that don't plausibly belong to the recording (returns .empty), warms SleepDataCache (for other readers) and returns the result. A sample read that times out throws queryTimedOut instead of resolving the night without the Watch. Protocol witness via HealthKitManager.fetchSleepData.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func cachedSleepData(recordingStart:recordingEnd:rrPoints:autoSleepExtension:)",
     "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.querySleepSamples(recordingStart:recordingEnd:)",
     "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingConfig.fromSettings(recordingStart:settingsManager:)",
     "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.processOffMain(_:recordingStart:recordingEnd:config:rrPoints:autoSleepExtension:)",
@@ -159,8 +157,7 @@
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable"
    ],
    "reads": [
-    "hk:sleepAnalysis",
-    "ud:SleepDataCache.v2"
+    "hk:sleepAnalysis"
    ],
    "writes": [
     "ud:SleepDataCache.v2"
@@ -172,51 +169,26 @@
      "effect": "throws HealthKitError.notAvailable"
     },
     {
-     "at": "+7",
-     "cond": "cachedSleepData returned a value (no rrPoints, no extension, cache hit with >0 min plausibly in the recording)",
-     "effect": "returns cached SleepData without querying HealthKit; else queries"
-    },
-    {
-     "at": "+12",
+     "at": "+9",
      "cond": "autoSleepExtension nil",
      "effect": "?? recordingEnd — query ends at recordingEnd; otherwise max(recordingEnd, extension end)"
     },
     {
-     "at": "+19",
+     "at": "+10",
+     "cond": "sample query throws (HealthKit error or queryTimedOut)",
+     "effect": "error propagates to the caller"
+    },
+    {
+     "at": "+16",
      "cond": "plausibleForRecording false (sleep >0, no extension, doesn't overlap recording)",
      "effect": "returns SleepData.empty; else warms cache and returns resolved"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "med",
-     "text": "The cache path returns SleepData built by fetchLastNightSleep (SleepResolver with SleepMergingConfig.defaultProcessing and the schedule window around the cached night) while a cache miss builds it with SleepMergingPipeline.processForRecording using fromSettings(recordingStart:) and a recording-specific search window; the same recording can resolve to different sleep numbers depending on whether the observer had warmed the cache first.",
-     "evidence": [
-      "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift:110",
-      "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift:118",
-      "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift:517",
-      "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift:45"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "silent-failure",
-     "sev": "med",
-     "text": "executeSleepQuery maps an 8 s timeout to .success([]), so a stalled HealthKit read at wake resolves the night without Watch samples (HR-inferred or empty) with no error to the caller; SleepTrends.swift:406-408 documents this exact case reaching the HR-estimated branch.",
-     "evidence": [
-      "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift:191",
-      "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift:116",
-      "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift:406"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.processOffMain(_:recordingStart:recordingEnd:config:rrPoints:autoSleepExtension:)": "8cac6323fea5e168",
     "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.querySleepSamples(recordingStart:recordingEnd:)": "99039cafb94ef6b4",
     "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.warmSleepCache(_:rrPoints:autoSleepExtension:)": "4f3d51cce7a09db4",
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func cachedSleepData(recordingStart:recordingEnd:rrPoints:autoSleepExtension:)": "41d2e8e96233ed55",
     "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func plausibleForRecording(_:recordingStart:recordingEnd:autoSleepExtension:)": "62b21ae7de521971",
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "6a80ac7c585d4e2f",
     "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingConfig.fromSettings(recordingStart:settingsManager:)": "29b3d98832d9eba3"
@@ -278,8 +250,8 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "315f6413360002af",
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.executeSleepQuery(sleepType:predicate:sort:)": "f262e9b45fd7482b",
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.logSleepDiag(_:_:window:)": "740cb8d76590a128",
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.executeSleepQuery(sleepType:predicate:sort:)": "2e1c0db73cb2d7b7",
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.logSleepDiag(_:_:window:)": "eb17dcf373e9115f",
     "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.sleepReadExcludingOwnWrites(dateRange:)": "df8ff618ee78e4c8",
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.sleepSchedule": "9f9b64b2ec14e342",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.settingsProvider": "962bc6e493a1aa94",
@@ -290,8 +262,8 @@
   },
   {
    "key": "func SleepHealthQueries.executeSleepQuery(sleepType:predicate:sort:)",
-   "hash": "2ac5d592a88a9aaf",
-   "does": "Runs an unlimited HKSampleQuery for the sleep type with the predicate and sort through runBoundedThrowingQuery (8 s), mapping results via HealthKitManager.categoryResult; a timeout returns .success([]) (fail open), a query error throws.",
+   "hash": "bbe1b6d0602bab43",
+   "does": "Runs an unlimited HKSampleQuery for the sleep type with the predicate and sort through runBoundedThrowingQuery (sleepQueryTimeoutSec), mapping results via HealthKitManager.categoryResult; a query error or a timeout (HealthKitError.queryTimedOut('sleep samples')) throws.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedThrowingQuery(timeout:makeQuery:onTimeout:)",
@@ -303,12 +275,19 @@
     "hk:sleepAnalysis"
    ],
    "writes": [],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+17",
+     "cond": "HealthKit has not answered within the timeout",
+     "effect": "throws queryTimedOut"
+    }
+   ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedThrowingQuery(timeout:makeQuery:onTimeout:)": "8768717f4143c6f1",
     "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.sleepQueryTimeoutSec": "160bd17db71e3f7b",
-    "Emuqu/Sources/Collection/HealthKitManager+WriteForwarding.swift::func HealthKitManager.categoryResult(_:_:)": "a91fbab25b8d2f3d"
+    "Emuqu/Sources/Collection/HealthKitManager+WriteForwarding.swift::func HealthKitManager.categoryResult(_:_:)": "a91fbab25b8d2f3d",
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "0476d3f57d94bf98"
    }
   },
   {
@@ -356,7 +335,7 @@
    "deps": {
     "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "315f6413360002af",
     "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.asleepIntervals(_:clippedTo:)": "bc3238b88e318cfd",
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.napSamples(sleepType:window:)": "3931d30f35e1d69b",
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.napSamples(sleepType:window:)": "d9b967aecfbeed13",
     "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.qualifyingNapMinutes(asleepIntervals:episodeGapSeconds:floorSeconds:)": "3145872527ceb4ba",
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "6a80ac7c585d4e2f",
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.sleepSchedule": "9f9b64b2ec14e342",
@@ -366,7 +345,7 @@
   {
    "key": "func SleepHealthQueries.napSamples(sleepType:window:)",
    "hash": "4f9eeed404b228bf",
-   "does": "Overlap predicate for the nap window ANDed with not-own-source, run through executeSleepQuery; returns nil when it throws (try?).",
+   "does": "Overlap predicate for the nap window ANDed with not-own-source, run through executeSleepQuery; returns nil when it throws (an error or a timeout; try?), which fetchDaytimeNapMinutes reads as no nap.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.sleepReadExcludingOwnWrites(dateRange:)",
@@ -379,7 +358,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.executeSleepQuery(sleepType:predicate:sort:)": "f262e9b45fd7482b",
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.executeSleepQuery(sleepType:predicate:sort:)": "2e1c0db73cb2d7b7",
     "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.sleepReadExcludingOwnWrites(dateRange:)": "df8ff618ee78e4c8"
    }
   },
@@ -396,7 +375,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.estimateSleepFromHR(rrPoints:recordingStart:)": "587065d915433525"
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.estimateSleepFromHR(rrPoints:recordingStart:)": "f74cf03adbff7c7a"
    }
   },
   {
@@ -490,8 +469,8 @@
   },
   {
    "key": "func SleepHealthQueries.logSleepDiag(_:_:window:)",
-   "hash": "588b24f4fa3d9d71",
-   "does": "Logs a [SLEEP-DIAG] line at .warning with the window, sample count, source names and value histogram.",
+   "hash": "8ac7130a84976e45",
+   "does": "Logs a routine [SLEEP-DIAG] line at the default (.info) level with the window, sample count, source names and value histogram, so it stays out of Recent Problems and the Diagnostics badge.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
@@ -499,99 +478,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "The routine per-query SLEEP-DIAG diagnostic is logged at .warning, and DebugLogger catalogs every .warning line into the user-facing Recent Problems list and treats it as significant for the Diagnostics badge, so every sleep fetch (morning, acceptance, reanalysis) adds a 'problem' entry. DebugLog's own contract reserves .warning for notable issues.",
-     "evidence": [
-      "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift:311",
-      "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift:169",
-      "Emuqu/Sources/Utilities/DebugLog.swift:254",
-      "Emuqu/Sources/Utilities/DebugLog.swift:247",
-      "Emuqu/Sources/Utilities/DebugLog.swift:651"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
-  },
-  {
-   "key": "func SleepHealthQueries.findAdditionalSleepRange(after:before:)",
-   "hash": "ae0387b838fa6991",
-   "does": "Returns (earliest start, latest end) of non-own, non-inBed sleep samples overlapping [anchor, cutoff], or nil when unavailable, cutoff <= anchor, type missing, timeout or no sleep. Only reachable through HealthKitManager.findAdditionalSleepRange, which has no callers.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.sleepReadExcludingOwnWrites(dateRange:)",
-    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)",
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.sleepSampleBounds(_:)",
-    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)",
-    "ext:HKSampleQuery",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable",
-    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.sleepQueryTimeoutSec"
-   ],
-   "reads": [
-    "hk:sleepAnalysis"
-   ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "HealthKit unavailable OR cutoff <= anchor",
-     "effect": "returns nil"
-    },
-    {
-     "at": "+2",
-     "cond": "sleepAnalysis type nil",
-     "effect": "returns nil; else runs the bounded query (timeout → nil)"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No production or test code calls findAdditionalSleepRange on the manager (grep: only the protocol requirement HealthKitServiceProtocol.swift:108, the forwarder and MockHealthKitService:156); the protocol doc says extended-sleep detection uses it, which no longer happens.",
-     "evidence": [
-      "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift:325",
-      "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift:41",
-      "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift:104"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "315f6413360002af",
-    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)": "52219c5df437cf7d",
-    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.sleepQueryTimeoutSec": "160bd17db71e3f7b",
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.sleepReadExcludingOwnWrites(dateRange:)": "df8ff618ee78e4c8",
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.sleepSampleBounds(_:)": "531a6ba86125427a",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "6a80ac7c585d4e2f"
-   }
-  },
-  {
-   "key": "func SleepHealthQueries.sleepSampleBounds(_:)",
-   "hash": "f2fad2cb4daff010",
-   "does": "Casts results to [HKCategorySample], drops inBed samples and returns (min start, max end) or nil.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "results nil or not category samples",
-     "effect": "returns nil"
-    },
-    {
-     "at": "+3",
-     "cond": "no non-inBed samples (min/max nil)",
-     "effect": "returns nil; else (earliestStart, latestEnd)"
-    }
-   ],
-   "flags": [],
-   "deps": {}
   },
   {
    "key": "func SleepHealthQueries.estimateSleepFromHealthKitHR(windowStart:windowEnd:minimumSamples:minimumSleepMinutes:)",
@@ -690,34 +580,6 @@
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.smoothHRSamples(_:windowMinutes:)": "9f5948f5c3231d79",
     "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.fetchHeartRateSamples(from:to:)": "8b56d29a274d3209",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
-   }
-  },
-  {
-   "key": "func cachedSleepData(recordingStart:recordingEnd:rrPoints:autoSleepExtension:)",
-   "hash": "a6804bf132f8e2b5",
-   "does": "File-private cache-first read: returns SleepDataCache.read(coveringRecordingStart:) when no rrPoints and no AutoSleep extension were given, the cached night has >0 sleep minutes and plausibly belongs to [recordingStart, recordingEnd]; nil otherwise.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.read(coveringRecordingStart:)",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
-    "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)"
-   ],
-   "reads": [
-    "ud:SleepDataCache.v2"
-   ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+6",
-     "cond": "rrPoints nil AND extension nil AND cache hit AND >0 minutes AND plausibly belongs",
-     "effect": "returns cached; otherwise nil (fresh query)"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)": "77e23c3d71c4740e",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
-    "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.read(coveringRecordingStart:)": "ff61987017e5305d"
    }
   },
   {

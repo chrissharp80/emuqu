@@ -193,9 +193,14 @@ enum RoadAwarenessEngine {
 
     // MARK: - Bearing trust
 
-    /// Decide whether `location.course` should influence the snap.
-    /// Returns the trusted bearing (or nil) plus a flag for the
-    /// caller's confidence math.
+    /// Decide whether `location.course` should bias the snap. Returns
+    /// whether it is trusted and a short reason for the log. Untrusted when
+    /// the course is invalid (-1), when a valid speed is below
+    /// `minSpeedForCourseTrust`, or when a valid course accuracy is worse
+    /// than `maxCourseAccuracyDegrees`; an unavailable speed or accuracy
+    /// (-1) does not count against it. An untrusted bearing does not stop
+    /// the snap: the nearest road is still chosen, without bearing bias,
+    /// and the phrase leaves out the "approaching / ends" clause.
     static func bearingTrust(for location: CLLocation) -> (trusted: Bool, reason: String) {
         if location.course < 0 {
             return (false, "course=-1")
@@ -587,16 +592,29 @@ enum RoadAwarenessEngine {
             // No name AND no neighbourhood → say nothing safely.
             return nil
         }
-        if snap.walkingForwardAlongNodeIds != nil, let first = events.first,
-           let clause = Self.clause(for: first, roadContinuesForMeters: roadContinuesForMeters, imperial: imperial) {
+        if snap.walkingForwardAlongNodeIds != nil, let event = firstUsefulEvent(in: events),
+           let clause = Self.clause(for: event, roadContinuesForMeters: roadContinuesForMeters, imperial: imperial) {
             parts.append(clause)
         }
         return parts.joined(separator: ", ")
     }
 
-    /// The first useful upcoming event dictates the rest of the sentence. We
-    /// prioritise: roadEnds (a real "you'll have to turn") >
-    /// intersection-with-named-cross > nothing.
+    /// The first upcoming event worth saying: the road ending (a real
+    /// "you'll have to turn"), a roundabout, or a crossing with a named
+    /// street. A crossing with no named street (an OSM way split, an unnamed
+    /// path) is passed over so a named cross street behind it is still
+    /// spoken; when every event is like that, the first one stands, for the
+    /// "road continues" clause.
+    private static func firstUsefulEvent(in events: [LookaheadEvent]) -> LookaheadEvent? {
+        events.first { event in
+            switch event.kind {
+            case .roadEnds: true
+            case let .intersection(crossStreets, isRoundabout): isRoundabout || !crossStreets.isEmpty
+            }
+        } ?? events.first
+    }
+
+    /// The clause for the event `constructPhrase` picked.
     private static func clause(
         for first: LookaheadEvent, roadContinuesForMeters: Double?, imperial: Bool
     ) -> String? {
@@ -661,26 +679,30 @@ enum RoadAwarenessEngine {
 
     /// Project `point` onto the line segment a→b. Returns the
     /// closest point on the segment and the parametric `t`
-    /// (clamped to [0,1]). Done in flat lat/lon — close-enough at
-    /// our 800 m bbox scale; the haversine call afterward gives
-    /// us the actual meter distance.
+    /// (clamped to [0,1]). Done on a local flat projection: a degree of
+    /// longitude spans cos(latitude) of a degree of latitude, so longitude
+    /// is scaled by cos(latitude) at the point before projecting — in raw
+    /// degrees the foot point is not perpendicular in metres away from the
+    /// equator and a diagonal road reads farther away than it is. The
+    /// haversine call afterward gives the metre distance.
     static func projectPointOntoSegment(
         point p: RoadGraphService.Point,
         segmentStart a: RoadGraphService.Point,
         segmentEnd b: RoadGraphService.Point
     ) -> (snapped: RoadGraphService.Point, t: Double) {
-        let dx = b.lon - a.lon
+        let lonScale = cos(p.lat * .pi / 180)
+        let dx = (b.lon - a.lon) * lonScale
         let dy = b.lat - a.lat
         let lenSq = dx * dx + dy * dy
         if lenSq < 1e-18 {
             return (a, 0)
         }
-        let t = ((p.lon - a.lon) * dx + (p.lat - a.lat) * dy) / lenSq
+        let t = ((p.lon - a.lon) * lonScale * dx + (p.lat - a.lat) * dy) / lenSq
         let clamped = max(0, min(1, t))
         return (
             RoadGraphService.Point(
-                lat: a.lat + clamped * dy,
-                lon: a.lon + clamped * dx
+                lat: a.lat + clamped * (b.lat - a.lat),
+                lon: a.lon + clamped * (b.lon - a.lon)
             ),
             clamped
         )
@@ -704,19 +726,15 @@ enum RoadAwarenessEngine {
     }
 
     /// Initial bearing from a→b in degrees clockwise from true
-    /// north (0°). Same formula as `RoadGeocodingService` uses for
-    /// tile-search ranking.
+    /// north (0°), through the one great-circle formula
+    /// (`bearingDegrees(from:to:)` in RoadGeocodingSupport.swift).
     static func bearingDegrees(
         from a: RoadGraphService.Point,
         to b: RoadGraphService.Point
     ) -> Double {
-        let lat1 = a.lat * .pi / 180
-        let lat2 = b.lat * .pi / 180
-        let dLon = (b.lon - a.lon) * .pi / 180
-        let y = sin(dLon) * cos(lat2)
-        let x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLon)
-        let radians = atan2(y, x)
-        let degrees = radians * 180 / .pi
-        return (degrees + 360).truncatingRemainder(dividingBy: 360)
+        Emuqu.bearingDegrees(
+            from: CLLocationCoordinate2D(latitude: a.lat, longitude: a.lon),
+            to: CLLocationCoordinate2D(latitude: b.lat, longitude: b.lon)
+        )
     }
 }

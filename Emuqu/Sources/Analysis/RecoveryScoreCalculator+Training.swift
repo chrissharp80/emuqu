@@ -14,7 +14,8 @@ extension RecoveryScoreCalculator {
     /// predictor of illness and maladaptation (Foster 1998).
     ///
     /// - Parameters:
-    ///   - dailyTrimp: Dictionary mapping dates to daily TRIMP values
+    ///   - dailyTrimp: Dictionary mapping dates to daily TRIMP values; each key
+    ///     counts for the local calendar day it falls on
     ///   - referenceDate: The "today" anchor for the trailing 7-day window.
     ///     Defaults to `Date()` so existing callers are unaffected; passing
     ///     an explicit value makes the window deterministic (testability,
@@ -34,7 +35,11 @@ extension RecoveryScoreCalculator {
         let today = calendar.startOfDay(for: referenceDate)
         let last7 = (0 ..< 7).compactMap { calendar.date(byAdding: .day, value: -$0, to: today) }
         guard last7.count == 7 else { return nil }
-        let values = last7.map { dailyTrimp[$0] ?? 0.0 }
+        // Keys are re-normalised to local start of day (summing any that land
+        // on the same day), so a key that is not exactly midnight, or was
+        // built under another time zone, still counts for its day.
+        let byDay = Dictionary(dailyTrimp.map { (calendar.startOfDay(for: $0.key), $0.value) }, uniquingKeysWith: +)
+        let values = last7.map { byDay[$0] ?? 0.0 }
         let sum = values.reduce(0, +)
         guard sum > 0 else { return nil } // No training at all — nothing to compute
         let monotony = cappedMonotony(of: values, sum: sum)

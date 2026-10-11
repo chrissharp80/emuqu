@@ -109,7 +109,9 @@ struct Split: Codable, Equatable {
 
 // MARK: - Lap
 
-/// A lap is a user- or interval-triggered segment (not distance-based).
+/// A lap: a user- or interval-triggered segment (not distance-based). The
+/// recorder does not create laps today; the type is kept so `laps` stored by
+/// another build still decodes, and the iCloud copy strips its heart rate.
 struct Lap: Codable, Equatable {
     let index: Int
     let startOffsetSec: Double          // from session start
@@ -122,9 +124,10 @@ struct Lap: Codable, Equatable {
 
 // MARK: - Live Marker
 
-/// A timestamped marker placed during recording. Captures interval transitions,
-/// hill crests, user taps, sensor disconnects — anything worth surfacing on the
-/// post-session timeline.
+/// A timestamped marker for the post-session timeline (interval transitions,
+/// hill crests, user taps, sensor disconnects). Nothing in the app places
+/// markers today; the type is kept so `liveMarkers` stored by another build
+/// still decodes and round-trips.
 struct LiveMarker: Codable, Equatable {
     enum Kind: String, Codable {
         case userFlag
@@ -297,6 +300,11 @@ struct WorkoutMetadata: Codable, Equatable {
     static let currentSchemaVersion = 1
 
     let sport: Sport
+    /// The stored sport string when this build does not know it (a sport
+    /// added by a newer build, synced from another device). `sport` then
+    /// reads `.run`; encoding writes this string back so a re-save here does
+    /// not overwrite the other device's sport. Nil for every known sport.
+    private(set) var unrecognizedSportRawValue: String?
 
     // MARK: Motion / geography
     /// zlib-compressed encoded polyline of the GPS track (nil for indoor sessions
@@ -565,24 +573,21 @@ struct WorkoutMetadata: Codable, Equatable {
         return min(30.0, max(1.0, Double(gap)))
     }
 
-    /// Path B — single-bucket fallback. Uses just total distance, total
-    /// duration, and sport. EVERY workout has these even when per-sample pace
-    /// samples are absent — so a walk where GPS dropped or the Stryd didn't
-    /// carry per-second pace STILL gets a sensible load number here.
+    /// Path B — single-bucket fallback. Uses total distance, moving
+    /// duration and sport, so a walk whose per-sample pace was too sparse
+    /// for Path A (GPS dropped, or the Stryd didn't carry per-second pace)
+    /// still gets a load number here. The moving duration is the last
+    /// sample's offset (`totalDurationSec`), so a workout with no samples at
+    /// all gets nil from this path too.
     ///
     /// This is the path that keeps strap-dropped daily
     /// walks from landing at "1 TRIMP" when every other tier returns nil.
-    /// Coarse but honest: the formula is the same one each per-sample MET uses,
-    /// just bucketed once over the whole session.
+    /// Coarse but honest: the same MET table each per-sample MET uses
+    /// (`METLookup`), read once at the session's mean speed.
     private func bucketMETLoad() -> Double? {
         guard let distance = distanceMeters, distance > 50,
               let avgKmh = averageKmh(),
-              let bucketMETs = WorkoutRecorder.estimateMETs(
-                  sport: sport,
-                  paceSecPerKm: 3600.0 / avgKmh,
-                  heartRate: nil,
-                  userMaxHR: AppDependencies.current.app.settingsManager.settingsSnapshot.effectiveMaxHR
-              ), bucketMETs > 0,
+              let bucketMETs = METLookup.mets(sport: sport, speedKmh: avgKmh), bucketMETs > 0,
               let durationSec = totalDurationSec(), durationSec >= 60
         else { return nil }
         return loadFromMETHours(bucketMETs * (durationSec / 3600.0))
@@ -690,8 +695,9 @@ struct WorkoutMetadata: Codable, Equatable {
         return (luciaTRIMP ?? 0) < Self.routeDropoutRecordedShare * estimate
     }
 
-    /// Preferred numeric load + the source it came from. Order is by
-    /// published accuracy:
+    /// Preferred numeric load + the source it came from: exactly
+    /// `TrainingLoadPrecedence.stored`, the figure ATL/CTL count, with the
+    /// FTPs from the settings snapshot. Order is by published accuracy:
     ///   1. powerTSS (Coggan, with Stryd / cycling power; either
     ///      the stored value over moving time OR derived at read time
     ///      from NP and the current effective FTP — incl. auto-estimate)
@@ -707,18 +713,7 @@ struct WorkoutMetadata: Codable, Equatable {
     /// honestly ("Coggan · power", "METs · partial", etc.).
     @MainActor
     var preferredTrainingLoad: (value: Double, source: TrainingLoadSource)? {
-        // `computedPowerTSS` resolves stored powerTSS
-        // first, then derives it from NP + current FTP for
-        // sessions that finalized without an FTP anchor. Together
-        // this means: once auto-estimate fires, EVERY historical
-        // workout with Stryd NP shows power-based load.
-        if let pTSS = computedPowerTSS, pTSS > 0 { return (pTSS, .power) }
-        if routeEstimateReplacesHRLoad, let extrap = extrapolatedTRIMP { return (extrap, .routeHistory) }
-        if let tss = hrTSS, tss > 0 { return (tss, .hr) }
-        if let metsLoad = computedMETLoad, metsLoad > 0 { return (metsLoad, .mets) }
-        if let trimp = luciaTRIMP, trimp > 0 { return (trimp, .banister) }
-        if let extrap = extrapolatedTRIMP, extrap > 0 { return (extrap, .routeHistory) }
-        return nil
+        TrainingLoadPrecedence.stored(self)
     }
 
     // MARK: Rowing-specific (from Concept2 PM5)
@@ -800,18 +795,18 @@ struct WorkoutMetadata: Codable, Equatable {
     // Body is one assignment per field, in the same order as the encoder.
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        _ = try c.decodeIfPresent(Int.self, forKey: .schemaVersion) ?? 0
-        sport = try c.decode(Sport.self, forKey: .sport)
+        sport = try Self.decodedSport(from: c)
+        unrecognizedSportRawValue = Self.unrecognizedSport(in: c)
         gpsPolyline = try c.decodeIfPresent(Data.self, forKey: .gpsPolyline)
         distanceMeters = try c.decodeIfPresent(Double.self, forKey: .distanceMeters)
         elevationGainMeters = try c.decodeIfPresent(Double.self, forKey: .elevationGainMeters)
         elevationLossMeters = try c.decodeIfPresent(Double.self, forKey: .elevationLossMeters)
         splits = try c.decodeIfPresent([Split].self, forKey: .splits)
         laps = try c.decodeIfPresent([Lap].self, forKey: .laps)
-        liveMarkers = try c.decodeIfPresent([LiveMarker].self, forKey: .liveMarkers)
+        liveMarkers = c.optionalValue([LiveMarker].self, .liveMarkers)
         samples = try c.decodeIfPresent([WorkoutSample].self, forKey: .samples)
         healthKitHROffsets = try c.decodeIfPresent([Int].self, forKey: .healthKitHROffsets)
-        hrrSamples = try c.decodeIfPresent([HRRSample].self, forKey: .hrrSamples)
+        hrrSamples = c.optionalValue([HRRSample].self, .hrrSamples)
         decouplingPercent = try c.decodeIfPresent(Double.self, forKey: .decouplingPercent)
         efficiencyFactor = try c.decodeIfPresent(Double.self, forKey: .efficiencyFactor)
         luciaTRIMP = try c.decodeIfPresent(Double.self, forKey: .luciaTRIMP)
@@ -829,13 +824,32 @@ struct WorkoutMetadata: Codable, Equatable {
         workoutFeeling = try c.decodeIfPresent(Int.self, forKey: .workoutFeeling)
         workoutFeelingNote = try c.decodeIfPresent(String.self, forKey: .workoutFeelingNote)
         analysisSnapshot = try c.decodeIfPresent(WorkoutAnalysisSnapshot.self, forKey: .analysisSnapshot)
-        partialDataReason = try c.decodeIfPresent(PartialDataReason.self, forKey: .partialDataReason)
+        partialDataReason = c.optionalValue(PartialDataReason.self, .partialDataReason)
         recoveredAt = try c.decodeIfPresent(Date.self, forKey: .recoveredAt)
         extrapolatedTRIMP = try c.decodeIfPresent(Double.self, forKey: .extrapolatedTRIMP)
         extrapolationConfidence = try c.decodeIfPresent(Double.self, forKey: .extrapolationConfidence)
         extrapolationRouteName = try c.decodeIfPresent(String.self, forKey: .extrapolationRouteName)
         recognizedRouteName = try c.decodeIfPresent(String.self, forKey: .recognizedRouteName)
         weatherSnapshot = try c.decodeIfPresent(WorkoutWeatherSnapshot.self, forKey: .weatherSnapshot)
+    }
+
+    /// The stored sport. A value this build does not know (a sport added by a
+    /// newer build) reads as `.run`, the app's default sport, and is logged,
+    /// instead of failing the decode and dropping the whole session; an
+    /// absent sport still throws.
+    private static func decodedSport(from c: KeyedDecodingContainer<CodingKeys>) throws -> Sport {
+        let raw = try c.decode(String.self, forKey: .sport)
+        guard let sport = Sport(rawValue: raw) else {
+            debugLog("[WorkoutMetadata] Unknown sport '\(raw)' from another build; reading it as run", level: .warning)
+            return .run
+        }
+        return sport
+    }
+
+    /// The stored sport string when it is not a `Sport` this build knows.
+    private static func unrecognizedSport(in c: KeyedDecodingContainer<CodingKeys>) -> String? {
+        guard let raw = c.optionalValue(String.self, .sport) else { return nil }
+        return Sport(rawValue: raw) == nil ? raw : nil
     }
 
     func encode(to encoder: Encoder) throws {
@@ -849,7 +863,7 @@ struct WorkoutMetadata: Codable, Equatable {
     /// Sport, route geometry, and the per-tick sample series.
     private func encodeRouteAndSamples(into c: inout KeyedEncodingContainer<CodingKeys>) throws {
         try c.encode(Self.currentSchemaVersion, forKey: .schemaVersion)
-        try c.encode(sport, forKey: .sport)
+        try c.encode(unrecognizedSportRawValue ?? sport.rawValue, forKey: .sport)
         try c.encodeIfPresent(gpsPolyline, forKey: .gpsPolyline)
         try c.encodeIfPresent(distanceMeters, forKey: .distanceMeters)
         try c.encodeIfPresent(elevationGainMeters, forKey: .elevationGainMeters)

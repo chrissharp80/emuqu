@@ -166,14 +166,7 @@ extension HolisticDailyReport {
 
     func drawGlanceWorkoutRows(rightY: CGFloat, colW: CGFloat, rightX: CGFloat, bundle _: Bundle) -> CGFloat {
         var rightY = rightY
-        // Divider for right column
-        if let cgctx = UIGraphicsGetCurrentContext() {
-            cgctx.setStrokeColor(config.divider.cgColor)
-            cgctx.setLineWidth(0.5)
-            cgctx.move(to: CGPoint(x: rightX, y: rightY - 4))
-            cgctx.addLine(to: CGPoint(x: rightX + colW, y: rightY - 4))
-            cgctx.strokePath()
-        }
+        drawDivider(at: rightY - 4, x: rightX, width: colW, strong: false)
         rightY += 4
         return drawGlanceStatRows(workoutOutputRows(), x: rightX, y: rightY)
     }
@@ -222,12 +215,10 @@ extension HolisticDailyReport {
                             lineHeight: 16)
     }
 
-    /// Sage above 7.5, amber above 5.5, primary below — the same bands the
-    /// dashboard pill uses.
+    /// The dashboard pill's colour for this score: the `ScoreVerdict` ladder
+    /// (90/75/60/45 on the rounded 0–100 score) and its palette.
     func readinessBandColour(_ value: Double) -> UIColor {
-        if value >= 7.5 { return config.sage }
-        if value >= 5.5 { return config.amber }
-        return config.primary
+        UIColor(ScoreVerdict(score: value * 10).color)
     }
 
     /// The left "morning recovery" column, one stat per row.
@@ -275,7 +266,9 @@ extension HolisticDailyReport {
         let interpColor: UIColor
         if snap.tsb > 5 {
             interp = String(localized: "Fresh — quality session ready", bundle: bundle); interpColor = config.sage
-        } else if snap.tsb < -10 {
+        } else if snap.tsb < TrainingAdviceGate.heavyFatigueTSB {
+            // The advice gate's heavy-fatigue line, so page 1 never says "go
+            // easy" while page 2's tier, read through the same gate, allows more.
             interp = String(localized: "Tired — go easy or rest", bundle: bundle); interpColor = config.primary
         } else {
             interp = String(localized: "Balanced load", bundle: bundle); interpColor = config.textSecondary
@@ -364,14 +357,16 @@ extension HolisticDailyReport {
         y += 16
 
         let bundle = LanguageManager.appBundle
-        y = drawScoreSynthesis(y: y, contentW: contentW, bundle: bundle)
-        y = drawContributionBars(y: y, contentW: contentW)
+        let readiness = combinedReadinessScore()
+        y = drawScoreSynthesis(readiness, y: y, contentW: contentW)
+        y = drawContributionBars(readiness, y: y, contentW: contentW)
         drawHelpingHurting(y: y, contentW: contentW, bundle: bundle)
     }
 
     /// The one-line "why" — combined readiness plus what drove it.
-    func drawScoreSynthesis(y: CGFloat, contentW: CGFloat, bundle: Bundle) -> CGFloat {
-        let readiness = combinedReadinessScore()
+    func drawScoreSynthesis(
+        _ readiness: (value: Double, tier: String, contributions: [ScoreContribution]), y: CGFloat, contentW: CGFloat
+    ) -> CGFloat {
         let scoreColor = readinessBandColour(readiness.value)
         let scoreRect = CGRect(x: config.margin, y: y, width: contentW, height: 60)
         scoreColor.withAlphaComponent(0.10).setFill()
@@ -399,9 +394,10 @@ extension HolisticDailyReport {
                  color: config.textPrimary)
     }
 
-    func drawContributionBars(y: CGFloat, contentW: CGFloat) -> CGFloat {
+    func drawContributionBars(
+        _ readiness: (value: Double, tier: String, contributions: [ScoreContribution]), y: CGFloat, contentW: CGFloat
+    ) -> CGFloat {
         var y = y
-        let readiness = combinedReadinessScore()
         let scoreColor = readinessBandColour(readiness.value)
         // Contributions bars
         drawText(String(localized: "CONTRIBUTIONS", bundle: LanguageManager.appBundle),
@@ -467,12 +463,13 @@ extension HolisticDailyReport {
         // One parameterised section rather than two near-identical blocks
         // differing only in heading, bullet colour and cap (4 vs 3), so the
         // two cannot drift apart by hand.
+        let helping = whatsHelpingPoints()
         var y = drawHelpingHurtingSection(
             title: String(localized: "WHAT'S HELPING", bundle: bundle),
-            points: whatsHelpingPoints(), limit: 4, bulletColour: config.sage,
+            points: helping, limit: 4, bulletColour: config.sage,
             y: y, contentW: contentW
         )
-        if !whatsHelpingPoints().isEmpty { y += 10 }
+        if !helping.isEmpty { y += 10 }
         _ = drawHelpingHurtingSection(
             title: String(localized: "WHAT'S HURTING", bundle: bundle),
             points: whatsHurtingPoints(), limit: 3, bulletColour: config.primary,
@@ -510,66 +507,45 @@ extension HolisticDailyReport {
         return y
     }
 
-    // MARK: - Drawing primitives (mirror WorkoutPDFReport's helpers)
+    // MARK: - Drawing primitives (shared with WorkoutPDFRenderer through PDFPagePrimitives)
 
     func drawText(_ text: String, at origin: CGPoint, font: UIFont, color: UIColor) {
-        let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: color]
-        text.pdfDraw(at: origin, withAttributes: attrs)
+        PDFPagePrimitives.drawText(text, at: origin, font: font, color: color)
     }
 
     @discardableResult
     func drawWrappedText(_ text: String, at origin: CGPoint, width: CGFloat, font: UIFont, color: UIColor, lineHeight: CGFloat) -> CGFloat {
-        let attr = wrappedAttributedText(text, font: font, color: color, lineHeight: lineHeight)
-        let height = wrappedTextHeight(text, width: width, font: font, lineHeight: lineHeight)
-        attr.pdfDraw(in: CGRect(origin: origin, size: CGSize(width: width, height: height)))
-        return origin.y + height
+        PDFPagePrimitives.drawWrappedText(text, at: origin, width: width, font: font, color: color, lineHeight: lineHeight)
     }
 
     /// The height `drawWrappedText` will use for `text`, so a box can be sized
     /// to its contents before it is drawn.
     func wrappedTextHeight(_ text: String, width: CGFloat, font: UIFont, lineHeight: CGFloat) -> CGFloat {
-        wrappedAttributedText(text, font: font, color: .black, lineHeight: lineHeight)
-            .boundingRect(with: CGSize(width: width, height: .greatestFiniteMagnitude),
-                          options: [.usesLineFragmentOrigin, .usesFontLeading], context: nil)
-            .height
+        PDFPagePrimitives.wrappedTextHeight(text, width: width, font: font, lineHeight: lineHeight)
     }
 
-    private func wrappedAttributedText(_ text: String, font: UIFont, color: UIColor, lineHeight: CGFloat) -> NSAttributedString {
-        let para = PDFReadingDirection.paragraphStyle()
-        para.lineSpacing = max(0, lineHeight - font.lineHeight)
-        return NSAttributedString(string: text, attributes: [.font: font, .foregroundColor: color, .paragraphStyle: para])
+    /// A rule `width` long from `x` (the left margin by default).
+    func drawDivider(at y: CGFloat, x: CGFloat? = nil, width: CGFloat, strong: Bool) {
+        PDFPagePrimitives.drawDivider(
+            from: CGPoint(x: x ?? config.margin, y: y), width: width, strong: strong,
+            primary: config.primary, divider: config.divider
+        )
     }
 
-    func drawDivider(at y: CGFloat, width: CGFloat, strong: Bool) {
-        guard let ctx = UIGraphicsGetCurrentContext() else { return }
-        ctx.setStrokeColor((strong ? config.primary.withAlphaComponent(0.5) : config.divider).cgColor)
-        ctx.setLineWidth(strong ? 1.2 : 0.5)
-        ctx.move(to: CGPoint(x: config.margin, y: y))
-        ctx.addLine(to: CGPoint(x: config.margin + width, y: y))
-        ctx.strokePath()
-    }
-
+    /// Page footer: the shared rule, page line and wellness disclaimer.
     func drawFooter(pageNumber: Int) {
-        let y = config.pageSize.height - config.margin + 6
-        let contentW = config.pageSize.width - 2 * config.margin
-        drawDivider(at: y, width: contentW, strong: false)
         let iso = ISO8601DateFormatter()
         iso.formatOptions = [.withInternetDateTime]
-        drawText(String(localized: "Emuqu · Daily Report · Page \(pageNumber) · \(iso.string(from: Date()))", bundle: LanguageManager.appBundle),
-                 at: CGPoint(x: config.margin, y: y + 4),
-                 font: config.captionFont,
-                 color: config.textTertiary)
-        // Wellness disclaimer on every page (shared externally).
-        drawText(String(localized: "For wellness and fitness use only. Not a medical device; not medical advice, diagnosis, or treatment.", bundle: LanguageManager.appBundle),
-                 at: CGPoint(x: config.margin, y: y + 4 + config.captionFont.lineHeight),
-                 font: config.captionFont,
-                 color: config.textTertiary)
+        PDFPagePrimitives.drawFooter(
+            String(localized: "Emuqu · Daily Report · Page \(pageNumber) · \(iso.string(from: Date()))", bundle: LanguageManager.appBundle),
+            page: PDFPagePrimitives.PageStyle(
+                pageSize: config.pageSize, margin: config.margin, captionFont: config.captionFont,
+                primary: config.primary, divider: config.divider, textTertiary: config.textTertiary
+            )
+        )
     }
 
     func formatDuration(_ sec: Int) -> String {
-        let h = sec / 3600
-        let m = (sec % 3600) / 60
-        let s = sec % 60
-        return h > 0 ? String(format: "%d:%02d:%02d", h, m, s) : String(format: "%d:%02d", m, s)
+        PDFPagePrimitives.formatDuration(sec)
     }
 }

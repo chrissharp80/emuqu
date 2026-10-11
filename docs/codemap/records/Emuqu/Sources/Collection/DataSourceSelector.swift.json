@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Collection/DataSourceSelector.swift",
  "hash": "8037ecfe0fbd6930",
- "role": "Chooses between BLE-streamed and strap-internal RR series (≥120 beats each to be valid), building a composite that fills internal gaps (>2 s beyond expected RR) with streaming beats, and provides time-aligned merge helpers reused by SessionMerger.",
+ "role": "Chooses between BLE-streamed and strap-internal RR series (≥120 beats each to be valid), building a composite that adds the streaming beats the internal series does not cover (inside its gaps >2 s beyond expected RR, or before/after its span), and provides time-aligned merge helpers reused by SessionMerger. Both series must already be on the session's clock (callers use StrapRecording.points(onClockOf:)); internal t_ms and streaming wallClockMs are compared directly.",
  "types": [
   "DataSourceSelector: enum (namespace) — source selection and RR merging",
   "DataSourceSelector.SelectionResult: struct — chosen points, description, composite flag",
@@ -14,20 +14,7 @@
   "static duplicateToleranceMs = 50"
  ],
  "toplevel": "No top-level code beyond constants.",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "Merging compares internal t_ms (ms since the internal recording's start) directly against streaming wallClockMs (ms since the stream started); results are correct only when both clocks share an origin, which this file assumes and never checks.",
-   "evidence": [
-    "Emuqu/Sources/Collection/DataSourceSelector.swift:267",
-    "Emuqu/Sources/Collection/DataSourceSelector.swift:268",
-    "Emuqu/Sources/Models/RRModels.swift:5",
-    "Emuqu/Sources/Models/RRModels.swift:9"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "var DataSourceSelector.SelectionResult.normalizedSource",
@@ -161,7 +148,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.createComposite(internalSeries:streamingSeries:)": "f019d8dfc57537c0",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.createComposite(internalSeries:streamingSeries:)": "35e33e42bf8d43d7",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
@@ -179,12 +166,13 @@
   },
   {
    "key": "func DataSourceSelector.createComposite(internalSeries:streamingSeries:)",
-   "hash": "77b700e005a9cb1c",
-   "does": "Returns nil for empty series or when no internal gap can be filled; otherwise merges internal with only the streaming beats inside internal gaps.",
+   "hash": "04093f14043cd06d",
+   "does": "Returns nil for empty series or when no internal gap can be filled from streaming; otherwise finds the internal gaps once and merges internal with every streaming beat it does not cover — inside a gap or before its first / after its last beat (uncoveredBeats) — logging how many were added.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.fillableGapSummary(internalPoints:streamingPoints:)",
-    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.streamingBeatsInsideGaps(internalPoints:streamingPoints:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.findGaps(in:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.fillableGapSummary(gaps:streamingPoints:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.uncoveredBeats(_:internal:gaps:)",
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
@@ -197,49 +185,46 @@
      "effect": "logs and returns nil"
     },
     {
-     "at": "+10",
+     "at": "+11",
      "cond": "fillableGapSummary nil (no gaps or none fillable)",
      "effect": "returns nil → caller uses streaming"
     }
    ],
-   "flags": [
-    {
-     "kind": "data-loss",
-     "sev": "med",
-     "text": "The composite takes streaming beats only inside internal gaps, so streaming beats before the internal recording's first beat or after its last are dropped even though the composite path is chosen precisely because streaming has >5% more beats; mergeAddingOnlyUncoveredBeats (line 160) keeps those outside-span beats. A night whose strap recording started late or stopped early and also has a mid-night gap loses its streamed head/tail.",
-     "evidence": [
-      "Emuqu/Sources/Collection/DataSourceSelector.swift:151",
-      "Emuqu/Sources/Collection/DataSourceSelector.swift:177",
-      "Emuqu/Sources/Collection/DataSourceSelector.swift:167"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "streamingBeatsInsideGaps (177) and countFillableBeats (222) run the same per-gap wallClockMs-or-t_ms filter over the streaming beats; the gap set is also recomputed three times (findGaps in 188, 178).",
-     "evidence": [
-      "Emuqu/Sources/Collection/DataSourceSelector.swift:177",
-      "Emuqu/Sources/Collection/DataSourceSelector.swift:222"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.fillableGapSummary(internalPoints:streamingPoints:)": "b0ea6652b20f3b70",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.fillableGapSummary(gaps:streamingPoints:)": "fcd55efaf0b5f3f6",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.findGaps(in:)": "da584f5e541a4983",
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)": "08bc9799bbccea43",
-    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.streamingBeatsInsideGaps(internalPoints:streamingPoints:)": "f9b5125ea17259e1",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.uncoveredBeats(_:internal:gaps:)": "d3b6adba7a1d11a3",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
    "key": "func DataSourceSelector.mergeAddingOnlyUncoveredBeats(internal:streaming:)",
-   "hash": "1a8001de9d3b82da",
-   "does": "Merges streaming into internal keeping only streaming beats outside the internal span or inside an internal gap; with empty internal, merges everything. Used by SessionMerger (SessionMerger.swift:179,182).",
+   "hash": "0e33c1c9efbbf489",
+   "does": "Merges streaming into internal keeping only the streaming beats internal does not cover (uncoveredBeats with internal's gaps): outside the internal span or inside an internal gap; with empty internal, everything. Requires both on one clock. Used by SessionMerger (SessionMerger.swift:179,182).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.uncoveredBeats(_:internal:gaps:)",
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.findGaps(in:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.findGaps(in:)": "da584f5e541a4983",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)": "08bc9799bbccea43",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.uncoveredBeats(_:internal:gaps:)": "d3b6adba7a1d11a3"
+   }
+  },
+  {
+   "key": "func DataSourceSelector.uncoveredBeats(_:internal:gaps:)",
+   "hash": "4aa963da316c5f37",
+   "does": "Filters streaming beats (by wallClockMs, else t_ms) to those internal does not cover: outside [first.t_ms, last.endMs] or inside one of the given gaps (inclusive); all of them when internal is empty.",
+   "entry": null,
+   "calls": [
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.streamTime(_:)"
    ],
    "reads": [],
@@ -248,53 +233,26 @@
     {
      "at": "+1",
      "cond": "internal empty",
-     "effect": "returns mergePoints(internal, all streaming)"
+     "effect": "returns all streaming beats"
     },
     {
-     "at": "+7",
-     "cond": "streaming beat time outside [first.t_ms, last.endMs]",
-     "effect": "kept; inside span it is kept only if it falls in a gap (line 168)"
+     "at": "+4",
+     "cond": "beat outside the internal span",
+     "effect": "kept; inside it, kept only when in a gap"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.findGaps(in:)": "da584f5e541a4983",
-    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)": "08bc9799bbccea43",
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.streamTime(_:)": "2aaf25af51ae12f9",
     "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b"
    }
   },
   {
-   "key": "func DataSourceSelector.streamingBeatsInsideGaps(internalPoints:streamingPoints:)",
-   "hash": "9698ed436f4b1370",
-   "does": "Filters streaming beats whose wallClockMs (or t_ms) lies inside any internal gap (inclusive bounds).",
+   "key": "func DataSourceSelector.fillableGapSummary(gaps:streamingPoints:)",
+   "hash": "78206dfba1afc0ce",
+   "does": "Given the internal gaps, counts the fillable ones; nil when there are no gaps or none contains a streaming beat.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.findGaps(in:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+3",
-     "cond": "wallClockMs nil",
-     "effect": "uses t_ms"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.findGaps(in:)": "da584f5e541a4983",
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0",
-    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b"
-   }
-  },
-  {
-   "key": "func DataSourceSelector.fillableGapSummary(internalPoints:streamingPoints:)",
-   "hash": "4652c4f94a035e20",
-   "does": "Finds internal gaps and counts fillable ones; nil when no gaps or none contains a streaming beat.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.findGaps(in:)",
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.countFillableBeats(gaps:streamingPoints:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
@@ -302,20 +260,19 @@
    "writes": [],
    "branches": [
     {
-     "at": "+2",
+     "at": "+1",
      "cond": "no gaps",
      "effect": "logs, returns nil"
     },
     {
-     "at": "+8",
+     "at": "+7",
      "cond": "no gap fillable",
      "effect": "logs, returns nil; otherwise returns counts"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.countFillableBeats(gaps:streamingPoints:)": "d4bfd0e42b259647",
-    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.findGaps(in:)": "da584f5e541a4983",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.countFillableBeats(gaps:streamingPoints:)": "f8a8aec34cd64667",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
@@ -351,10 +308,11 @@
   },
   {
    "key": "func DataSourceSelector.countFillableBeats(gaps:streamingPoints:)",
-   "hash": "84e7c71888470111",
-   "does": "For each gap counts streaming beats (wallClockMs or t_ms) inside it; returns gaps with ≥1 beat and total beats.",
+   "hash": "fc02b8b89eff3f23",
+   "does": "For each gap counts streaming beats (streamTime: wallClockMs or t_ms) inside it; returns gaps with ≥1 beat and total beats, logging each.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.streamTime(_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
@@ -366,11 +324,6 @@
      "effect": "iterates"
     },
     {
-     "at": "+5",
-     "cond": "wallClockMs nil",
-     "effect": "uses t_ms"
-    },
-    {
      "at": "+8",
      "cond": "no streaming beat in gap",
      "effect": "skips gap"
@@ -378,7 +331,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.streamTime(_:)": "2aaf25af51ae12f9",
     "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }

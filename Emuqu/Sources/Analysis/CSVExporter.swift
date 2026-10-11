@@ -7,9 +7,10 @@ import Foundation
 //   1. A metadata header (summary row) — sport, duration, distance,
 //      TRIMP, hrTSS, HRR, decoupling.
 //   2. Per-fix rows — one per CLLocation with timestamp, lat, lon,
-//      altitude, cumulative distance. HR at each fix isn't synchronised
-//      (RR and GPS arrive on independent clocks), so the HR column is
-//      the nearest-in-time beat-derived HR when available.
+//      altitude, cumulative distance. HR, pace, cadence, METs, power and
+//      DFA α1 come from the nearest 1 Hz `WorkoutSample` (the recorder's
+//      smoothed per-second values; no RR beats are read), left empty when
+//      none is within 5 s.
 //
 // Unit system: follows `UnitsPreferenceStore.current`. Imperial users
 // get miles / feet / min-per-mile columns; metric users get km / m /
@@ -18,8 +19,9 @@ import Foundation
 // was a standing user complaint: "if I set imperial, I want imperial
 // everywhere — common sense."
 //
-// Works for indoor / no-GPS sessions too — in that case only the summary
-// row is populated and the trackpoint section is empty.
+// Works for indoor / no-GPS sessions too: the trackpoint section is then
+// empty, and when the session has per-second samples a track-less table of
+// them follows it (`indoorBlock`). Splits, when present, close the file.
 enum CSVExporter {
     /// Unit system for the export, resolved once. Every conversion here keeps
     /// metric internally and converts only at cell-render time, so a mixed-unit
@@ -138,7 +140,9 @@ enum CSVExporter {
         iso: ISO8601DateFormatter
     ) -> String {
         let (altShort, distShort, paceUnit) = (units.altShort, units.distShort, units.paceUnit)
-        let sessionEnd = session.endDate ?? (session.duration.map { session.startDate.addingTimeInterval($0) } ?? Date())
+        // `duration` is nil exactly when `endDate` is, so an unfinished
+        // session runs to now.
+        let sessionEnd = session.endDate ?? Date()
         let inWindow = track.filter { $0.timestamp <= sessionEnd && $0.timestamp >= session.startDate }
         var out = "timestamp,seconds_from_start,latitude,longitude,altitude_\(altShort),cumulative_distance_\(distShort),hr_bpm,pace_\(paceUnit),cadence_spm,mets,power_w,dfa_alpha1\n"
         var cumulative = 0.0
@@ -229,21 +233,19 @@ enum CSVExporter {
 
     /// Nearest sample to the given elapsed second. Returns nil when the
     /// closest sample is >5 s away (caller prefers an empty cell to a
-    /// misleading stale value). Samples are sorted by offsetSec when
-    /// captured — a linear scan from a hint index would be faster, but for
-    /// the typical 30–120 min sessions this is negligible.
+    /// misleading stale value). Samples are in offsetSec order as captured,
+    /// so a binary search finds the first one at or after `offsetSec` and
+    /// only it and the one before it can be nearest — O(log n) per fix
+    /// rather than a scan of the whole series.
     private static func nearestSample(to offsetSec: Int, in samples: [WorkoutSample]) -> WorkoutSample? {
-        guard !samples.isEmpty else { return nil }
-        var best: WorkoutSample?
-        var bestDelta = Int.max
-        for s in samples {
-            let d = abs(s.offsetSec - offsetSec)
-            guard d < bestDelta else { continue }
-            bestDelta = d
-            best = s
-            if d == 0 { break }
+        var (lo, hi) = (0, samples.count)
+        while lo < hi {
+            let mid = (lo + hi) / 2
+            if samples[mid].offsetSec < offsetSec { lo = mid + 1 } else { hi = mid }
         }
-        return bestDelta <= 5 ? best : nil
+        let candidates = [lo - 1, lo].filter { samples.indices.contains($0) }.map { samples[$0] }
+        guard let best = candidates.min(by: { abs($0.offsetSec - offsetSec) < abs($1.offsetSec - offsetSec) }) else { return nil }
+        return abs(best.offsetSec - offsetSec) <= 5 ? best : nil
     }
 
     static func writeToTempFile(session: HRVSession, track: [CLLocation]) throws -> URL {

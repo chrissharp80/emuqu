@@ -14,18 +14,18 @@
  "units": [
   {
    "key": "func SessionDataMigrations.runNapRepairMigrationIfNeeded()",
-   "hash": "cec86f57dfa46795",
-   "does": "If the flag is unset, gets overnight entries from the last 400 days; for each retrievable session not already napRepaired, runs repairNap and collects adjusted nights; then sets the flag and logs.",
+   "hash": "649ac15d4bd8021e",
+   "does": "If the flag is unset, gets overnight entries from the last 400 days; for each session (decoded off the main actor) not already napRepaired, runs repairNap and collects adjusted nights; then sets the flag and logs.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/SessionDataMigrations+NapRepairMigration.swift::func SessionDataMigrations.napRepairCandidates(defaults:)",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)",
+    "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.retrieveOffMain(_:caller:)",
     "Emuqu/Sources/Collection/SessionDataMigrations+NapRepairMigration.swift::func SessionDataMigrations.repairNap(_:entry:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
     "ud:FlowRecovery.napRepairBackfill.v1.done",
-    "archive:SessionArchive.retrieve"
+    "archive:SessionArchive.retrieve (off main)"
    ],
    "writes": [
     "ud:FlowRecovery.napRepairBackfill.v1.done"
@@ -48,8 +48,8 @@
     },
     {
      "at": "+11",
-     "cond": "archive.retrieve throws or returns nil (try?)",
-     "effect": "skip entry silently (continue); error discarded"
+     "cond": "retrieveOffMain returned nil (missing or decode failed, logged)",
+     "effect": "skip entry (continue)"
     },
     {
      "at": "+12",
@@ -83,13 +83,12 @@
     {
      "kind": "fragile",
      "sev": "low",
-     "text": "Runs on the main actor and synchronously retrieves (decrypt+decode) and rewrites every overnight in 400 days, each write posting flowRecoveryArchiveChanged; loadArchivedSessions exists precisely because main-actor archive reads held the first screen for seconds.",
+     "text": "Each scanned overnight in 400 days is still rewritten on the main actor (markChecked/persist: encode, encrypt, write) to mark it napRepaired, each write posting flowRecoveryArchiveChanged; only the reads now run off the main actor.",
      "evidence": [
-      "Emuqu/Sources/Collection/SessionDataMigrations+NapRepairMigration.swift:43",
-      "Emuqu/Sources/Collection/SessionDataMigrations+NapRepairMigration.swift:112-115",
-      "Emuqu/Sources/Collection/SessionDataMigrations.swift:69-71"
+      "Emuqu/Sources/Collection/SessionDataMigrations+NapRepairMigration.swift:104",
+      "Emuqu/Sources/Collection/SessionDataMigrations+NapRepairMigration.swift:114"
      ],
-     "found": "first read, upheld on second"
+     "found": "fix batch b11"
     },
     {
      "kind": "untested",
@@ -105,7 +104,7 @@
    "deps": {
     "Emuqu/Sources/Collection/SessionDataMigrations+NapRepairMigration.swift::func SessionDataMigrations.napRepairCandidates(defaults:)": "9242872d4700e6d8",
     "Emuqu/Sources/Collection/SessionDataMigrations+NapRepairMigration.swift::func SessionDataMigrations.repairNap(_:entry:)": "030793064ea76dfe",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
+    "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.retrieveOffMain(_:caller:)": "50bd7e7643b1b046",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },

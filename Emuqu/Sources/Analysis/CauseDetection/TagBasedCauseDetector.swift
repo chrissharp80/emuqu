@@ -26,7 +26,7 @@ final class TagBasedCauseDetector: CauseDetectionStrategy {
     private func detectAlcoholCause(tags: Set<ReadingTag>, context: CauseDetectionContext) -> [DetectedCause] {
         var causes: [DetectedCause] = []
 
-        if tags.contains(where: { $0.name == ReadingTag.alcohol.name }) {
+        if tags.containsSystemTag(ReadingTag.alcohol) {
             let isLowHRV = context.rmssd < HRVThresholds.rmssdReduced
             let confidence: DetectedCause.CauseConfidence = isLowHRV ? .veryHigh : .high
             let weight = isLowHRV ? 0.95 : 0.85
@@ -45,7 +45,7 @@ final class TagBasedCauseDetector: CauseDetectionStrategy {
     private func detectSleepTags(tags: Set<ReadingTag>, context: CauseDetectionContext) -> [DetectedCause] {
         var causes: [DetectedCause] = []
 
-        if tags.contains(where: { $0.name == ReadingTag.poorSleep.name }) {
+        if tags.containsSystemTag(ReadingTag.poorSleep) {
             let hasFatigueSignal = context.dfaAlpha1 > HRVThresholds.dfaAlpha1HighVariability
             let confidence: DetectedCause.CauseConfidence = hasFatigueSignal ? .veryHigh : .high
             let weight = hasFatigueSignal ? 0.92 : 0.82
@@ -74,7 +74,7 @@ final class TagBasedCauseDetector: CauseDetectionStrategy {
     /// Late digestion keeps HR up overnight.
     private func lateMealTagCause(tags: Set<ReadingTag>, context: CauseDetectionContext) -> [DetectedCause] {
         var causes: [DetectedCause] = []
-        if tags.contains(where: { $0.name == ReadingTag.lateMeal.name }) {
+        if tags.containsSystemTag(ReadingTag.lateMeal) {
             causes.append(DetectedCause(
                 cause: String(localized: "Late Night Eating", bundle: NarrativeLanguage.bundle),
                 confidence: .moderateHigh,
@@ -88,7 +88,7 @@ final class TagBasedCauseDetector: CauseDetectionStrategy {
     /// Caffeine half-life reaches into the night.
     private func caffeineTagCause(tags: Set<ReadingTag>, context: CauseDetectionContext) -> [DetectedCause] {
         var causes: [DetectedCause] = []
-        if tags.contains(where: { $0.name == ReadingTag.caffeine.name }) {
+        if tags.containsSystemTag(ReadingTag.caffeine) {
             causes.append(DetectedCause(
                 cause: String(localized: "Caffeine Effect", bundle: NarrativeLanguage.bundle),
                 confidence: .moderate,
@@ -110,7 +110,7 @@ final class TagBasedCauseDetector: CauseDetectionStrategy {
     /// Travel disrupts circadian rhythm, sleep and hydration at once.
     private func travelTagCause(tags: Set<ReadingTag>, context: CauseDetectionContext) -> [DetectedCause] {
         var causes: [DetectedCause] = []
-        if tags.contains(where: { $0.name == ReadingTag.travel.name }) {
+        if tags.containsSystemTag(ReadingTag.travel) {
             causes.append(DetectedCause(
                 cause: String(localized: "Travel Stress / Jet Lag", bundle: NarrativeLanguage.bundle),
                 confidence: .moderateHigh,
@@ -125,7 +125,7 @@ final class TagBasedCauseDetector: CauseDetectionStrategy {
     /// with breathing rate too, so the copy never calls it confirmation.
     private func stressedTagCause(tags: Set<ReadingTag>, context: CauseDetectionContext) -> [DetectedCause] {
         var causes: [DetectedCause] = []
-        if tags.contains(where: { $0.name == ReadingTag.stressed.name }) {
+        if tags.containsSystemTag(ReadingTag.stressed) {
             let hasRaisedLFHF = context.lfHfRatio > HRVThresholds.lfHfModerateSympatheticUpper
             let confidence: DetectedCause.CauseConfidence = hasRaisedLFHF ? .veryHigh : .high
             let weight = hasRaisedLFHF ? 0.9 : 0.8
@@ -146,7 +146,7 @@ final class TagBasedCauseDetector: CauseDetectionStrategy {
     /// Weighted higher when the HRV drop confirms the training cost.
     private func postExerciseTagCause(tags: Set<ReadingTag>, context: CauseDetectionContext) -> [DetectedCause] {
         var causes: [DetectedCause] = []
-        if tags.contains(where: { $0.name == ReadingTag.postExercise.name }) {
+        if tags.containsSystemTag(ReadingTag.postExercise) {
             let isLowHRV = context.rmssd < HRVThresholds.rmssdReduced
             let confidence: DetectedCause.CauseConfidence = isLowHRV ? .high : .moderate
             let weight = isLowHRV ? 0.85 : 0.65
@@ -171,7 +171,7 @@ final class TagBasedCauseDetector: CauseDetectionStrategy {
     /// The user reported illness.
     private func illnessTagCause(tags: Set<ReadingTag>, context: CauseDetectionContext) -> [DetectedCause] {
         var causes: [DetectedCause] = []
-        if tags.contains(where: { $0.name == ReadingTag.illness.name }) {
+        if tags.containsSystemTag(ReadingTag.illness) {
             causes.append(DetectedCause(
                 cause: String(localized: "Active Illness", bundle: NarrativeLanguage.bundle),
                 confidence: .veryHigh,
@@ -185,7 +185,7 @@ final class TagBasedCauseDetector: CauseDetectionStrategy {
     /// Cycle phase has a known autonomic signature.
     private func menstrualTagCause(tags: Set<ReadingTag>, context: CauseDetectionContext) -> [DetectedCause] {
         var causes: [DetectedCause] = []
-        if tags.contains(where: { $0.name == ReadingTag.menstrual.name }) {
+        if tags.containsSystemTag(ReadingTag.menstrual) {
             causes.append(DetectedCause(
                 cause: String(localized: "Menstrual Cycle Phase", bundle: NarrativeLanguage.bundle),
                 confidence: .moderate,
@@ -194,5 +194,15 @@ final class TagBasedCauseDetector: CauseDetectionStrategy {
             ))
         }
         return causes
+    }
+}
+
+extension Set where Element == ReadingTag {
+    /// Whether the reading carries this system tag: a tag flagged `isSystem`
+    /// with the system tag's English storage name. A user's own tag that
+    /// happens to share the name (a custom "Alcohol") is not the system tag
+    /// and does not trigger its cause.
+    func containsSystemTag(_ tag: ReadingTag) -> Bool {
+        contains { $0.isSystem && $0.name == tag.name }
     }
 }

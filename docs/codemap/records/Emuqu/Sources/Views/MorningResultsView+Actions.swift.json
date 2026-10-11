@@ -332,7 +332,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Export/ReportSectionPicker.swift::init ReportSectionPicker(onGenerate:availableSections:)": "6d7e122391354695",
-    "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::func MorningResultsView.emailReport(style:sections:)": "882db15c0e02d7eb",
+    "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::func MorningResultsView.emailReport(style:sections:)": "bd259e4860df21e6",
     "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::var MorningResultsView.availableReportSections": "81c4a62b109276c7"
    }
   },
@@ -360,7 +360,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.hasRawData": "0ed6faa0cdc6c34f",
-    "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::func MorningResultsView.exportRRData()": "d1c078fe13d26097",
+    "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::func MorningResultsView.exportRRData()": "5eda241be3309288",
     "Emuqu/Sources/Views/Theme.swift::var ButtonStyle.zenSecondary": "7094e3a6d06b7e24"
    }
   },
@@ -447,38 +447,30 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.deleteButton": "1f7f1c815ad50bdc",
-    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.doneButton": "a1af69db2fec5227"
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.doneButton": "0a81d997032a7dd1"
    }
   },
   {
    "key": "var MorningResultsView.doneButton",
-   "hash": "da1d6bba1a009d3c",
-   "does": "Button that calls onUpdateTags(selected tags, notes or nil if empty) when provided, then onDiscard(). Label/icon/colour is 'Done' (checkmark) when onDelete exists, else 'Discard' (xmark, terracotta).",
+   "hash": "245b3b22967fc89f",
+   "does": "Button that calls saveTagsAndNotesIfChanged() (hands changed tags/notes to onUpdateTags when provided), then onDiscard(). Label/icon/colour is 'Done' (checkmark) when onDelete exists, else 'Discard' (xmark, terracotta).",
    "entry": "Button action on user tap",
    "calls": [
-    "closure:onUpdateTags — set by HistoryView.sessionDetailContent (HistoryView.swift:452) to persist tags/notes via HistoryView.onUpdateTags; nil from RecordView morningResults",
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::func MorningResultsView.saveTagsAndNotesIfChanged()",
     "closure:onDiscard — set by callers (RecordView dismissMorningReading, HistoryView clears selectedSession, ImportDataView discardImport, RecordView discardQuickReading)",
     "Emuqu/Sources/Views/Theme.swift::var ButtonStyle.zenSecondary",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
-   "reads": [
-    "mem:MorningResultsViewModel.selectedTags",
-    "mem:MorningResultsViewModel.notes"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+3",
-     "cond": "vm.notes.isEmpty",
-     "effect": "true → passes nil notes; false → passes notes; onUpdateTags?. skipped when nil"
-    },
-    {
-     "at": "+6",
+     "at": "+5",
      "cond": "onDelete != nil",
      "effect": "true → 'Done'/checkmark; false → 'Discard'/xmark"
     },
     {
-     "at": "+8",
+     "at": "+7",
      "cond": "onDelete != nil",
      "effect": "true → primary text colour; false → terracotta"
     }
@@ -487,23 +479,20 @@
     {
      "kind": "data-loss",
      "sev": "high",
-     "text": "Tags and notes edited in the Tags & Notes card (always rendered, MorningResultsView.swift:354; writes vm.selectedTags/vm.notes) are persisted only here via onUpdateTags, which only HistoryView passes. RecordView morning (RecordView+Sections.swift:341-353), quick reading (:396-402) and ImportDataView (ImportDataView.swift:117-124) pass no onUpdateTags, and their own Done paths save RecordView's separate selectedTags/sessionNotes (RecordView+Results.swift:131-145) or nothing (finishQuickReading :433-441), so the user's edits are silently dropped. In History, dismissing the sheet by swipe (HistoryView.swift:304, no interactiveDismissDisabled) also drops them.",
+     "text": "Tags and notes edited in the Tags & Notes card (always rendered; writes vm.selectedTags/vm.notes) reach storage only through onUpdateTags (on Done and, via saveTagsAndNotesIfChanged in withLifecycle's onDisappear, on any dismissal — the History swipe-dismiss path is covered). Only HistoryView passes onUpdateTags: RecordView morning and quick reading (RecordView+Sections.swift morningResults/quickResults) and ImportDataView.importedResults pass none, and their own Done paths save RecordView's separate selectedTags/sessionNotes (RecordView+Results.swift saveMorningReading) or nothing, so edits made there are dropped. Handoff b23 to those callers.",
      "evidence": [
-      "Emuqu/Sources/Views/MorningResultsView+Actions.swift:250",
-      "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift:218",
-      "Emuqu/Sources/Views/MorningResultsView.swift:354",
+      "Emuqu/Sources/Views/MorningResultsView+Actions.swift:248",
       "Emuqu/Sources/Views/RecordView+Sections.swift:341",
       "Emuqu/Sources/Views/RecordView+Sections.swift:396",
       "Emuqu/Sources/Views/ImportDataView.swift:117",
-      "Emuqu/Sources/Views/RecordView+Results.swift:131",
-      "Emuqu/Sources/Views/HistoryView.swift:304"
+      "Emuqu/Sources/Views/RecordView+Results.swift:131"
      ],
      "found": "second read"
     },
     {
      "kind": "spec-mismatch",
      "sev": "med",
-     "text": "USERS_MANUAL says the report's Notes section 'Auto-saves when changed'; notes are saved only when this Done button is tapped and only when onUpdateTags is set (History).",
+     "text": "USERS_MANUAL says the report's Notes section 'Auto-saves when changed'; notes are handed over on Done or when the sheet closes (saveTagsAndNotesIfChanged), and only where the caller passes onUpdateTags (History). Completed by the b23 caller handoff plus a manual wording fix.",
      "evidence": [
       "docs/USERS_MANUAL.md:950",
       "docs/USERS_MANUAL.md:952",
@@ -514,9 +503,51 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::func MorningResultsView.saveTagsAndNotesIfChanged()": "acc1219a9706e066",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
     "Emuqu/Sources/Views/Theme.swift::var ButtonStyle.zenSecondary": "7094e3a6d06b7e24"
    }
+  },
+  {
+   "key": "func MorningResultsView.saveTagsAndNotesIfChanged()",
+   "hash": "218f660cf1f6ea28",
+   "does": "When onUpdateTags is set: compares the card's tags and notes (vm.selectedTags, vm.notes) with what was last stored — the last hand-off (savedTagsAndNotes) or else vm.session's own tags/notes — and, if they differ, calls onUpdateTags(tags, notes or nil when empty) and records them as savedTagsAndNotes. No-op otherwise.",
+   "entry": "Done button and MorningResultsView.withLifecycle's onDisappear",
+   "calls": [
+    "closure:onUpdateTags — set by HistoryView.sessionDetailContent to persist via HistoryView.onUpdateTags; nil from RecordView and ImportDataView"
+   ],
+   "reads": [
+    "mem:MorningResultsViewModel.selectedTags",
+    "mem:MorningResultsViewModel.notes",
+    "mem:MorningResultsView.savedTagsAndNotes"
+   ],
+   "writes": [
+    "mem:MorningResultsView.savedTagsAndNotes"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "onUpdateTags nil",
+     "effect": "returns"
+    },
+    {
+     "at": "+3",
+     "cond": "savedTagsAndNotes nil",
+     "effect": "baseline is vm.session tags/notes"
+    },
+    {
+     "at": "+4",
+     "cond": "current == stored",
+     "effect": "returns without a hand-off"
+    },
+    {
+     "at": "+5",
+     "cond": "notes empty",
+     "effect": "passes nil notes"
+    }
+   ],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "var MorningResultsView.deleteButton",
@@ -619,7 +650,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Export/ReportSectionPicker.swift::init ReportSectionPicker(onGenerate:availableSections:)": "6d7e122391354695",
-    "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::func MorningResultsView.exportPDF(style:sections:)": "8171c3fdc6ddf009",
+    "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::func MorningResultsView.exportPDF(style:sections:)": "76962d4d61d40079",
     "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::var MorningResultsView.availableReportSections": "81c4a62b109276c7"
    }
   }

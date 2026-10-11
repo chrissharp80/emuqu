@@ -10,8 +10,10 @@ import Foundation
 /// appends `pdfFootnote` only when it is attached.
 ///
 /// Pure function: given a session and its history it produces the same text
-/// every time. It is honest about missing data ("no HRR captured" rather than
-/// a fabricated value), and every sentence is localized in the app language.
+/// every time. It is honest about missing data: a sentence or paragraph whose
+/// input was not recorded (heart rate for the intensity verdict, HRR for the
+/// recovery paragraph) is left out rather than filled with a fabricated
+/// value, and every sentence is localized in the app language.
 enum CoachReportGenerator {
     // Members here are internal, not private: the sentences live in
     // CoachReportGenerator+Conversational.swift and the formatters in

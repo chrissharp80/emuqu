@@ -3,11 +3,11 @@ import SwiftUI
 /// Recording view for HRV data collection - supports both overnight H10 recording and quick streaming
 struct RecordView: View {
     @Environment(RRCollector.self) var collector
-    // Direct sub-object observation. Reading recording state through
-    // `collector.X` forwarders does NOT trigger SwiftUI re-renders because
-    // RRCollector itself publishes nothing — its state lives on these
-    // sub-objects. Every recording-state read in this view (and its +Panels
-    // / +Sections extensions) goes through these references.
+    // Direct sub-object observation. Recording state lives on these
+    // @Observable sub-objects; `RRCollector` is @Observable too, and a read
+    // through one of its forwarders is still tracked, but it hides which
+    // object the view depends on. Recording-state reads in this view (and its
+    // +Panels / +Sections extensions) go through these references.
     @Environment(DeviceStatus.self) var deviceStatus
     @Environment(StreamingLifecycle.self) var streamingLifecycle
     @Environment(SessionState.self) var sessionState
@@ -32,6 +32,8 @@ struct RecordView: View {
     /// Sleep timeline edit failed to persist (see
     /// DashboardV2View.sleepEditSaveFailed).
     @State var sleepEditSaveFailed = false
+    /// Discarding a quick reading from its report failed to delete it.
+    @State var quickDiscardFailed = false
     @State var selectedSessionType: SessionType? = .overnight
     @State var cachedRecentSessions: [HRVSession] = []
     /// Interrupted-workout (crash) recover-from-strap UI state.
@@ -88,7 +90,7 @@ struct RecordView: View {
             .onChange(of: sessionState.lastError.map { String(describing: $0) }) { _, newError in
                 presentErrorIfActionable(newError)
             }
-            .onChange(of: sessionState.needsAcceptance) { _, needsAcceptance in
+            .onChange(of: sessionState.needsAcceptance, initial: true) { _, needsAcceptance in
                 routeOvernightAcceptance(needsAcceptance)
             }
             .onAppear { restoreCaptureMode() }
@@ -132,6 +134,7 @@ struct RecordView: View {
             preSessionTagSection
             connectionSection
             recoverableDataSection
+            workoutRecoverySection
             activeSessionSection
             morningProcessingSection
             liveDataSection
@@ -177,13 +180,19 @@ struct RecordView: View {
 
     @ViewBuilder
     private var errorAlertActions: some View {
-        Button(String(localized: "OK", bundle: LanguageManager.appBundle)) {
-            // Clean up stale failed session so the view resets to idle
-            if sessionState.currentSession?.state == .failed {
-                fetchFailed = false
-                collector.resetSession()
-            }
+        Button(String(localized: "OK", bundle: LanguageManager.appBundle), action: acknowledgeError)
+    }
+
+    /// A failed download keeps its Retry card, the error it names as the
+    /// reason, and the session the card retries; the card's own Dismiss
+    /// resets them. Otherwise a stale failed session is reset to idle, and
+    /// the error is cleared so the same error raised again re-presents.
+    private func acknowledgeError() {
+        guard !fetchFailed else { return }
+        if sessionState.currentSession?.state == .failed {
+            collector.resetSession()
         }
+        sessionState.lastError = nil
     }
 
     /// Humanise Polar SDK errors. Raw `PolarErrors` enum text
@@ -209,6 +218,9 @@ struct RecordView: View {
         }
     }
 
+    /// Also run when the view is first built (`initial: true`): a night
+    /// finalised while this tab was never built (a paused session finalised
+    /// at low battery) is already waiting for acceptance.
     private func routeOvernightAcceptance(_ needsAcceptance: Bool) {
         // Overnight/nap: go to Dashboard and auto-accept immediately.
         // Device fetch is now inline (completed before score is shown),
@@ -320,7 +332,9 @@ struct RecordView: View {
         }
     }
 
-    /// Auto-accept overnight/nap session and clear UI state.
+    /// Auto-accept overnight/nap session and clear UI state. The tags and
+    /// notes picked before the night go onto the session the re-score
+    /// archives (`scoreLatestVersion`) before they are cleared.
     func autoAcceptOvernight() {
         debugLog("[AutoAccept] autoAcceptOvernight called")
         Task {
@@ -350,7 +364,7 @@ struct RecordView: View {
     private func scoreLatestVersion(of session: HRVSession) async {
         debugLog("[AutoAccept] currentSession=\(session.id.uuidString.prefix(8)), source=\(session.dataSourceSummary?.selectedSource ?? "nil")")
         let retrieved = await collector.retrieveFullSessionAsync(session.id)
-        let latestSession = retrieved ?? session
+        let latestSession = preSessionTagged(retrieved ?? session)
         debugLog("[AutoAccept] archive.retrieve(\(session.id.uuidString.prefix(8))): \(retrieved == nil ? "FAILED — using in-memory session" : "OK"), source=\(latestSession.dataSourceSummary?.selectedSource ?? "nil")")
         await collector.updateCompositeRecoveryScore(for: latestSession, exportMetrics: true)
     }

@@ -28,16 +28,6 @@
  "toplevel": "Stored defaults only; the central is not built at init. File header comment claims the manager persists a log line per reconnect; no such persistence exists in the file (only lastStatusLine in memory).",
  "flags": [
   {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Header says the manager will 'Persist a short log line per reconnect so debugging is possible', but no unit writes any log or persisted line; status is only the in-memory lastStatusLine.",
-   "evidence": [
-    "Emuqu/Sources/Collection/FootPodManager.swift:30",
-    "Emuqu/Sources/Collection/FootPodManager.swift:441"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
    "kind": "coupling",
    "sev": "low",
    "text": "FTMS instantaneous cadence (bike crank rpm) is stored in cadenceStepsPerMin, which the recorder uses as step cadence (WorkoutRecorder+Ticker.swift:512) and ThresholdCards integrates into a step count (ThresholdCards+Cards.swift:689).",
@@ -76,7 +66,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.startScanning()": "826a95110434a973",
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.startScanning()": "2ef8dd940bf1c376",
     "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.startScanning()": "34afac4f802e0f6d"
    }
   },
@@ -124,24 +114,7 @@
      "effect": "attaches and returns; otherwise parks the id and starts a scan that picks it up"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "pendingReconnectId is never cleared when the fallback scan times out (stopScanning at the 20 s timer leaves it set), nor when a workout ends after a Bluetooth-off park (holdLinkForWorkout(false) only cancels a .connecting link). The stale id is then auto-attached by a later unrelated scan (FootPod attachIfPendingReconnect, Concept2 didDiscover) or reconnected on the next .poweredOn, outside any workout, for both FootPodManager and Concept2Manager.",
-     "evidence": [
-      "Emuqu/Sources/Collection/FootPodManager.swift:82",
-      "Emuqu/Sources/Collection/FootPodManager.swift:247",
-      "Emuqu/Sources/Collection/FootPodManager.swift:265",
-      "Emuqu/Sources/Collection/FootPodManager.swift:374",
-      "Emuqu/Sources/Collection/FootPodManager.swift:406",
-      "Emuqu/Sources/Collection/Concept2Manager.swift:170",
-      "Emuqu/Sources/Collection/Concept2Manager.swift:245",
-      "Emuqu/Sources/Collection/Concept2Manager.swift:280"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/FootPodManager.swift::requirement BLEPeripheralConnecting.attach(peripheral:)": "eabe918e33eb3ba6",
     "Emuqu/Sources/Collection/FootPodManager.swift::requirement BLEPeripheralConnecting.startScanning()": "d09979727c46a84e",
@@ -210,22 +183,41 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.armScanTimeout()": "6f0909b991cd6c61",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.armScanTimeout()": "ffd5ef5afb11fcc2",
     "Emuqu/Sources/Collection/FootPodManager.swift::var FootPodManager.central": "f48bc64dba3148f7",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },
   {
    "key": "func FootPodManager.armScanTimeout()",
-   "hash": "a40ab38c64f29ff6",
-   "does": "Replaces the scan timeout with a 20 s one-shot Timer that calls stopScanning on the main actor.",
+   "hash": "327f892aaf6f4c4a",
+   "does": "Replaces the scan timeout with a 20 s one-shot Timer that ends the scan on the main actor (endTimedOutScan, which also drops a parked reconnect id).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.stopScanning()",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.endTimedOutScan()",
     "ext:Timer.scheduledTimer"
    ],
    "reads": [],
    "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.endTimedOutScan()": "7f04960fd6a6d24a"
+   }
+  },
+  {
+   "key": "func FootPodManager.endTimedOutScan()",
+   "hash": "fc20ccec20360985",
+   "does": "The 20 s scan timeout: drops any parked reconnect id (the sensor it was scanning for did not appear) and stops the scan.",
+   "entry": "Fired by the Timer armScanTimeout arms.",
+   "calls": [
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.stopScanning()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:FootPodManager.pendingReconnectId",
+    "mem:FootPodManager.connectionState"
+   ],
    "branches": [],
    "flags": [],
    "deps": {
@@ -278,24 +270,31 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func BLEPeripheralConnecting.connect(deviceId:)": "3235b50b8ba74c15"
+    "Emuqu/Sources/Collection/FootPodManager.swift::func BLEPeripheralConnecting.connect(deviceId:)": "698a62ba3a0c388c"
    }
   },
   {
    "key": "func FootPodManager.holdLinkForWorkout(_:)",
-   "hash": "83e0acfc3db7aca8",
-   "does": "Sets workoutHoldsLink; on release cancels a reconnect still in .connecting with an expected link.",
+   "hash": "295a03aa0a0dcde5",
+   "does": "Sets workoutHoldsLink; on release with an expected link, drops any parked reconnect id (e.g. one parked while Bluetooth was off) and cancels a reconnect still in .connecting.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.disconnect()"
    ],
    "reads": [],
-   "writes": [],
+   "writes": [
+    "mem:FootPodManager.pendingReconnectId"
+   ],
    "branches": [
     {
      "at": "+2",
-     "cond": "releasing, link expected, state .connecting",
-     "effect": "disconnect(); otherwise only stores the flag"
+     "cond": "holding, or no link expected",
+     "effect": "return (flag stored only)"
+    },
+    {
+     "at": "+4",
+     "cond": "state .connecting",
+     "effect": "disconnect(); pendingReconnectId cleared either way"
     }
    ],
    "flags": [],
@@ -587,7 +586,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func BLEPeripheralConnecting.connect(deviceId:)": "3235b50b8ba74c15"
+    "Emuqu/Sources/Collection/FootPodManager.swift::func BLEPeripheralConnecting.connect(deviceId:)": "698a62ba3a0c388c"
    }
   },
   {
@@ -679,11 +678,12 @@
   },
   {
    "key": "func FootPodManager.centralManager(_:didFailToConnect:error:)",
-   "hash": "a381bf5ca715f90b",
-   "does": "Connect failed: shows the error text and cleans up; no retry even mid-workout.",
+   "hash": "d84eb80a49e696ec",
+   "does": "Connect failed: shows the error text and cleans up; mid-workout (expected link held by a workout) asks for the connection again via retryConnect.",
    "entry": "CBCentralManagerDelegate didFailToConnect.",
    "calls": [
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.cleanupAfterDisconnect()"
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.cleanupAfterDisconnect()",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.retryConnect(_:)"
    ],
    "reads": [],
    "writes": [
@@ -695,33 +695,56 @@
      "at": "+5",
      "cond": "error nil",
      "effect": "shows 'unknown error'"
-    }
-   ],
-   "flags": [
+    },
     {
-     "kind": "broken",
-     "sev": "low",
-     "text": "A failed connect during a workout (e.g. the re-attach issued by didDisconnect at line 443) is not retried although expectsLink and workoutHoldsLink are still true, so pace/cadence/power from the pod end for the rest of the workout — the outcome the expectsLink comment (161-166) says was fixed.",
-     "evidence": [
-      "Emuqu/Sources/Collection/FootPodManager.swift:431",
-      "Emuqu/Sources/Collection/FootPodManager.swift:443",
-      "Emuqu/Sources/Collection/FootPodManager.swift:165"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+9",
+     "cond": "link expected and a workout holds it",
+     "effect": "retryConnect(peripheral)"
     }
    ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.cleanupAfterDisconnect()": "b28562810f128f29",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.retryConnect(_:)": "fafbde67bdc794c5",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },
   {
+   "key": "func FootPodManager.retryConnect(_:)",
+   "hash": "16ae004f6b508cb8",
+   "does": "Logs the failed mid-workout reconnect, then after a 2 s pause re-attaches the peripheral if a workout still holds an expected link and the pod is still disconnected.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.attach(peripheral:)"
+   ],
+   "reads": [
+    "mem:FootPodManager.connectionState"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "self gone, link no longer expected/held, or no longer disconnected",
+     "effect": "return without reconnecting"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.attach(peripheral:)": "6c6f254116e3d779",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851"
+   }
+  },
+  {
    "key": "func FootPodManager.centralManager(_:didDisconnectPeripheral:error:)",
-   "hash": "a7b1c452f56b3e55",
-   "does": "Disconnected: status, cleanup, and re-attach when a workout holds an expected link.",
+   "hash": "a31818c0057e0160",
+   "does": "Disconnected: status, cleanup, and — when a workout holds an expected link — a debug-log line and a re-attach.",
    "entry": "CBCentralManagerDelegate didDisconnectPeripheral.",
    "calls": [
     "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.cleanupAfterDisconnect()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.attach(peripheral:)"
    ],
    "reads": [],
@@ -732,15 +755,16 @@
    "branches": [
     {
      "at": "+8",
-     "cond": "link expected and workout holds it",
-     "effect": "attach(peripheral) to reconnect; else stays disconnected"
+     "cond": "link not expected or no workout holds it",
+     "effect": "return, stays disconnected; else log and attach(peripheral)"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.attach(peripheral:)": "6c6f254116e3d779",
     "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.cleanupAfterDisconnect()": "b28562810f128f29",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {

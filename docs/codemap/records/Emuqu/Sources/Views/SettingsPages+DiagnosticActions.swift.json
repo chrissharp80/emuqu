@@ -12,12 +12,12 @@
  "units": [
   {
    "key": "var TroubleshootingPage.actionSections",
-   "hash": "0468d1e9d1d960b8",
+   "hash": "7a9ca2f8964265e4",
    "does": "Group of the action sections: exportActionsSection, Persistent Logging section, reanalyze section, SampleDataSection, Advanced Diagnostics toggle, debug tools.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.exportActionsSection",
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.problemsSection",
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.persistentLoggingSection",
     "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.reanalyzeSection",
     "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.debugModeSection",
     "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.debugToolsSection",
@@ -32,7 +32,7 @@
     "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.debugModeSection": "03a027d2b4625845",
     "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.debugToolsSection": "6fe07ee229a5583e",
     "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.exportActionsSection": "90a17ad57a7c56a1",
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.problemsSection": "2e77afec5c7ee8c8",
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.persistentLoggingSection": "6af4ab01ecd765d8",
     "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.reanalyzeSection": "b6f938806c7e4141"
    }
   },
@@ -66,10 +66,10 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.clearCrashReportButton": "0c7d3f50df6ff785",
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.clearProblemsButton": "d07d561303abef61",
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.clearCrashReportButton": "5dd2ec3d70e1ae8e",
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.clearProblemsButton": "508f142b3fb1a916",
     "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.copyLogButton": "64fd764403096851",
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.exportLogButton": "133cf41dd056ae19"
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.exportLogButton": "cb60546e391b24fd"
    }
   },
   {
@@ -86,20 +86,7 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "med",
-     "text": "The exported/copied log is built only from the on-disk file (DebugLogger.exportLogs reads logFileURL); in Release, persistentLoggingEnabled defaults to false and the flush path writes nothing (DebugLog.swift:90-92, 294), so a user who taps Export/Copy without first enabling Persistent Logging sends support a header with \"Entries: 0\" while the in-memory entries are left out.",
-     "evidence": [
-      "Emuqu/Sources/Utilities/DebugLog.swift:528",
-      "Emuqu/Sources/Utilities/DebugLog.swift:531",
-      "Emuqu/Sources/Utilities/DebugLog.swift:294",
-      "Emuqu/Sources/Utilities/DebugLog.swift:91"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var DiagnosticLogExport.preview": "6ea2bf030b94a4fa"
@@ -120,13 +107,13 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::func TroubleshootingPage.copyLogToClipboard()": "291d27ef22b5764c"
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::func TroubleshootingPage.copyLogToClipboard()": "7e7032113489956d"
    }
   },
   {
    "key": "func TroubleshootingPage.copyLogToClipboard()",
    "hash": "e1fc5afcf72d52c9",
-   "does": "Off-main exports the full log text (DebugLogger.exportLogs, which first flushes pending lines) then on main copies it to the pasteboard (local-only, expiring) and shows the \"Log copied\" alert.",
+   "does": "Off-main exports the log text (DebugLogger.exportLogs: the flushed on-disk log when Persistent Logging is on, else the in-memory 7-day buffer plus pending lines, both PHI-scrubbed) then on main copies it to the pasteboard (local-only, expiring) and shows the confirmation.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.debugLogger",
@@ -143,32 +130,19 @@
     "file:debug_log.txt (flushToDiskSync)"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "med",
-     "text": "The exported/copied log is built only from the on-disk file (DebugLogger.exportLogs reads logFileURL); in Release, persistentLoggingEnabled defaults to false and the flush path writes nothing (DebugLog.swift:90-92, 294), so a user who taps Export/Copy without first enabling Persistent Logging sends support a header with \"Entries: 0\" while the in-memory entries are left out.",
-     "evidence": [
-      "Emuqu/Sources/Utilities/DebugLog.swift:528",
-      "Emuqu/Sources/Utilities/DebugLog.swift:531",
-      "Emuqu/Sources/Utilities/DebugLog.swift:294",
-      "Emuqu/Sources/Utilities/DebugLog.swift:91"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.debugLogger": "8c13bd0b7a08fefd",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportLogs()": "f7133ecdeb2cfbab",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportLogs()": "59bffe49f4d6aee5",
     "Emuqu/Sources/Views/Utilities/PasteboardWriter.swift::func PasteboardWriter.copy(_:)": "2f4d0808edab28a1"
    }
   },
   {
    "key": "var TroubleshootingPage.clearProblemsButton",
-   "hash": "bb87526744180842",
-   "does": "Destructive \"Clear Problems\" button (clears in-memory errorCatalog), shown when the catalog is non-empty.",
+   "hash": "2018ce2e08d35503",
+   "does": "Destructive \"Clear Problems\" button (clears in-memory errorCatalog), shown only with Advanced Diagnostics on and a non-empty catalog — when the problems are listed.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
@@ -178,35 +152,24 @@
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.logger"
    ],
    "reads": [
-    "mem:DebugLogger.errorCatalog"
+    "mem:DebugLogger.errorCatalog",
+    "ud:debugModeEnabled (@AppStorage)"
    ],
    "writes": [
     "mem:DebugLogger.errorCatalog"
    ],
    "branches": [
     {
-     "at": "+2",
-     "cond": "errorCatalog non-empty",
+     "at": "+1",
+     "cond": "Advanced Diagnostics on and catalog non-empty",
      "effect": "button shown; else nothing"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Shown whenever the catalog is non-empty, even with Advanced Diagnostics off, when the same page shows \"No Problems Found\" (problemsSection condition includes !debugModeEnabled) and the problem list is hidden: users see \"No Problems Found\" next to a \"Clear Problems\" button.",
-     "evidence": [
-      "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift:95",
-      "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift:353",
-      "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift:384"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "b0514085566dc374",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "4fcad23c55561141",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.debugLogger": "8c13bd0b7a08fefd",
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.clearErrorCatalog()": "c8757069acb9d305",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.logger": "2e176c615c703f2b"
@@ -214,85 +177,57 @@
   },
   {
    "key": "var TroubleshootingPage.clearCrashReportButton",
-   "hash": "bd71b748a29966fb",
-   "does": "Destructive \"Clear Crash Report\" button that deletes previous_crash.txt, shown when that file exists.",
+   "hash": "1e4a8b9230835926",
+   "does": "Destructive \"Clear Crash Report\" button shown while hasCrashReport; deletes previous_crash.txt and sets crashReportCleared so the button and the Crash Report section disappear at once.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.crashLogManager",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.hasPreviousCrash",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.hasCrashReport",
     "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.clearPreviousCrash()"
    ],
    "reads": [
     "file:previous_crash.txt"
    ],
    "writes": [
-    "file:previous_crash.txt"
+    "file:previous_crash.txt",
+    "mem:TroubleshootingPage.crashReportCleared"
    ],
    "branches": [
     {
-     "at": "+2",
-     "cond": "crashLogManager.hasPreviousCrash (file exists)",
+     "at": "+1",
+     "cond": "crash report on file and not cleared here",
      "effect": "button shown; else nothing"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "hasPreviousCrash is a FileManager.fileExists check on a non-observable Sendable class, so deleting the file triggers no SwiftUI invalidation: the button and the Crash Report section stay on screen after tapping until something else re-renders the page.",
-     "evidence": [
-      "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift:109",
-      "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift:111",
-      "Emuqu/Sources/Utilities/CrashLogManager.swift:34",
-      "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift:432"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "b0514085566dc374",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "4fcad23c55561141",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.crashLogManager": "1b529e89fe88d675",
     "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.clearPreviousCrash()": "d8f35d243e2ab256",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.hasPreviousCrash": "9a2b5d78578e55cc"
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.hasCrashReport": "136203def1d3033a"
    }
   },
   {
-   "key": "var TroubleshootingPage.problemsSection",
-   "hash": "4ebdccf7e04ea3f0",
-   "does": "Section \"Advanced\" with the Persistent Logging toggle bound to DebugLogger.persistentLoggingEnabled (setter writes UserDefaults); footer claims encryption at rest and 2 MB rotation.",
-   "entry": null,
+   "key": "var TroubleshootingPage.persistentLoggingSection",
+   "hash": "54fcca6de50feb34",
+   "does": "Section \"Advanced\" with the Persistent Logging toggle bound to DebugLogger.persistentLoggingEnabled and a footer explaining on-disk logging.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
-    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.persistentLoggingEnabled",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.logger"
    ],
    "reads": [
-    "ud:UserDefaultsKeys.persistentLoggingEnabled",
     "mem:DebugLogger.persistentLoggingEnabled"
    ],
    "writes": [
-    "ud:UserDefaultsKeys.persistentLoggingEnabled",
     "mem:DebugLogger.persistentLoggingEnabled"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "TroubleshootingPage has two different `private var problemsSection` members (this Persistent Logging toggle and the \"No Problems Found\" card at SettingsPages+Diagnostics.swift:352); which one a reference means depends on the file it is written in.",
-     "evidence": [
-      "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift:118",
-      "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift:352",
-      "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift:20",
-      "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift:54"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.persistentLoggingEnabled": "9b34d14e62197094",
@@ -504,19 +439,18 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.advancedRepairSection": "ab2333c39d1eb75d",
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.debugToolsListSection": "993b4d36b3546c6a"
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.advancedRepairSection": "569e1d3de25230e7",
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.debugToolsListSection": "d5a0f5c304e7098e"
    }
   },
   {
    "key": "var TroubleshootingPage.debugToolsListSection",
-   "hash": "abeef14f3533f34e",
-   "does": "Section \"Diagnostic Tools\": log/error-catalog links, export-full-logs ShareLink, clear-all-logs button.",
+   "hash": "473f04d6f6287653",
+   "does": "Section \"Diagnostic Tools\": log/error-catalog links and the clear-all-logs button.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
     "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.debugLogLink",
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.debugCrashButton",
     "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.debugResetButton"
    ],
    "reads": [],
@@ -525,7 +459,6 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.debugCrashButton": "c3c0d000fb7a6941",
     "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.debugLogLink": "f61fef654972759c",
     "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.debugResetButton": "bdc43b4d03dfe9cf"
    }
@@ -596,50 +529,6 @@
    }
   },
   {
-   "key": "var TroubleshootingPage.debugCrashButton",
-   "hash": "f6bb740dbbc4fc52",
-   "does": "ShareLink of DiagnosticLogExport labelled \"Export Full Logs\".",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var DiagnosticLogExport.preview",
-    "ext:SwiftUI.ShareLink",
-    "dyn:Transferable.transferRepresentation → Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift:411"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Named debugCrashButton but is the same DiagnosticLogExport ShareLink as exportLogButton on the same page (and DebugLogView.exportLogsButton); \"Export Full Logs\" exports exactly the same file as \"Export Diagnostic Log\".",
-     "evidence": [
-      "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift:280",
-      "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift:51",
-      "Emuqu/Sources/Views/SettingsSubviews.swift:82"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "silent-failure",
-     "sev": "med",
-     "text": "The exported/copied log is built only from the on-disk file (DebugLogger.exportLogs reads logFileURL); in Release, persistentLoggingEnabled defaults to false and the flush path writes nothing (DebugLog.swift:90-92, 294), so a user who taps Export/Copy without first enabling Persistent Logging sends support a header with \"Entries: 0\" while the in-memory entries are left out.",
-     "evidence": [
-      "Emuqu/Sources/Utilities/DebugLog.swift:528",
-      "Emuqu/Sources/Utilities/DebugLog.swift:531",
-      "Emuqu/Sources/Utilities/DebugLog.swift:294",
-      "Emuqu/Sources/Utilities/DebugLog.swift:91"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var DiagnosticLogExport.preview": "6ea2bf030b94a4fa"
-   }
-  },
-  {
    "key": "var TroubleshootingPage.debugResetButton",
    "hash": "0bba529d9d0b4155",
    "does": "Destructive \"Clear All Logs\": DebugLogger.clear() empties entries, catalog, pending lines and deletes debug_log.txt.",
@@ -669,7 +558,7 @@
   {
    "key": "var TroubleshootingPage.advancedRepairSection",
    "hash": "63d0ef331a2e02b1",
-   "does": "Section \"Advanced\": archive diagnostics link/repair, training-history repair, training-load rebuild.",
+   "does": "Section \"Advanced\": archive diagnostics link (repair lives there), training-history repair, training-load rebuild.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
@@ -683,19 +572,19 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.archiveDiagnosticsLink": "f5f975cd827a433b",
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.rebuildTrainingLoadButton": "34b4379b4de0a917",
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.repairTrainingHistoryGroup": "0e51eb9943ca3650"
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.archiveDiagnosticsLink": "a2c1121dd8016ba0",
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.rebuildTrainingLoadButton": "90ae0f891aad735d",
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.repairTrainingHistoryGroup": "b311359862179fee"
    }
   },
   {
    "key": "var TroubleshootingPage.archiveDiagnosticsLink",
-   "hash": "5ada15f05a66e0d5",
-   "does": "NavigationLink to ArchiveDiagnosticsView plus an unconfirmed \"Repair Archive\" button → repairArchive, with the result alert.",
+   "hash": "5053153163304b94",
+   "does": "NavigationLink to ArchiveDiagnosticsView, where archive repair runs behind its confirmation.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
-    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.repairArchive()"
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ArchiveDiagnosticsView.body"
    ],
    "reads": [],
    "writes": [],
@@ -703,31 +592,55 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.repairArchive()": "0cb33fcfc6e06f98"
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ArchiveDiagnosticsView.body": "01443ac35d3fd2dc"
    }
   },
   {
    "key": "var TroubleshootingPage.repairTrainingHistoryGroup",
-   "hash": "fccbc1a2ee735b7b",
-   "does": "Progress panel while repairing training history, else a button that opens the repair confirmation.",
+   "hash": "d7f154ecf543b1de",
+   "does": "One always-present row: the progress panel while repairing, else the repair button; carries the \"Rewrite training history?\" confirmation (Repair All Sessions / Cancel) and the \"Training Snapshots Repaired\" result alert.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.trainingRepairProgressPanel"
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.trainingRepairProgressPanel",
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.repairTrainingHistoryButton",
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.trainingRepairDialogActions",
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.trainingRepairDialogMessage"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+2",
-     "cond": "isRepairingTraining",
-     "effect": "progress panel; else button setting showingTrainingRepairConfirm"
+     "cond": "repair running",
+     "effect": "progress panel; else button"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.repairTrainingHistoryButton": "f4bffc02d1b4cbae",
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.trainingRepairDialogActions": "b38a9ffc612dd96f",
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.trainingRepairDialogMessage": "b58d039508035064",
     "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.trainingRepairProgressPanel": "e40a6d547bf6b232"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.repairTrainingHistoryButton",
+   "hash": "14911894f35b16a3",
+   "does": "\"Repair Training History…\" button that opens the repair confirmation.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:TroubleshootingPage.showingTrainingRepairConfirm"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },
   {
@@ -756,42 +669,26 @@
   },
   {
    "key": "var TroubleshootingPage.rebuildTrainingLoadButton",
-   "hash": "4784c501d1b48b5a",
-   "does": "\"Rebuild Training Load\" button (disabled while rebuilding) → rebuildTrainingLoad; also hosts the Repair-Training-History confirmation dialog and its result alert.",
+   "hash": "23b09001880bd7fc",
+   "does": "\"Rebuild Training Load\" button (label \"Rebuilding load…\" and disabled while rebuilding) → rebuildTrainingLoad.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::func TroubleshootingPage.rebuildTrainingLoad()",
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.trainingRepairDialogActions",
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.trainingRepairDialogMessage"
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::func TroubleshootingPage.rebuildTrainingLoad()"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+4",
+     "at": "+3",
      "cond": "isRebuildingLoad",
      "effect": "label \"Rebuilding load…\"; else \"Rebuild Training Load\""
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "The confirmation dialog for \"Repair Training History\" (triggered by the button in repairTrainingHistoryGroup) and its result alert are attached to the Rebuild Training Load button; moving or conditionally hiding this button silently disables the repair confirmation.",
-     "evidence": [
-      "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift:326",
-      "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift:367",
-      "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift:372"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::func TroubleshootingPage.rebuildTrainingLoad()": "3f7963e896c4b1ee",
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.trainingRepairDialogActions": "b38a9ffc612dd96f",
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.trainingRepairDialogMessage": "b58d039508035064"
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::func TroubleshootingPage.rebuildTrainingLoad()": "3f7963e896c4b1ee"
    }
   },
   {
@@ -893,18 +790,6 @@
     }
    ],
    "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "med",
-     "text": "The exported/copied log is built only from the on-disk file (DebugLogger.exportLogs reads logFileURL); in Release, persistentLoggingEnabled defaults to false and the flush path writes nothing (DebugLog.swift:90-92, 294), so a user who taps Export/Copy without first enabling Persistent Logging sends support a header with \"Entries: 0\" while the in-memory entries are left out.",
-     "evidence": [
-      "Emuqu/Sources/Utilities/DebugLog.swift:528",
-      "Emuqu/Sources/Utilities/DebugLog.swift:531",
-      "Emuqu/Sources/Utilities/DebugLog.swift:294",
-      "Emuqu/Sources/Utilities/DebugLog.swift:91"
-     ],
-     "found": "first read, upheld on second"
-    },
     {
      "kind": "privacy",
      "sev": "low",

@@ -11,7 +11,7 @@
   "mem:PhoneticOverrides.markupPattern (static let regex string, line 43)",
   "mem:PhoneticOverrides.domainRules (static let, three 'live'->laɪv/lyve rules, lines 69-111)"
  ],
- "toplevel": "Static lets: markupPattern `\\[\\[([^|\\]]+)\\|([^\\]]+)\\]\\]` and three DomainRules for 'live' (live+measurement noun; your/you're/going/right now.../currently + live not followed by a location preposition; live now/view/screen/tracking/recording), each with ipa laɪv and respelling 'lyve'.",
+ "toplevel": "Static lets: markupPattern `\\[\\[([^|\\]]+)\\|([^\\]]+)\\]\\]` and three DomainRules for 'live' (live+measurement noun; your/you're/going/right now.../currently + live not followed by a location preposition; live now/view/screen/tracking/recording), each with ipa laɪv and respelling 'lyve'. The ZIP and 'live' passes are English-only (english: false skips them).",
  "flags": [],
  "units": [
   {
@@ -27,28 +27,29 @@
    "deps": {}
   },
   {
-   "key": "func PhoneticOverrides.speechAttributedString(_:)",
-   "hash": "b41f17b5a7020318",
-   "does": "Calls resolve(text) to get the resolved plain string and hints, builds an NSMutableAttributedString of the plain text and adds .accessibilitySpeechIPANotation=hint.ipa over each hint range that passes isApplicable; returns it.",
+   "key": "func PhoneticOverrides.speechAttributedString(_:english:)",
+   "hash": "973bf328be8ae9a7",
+   "does": "Builds the AVSpeech NSAttributedString: resolve(text, english:) then adds .accessibilitySpeechIPANotation for every hint whose range is valid for the resolved string (isApplicable). english: false skips the English-only passes in resolve.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.resolve(_:)",
-    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.isApplicable(_:attrLength:)"
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.resolve(_:english:)",
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.isApplicable(_:attrLength:)",
+    "ext:NSMutableAttributedString.addAttribute"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+3",
-     "cond": "for each hint where isApplicable(hint, attrLength)",
-     "effect": "applicable hints get the IPA attribute; out-of-bounds/empty ones are skipped (logged by isApplicable)"
+     "cond": "for each hint that passes isApplicable",
+     "effect": "adds the IPA attribute; invalid ranges skipped (logged by isApplicable)"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "1f1571698d506b97",
     "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.isApplicable(_:attrLength:)": "4c8478bd3451430c",
-    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.resolve(_:)": "230a032e3951ced5"
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.resolve(_:english:)": "dad8cc8c25add62f"
    }
   },
   {
@@ -75,28 +76,40 @@
    }
   },
   {
-   "key": "func PhoneticOverrides.resolve(_:)",
-   "hash": "59697a6db6530fa4",
-   "does": "Pipeline: expandZipCodes(input) -> stripAuthoredMarkup (authored hints) -> applyDomainRule for each of the three domainRules (domain hints + 'lyve' respellings); returns (resolved plain text, hints).",
+   "key": "func PhoneticOverrides.resolve(_:english:)",
+   "hash": "2a7dabcd00dbd5bf",
+   "does": "Returns the display-safe plain text and IPA hints tied to it: in English, ZIP codes are expanded to spaced digits first (expandZipCodes), AI markup is stripped and recorded (stripAuthoredMarkup), then each 'live' domain rule is applied; with english: false only the AI markup is stripped and recorded (no 'dash' or 'lyve' written into a non-English utterance).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.expandZipCodes(_:)",
     "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.stripAuthoredMarkup(_:)",
     "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.applyDomainRule(_:to:hints:)"
    ],
-   "reads": [],
+   "reads": [
+    "mem:PhoneticOverrides.domainRules"
+   ],
    "writes": [],
    "branches": [
     {
+     "at": "+1",
+     "cond": "english",
+     "effect": "ZIPs expanded before markup stripping; else input as is"
+    },
+    {
      "at": "+2",
-     "cond": "loop over domainRules",
-     "effect": "each rule rescans the current resolved string; respellings from an earlier rule stop later rules re-matching the same word"
+     "cond": "not english",
+     "effect": "returns after markup stripping"
+    },
+    {
+     "at": "+3",
+     "cond": "for each domain rule",
+     "effect": "applyDomainRule"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.applyDomainRule(_:to:hints:)": "b702e90ed306617a",
-    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.expandZipCodes(_:)": "3095a30a1fadbcb9",
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.expandZipCodes(_:)": "c4c4013fc7b33374",
     "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.stripAuthoredMarkup(_:)": "939c0b5ec1f0331e"
    }
   },
@@ -275,8 +288,8 @@
   },
   {
    "key": "func PhoneticOverrides.expandZipCodes(_:)",
-   "hash": "c042f9da608c16fe",
-   "does": "Runs two ZIP regexes in order over the text: explicit context ('zip', 'zip code', 'postal code' + 5 digits, optional -4) and uppercase 2-letter state + 5 digits; each match's digits become space-separated ('6 2 7 0 4', ZIP+4 as '... dash 1 2 3 4').",
+   "hash": "02f33205d0e4bfb0",
+   "does": "Runs two ZIP regexes in order over the text: explicit context ('zip', 'zip code', 'postal code' + 5 digits, optional -4) and a real US state/territory code (AL…WY, DC, PR, GU, VI, AS, MP — not any two capitals, so 'HR 12000' is left alone) + 5 digits; each match's digits become space-separated ('6 2 7 0 4', ZIP+4 as '... dash 1 2 3 4').",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.expandZips(in:pattern:)"
@@ -285,23 +298,12 @@
    "writes": [],
    "branches": [
     {
-     "at": "+10",
+     "at": "+9",
      "cond": "for each of the two patterns",
      "effect": "explicit pattern first; state pattern second (already-expanded ZIPs no longer match \\d{5})"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "The state pattern `\\b([A-Z]{2})\\s+(\\d{5})` fires on any two adjacent uppercase letters followed by a 5-digit number (e.g. 'HR 12000' — HR is not expanded by TTSTextNormalizer), so non-ZIP numbers after a 2-letter abbreviation are read digit by digit. ('PR' is expanded to 'P R' first in English mode, so it does not trigger.)",
-     "evidence": [
-      "Emuqu/Sources/Assistant/PhoneticOverrides.swift:315",
-      "Emuqu/Sources/Assistant/TTSTextNormalizer.swift:97"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.expandZips(in:pattern:)": "5b6b161bc6993dad"
    }
@@ -335,13 +337,13 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.zipReplacement(for:in:)": "d68f07fa54fda036"
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.zipReplacement(for:in:)": "10187505039ca889"
    }
   },
   {
    "key": "func PhoneticOverrides.zipReplacement(for:in:)",
-   "hash": "bad0fde0f3d52d08",
-   "does": "For a ZIP match returns (range, spaced digits) for group 2; if group 3 (ZIP+4 '-dddd', length 5) matched, returns the combined range with 'spaced dash spaced-suffix'.",
+   "hash": "a367b9ac9b0f4f9a",
+   "does": "For a ZIP match (both patterns have three groups: run-up, ZIP, optional '-dddd') returns (range, spaced digits) for group 2; if group 3 matched with length 5, returns the combined range with 'spaced dash spaced-suffix'.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.spacedDigits(_:)"
@@ -350,40 +352,17 @@
    "writes": [],
    "branches": [
     {
-     "at": "+1",
-     "cond": "match has >=3 ranges",
-     "effect": "false: nil (unreachable: both patterns have 3 groups → 4 ranges)"
-    },
-    {
-     "at": "+3",
+     "at": "+2",
      "cond": "group 2 found, exactly 5 chars, in bounds",
      "effect": "false: nil"
     },
     {
      "at": "+6",
-     "cond": "match has >=4 ranges",
-     "effect": "false: returns zip-only replacement (unreachable for both patterns, which always report 4 ranges)"
-    },
-    {
-     "at": "+8",
      "cond": "suffix group found and length 5",
      "effect": "false (no ZIP+4): returns zip-only replacement; true: combined range with ' dash ' + spaced suffix digits"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "Guards `numberOfRanges >= 3` and `>= 4` can never fail: both callers' patterns have exactly three capture groups.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/PhoneticOverrides.swift:343",
-      "Emuqu/Sources/Assistant/PhoneticOverrides.swift:348",
-      "Emuqu/Sources/Assistant/PhoneticOverrides.swift:311",
-      "Emuqu/Sources/Assistant/PhoneticOverrides.swift:315"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.spacedDigits(_:)": "f99b791247b2cb41"
    }

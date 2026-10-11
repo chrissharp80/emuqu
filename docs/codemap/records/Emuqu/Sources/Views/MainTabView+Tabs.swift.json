@@ -47,8 +47,8 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.Tab.localizedName(bundle:)": "456928cca920f69e",
-    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.Tab.icon": "c54983c4857c690f",
-    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.Tab.iconFilled": "f3ae830388341453",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.Tab.icon": "2a1fe85ad434d78c",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.Tab.iconFilled": "dbfbdba03a68cf31",
     "Emuqu/Sources/Views/Utilities/LazyView.swift::init LazyView(_:)": "2e0c755eae0e07db"
    }
   },
@@ -86,14 +86,14 @@
    "deps": {
     "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.dashboardReloadIsWanted()": "eac7a3ba099d7f36",
     "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.dashboardReloadPassesDebounce()": "7a6ae6cf86410529",
-    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.scheduleDebouncedDashboardReload()": "277154c1051a3eb9",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.scheduleDebouncedDashboardReload()": "1449895ee5a4ee09",
     "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.startDashboardLoad()": "e606c117f96ee6a0"
    }
   },
   {
    "key": "func MainTabView.scheduleDebouncedDashboardReload()",
-   "hash": "32238df9a9b5cf7f",
-   "does": "Schedules one trailing reload after 50 ms (sleepQuietly) unless one is already pending; clears pending then calls reloadDashboardSessions.",
+   "hash": "9b3755d229cd32f1",
+   "does": "Schedules one trailing reload after 50 ms (sleepQuietly) unless a debounce is already scheduled (dashboardReloadDebounceScheduled, its own flag, separate from the in-flight load's pending marker); clears the flag then calls reloadDashboardSessions.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.reloadDashboardSessions()",
@@ -104,24 +104,11 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "dashboardReloadPending already true",
-     "effect": "return (request rides on the pending one); else set pending and spawn the delayed task"
+     "cond": "a debounce is already scheduled",
+     "effect": "return (request rides on it); else set the flag and spawn the delayed task"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "dashboardReloadPending is shared between this debounce timer and the in-flight trailing-reload marker (line 52); the debounce task clears it unconditionally after 50 ms, so the two mechanisms can consume each other's pending state and correctness depends on the debounce path only running when no load is in flight.",
-     "evidence": [
-      "Emuqu/Sources/Views/MainTabView+Tabs.swift:52",
-      "Emuqu/Sources/Views/MainTabView+Tabs.swift:66",
-      "Emuqu/Sources/Views/MainTabView+Tabs.swift:69",
-      "Emuqu/Sources/Views/MainTabView+Tabs.swift:128"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851",
     "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.reloadDashboardSessions()": "5559f9c812394b41"
@@ -334,94 +321,6 @@
    }
   },
   {
-   "key": "func MainTabView.deleteSession(_:)",
-   "hash": "b8e30207d7b63135",
-   "does": "Deletes the session from the archive (moved to trash), bumps the archive signal, and uploads the deletion to iCloud (no-op when sync is off).",
-   "entry": "DashboardV2View onDeleteSession callback.",
-   "calls": [
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)",
-    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadDeletion(_:)",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSyncManager",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
-   ],
-   "reads": [],
-   "writes": [
-    "archive:delete",
-    "mem:ArchiveSignal.version",
-    "notif:flowRecoveryArchiveChanged",
-    "ck:session deletion"
-   ],
-   "branches": [
-    {
-     "at": "+6",
-     "cond": "catch from archive.delete",
-     "effect": "error only debug-logged; no UI feedback, session stays"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "med",
-     "text": "A failed delete is only written to the debug log; the user sees no error and the session simply remains on the dashboard.",
-     "evidence": [
-      "Emuqu/Sources/Views/MainTabView+Tabs.swift:205",
-      "Emuqu/Sources/Views/MainTabView+Tabs.swift:206"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "1c38f37d10093863",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "cefef470ab858af7",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadDeletion(_:)": "35795a3f19c6054a",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSyncManager": "b2c1f986e338fb12",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
-   }
-  },
-  {
-   "key": "func MainTabView.updateTags(session:tags:notes:)",
-   "hash": "099bd9b38279a45a",
-   "does": "Writes tags/notes for the session to the archive and bumps the archive signal.",
-   "entry": "DashboardV2View onUpdateSessionTags callback.",
-   "calls": [
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.updateTags(_:tags:notes:)",
-    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
-   ],
-   "reads": [],
-   "writes": [
-    "archive:updateTags",
-    "mem:ArchiveSignal.version",
-    "notif:flowRecoveryArchiveChanged"
-   ],
-   "branches": [
-    {
-     "at": "+4",
-     "cond": "catch from archive.updateTags",
-     "effect": "debug-logged only; edits lost without notice"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "med",
-     "text": "If archive.updateTags throws, the user's tag/note edit is dropped with only a debug-log line; no error is shown, so the user believes it was saved.",
-     "evidence": [
-      "Emuqu/Sources/Views/MainTabView+Tabs.swift:214",
-      "Emuqu/Sources/Views/MainTabView+Tabs.swift:215"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "1c38f37d10093863",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.updateTags(_:tags:notes:)": "1bf6c9d59b14e9d7",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
-   }
-  },
-  {
    "key": "func MainTabView.reanalyzeSession(_:method:)",
    "hash": "6311c0cb6f9db85c",
    "does": "Forwards to RRCollector.reanalyzeSession (ReanalysisService), returning the updated session.",
@@ -499,12 +398,12 @@
   },
   {
    "key": "func MainTabView.prepareAndSendReport(_:)",
-   "hash": "a5950185b1d770dd",
-   "does": "Starts report preparation once: sets preparingReportKind, clears the error, snapshots inputs, then on a detached userInitiated task loads full sessions, refreshes live training load, renders the PDF and finishes on the main actor.",
+   "hash": "2fe9922933ac13a7",
+   "does": "Starts report preparation once: sets preparingReportKind, clears the error, snapshots inputs, then on a detached userInitiated task loads full sessions and the reported night's baseline nights (withFullSessions(kind:)), refreshes live training load, renders the PDF and finishes on the main actor.",
    "entry": "sendReportButton tap.",
    "calls": [
     "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.sendReportInputs()",
-    "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.withFullSessions(_:)",
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.withFullSessions(_:kind:)",
     "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.renderReport(kind:inputs:liveLoadSnapshot:)",
     "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.liveRefreshed()",
     "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.finishReportPreparation(_:)"
@@ -522,15 +421,15 @@
    "deps": {
     "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.liveRefreshed()": "f6fdc835bab57f33",
     "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.renderReport(kind:inputs:liveLoadSnapshot:)": "eeb40d25d9993585",
-    "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.withFullSessions(_:)": "6ceb4a7acfef8e23",
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.withFullSessions(_:kind:)": "8bb63964aa8013b0",
     "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.finishReportPreparation(_:)": "f1ffb3f46500d0f1",
-    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.sendReportInputs()": "1431ae93c6ea56ce"
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.sendReportInputs()": "b6dcd780f4b086c8"
    }
   },
   {
    "key": "func MainTabView.sendReportInputs()",
    "hash": "37a7ad262eae8f11",
-   "does": "Captures recovery/workout/pair sessions, reliable overnights, recovery baseline stats, effective max/resting HR and LTHR, units and temperature unit from settings.",
+   "does": "Captures recovery/workout/pair sessions, reliable overnights of the dashboard slice (replaced for recovery and daily reports by withFullSessions with the archive's nights before the reported one), recovery baseline stats, effective max/resting HR and LTHR, units and temperature unit from settings.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager",
@@ -554,28 +453,14 @@
     "ud:fitness.unitsPreference (App Group suite; one-time copy from standard when only the legacy value exists, UnitsPreference.swift:136-138)"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "The dashboard 'Send daily report' baselines the day against recentOvernight = reliable overnights inside the 35-session dashboard slice (workouts included in the 35), and HolisticDailyReport keeps nights with startDate <= the reported night, so the reported night is in its own baseline; ReportsListView builds the same report from up to 60 overnights strictly before the night from the full archive. The same day's daily report shows different baseline-relative numbers depending on which entry point sent it.",
-     "evidence": [
-      "Emuqu/Sources/Views/MainTabView+Tabs.swift:303",
-      "Emuqu/Sources/Views/MainTabView+Reports.swift:117",
-      "Emuqu/Sources/Export/HolisticDailyReport.swift:274",
-      "Emuqu/Sources/Views/ReportsListView.swift:373",
-      "Emuqu/Sources/Views/ReportsListView.swift:383"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats": "9916669422d3e401",
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "15319afa7ff717d9",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR": "8d8a7ef3cdac7b54",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR": "d8f21d4214c3f50a",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "6de242bd745f1424",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",

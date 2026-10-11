@@ -68,22 +68,7 @@
      "effect": "returns []; otherwise filters by plain substring (no diacritic/whitespace folding)"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "searchResults is a computed property re-evaluated three times per render of searchResultsView (isEmpty, count, ForEach); each evaluation calls categories, which re-localizes every category/article/section via HelpContent.categories(forAge:) and re-lowercases every article's full text, so every keystroke in the search field rebuilds and scans the whole help corpus three times.",
-     "evidence": [
-      "Emuqu/Sources/Views/HelpCenterView.swift:22-26",
-      "Emuqu/Sources/Views/HelpCenterView.swift:149",
-      "Emuqu/Sources/Views/HelpCenterView.swift:152",
-      "Emuqu/Sources/Views/HelpCenterView.swift:179",
-      "Emuqu/Sources/Views/HelpContent+Science.swift:17-19",
-      "Emuqu/Sources/Views/HelpContent.swift:21-24"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.categories": "359493c26c0c6f6a",
     "Emuqu/Sources/Views/HelpContent.swift::var HelpArticle.searchableText": "c13f9b63f65a5d5b"
@@ -126,7 +111,7 @@
     "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.categoryGrid": "e086686fc7afb4e7",
     "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.heroCard": "527518e95f4a9d4b",
     "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.isSearching": "dd13e542d3f1684e",
-    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.searchResultsView": "12783ce0438bdcaf"
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.searchResultsView": "bbf0293778488e8d"
    }
   },
   {
@@ -295,29 +280,29 @@
   },
   {
    "key": "var HelpCenterView.searchResultsView",
-   "hash": "bd51b59ceca48d11",
-   "does": "Search results: no-results placeholder when empty, else '<N> results' and the result links.",
+   "hash": "74ce17063490f59e",
+   "does": "Search results: evaluates searchResults once per render into a local list, then shows the no-results placeholder when it is empty, else '<N> results' and the links for that same list.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.searchResults",
     "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.noResultsPlaceholder",
-    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.searchResultLinks"
+    "Emuqu/Sources/Views/HelpCenterView.swift::func HelpCenterView.searchResultLinks(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+2",
-     "cond": "searchResults empty",
+     "at": "+3",
+     "cond": "results empty",
      "effect": "noResultsPlaceholder; otherwise count + links"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/HelpCenterView.swift::func HelpCenterView.searchResultLinks(_:)": "f53a59b132a6bee1",
     "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.noResultsPlaceholder": "d5122cb1a4e397a4",
-    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.searchResultLinks": "c2e77ca90d7ede87",
-    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.searchResults": "942bc7baca7866eb",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.searchResults": "427d8b8456b399b9",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
    }
   },
@@ -338,12 +323,11 @@
    }
   },
   {
-   "key": "var HelpCenterView.searchResultLinks",
-   "hash": "c266923345561159",
-   "does": "ForEach over searchResults building articleLink.",
+   "key": "func HelpCenterView.searchResultLinks(_:)",
+   "hash": "7328185a8db509cd",
+   "does": "ForEach over the given result articles, each an articleLink row.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.searchResults",
     "Emuqu/Sources/Views/HelpCenterView.swift::func HelpCenterView.articleLink(_:)"
    ],
    "reads": [],
@@ -351,8 +335,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HelpCenterView.swift::func HelpCenterView.articleLink(_:)": "e2b2f6fcbe8a6b33",
-    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.searchResults": "942bc7baca7866eb"
+    "Emuqu/Sources/Views/HelpCenterView.swift::func HelpCenterView.articleLink(_:)": "e2b2f6fcbe8a6b33"
    }
   },
   {

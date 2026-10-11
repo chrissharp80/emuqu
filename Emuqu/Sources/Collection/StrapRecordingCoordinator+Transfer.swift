@@ -99,8 +99,11 @@ extension StrapRecordingCoordinator {
         manager.fetchCancelled = false
     }
 
-    /// The user's Cancel: the flag stops the retry loop between attempts, and
-    /// cancelling the running phase ends a call the strap never answers.
+    /// The user's Cancel: the flag stops the retry loop between attempts (the
+    /// transfer flows pass `!fetchCancelled` as the readiness wait's
+    /// `keepWaiting`, which `whenFeatureUsable` also checks before each
+    /// retry), and cancelling the running phase ends a call the strap never
+    /// answers.
     func cancelActiveTransfer() {
         manager.fetchCancelled = true
         manager.activeTransfer?.cancel()
@@ -117,7 +120,6 @@ extension StrapRecordingCoordinator {
         let handle = StrapTransferHandle(cancel: { task.cancel() })
         manager.activeTransfer = handle
         defer { if manager.activeTransfer?.id == handle.id { manager.activeTransfer = nil } }
-        if manager.fetchCancelled { task.cancel() }
         return try await withTaskCancellationHandler {
             try await task.value
         } onCancel: {
@@ -127,7 +129,9 @@ extension StrapRecordingCoordinator {
 
     /// Nothing is in flight any more, so the state machine is settled; the
     /// strap's own flag stays what the strap last said. A cancelled transfer
-    /// reads as one.
+    /// reads as one to the caller, since the user asked for it to stop; when
+    /// it had also failed some other way (a phase deadline that ran out
+    /// after the Cancel), that cause goes in the log rather than being lost.
     private func settleFailedTransfer(_ error: Error) -> Error {
         manager.fetchProgress = nil
         if manager.recordingState != .idle { manager.recordingState = .idle }
@@ -135,7 +139,8 @@ extension StrapRecordingCoordinator {
             debugLog("[PolarManager] Strap transfer failed: \(error)")
             return error
         }
-        debugLog("[PolarManager] Strap transfer cancelled by user")
+        let cause = error is CancellationError ? "" : " (it had also failed: \(error))"
+        debugLog("[PolarManager] Strap transfer cancelled by user\(cause)")
         return PolarManager.PolarError.fetchFailed("Cancelled by user")
     }
 
@@ -186,16 +191,22 @@ extension StrapRecordingCoordinator {
     }
 
     /// Reads whether the strap is recording and what it holds, once its
-    /// recording feature is usable.
-    func refreshRecordingState(until deadline: Date) async {
+    /// recording feature is usable. True when the status was read; false when
+    /// it could not be, leaving `isRecordingOnDevice` / `hasStoredExercise`
+    /// at their previous values, which a caller deciding from them should
+    /// not take as fresh.
+    @discardableResult
+    func refreshRecordingState(until deadline: Date) async -> Bool {
         let feature: StrapFeature = manager.connectedDeviceType == .veritySense ? .offlineRecording : .h10Recording
         do {
             _ = try await manager.link.whenFeatureUsable(feature, until: deadline) {
                 try await checkRecordingStatus()
             }
             await checkForStoredExercises()
+            return true
         } catch {
-            debugLog("[PolarManager] Strap recording status unavailable: \(error)")
+            debugLog("[PolarManager] Strap recording status unavailable — the recording flags keep their last values: \(error)")
+            return false
         }
     }
 
@@ -239,7 +250,7 @@ extension StrapRecordingCoordinator {
         let startedAt = StrapExerciseDecoder.recordingStart(fromExerciseId: status.entryId)
         markRecordingStopped(startedAt: startedAt)
         if streamHoldsIt, let startedAt { manager.downloadLedger.markDownloaded(recordingStartedAt: startedAt) }
-        if awaitFinalize { await awaitH10FileFinalize(api: api, deviceId: deviceId, showsProgress: showsProgress) }
+        if awaitFinalize { await awaitH10FileFinalize(api: api, deviceId: deviceId, entryId: status.entryId, showsProgress: showsProgress) }
         return true
     }
 
@@ -277,14 +288,16 @@ extension StrapRecordingCoordinator {
     /// Wait for the H10 to list the finished file before the download reads
     /// it. A full night is not written to flash in a fixed pause; a download
     /// fired too early hits a file that is not ready and spends the budget on
-    /// retries. Polls the (fast) listing, bounded so a missing file falls
+    /// retries. Polls the (fast) listing for the recording just stopped
+    /// (`entryId`; any entry when the strap gave none), so an older exercise
+    /// still listed does not end the wait. Bounded so a missing file falls
     /// through to the retry loop.
-    private func awaitH10FileFinalize(api: any StrapRadio, deviceId: String, showsProgress: Bool) async {
+    private func awaitH10FileFinalize(api: any StrapRadio, deviceId: String, entryId: String, showsProgress: Bool) async {
         if showsProgress { await manager.updateProgress(.finalizing, progress: 0.2, message: "Strap is saving data...") }
         let started = Date()
         for poll in 1 ... 30 {
             if manager.fetchCancelled || Task.isCancelled { return }
-            if await h10ListsAnyRecording(api: api, deviceId: deviceId) {
+            if await h10Lists(entryId: entryId, api: api, deviceId: deviceId) {
                 debugLog("[MorningTiming] H10 finalize ready after \(Int(Date().timeIntervalSince(started) * 1000))ms (\(poll) polls)")
                 return
             }
@@ -293,9 +306,9 @@ extension StrapRecordingCoordinator {
         debugLog("[MorningTiming] H10 finalize: no listed entry after ~15s — proceeding to the retry loop")
     }
 
-    private func h10ListsAnyRecording(api: any StrapRadio, deviceId: String) async -> Bool {
+    private func h10Lists(entryId: String, api: any StrapRadio, deviceId: String) async -> Bool {
         do {
-            return try await !listStoredExercises(api: api, deviceId: deviceId).isEmpty
+            return try await listStoredExercises(api: api, deviceId: deviceId).contains { entryId.isEmpty || $0.entryId == entryId }
         } catch {
             debugLog("[PolarManager] Listing during finalize failed: \(error)")
             return false
@@ -432,9 +445,13 @@ extension StrapRecordingCoordinator {
         return recording
     }
 
+    /// A Verity Sense files no exercise ids, so an `.exercise` selection
+    /// names nothing on it and finds nothing, rather than taking every
+    /// completed recording.
     private func readFromStrap(api: any StrapRadio, deviceId: String, selection: StrapRecordingSelection) async throws -> StrapRecording {
         if manager.connectedDeviceType == .veritySense {
-            return try await readVeritySenseRecording(recordedSince: selection.since)
+            guard case let .newest(since) = selection else { throw PolarManager.PolarError.noRecordingFound }
+            return try await readVeritySenseRecording(recordedSince: since)
         }
         return try await readH10Recording(api: api, deviceId: deviceId, selection: selection)
     }
@@ -466,7 +483,7 @@ extension StrapRecordingCoordinator {
     /// The newest stored exercise that belongs to this session.
     private func sessionRecording(api: any StrapRadio, deviceId: String, recordedSince: Date?) async throws -> PolarExerciseEntry {
         let entries = try await listStoredExercises(api: api, deviceId: deviceId)
-        if let entry = StrapExerciseDecoder.newestRecording(entries, exerciseId: \.entryId, notBefore: recordedSince) {
+        if let entry = Self.newestSessionEntry(entries, recordedSince: recordedSince) {
             return entry
         }
         if !entries.isEmpty, let recordedSince {
@@ -474,6 +491,22 @@ extension StrapRecordingCoordinator {
             throw PolarManager.PolarError.noRecordingSinceSessionStart
         }
         throw PolarManager.PolarError.noRecordingFound
+    }
+
+    /// With a session start, only a recording inside the session's span
+    /// counts (`StrapRecordingPolicy.recording(startedAt:belongsToSessionStartedAt:)`,
+    /// the rule recovery uses: from the start, less the id's slack, to 24 h
+    /// after it), so a later session's recording is not taken; without one,
+    /// the newest of all.
+    private static func newestSessionEntry(_ entries: [PolarExerciseEntry], recordedSince: Date?) -> PolarExerciseEntry? {
+        guard let recordedSince else {
+            return StrapExerciseDecoder.newestRecording(entries, exerciseId: \.entryId, notBefore: nil)
+        }
+        let inSpan = entries.filter { entry in
+            guard let start = StrapExerciseDecoder.recordingStart(fromExerciseId: entry.entryId) else { return false }
+            return StrapRecordingPolicy.recording(startedAt: start, belongsToSessionStartedAt: recordedSince)
+        }
+        return StrapExerciseDecoder.newestRecording(inSpan, exerciseId: \.entryId, notBefore: recordedSince)
     }
 
     /// The Verity Sense's completed offline recordings since `recordedSince`,
@@ -498,9 +531,4 @@ enum StrapRecordingSelection: Sendable {
     case newest(since: Date?)
     /// One H10 exercise, by the id it is stored under.
     case exercise(id: String)
-
-    var since: Date? {
-        if case let .newest(since) = self { return since }
-        return nil
-    }
 }

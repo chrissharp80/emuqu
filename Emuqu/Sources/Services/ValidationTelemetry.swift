@@ -8,7 +8,7 @@ import Foundation
 /// SDK and without sharing data.
 ///
 /// All counters auto-persist in UserDefaults. Reset all from
-/// Settings → Advanced → Diagnostics → Reset telemetry.
+/// Settings → Advanced → Diagnostics → Usage counts → Reset usage counts.
 @Observable
 @MainActor
 final class ValidationTelemetry {
@@ -19,12 +19,13 @@ final class ValidationTelemetry {
     // Keys
     private enum Keys {
         static let dashboardOpenCount = "telemetry.dashboardOpens"
-        static let lastDashboardOpen = "telemetry.lastDashboardOpenAt"
         static let chipDrillIns = "telemetry.chipDrillInsByKey"
         static let trajectoryVisits = "telemetry.trajectoryVisits"
-        static let lastTrajectoryVisit = "telemetry.lastTrajectoryVisit"
         static let modeActivations = "telemetry.modeActivationsByKind"
         static let methodologyViews = "telemetry.methodologyViews"
+        /// Last-event timestamps earlier builds wrote and nothing read; only
+        /// removed now, by `reset`.
+        static let retiredTimestamps = ["telemetry.lastDashboardOpenAt", "telemetry.lastTrajectoryVisit"]
     }
 
     private(set) var dashboardOpens: Int
@@ -47,7 +48,6 @@ final class ValidationTelemetry {
     func recordDashboardOpen() {
         dashboardOpens += 1
         defaults.set(dashboardOpens, forKey: Keys.dashboardOpenCount)
-        defaults.set(Date().timeIntervalSince1970, forKey: Keys.lastDashboardOpen)
     }
 
     // MARK: - Drill-in tap rate (metric 3)
@@ -68,7 +68,6 @@ final class ValidationTelemetry {
     func recordTrajectoryVisit() {
         trajectoryVisits += 1
         defaults.set(trajectoryVisits, forKey: Keys.trajectoryVisits)
-        defaults.set(Date().timeIntervalSince1970, forKey: Keys.lastTrajectoryVisit)
     }
 
     // MARK: - Mode toggle activation (metric 6)
@@ -114,8 +113,8 @@ final class ValidationTelemetry {
         methodologyViews = 0
         chipDrillIns = [:]
         modeActivations = [:]
-        for key in [Keys.dashboardOpenCount, Keys.lastDashboardOpen, Keys.chipDrillIns, Keys.trajectoryVisits,
-                    Keys.lastTrajectoryVisit, Keys.modeActivations, Keys.methodologyViews] {
+        for key in [Keys.dashboardOpenCount, Keys.chipDrillIns, Keys.trajectoryVisits,
+                    Keys.modeActivations, Keys.methodologyViews] + Keys.retiredTimestamps {
             defaults.removeObject(forKey: key)
         }
     }

@@ -13,7 +13,12 @@ extension AssistantViewModel {
     /// the actual user message is sent so the next response benefits.
     /// Bounded — never blocks more than ~5 seconds; on failure we keep going
     /// without a summary update. Better to lose a bit of context than block
-    /// the user's actual question.
+    /// the user's actual question, so a failed or empty summary still marks
+    /// the dropped turns as handled: the next send does not stall on them again.
+    ///
+    /// A cancelled turn (Stop, Clear conversation, Delete All My Data) writes
+    /// nothing: its collected text can be a partial summary of a conversation
+    /// that no longer exists.
     func updateSummaryWith(
         droppedTurns: [ChatTurn],
         provider: AIProvider,
@@ -27,10 +32,20 @@ extension AssistantViewModel {
             systemPrompt: Self.summarizerSystem
         )
         // Bound at 5 seconds — summarization is best-effort.
-        guard let collected = await Self.collect(stream, timeoutSec: 5) else { return }
-        let trimmed = collected.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
+        let collected = await Self.collect(stream, timeoutSec: 5)
+        guard !Task.isCancelled else { return }
         summarizedThroughTurnID = droppedTurns.last?.id
+        storeSummary(collected, droppedCount: droppedTurns.count)
+    }
+
+    /// Persist a non-empty summary as the new `priorSummary`; an empty or
+    /// failed one is logged and leaves the previous summary in place.
+    private func storeSummary(_ collected: String?, droppedCount: Int) {
+        let trimmed = collected?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !trimmed.isEmpty else {
+            debugLog("[Assistant] summary update produced no text — \(droppedCount) dropped turns left out of the summary", level: .warning)
+            return
+        }
         priorSummary = trimmed
         UserDefaults.standard.set(trimmed, forKey: Self.summaryKey)
     }
@@ -220,20 +235,26 @@ extension AssistantViewModel {
     }
 
     /// Drain a stream's text deltas, giving up after `timeoutSec`. Nil on any
-    /// failure — extraction is best-effort and never surfaces an error.
+    /// failure (provider error or timeout), which is logged — summarisation
+    /// and extraction are best-effort and never surface an error to the user.
     private static func collect(
         _ stream: AsyncThrowingStream<AIStreamEvent, Error>,
         timeoutSec: UInt64
     ) async -> String? {
-        try? await withThrowingTaskGroup(of: String.self) { group in
-            group.addTask { try await drainTextDeltas(stream) }
-            group.addTask {
-                try await Task.sleep(nanoseconds: timeoutSec * 1_000_000_000)
-                throw AIProviderError.cancelled
+        do {
+            return try await withThrowingTaskGroup(of: String.self) { group in
+                group.addTask { try await drainTextDeltas(stream) }
+                group.addTask {
+                    try await Task.sleep(nanoseconds: timeoutSec * 1_000_000_000)
+                    throw AIProviderError.cancelled
+                }
+                let first = try await group.next()
+                group.cancelAll()
+                return first
             }
-            let first = try await group.next()
-            group.cancelAll()
-            return first
+        } catch {
+            debugLog("[Assistant] background provider call failed or timed out after \(timeoutSec) s: \(error.localizedDescription)", level: .warning)
+            return nil
         }
     }
 
@@ -367,16 +388,23 @@ extension AssistantViewModel {
     /// is a bug worth retrying for. Stress / personal / casual chat
     /// where the model says "Let me check on that" shouldn't trigger
     /// a forced tool call.
+    ///
+    /// Multi-word phrases match as substrings; single metric words match
+    /// whole words only, so "battle", "space" or "concurrent" do not count.
     static func lastUserAskedForLiveData(_ userText: String) -> Bool {
-        let t = userText.lowercased()
-        return liveDataSignals.contains(where: t.contains)
+        let t = userText.lowercased().replacingOccurrences(of: "\u{2019}", with: "'")
+        if liveDataPhrases.contains(where: t.contains) { return true }
+        let words = Set(t.split(whereSeparator: { !$0.isLetter && !$0.isNumber }).map(String.init))
+        return !liveDataWords.isDisjoint(with: words)
     }
 
-    private static let liveDataSignals = [
-        "what's my", "whats my", "what is my",
-        "right now", "current", "currently", "live ",
-        " hr", "heart rate", "tsb", "atl", "ctl", "rmssd", "pace",
+    private static let liveDataPhrases = [
+        "what's my", "whats my", "what is my", "right now", "heart rate",
         "where am i", "what street", "how am i doing", "training load"
+    ]
+
+    private static let liveDataWords: Set<String> = [
+        "current", "currently", "live", "hr", "tsb", "atl", "ctl", "rmssd", "pace"
     ]
 
     /// The shapes the prompt-audit bundle serialises to. Local to the audit —
@@ -520,8 +548,12 @@ final class StreamTextBuffer {
     /// just-published batch contained a sentence-ender. Pushing per-character
     /// was triggering 500+ Combine publisher updates per response (each
     /// re-evaluates SwiftUI views observing the chat). Publishes are batched
-    /// now, so the cursor advance is naturally batched too. Pre-tool-use turns
-    /// (thisRound non-empty) skip the cursor — the tool may rewind that text.
+    /// now, so the cursor advance is naturally batched too. Once this round
+    /// has seen a tool_use (thisRound non-empty) the cursor stays put — that
+    /// text will be rewound. Text published BEFORE the round's first tool_use
+    /// can already have been marked speakable (the model's tool decision is
+    /// not known yet); voice may speak it, and `rewindToRoundStart` pulls the
+    /// cursor back with the text so the next round is spoken from its start.
     func flush(force: Bool = false, thisRoundIsEmpty: Bool) {
         guard !pendingChunks.isEmpty else { return }
         let elapsedMs = Date().timeIntervalSince(lastPublishAt) * 1000
@@ -591,10 +623,17 @@ final class StreamTextBuffer {
 
     /// Rewind any text emitted after the round-start snapshot (the
     /// pre-tool-use "thinking aloud" rewind; also reused by the Grok
-    /// announce-retry path).
+    /// announce-retry path). The speakable cursor is pulled back to the
+    /// round start too, so it never points past the text: otherwise the next
+    /// round's text up to the old length would count as speakable before that
+    /// round's tool decision, and voice (which tracks what it has spoken)
+    /// would skip it.
     func rewindToRoundStart() {
         // Resolve the live turn by id.
         guard let index = currentIndex else { return }
+        if let cursor = owner.speakableTextCursor[turnID], cursor > roundStartTextLen {
+            owner.speakableTextCursor[turnID] = roundStartTextLen
+        }
         let current = owner.turns[index].text
         if current.count > roundStartTextLen {
             owner.turns[index].text = String(current.prefix(roundStartTextLen))

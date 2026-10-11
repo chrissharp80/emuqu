@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift",
- "hash": "df937aae665424a0",
+ "hash": "611ca8ef6b5e68f3",
  "role": "On-device regex shortcut for voice turns: a hand-authored list of 14 patterns whose handlers answer common factual questions (recovery, RHR, HRV, sleep, last workout, weight, max HR, LTHR, etc.) from the session archive and settings without calling an LLM.",
  "types": [
   "DeterministicIntent: enum (@MainActor) — pattern catalog + matcher + spoken-reply helpers",
@@ -11,40 +11,8 @@
   "mem:DeterministicIntent.compiledCache (private static [String:[NSRegularExpression]], per-pattern compiled triggers)",
   "mem:DeterministicIntent.patterns (static let [Pattern], 14 entries)"
  ],
- "toplevel": "static let patterns (110-399) defines 14 Pattern handlers as closures: recovery_score_today (todaysOvernightEntry → recoveryScore×10 → RecoveryScoreCalculator.displayScore + ScoreVerdict(score:).localizedWord; nil when no reliable overnight or score), resting_hr_today (archive.retrieve(entry) → vitalsSnapshot.restingHeartRate; try? swallows retrieve errors → nil → LLM), hrv_rmssd_today (entry.meanRMSSD), sleep_duration_last_night (sleepSnapshot.nightSleepMinutes + measuredSleepEfficiency when non-nil), last_workout_summary (first .workout entry in newest-first archive.entries; endDate-date minutes; 0/no endDate → day only), trained_recently ('yesterday' substring picks dayStart(isYesterday:); first .workout in same day; always returns a string, 'No workout recorded…' when none), score_breakdown_today (session.scoreBreakdown.factors localized label + rounded score, list-formatted, plus ScoreVerdict.safeDisplayScore(compositeScore)), sleep_stages_last_night (totalSleepIncludingNapMinutes; deep/REM minutes or 'No sleep stage data' when either is nil), body_weight (settings.bodyWeightKg, imperial when UnitsPreferenceStore.current.resolved == .imperial), max_hr and lthr (settings value, nil below MaxHeartRate.minimumUserEntered), sleep_latency (sleepSnapshot.sleepLatencyMinutes), sleep_efficiency (measuredSleepEfficiency or a 'wasn't measured' sentence), total_session_count (counts of all / .workout / .overnight entries; always answers). Replies use String(localized:bundle: LanguageManager.appBundle). Reads archive:SessionArchive.entries, archive:SessionArchive.retrieve, ud:UnitsPreferenceStore (units preference), mem:UserSettings fields.",
+ "toplevel": "static let patterns (110-399) defines 14 Pattern handlers as closures: recovery_score_today (todaysOvernightEntry → recoveryScore×10 → RecoveryScoreCalculator.displayScore + ScoreVerdict(score:).localizedWord; nil when no reliable overnight or score), resting_hr_today (archive.retrieveLightweightOrLog(entry) → vitalsSnapshot.restingHeartRate; a read failure is logged and falls through to the LLM), hrv_rmssd_today (entry.meanRMSSD), sleep_duration_last_night (sleepSnapshot.nightSleepMinutes + measuredSleepEfficiency when non-nil), last_workout_summary (first .workout entry in newest-first archive.entries; endDate-date minutes; 0/no endDate → day only), trained_recently ('yesterday' substring picks dayStart(isYesterday:); sums the durations of every .workout that day; always returns a string, 'No workout recorded…' when none), score_breakdown_today (session.scoreBreakdown.factors localized label + rounded score, list-formatted, plus ScoreVerdict.safeDisplayScore(compositeScore)), sleep_stages_last_night (deep/REM/stages/breakdown triggers — light sleep is not matched; totalSleepIncludingNapMinutes; deep/REM minutes or 'No sleep stage data' when either is nil), body_weight (settings.bodyWeightKg, imperial when UnitsPreferenceStore.current.resolved == .imperial), max_hr and lthr (settings value, nil below MaxHeartRate.minimumUserEntered), sleep_latency (sleepSnapshot.sleepLatencyMinutes), sleep_efficiency (measuredSleepEfficiency or a 'wasn't measured' sentence), total_session_count (counts of all / .workout / .overnight entries; always answers). Replies use String(localized:bundle: LanguageManager.appBundle). Session reads use retrieveLightweightOrLog. Apostrophe classes accept ' and ’ and an omitted apostrophe ('whats'). Reads archive:SessionArchive.entries, archive:SessionArchive.retrieveLightweight, ud:UnitsPreferenceStore (units preference), mem:UserSettings fields.",
  "flags": [
-  {
-   "kind": "broken",
-   "sev": "med",
-   "text": "trained_recently answers with the duration of only the FIRST (newest) workout on the asked day; a user who did two workouts hears 'Yes — you trained for 30 minutes' for a 90-minute day.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:224",
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:229",
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:230"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "hack",
-   "sev": "low",
-   "text": "Every apostrophe character class is written ['']: both characters are ASCII U+0027 (verified with od), so a typographic ’ (U+2019) or a transcript 'whats' never matches and the turn falls through to the LLM; the duplicated class shows the curly apostrophe was intended.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:115",
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:142",
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:160"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "broken",
-   "sev": "low",
-   "text": "sleep_stages_last_night triggers on 'how much light sleep' but the reply reports only total, deep and REM — light sleep is never stated.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:276",
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:295"
-   ],
-   "found": "first read, upheld on second"
-  },
   {
    "kind": "untested",
    "sev": "low",
@@ -58,40 +26,13 @@
   {
    "kind": "spec-mismatch",
    "sev": "low",
-   "text": "Header (lines 31-32, 42-43) and docs/VOICE_AND_TOOL_USE.md:149-150 say each pattern maps 1:1 to a fact-catalog read; no handler touches FactResolverRegistry - they re-read SessionArchive/UserSettings directly, so the voice path duplicates catalog logic (e.g. 0-10 to 0-100 score conversion also in AppFactResolver+Live.swift:193) and can drift from what the LLM tools report.",
+   "text": "docs/VOICE_AND_TOOL_USE.md:149-150 says each pattern maps 1:1 to a fact-catalog read; no handler touches FactResolverRegistry (the header now says so) — they re-read SessionArchive/UserSettings directly, so the voice path duplicates catalog logic (e.g. 0-10 to 0-100 score conversion also in AppFactResolver+Live.swift:193) and can drift from what the LLM tools report.",
    "evidence": [
     "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:31",
     "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:122",
     "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:129",
     "docs/VOICE_AND_TOOL_USE.md:149",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift:193"
-   ],
-   "found": "second read"
-  },
-  {
-   "kind": "silent-failure",
-   "sev": "low",
-   "text": "Handlers use 'try? ctx.archive.retrieve' so a decrypt/read error is swallowed without any log (SessionArchive.retrieveOrLog exists for this); the turn silently falls through to the LLM and the failure is invisible in debug exports.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:148",
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:180",
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:254",
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:282",
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:351",
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:370",
-    "Emuqu/Sources/Storage/Archive.swift:521"
-   ],
-   "found": "second read"
-  },
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "The '<50 ms' voice path does a full archive.retrieve (lock + decrypt + hash verify of the whole session) synchronously on the main actor for RHR/sleep/breakdown/latency/efficiency; retrieveLightweight exists for perf-only reads.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:148",
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:10",
-    "Emuqu/Sources/Storage/Archive.swift:513",
-    "Emuqu/Sources/Storage/Archive.swift:581"
    ],
    "found": "second read"
   },
@@ -124,15 +65,17 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "4f034ec5ae2c40a4"
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "7c1667583e0fd7e3"
    }
   },
   {
    "key": "func DeterministicIntent.compiledTriggers(forPatternID:triggers:)",
-   "hash": "d56241203741eb7b",
-   "does": "Returns the cached [NSRegularExpression] for a pattern id, compiling each trigger case-insensitively and caching on first use; triggers that fail to compile are silently dropped.",
+   "hash": "0ec430cde2f71212",
+   "does": "Returns the cached [NSRegularExpression] for a pattern id, compiling each trigger case-insensitively and caching on first use; a trigger that fails to compile is dropped and logged (warning) with the pattern id and error.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
    "reads": [
     "mem:DeterministicIntent.compiledCache"
    ],
@@ -143,21 +86,18 @@
     {
      "at": "+4",
      "cond": "cache already has the id",
-     "effect": "returns cached regexes; otherwise compiles (try? → invalid patterns dropped), stores and returns"
-    }
-   ],
-   "flags": [
+     "effect": "returns cached regexes; otherwise compiles, stores and returns"
+    },
     {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "try? NSRegularExpression drops a malformed trigger without any log; the pattern then silently never matches that phrasing.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:98"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+8",
+     "cond": "a trigger throws while compiling",
+     "effect": "debugLog warning; trigger dropped"
     }
    ],
-   "deps": {}
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
   },
   {
    "key": "func DeterministicIntent.tryMatch(_:in:)",

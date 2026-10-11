@@ -29,7 +29,7 @@ extension FitnessPostSummaryView {
             elevResmoothError: $elevResmoothError, routeHistory: $routeHistory,
             pdfURL: $pdfURL, pdfGenerating: $pdfGenerating,
             pdfSharePresented: $pdfSharePresented,
-            pdfMailPresented: $pdfMailPresented, pdfMailError: $pdfMailError
+            pdfMailPresented: $pdfMailPresented, pdfMailError: $pdfMailError, reportShare: $reportShare
         )
     }
 
@@ -44,9 +44,25 @@ extension FitnessPostSummaryView {
 
     func splitsCard(_ resolved: FitnessSummaryCards.ResolvedSplits) -> some View { summary.splitsCard(resolved) }
 
-    func loadRouteHistorySummary() async { await summary.loadRouteHistorySummary() }
-
-    func generateRecapCard() async { await summary.generateRecapCard() }
+    /// The route-history baseline for the rendered session, walked off the
+    /// main actor. Several loads can overlap (one per archive change); only
+    /// the newest one's result is kept (`routeHistoryGeneration`), so an
+    /// older walk landing last cannot overwrite a newer baseline.
+    func loadRouteHistorySummary() async {
+        routeHistoryGeneration += 1
+        let generation = routeHistoryGeneration
+        guard let routeName = session.workoutMetadata?.recognizedRouteName, !routeName.isEmpty else {
+            routeHistory = nil
+            return
+        }
+        let sessionSnapshot = session
+        let unitsResolved = units.resolved
+        let baseline = await Task.detached(priority: .userInitiated) {
+            FitnessSummaryCards.routeHistorySummary(routeName: routeName, session: sessionSnapshot, unitsResolved: unitsResolved)
+        }.value
+        guard generation == routeHistoryGeneration else { return }
+        routeHistory = baseline
+    }
 
     func regionForTrack(_ coords: [CLLocationCoordinate2D]) -> MKCoordinateRegion {
         summary.regionForTrack(coords)

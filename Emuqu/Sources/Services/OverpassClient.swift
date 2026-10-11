@@ -31,12 +31,19 @@ import Foundation
 //     OSM wiki asks for at least 30 s); one that refuses the query with
 //     another HTTP status, for `refusalCooldown`. While every host is cooling
 //     down the client sends nothing and reports why.
+//   • HTTP 400 means the query itself is malformed, not that the host is
+//     unwilling: no host is set aside for it and the other host is not asked
+//     the same bad query.
 //   • A transport error (offline, connection lost, timeout) says nothing
 //     about the host, so no host is set aside for it: the next host is asked,
 //     and the next call goes to the network again, so a search works as soon
 //     as the connection is back.
 //   • A caller can ask for a reply to be reused for a while (`cacheFor`), so a
-//     repeated identical query is answered without a request.
+//     repeated identical query is answered without a request. A reply whose
+//     JSON carries a `remark` (Overpass hit its own timeout or memory limit and
+//     the data is partial) is never reused.
+//   • A caller cancelled while it waits for its turn leaves the queue at once
+//     and sends nothing.
 actor OverpassClient {
     /// Why no host answered.
     enum Failure: Error, Equatable {
@@ -73,7 +80,9 @@ actor OverpassClient {
     private let minRequestGap: TimeInterval
     private var lastRequestAt: Date?
     private var requestInFlight = false
-    private var queuedCallers: [CheckedContinuation<Void, Never>] = []
+    /// Callers waiting for the slot; each is resumed with true when handed
+    /// the slot, or false when it leaves the queue because it was cancelled.
+    private var queuedCallers: [(ticket: UUID, turn: CheckedContinuation<Bool, Never>)] = []
     private var cooling: [URL: (until: Date, failure: Failure)] = [:]
     private var replies: [String: (data: Data, until: Date)] = [:]
 
@@ -90,7 +99,7 @@ actor OverpassClient {
     /// query from it.
     func post(query: String, timeout: TimeInterval, cacheFor: TimeInterval = 0) async throws(Failure) -> Data {
         if let cached = cachedReply(for: query) { return cached }
-        await waitForTurn()
+        try await waitForTurn()
         defer { finishTurn() }
         if let cached = cachedReply(for: query) { return cached }
         let hosts = Self.endpoints.filter { (cooling[$0]?.until ?? .distantPast) <= Date() }
@@ -110,6 +119,8 @@ actor OverpassClient {
                 return data
             case .failure(.cancelled):
                 throw .cancelled
+            case .failure(.refused(Self.malformedQueryStatus)):
+                throw .refused(Self.malformedQueryStatus)
             case .failure(let failure):
                 coolDown(url, after: failure)
                 lastFailure = failure
@@ -118,12 +129,17 @@ actor OverpassClient {
         throw lastFailure
     }
 
+    /// HTTP 400: Overpass could not parse the query. Every host rejects the
+    /// same query, so it says nothing about the host.
+    static let malformedQueryStatus = 400
+
     /// How long a host is left alone after `failure`, or nil when the failure
-    /// says nothing about the host (a transport error or a cancellation).
+    /// says nothing about the host (a transport error, a cancellation or a
+    /// malformed query).
     static func cooldown(after failure: Failure) -> TimeInterval? {
         switch failure {
         case .busy: return busyCooldown
-        case .refused: return refusalCooldown
+        case .refused(let status): return status == malformedQueryStatus ? nil : refusalCooldown
         case .unreachable, .cancelled: return nil
         }
     }
@@ -134,14 +150,29 @@ actor OverpassClient {
     }
 
     /// Returns once no other request is in flight; callers go in arrival order.
-    private func waitForTurn() async {
+    /// Throws `.cancelled`, without taking the slot, when the calling task is
+    /// cancelled while it waits.
+    private func waitForTurn() async throws(Failure) {
         guard requestInFlight else {
             requestInFlight = true
             return
         }
-        await withCheckedContinuation { (turn: CheckedContinuation<Void, Never>) in
-            queuedCallers.append(turn)
+        let ticket = UUID()
+        let granted = await withTaskCancellationHandler {
+            await withCheckedContinuation { (turn: CheckedContinuation<Bool, Never>) in
+                queuedCallers.append((ticket, turn))
+            }
+        } onCancel: {
+            Task { await self.leaveQueue(ticket) }
         }
+        guard granted else { throw .cancelled }
+    }
+
+    /// Removes a cancelled caller from the queue and wakes it without the
+    /// slot. Nothing to do when it was already handed the slot.
+    private func leaveQueue(_ ticket: UUID) {
+        guard let index = queuedCallers.firstIndex(where: { $0.ticket == ticket }) else { return }
+        queuedCallers.remove(at: index).turn.resume(returning: false)
     }
 
     /// Hands the turn to the next queued caller, or frees it.
@@ -149,7 +180,7 @@ actor OverpassClient {
         if queuedCallers.isEmpty {
             requestInFlight = false
         } else {
-            queuedCallers.removeFirst().resume()
+            queuedCallers.removeFirst().turn.resume(returning: true)
         }
     }
 
@@ -175,13 +206,33 @@ actor OverpassClient {
     }
 
     private func remember(_ data: Data, for query: String, keepFor seconds: TimeInterval) {
-        guard seconds > 0 else { return }
+        guard seconds > 0, !Self.isIncomplete(data) else { return }
         let now = Date()
         replies = replies.filter { $0.value.until > now }
         if replies.count >= maxCachedReplies, let oldest = replies.min(by: { $0.value.until < $1.value.until }) {
             replies.removeValue(forKey: oldest.key)
         }
         replies[query] = (data, now.addingTimeInterval(seconds))
+    }
+
+    /// The top-level `remark` Overpass adds when it stopped early (its own
+    /// timeout or memory limit); the elements are then partial.
+    private struct Remark: Decodable {
+        let remark: String?
+    }
+
+    /// True when the reply is an Overpass JSON object carrying a `remark`.
+    /// A reply that is not a JSON object has no remark to read.
+    static func isIncomplete(_ data: Data) -> Bool {
+        let remark: String?
+        do {
+            remark = try JSONDecoder().decode(Remark.self, from: data).remark
+        } catch {
+            return false
+        }
+        guard let remark else { return false }
+        debugLog("[Overpass] reply incomplete, not cached: \(remark)", level: .info)
+        return true
     }
 
     private func send(query: String, to url: URL, timeout: TimeInterval) async throws(Failure) -> Data {

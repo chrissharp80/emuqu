@@ -130,7 +130,7 @@ final class SessionRecoveryService {
     /// anything is discarded, or a recording under two minutes old lost its
     /// crash-safety backup here.
     func checkForLostSessions(excluding live: Set<UUID> = []) async -> [(id: UUID, date: Date, beatCount: Int)] {
-        await pullCloudBackupsToLocalIfDue()
+        await pullCloudBackupsToLocalIfDue(excluding: live)
         let archivedIds = Set(archive.entries.map(\.sessionId))
         let deletedIds = archive.deletedIds
         let orphans = rawBackup.allBackups().filter {
@@ -138,8 +138,10 @@ final class SessionRecoveryService {
         }
         // Backups too short to analyze are discarded permanently so they stop
         // showing up on every scan; the cloud copy goes too so another device
-        // doesn't re-seed them.
-        let unrecoverable = orphans.filter { $0.beatCount < Self.minRecoverableBeatCount }
+        // doesn't re-seed them. A pause/resume fragment an archived session
+        // links to is kept: its beats belong to that night.
+        let linkedIds = Set(archive.entries.flatMap { $0.linkedSessionIds ?? [] })
+        let unrecoverable = orphans.filter { $0.beatCount < Self.minRecoverableBeatCount && !linkedIds.contains($0.id) }
         discardUnrecoverable(unrecoverable.map(\.id))
         let lost = orphans
             .filter { $0.beatCount >= Self.minRecoverableBeatCount }
@@ -157,7 +159,10 @@ final class SessionRecoveryService {
             do {
                 try rawBackup.discardBackup(id)
             } catch {
+                // Keep the iCloud copy while the local one stays, so the two
+                // do not diverge; the next scan tries both again.
                 debugLog("[SessionRecoveryService] \u{26a0}\u{fe0f} Failed to discard unrecoverable backup \(id.uuidString.prefix(8)): \(error)")
+                continue
             }
             Task { await cloudSyncManager.deleteLiveBackup(sessionId: id) }
         }
@@ -165,27 +170,53 @@ final class SessionRecoveryService {
 
     /// Pull iCloud backups, but no more than once per `cloudPullMinInterval`.
     /// Prevents the Lost Sessions loop where every scan re-seeds from cloud.
-    private func pullCloudBackupsToLocalIfDue() async {
+    private func pullCloudBackupsToLocalIfDue(excluding live: Set<UUID>) async {
         let defaults = UserDefaults.standard
         let last = defaults.double(forKey: Self.cloudPullKey)
         let now = Date().timeIntervalSince1970
         if last > 0, now - last < Self.cloudPullMinInterval {
             return
         }
-        await pullCloudBackupsToLocal()
+        await pullCloudBackupsToLocal(excluding: live)
         defaults.set(now, forKey: Self.cloudPullKey)
     }
 
-    /// Pull iCloud backups that don't exist locally.
+    /// Pull iCloud backups that don't exist locally, with no recording known
+    /// to be in progress. Prefer `pullCloudBackupsToLocal(excluding:)`.
     func pullCloudBackupsToLocal() async {
+        await pullCloudBackupsToLocal(excluding: [])
+    }
+
+    /// Pull iCloud backups that don't exist locally. A recording still in
+    /// progress (`live`) is left alone in iCloud — its live backup is the
+    /// crash-safety copy. A backup of a session the user deleted, or deleted
+    /// forever, is not brought back: its cloud copy is retired again (the
+    /// first delete may have failed or run with iCloud sync off).
+    func pullCloudBackupsToLocal(excluding live: Set<UUID>) async {
         let cloudBackups = await cloudSyncManager.fetchLiveBackups()
         guard !cloudBackups.isEmpty else { return }
-        let archivedIds = Set(archive.entries.map(\.sessionId))
-        let localBackupIds = Set(rawBackup.allBackups().map(\.id))
-        for backup in cloudBackups {
-            let haveLocally = archivedIds.contains(backup.sessionId) || localBackupIds.contains(backup.sessionId)
-            if haveLocally { retireCloudBackup(backup.sessionId) } else { savePulledBackup(backup) }
+        let retired = Set(archive.entries.map(\.sessionId))
+            .union(rawBackup.allBackups().map(\.id))
+            .union(archive.deletedIds)
+            .union(Self.forgottenIds())
+        for backup in cloudBackups where !live.contains(backup.sessionId) {
+            if retired.contains(backup.sessionId) { retireCloudBackup(backup.sessionId) } else { savePulledBackup(backup) }
         }
+    }
+
+    /// Sessions the user deleted forever, so a cloud copy that outlived the
+    /// delete is not pulled back. The most recent `maxForgottenIds` are kept.
+    private static let forgottenIdsKey = "sessionRecovery.forgottenBackupIds"
+    private static let maxForgottenIds = 500
+
+    private static func forgottenIds() -> Set<UUID> {
+        Set((UserDefaults.standard.stringArray(forKey: forgottenIdsKey) ?? []).compactMap(UUID.init(uuidString:)))
+    }
+
+    private static func rememberForgotten(_ id: UUID) {
+        let defaults = UserDefaults.standard
+        let kept = (defaults.stringArray(forKey: forgottenIdsKey) ?? []).filter { $0 != id.uuidString }
+        defaults.set(Array((kept + [id.uuidString]).suffix(maxForgottenIds)), forKey: forgottenIdsKey)
     }
 
     /// Already have it locally — retire the cloud copy.
@@ -248,13 +279,19 @@ final class SessionRecoveryService {
     /// sessions that still have a backup; forgetting only the deletion left
     /// that backup behind, so the session reappeared under Lost Sessions and
     /// "Recover" brought back what the user had just deleted forever.
+    ///
+    /// A backup that cannot be discarded keeps the deletion mark, so it stays
+    /// in the Trash rather than reappearing under Lost Sessions. The id is
+    /// remembered so a cloud copy the delete misses is not pulled back.
     func permanentlyDelete(_ sessionId: UUID) {
         archive.discardTrashed(sessionId)
         do {
             try rawBackup.discardBackup(sessionId)
         } catch {
-            debugLog("[SessionRecoveryService] \u{26a0}\u{fe0f} Failed to discard the backup of \(sessionId.uuidString.prefix(8)): \(error)")
+            debugLog("[SessionRecoveryService] \u{26a0}\u{fe0f} Failed to discard the backup of \(sessionId.uuidString.prefix(8)): \(error) — keeping it in the Trash", level: .error)
+            return
         }
+        Self.rememberForgotten(sessionId)
         Task { await cloudSyncManager.deleteLiveBackup(sessionId: sessionId) }
         do {
             try archive.forgetDeletedSession(sessionId)

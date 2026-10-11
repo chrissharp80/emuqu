@@ -14,8 +14,8 @@
  "units": [
   {
    "key": "func OvernightStreamingCoordinator.launchDeviceRecordingLoop()",
-   "hash": "73d4a377c190b1b1",
-   "does": "Sets isOvernightEnding=false, cancels any prior arming task and starts a new Task that loops until the strap's recording is armed; if the loop ends unarmed while the night is not ending it logs an error that the night ran streaming-only.",
+   "hash": "c0822866ae839880",
+   "does": "Sets isOvernightEnding=false, cancels any prior arming task and starts a new Task that loops until the strap's recording is armed; if the loop ends unarmed while the night is not ending and the task was not cancelled (a relaunch hands the night to its successor) it logs an error that the night ran streaming-only.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.awaitDeviceRecordingStart()"
@@ -32,27 +32,12 @@
      "effect": "Task returns"
     },
     {
-     "at": "+6",
-     "cond": "started or night ending",
-     "effect": "true: return silently; false: log the 'never armed' error"
+     "at": "+7",
+     "cond": "started, night ending, or this task cancelled",
+     "effect": "returns silently; otherwise logs the 'never armed' error"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "The 'PRIMARY source never armed' error is logged whenever the loop ends unarmed without isOvernightEnding set: a prior task cancelled by a relaunch (line 19 clears isOvernightEnding before cancelling it), and a resume whose startStreaming throws (loop launched before streaming starts, isOvernightStreaming still false), produce the error for nights that never ran.",
-     "evidence": [
-      "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift:19",
-      "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift:20",
-      "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift:24",
-      "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift:59",
-      "Emuqu/Sources/Collection/RRCollector+PauseResume.swift:180",
-      "Emuqu/Sources/Collection/RRCollector+PauseResume.swift:182"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.awaitDeviceRecordingStart()": "13402cf017af8ded",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming": "1de92bef61865565",

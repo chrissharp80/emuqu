@@ -25,12 +25,11 @@
  "units": [
   {
    "key": "func SessionDataMigrations.runTrimpRepairMigrationIfNeeded()",
-   "hash": "06d319a4886a5b95",
-   "does": "If the flag is unset: when training-load integration is off sets the flag and returns; otherwise loads all sessions, and if any complete analysed session exists runs repairTrainingSnapshots (no progress), sets the flag and logs the result.",
+   "hash": "84673e72750b41fe",
+   "does": "If the flag is unset: when training-load integration is off sets the flag and returns; otherwise loads all sessions and runs repairTrainingSnapshots over them (it picks its own candidates — complete, analysed sessions — and does nothing without any), then sets the flag and logs the result.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.loadArchivedSessions()",
-    "Emuqu/Sources/Collection/SessionDataMigrations+TrimpMigration.swift::func SessionDataMigrations.hasTrimpRepairWork(in:defaults:)",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.repairTrainingSnapshots(sessions:progress:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
@@ -53,53 +52,12 @@
      "at": "+3",
      "cond": "enableTrainingLoadIntegration is false",
      "effect": "set flag, log, return (never repaired even if later enabled)"
-    },
-    {
-     "at": "+9",
-     "cond": "hasTrimpRepairWork false (flag set by callee)",
-     "effect": "return; otherwise repair"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/SessionDataMigrations+TrimpMigration.swift::func SessionDataMigrations.hasTrimpRepairWork(in:defaults:)": "eb0026c842e1dba1",
     "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.loadArchivedSessions()": "126051022cf23c3b",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.repairTrainingSnapshots(sessions:progress:)": "cac4e6c121467606",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
-   }
-  },
-  {
-   "key": "func SessionDataMigrations.hasTrimpRepairWork(in:defaults:)",
-   "hash": "ab34ad3648e2f0b2",
-   "does": "Logs the session count, filters complete sessions with an analysisResult; if none sets the flag and returns false, else logs and returns true.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
-   ],
-   "reads": [],
-   "writes": [
-    "ud:didRunTrimpRepairMigration_v1"
-   ],
-   "branches": [
-    {
-     "at": "+3",
-     "cond": "no candidates",
-     "effect": "set flag, log, return false; otherwise log, return true"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Repeats the candidate filter that repairTrainingSnapshots applies itself.",
-     "evidence": [
-      "Emuqu/Sources/Collection/SessionDataMigrations+TrimpMigration.swift:43",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:496"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   }

@@ -423,11 +423,16 @@ extension HeartRateHealthQueries {
     }
 
     /// Remove the resting heart rate an earlier export wrote for a session
-    /// that no longer writes one (a quick reading or a nap).
+    /// that no longer writes one (a quick reading or a nap). Searched over the
+    /// same ±`restingHeartRateNightSpan` the export writes over, so one
+    /// exported under a different end date is found too.
     func removeExportedRestingHeartRate(at date: Date, sessionId: UUID) async throws {
         guard manager.isHealthKitAvailable, let rhrType = HKTypes.quantity(.restingHeartRate) else { return }
         let externalUUID = HealthExportIdentity.summary(sessionId: sessionId, metric: .restingHeartRate)
-        try await deleteThenSave([], of: rhrType, start: date, end: date) { $0 == externalUUID }
+        let span = Self.restingHeartRateNightSpan
+        try await deleteThenSave(
+            [], of: rhrType, start: date.addingTimeInterval(-span), end: date.addingTimeInterval(span)
+        ) { $0 == externalUUID }
     }
 
     /// Two overnight readings whose resting heart rates are dated within this
@@ -471,10 +476,11 @@ extension HeartRateHealthQueries {
         // not just the span of the new samples: a re-analysis that trimmed
         // the night (or left no minutes at all) must not leave the old rows
         // beside the new ones. Matching is by this session's identity, so
-        // the wide window touches nothing else.
+        // the wide window touches nothing else. Same window as the SDNN
+        // cleanup (an hour before the start through a day after).
         let cleanupEnd = max(samples.last?.endDate ?? sessionStart, sessionStart.addingTimeInterval(24 * 3600))
         try await deleteThenSave(
-            samples, of: hrType, start: sessionStart, end: cleanupEnd
+            samples, of: hrType, start: sessionStart.addingTimeInterval(-3600), end: cleanupEnd
         ) { HealthExportIdentity.isSeriesMember($0, sessionId: sessionId, metric: .heartRate) }
         debugLog("[HealthKit Export] Wrote \(samples.count) minute-level HR samples")
     }

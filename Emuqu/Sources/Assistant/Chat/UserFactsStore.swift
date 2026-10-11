@@ -209,6 +209,11 @@ final class UserFactsStore {
     /// `clear()` is the one write that goes ahead regardless.
     @ObservationIgnored private var unreadableOnDisk: Bool
 
+    /// Set when the last write failed (the phone locked first, or the
+    /// directory was gone), so `recoverAfterUnlock()` writes the facts again
+    /// instead of leaving the change only in memory.
+    @ObservationIgnored private var writePending = false
+
     nonisolated private static func isUnreadable(_ url: URL) -> Bool {
         guard FileManager.default.fileExists(atPath: url.path) else { return false }
         guard let data = attempt("UserFactsStore.probe", { try Data(contentsOf: url) }) else { return true }
@@ -222,9 +227,10 @@ final class UserFactsStore {
     }
 
     /// Once protected data is available: fold the saved facts back in and
-    /// write out anything added while they could not be read.
+    /// write out anything added while they could not be read, or whose
+    /// write failed.
     func recoverAfterUnlock() {
-        guard unreadableOnDisk else { return }
+        guard unreadableOnDisk || writePending else { return }
         persist()
     }
 
@@ -250,18 +256,30 @@ final class UserFactsStore {
             return
         }
         let snapshot = facts
+        writePending = false
         queue.async { [fileURL] in
-            let encoder = JSONEncoder()
-            encoder.dateEncodingStrategy = .iso8601
-            encoder.outputFormatting = [.prettyPrinted]
-            guard let data = attempt("userFactsStore.encode", { try encoder.encode(snapshot) }) else { return }
+            guard !Self.write(snapshot, to: fileURL) else { return }
+            Task { @MainActor in self.writePending = true }
+        }
+    }
+
+    /// Encodes and writes the facts; false when either step failed. The
+    /// directory is created first because Delete All My Data removes it
+    /// under a running store, and only init created it.
+    nonisolated private static func write(_ facts: [Fact], to url: URL) -> Bool {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        encoder.outputFormatting = [.prettyPrinted]
+        guard let data = attempt("userFactsStore.encode", { try encoder.encode(facts) }) else { return false }
+        do {
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
             // Holds ongoing health context injected into every prompt; protect
             // at rest (readable only while unlocked), matching ConversationStore.
-            do {
-                try data.write(to: fileURL, options: [.atomic, .completeFileProtection])
-            } catch {
-                debugLog("[UserFactsStore] persist: write failed, fact update may be lost: \(error)", level: .error)
-            }
+            try data.write(to: url, options: [.atomic, .completeFileProtection])
+            return true
+        } catch {
+            debugLog("[UserFactsStore] persist: write failed, retried after the next unlock or change: \(error)", level: .error)
+            return false
         }
     }
 }

@@ -107,7 +107,11 @@ enum DemoSessionSeeder {
     /// behind.
     ///
     /// Returns the ids written. Plans that collide with an existing recording
-    /// are skipped, so the count can be lower than `plans.count`.
+    /// are skipped, so the count can be lower than `plans.count`. Occupancy
+    /// is checked twice: before building, and again on the finished nights
+    /// just before writing, because building and scoring take seconds to
+    /// minutes and a real night can be archived or synced meanwhile (and the
+    /// write skips same-night merge).
     @MainActor
     static func seed(
         _ plans: [NightPlan],
@@ -121,7 +125,7 @@ enum DemoSessionSeeder {
         for night in withVitals(nights) {
             finished.append(await finalize(night))
         }
-        let toWrite = finished
+        let toWrite = finished.filter { !isOccupied($0.startDate, $0.endDate ?? $0.startDate, in: archive.entries) }
         try await Task.detached(priority: .userInitiated) { try writeAll(toWrite, to: archive) }.value
         debugLog("[SampleData] Seeded \(toWrite.count) sample nights", level: .info)
         return toWrite.map(\.id)
@@ -162,11 +166,15 @@ enum DemoSessionSeeder {
     /// Plans whose night, padded by `occupancyPadding`, overlaps no archived
     /// session.
     static func unoccupied(_ plans: [NightPlan], in entries: [SessionArchiveEntry]) -> [NightPlan] {
-        plans.filter { plan in
-            let earliest = plan.start.addingTimeInterval(-occupancyPadding)
-            let latest = plan.end.addingTimeInterval(occupancyPadding)
-            return !entries.contains { ($0.endDate ?? $0.date) >= earliest && $0.date <= latest }
-        }
+        plans.filter { !isOccupied($0.start, $0.end, in: entries) }
+    }
+
+    /// Whether `start...end`, padded by `occupancyPadding`, overlaps an
+    /// archived session.
+    private static func isOccupied(_ start: Date, _ end: Date, in entries: [SessionArchiveEntry]) -> Bool {
+        let earliest = start.addingTimeInterval(-occupancyPadding)
+        let latest = end.addingTimeInterval(occupancyPadding)
+        return entries.contains { ($0.endDate ?? $0.date) >= earliest && $0.date <= latest }
     }
 
     /// One night: beats, the sleep inferred from them, and the analysis.

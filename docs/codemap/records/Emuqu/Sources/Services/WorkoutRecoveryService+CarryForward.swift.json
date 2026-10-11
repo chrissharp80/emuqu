@@ -12,7 +12,7 @@
   {
    "key": "func WorkoutRecoveryService.carryForward(from:into:)",
    "hash": "22ac111d1a415220",
-   "does": "Copies session-level fields, then (if both copies have workout metadata) user fields always, measured and power fields only when the rebuild covers the same start/end (±1 s), samples when the start is unchanged; restores partialDataReason and recoveredAt from the archived copy; writes the merged metadata back to `session`. Called by WorkoutRecoveryService.rebuild.",
+   "does": "Copies session-level fields, then (if both copies have workout metadata) user fields always, measured and power fields only when the rebuild covers the same start/end (±1 s), samples when the start is unchanged; restores partialDataReason and recoveredAt from the archived copy; writes the merged metadata back to `session`. Called by WorkoutRecoveryService.carryArchived, which then rebuilds the analysis snapshot over the carried samples.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carrySessionFields(from:into:)",
@@ -36,22 +36,7 @@
      "effect": "true: carries HRR/markers/laps/strokes and power figures where the rebuild has none; false (trimmed): those are left to whatever the rebuild computed"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "high",
-     "text": "On trim / recover-from-strap of a saved workout the rebuild has no per-second samples (track backup gone), so assembleMetadata builds analysisSnapshot from an empty sample list; carryForward then copies the archived samples back in but never rebuilds the snapshot. The hollow snapshot carries currentVersion and the current language, so needsRebuild is false and FitnessPostSummaryView never repairs it: the trimmed workout loses its alpha1 bands, HR-zone distribution, moving time and narrative while its samples are present.",
-     "evidence": [
-      "Emuqu/Sources/Services/WorkoutRecoveryService.swift:392",
-      "Emuqu/Sources/Services/WorkoutRecoveryService.swift:301",
-      "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift:21",
-      "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift:83",
-      "Emuqu/Sources/Models/WorkoutAnalysisSnapshot.swift:105",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:96"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryMeasuredFields(from:into:)": "d9b451086b6d67a4",
     "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryPowerFields(from:into:)": "16602d0f2c42c44d",

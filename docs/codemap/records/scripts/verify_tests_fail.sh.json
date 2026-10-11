@@ -1,6 +1,6 @@
 {
  "file": "scripts/verify_tests_fail.sh",
- "hash": "7de7a2129ff1284b",
+ "hash": "6d3f0b1a30c3d6e2",
  "role": "Manual mutation-testing harness (not in make ci or any workflow; ci.yml only comments on it) that applies 125 targeted source mutations one at a time, requiring the named XCTest class to go red for each. All 125 anchors apply and all named suite classes exist at 8d32097 (checked on a scratch copy).",
  "types": [],
  "state": [
@@ -10,7 +10,7 @@
   "file:temp backup dir + run.log",
   "file:production Swift sources (mutated and restored)"
  ],
- "toplevel": "set -uo pipefail; cd to repo root; sources preflight. DEST from select_simulator_destination.sh (exit 70 if empty). gate_mktemp_dir (fails on GNU mktemp), then acquire lock and set trap restore_all/rm/release. Runs `mutate` for each case (lines 145-975; anchors and suite classes verified to exist at 8d32097 — two named suites (AutoPauseDetectorTests, TrackBackupWatermarkTests) are classes inside WorkoutTickStateTests.swift). Prints totals; exits 1 if any FAIL or SKIP (skips explicitly treated as unverified). A build failure caused by the mutation itself counts as 'caught' (see mutate flag); e.g. import_cadence_divides_by_zero_window substitutes `sample.count`, a member HealthSampleWindow does not have (HealthSampleWindow.swift:15-23), so that case can only ever 'pass' via a compile error. The comment at 167-168 about the encrypted-write branch sits above the unrelated import_offset_unguarded case; the encryption mutation is at line 337.",
+ "toplevel": "set -uo pipefail; cd to repo root; sources preflight. PASS/FAIL/SKIP/INVALID counters. DEST from select_simulator_destination.sh (exit 70 if empty). gate_mktemp_dir (fails on GNU mktemp), then acquire lock and set trap restore_all/rm/release. Runs `mutate` for each of 125 cases (lines 176-1009; anchors and suite classes verified to exist at 8d32097 — two named suites (AutoPauseDetectorTests, TrackBackupWatermarkTests) are classes inside WorkoutTickStateTests.swift). import_cadence_divides_by_zero_window removes the `seconds > 0` window check (keeping `sample.value >= 0`), which compiles and is caught by the backwards-window assertion in HealthWorkoutImporterTests.testZeroLengthWindowIsDroppedRatherThanDividedByZero; the zero-length window itself stays covered by the later isFinite guard. Prints totals (caught / survived / did not compile / skipped); exits 1 if any FAIL, INVALID or SKIP (skips and non-compiling mutations explicitly treated as unverified).",
  "flags": [],
  "units": [
   {
@@ -76,19 +76,145 @@
    "deps": {}
   },
   {
-   "key": "fn mutate",
-   "hash": "a9bd0e7c71368732",
-   "does": "Runs one mutation: FILTER check; baseline run_suite (one retry on build failure); SKIP if baseline not green; backup, apply python mutation (SKIP on failure); run_suite again; restore; PASS if the post-mutation result is non-zero (1 or 2), FAIL 'SURVIVED' if 0.",
+   "key": "fn baseline_green",
+   "hash": "03a3cca0e4b4805e",
+   "does": "Baseline check for one mutation: run_suite on the suite, one retry when the result is 2 (build failed); returns 0 if green, else prints SKIP ('BUILD failed (not a test result)' for 2, '<suite> was already red' for 1), increments SKIP and returns 1.",
+   "entry": null,
+   "calls": [
+    "scripts/verify_tests_fail.sh::fn run_suite"
+   ],
+   "reads": [],
+   "writes": [
+    "var:SKIP",
+    "file:<backup>/run.log (via run_suite)"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "baseline == 2",
+     "effect": "retry run_suite once"
+    },
+    {
+     "at": "+6",
+     "cond": "baseline == 0",
+     "effect": "return 0"
+    },
+    {
+     "at": "+7",
+     "cond": "baseline == 2",
+     "effect": "print SKIP 'BUILD failed'; else print SKIP 'already red'; then SKIP++ and return 1"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/verify_tests_fail.sh::fn run_suite": "2627647aca12e8c4"
+   }
+  },
+  {
+   "key": "fn mutation_broke_build",
+   "hash": "b74ab8dc40e323a1",
+   "does": "Returns 0 if the last run.log has a compiler diagnostic `<path>:<line>:<col>: error:` whose path ends in `/<file>` (the mutated file, repo-relative), i.e. the mutation itself did not compile; else 1.",
+   "entry": null,
+   "calls": [
+    "ext:grep"
+   ],
+   "reads": [
+    "file:<backup>/run.log"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "fn mutated_result",
+   "hash": "cedc1dfdb87c94f9",
+   "does": "Runs the suite with the mutation applied and echoes the verdict code: 1 = tests failed (caught), 0 = tests passed (survived), 3 = build failed with a compile error in the mutated file, 2 = build/runner failed for another reason on both attempts. A run_suite 2 without an error in the mutated file is retried once. Called in a command substitution, so it echoes rather than sets globals.",
    "entry": null,
    "calls": [
     "scripts/verify_tests_fail.sh::fn run_suite",
+    "scripts/verify_tests_fail.sh::fn mutation_broke_build"
+   ],
+   "reads": [
+    "file:<backup>/run.log"
+   ],
+   "writes": [
+    "file:<backup>/run.log (via run_suite)",
+    "stdout: verdict code"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "code == 2 and the mutated file has no compile error",
+     "effect": "retry run_suite once"
+    },
+    {
+     "at": "+6",
+     "cond": "code == 2 and the mutated file has a compile error",
+     "effect": "code = 3"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/verify_tests_fail.sh::fn mutation_broke_build": "332e62be28b2e6ad",
+    "scripts/verify_tests_fail.sh::fn run_suite": "2627647aca12e8c4"
+   }
+  },
+  {
+   "key": "fn report_mutation",
+   "hash": "00d9a9c6e158273f",
+   "does": "Prints the result line for one mutation and bumps its counter: 1 -> PASS 'caught it' (PASS++); 0 -> FAIL 'SURVIVED' (FAIL++); 3 -> FAIL 'the mutation does not compile — fix the mutation' (INVALID++); anything else -> SKIP 'BUILD failed after the mutation (not a test result)' (SKIP++).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "var:PASS",
+    "var:FAIL",
+    "var:INVALID",
+    "var:SKIP"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "code 1",
+     "effect": "PASS++"
+    },
+    {
+     "at": "+5",
+     "cond": "code 0",
+     "effect": "FAIL++ (survived)"
+    },
+    {
+     "at": "+7",
+     "cond": "code 3",
+     "effect": "INVALID++ (mutation did not compile; fails the run)"
+    },
+    {
+     "at": "+9",
+     "cond": "other (2)",
+     "effect": "SKIP++ (build failure, not a test result; fails the run)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "fn mutate",
+   "hash": "b2a38f8ad232365a",
+   "does": "Runs one mutation: FILTER check; baseline_green (returns early when the suite is not green, already counted as SKIP); backup the file and apply the python mutation (SKIP on failure); mutated_result for the verdict; restore; report_mutation. Only a test failure (run_suite 1) counts as caught — a build failure after the mutation is INVALID (compile error in the mutated file) or SKIP (other build failure), never PASS.",
+   "entry": null,
+   "calls": [
+    "scripts/verify_tests_fail.sh::fn baseline_green",
     "scripts/verify_tests_fail.sh::fn backup",
     "scripts/verify_tests_fail.sh::fn restore_all",
+    "scripts/verify_tests_fail.sh::fn mutated_result",
+    "scripts/verify_tests_fail.sh::fn report_mutation",
     "ext:python3 -c <mutation>"
    ],
    "reads": [],
    "writes": [
-    "file:<mutated source> (temporarily)"
+    "file:<mutated source> (temporarily)",
+    "var:SKIP"
    ],
    "branches": [
     {
@@ -97,56 +223,30 @@
      "effect": "return"
     },
     {
-     "at": "+8",
-     "cond": "baseline == 2 (build failed)",
-     "effect": "retry baseline once"
+     "at": "+4",
+     "cond": "baseline_green fails",
+     "effect": "return (SKIP already counted)"
     },
     {
-     "at": "+13",
-     "cond": "baseline != 0",
-     "effect": "SKIP (build failed / already red), return"
-    },
-    {
-     "at": "+14",
-     "cond": "baseline == 2",
-     "effect": "message 'BUILD failed'; else 'already red'"
-    },
-    {
-     "at": "+23",
+     "at": "+7",
      "cond": "mutation script fails",
-     "effect": "restore, SKIP, return"
-    },
-    {
-     "at": "+31",
-     "cond": "post-mutation code != 0",
-     "effect": "PASS++ (includes code 2 = build failure); else FAIL++"
+     "effect": "print SKIP, restore, SKIP++, return"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "run_suite distinguishes build failure (2) from test failure (1) for the baseline, but after the mutation any non-zero code counts as 'caught'. A mutation that does not compile is reported PASS without any test asserting anything — e.g. import_cadence_divides_by_zero_window rewrites the guard to `sample.count >= 0`, and HealthSampleWindow has no `count` member, so that case passes on a compile error and HealthWorkoutImporterTests' coverage of the zero-window guard is never actually verified.",
-     "evidence": [
-      "scripts/verify_tests_fail.sh:128",
-      "scripts/verify_tests_fail.sh:131",
-      "scripts/verify_tests_fail.sh:906",
-      "Emuqu/Sources/Import/HealthSampleWindow.swift:15"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "scripts/verify_tests_fail.sh::fn backup": "70119fbe023b417f",
-    "scripts/verify_tests_fail.sh::fn restore_all": "0cdb4c7320082e7d",
-    "scripts/verify_tests_fail.sh::fn run_suite": "2627647aca12e8c4"
+    "scripts/verify_tests_fail.sh::fn baseline_green": "092d0e252171c552",
+    "scripts/verify_tests_fail.sh::fn mutated_result": "589f43a86e668c24",
+    "scripts/verify_tests_fail.sh::fn report_mutation": "266b913ffd6ad19f",
+    "scripts/verify_tests_fail.sh::fn restore_all": "0cdb4c7320082e7d"
    }
   }
  ],
  "deps": {
   "scripts/select_simulator_destination.sh::": "bb43a2c585c332e5",
   "scripts/verify_tests_fail.sh::fn backup": "70119fbe023b417f",
-  "scripts/verify_tests_fail.sh::fn mutate": "e9b411096264e708",
+  "scripts/verify_tests_fail.sh::fn mutate": "d86675934e28c4ce",
   "scripts/verify_tests_fail.sh::fn restore_all": "0cdb4c7320082e7d"
  }
 }

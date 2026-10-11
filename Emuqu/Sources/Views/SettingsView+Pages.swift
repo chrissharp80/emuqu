@@ -57,17 +57,44 @@ struct ProfileSettingsPage: View {
         }
     }
 
+    /// With a birthday stored, the wheel shows it. With none, a "Not Set" row
+    /// stands in: a wheel would show a made-up date as if it were stored while
+    /// the birthday stays nil, and picking that same date could not be saved.
+    @ViewBuilder
+    private var birthdayPicker: some View {
+        if let birthday = settingsManager.settings.birthday {
+            birthdayWheel(showing: birthday)
+        } else {
+            setBirthdayRow
+        }
+    }
+
+    /// Tapping stores a starting date thirty years back, which brings up the
+    /// wheel and the age row, so what the screen shows is what is stored.
+    private var setBirthdayRow: some View {
+        Button {
+            settingsManager.settings.birthday = Calendar.current.date(byAdding: .year, value: -30, to: Date()) ?? Date()
+        } label: {
+            HStack {
+                Text(String(localized: "Birthday", bundle: LanguageManager.appBundle))
+                Spacer()
+                Text(String(localized: "Not Set", bundle: LanguageManager.appBundle))
+                    .foregroundColor(AppTheme.textSecondary)
+            }
+        }
+    }
+
     /// Wheel, not the compact calendar. The compact style opens on the
     /// current month and pages back one month at a time: a tester born in
     /// 1964 had to tap through more than seven hundred months. The wheel's
     /// year column is one flick.
-    private var birthdayPicker: some View {
+    private func birthdayWheel(showing birthday: Date) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(String(localized: "Birthday", bundle: LanguageManager.appBundle))
             DatePicker(
                 String(localized: "Birthday", bundle: LanguageManager.appBundle),
                 selection: Binding(
-                    get: { settingsManager.settings.birthday ?? (Calendar.current.date(byAdding: .year, value: -30, to: Date()) ?? Date()) },
+                    get: { settingsManager.settings.birthday ?? birthday },
                     set: { settingsManager.settings.birthday = $0 }
                 ),
                 in: ...Date(),
@@ -493,7 +520,7 @@ struct SleepSettingsPage: View {
             String(localized: "Typical Sleep", bundle: LanguageManager.appBundle),
             selection: settingsBinding.typicalSleepHours
         ) {
-            ForEach(Array(stride(from: 5.0, through: 10.0, by: 0.5)), id: \.self) { hours in
+            ForEach(Self.options(Array(stride(from: 5.0, through: 10.0, by: 0.5)), including: settingsManager.settings.typicalSleepHours), id: \.self) { hours in
                 Text(formatDuration(hours)).tag(hours)
             }
         }
@@ -669,7 +696,7 @@ struct SleepSettingsPage: View {
             String(localized: "Split Threshold", bundle: LanguageManager.appBundle),
             selection: settingsBinding.sleepSplitGapMinutes
         ) {
-            ForEach([15, 20, 30, 45, 60, 90, 120], id: \.self) { min in
+            ForEach(Self.options([15, 20, 30, 45, 60, 90, 120], including: settingsManager.settings.sleepSplitGapMinutes), id: \.self) { min in
                 Text(verbatim: LocalizedDuration.hoursMinutes(minutes: min)).tag(min)
             }
         }
@@ -702,7 +729,7 @@ struct SleepSettingsPage: View {
             selection: settingsBinding.customMergeGapHours
         ) {
             ForEach(Array(stride(from: 1.0, through: 12.0, by: 0.5)), id: \.self) { hours in
-                Text(formatGap(hours)).tag(hours)
+                Text(formatDuration(hours)).tag(hours)
             }
         }
     }
@@ -752,8 +779,11 @@ struct SleepSettingsPage: View {
         LocalizedDuration.hoursMinutes(minutes: Int((hours * 60).rounded()))
     }
 
-    func formatGap(_ hours: Double) -> String {
-        LocalizedDuration.hoursMinutes(minutes: Int((hours * 60).rounded()))
+    /// The offered choices plus the stored value when it is not one of them
+    /// (an older build, a restored or synced settings file), so the picker
+    /// always has its current value as a selectable row.
+    static func options<Value: Comparable>(_ offered: [Value], including current: Value) -> [Value] {
+        offered.contains(current) ? offered : (offered + [current]).sorted()
     }
 
     var splitFooter: String {
@@ -762,8 +792,7 @@ struct SleepSettingsPage: View {
         let splitText = String(localized: "Gaps of \(gapDesc) or more in your sleep data are treated as separate sessions.", bundle: LanguageManager.appBundle)
         let mergeText = switch settingsManager.settings.sessionMergeMode {
         case .off: String(localized: " Segments are scored independently.", bundle: LanguageManager.appBundle)
-        case .defaultGap: String(localized: " Segments within 4.5 hours count as one night.", bundle: LanguageManager.appBundle)
-        case .custom: String(localized: " Segments within \(formatGap(settingsManager.settings.customMergeGapHours)) count as one night.", bundle: LanguageManager.appBundle)
+        case .defaultGap, .custom: String(localized: " Segments within \(formatDuration(settingsManager.settings.effectiveMergeGapSeconds / 3600)) count as one night.", bundle: LanguageManager.appBundle)
         }
         return splitText + mergeText
     }

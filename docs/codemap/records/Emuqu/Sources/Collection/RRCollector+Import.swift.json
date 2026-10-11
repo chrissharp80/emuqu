@@ -23,7 +23,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Import.swift::func SessionImport.save(_:)": "bf6b1524d15c3bf2"
+    "Emuqu/Sources/Collection/RRCollector+Import.swift::func SessionImport.save(_:)": "f754888cf842d1cd"
    }
   },
   {
@@ -44,22 +44,25 @@
   },
   {
    "key": "func SessionImport.save(_:)",
-   "hash": "7c7eff6a92c87be4",
-   "does": "Saves one imported session: requires complete+analysed, refuses a duplicate the archive already holds, archives it (same-night merge allowed), uploads to iCloud, updates the baseline with it, publishes deviation and bumps the archive signal.",
+   "hash": "2962f748722926a4",
+   "does": "Saves one imported session: requires complete+analysed, refuses a duplicate the archive already holds, archives it with a re-upload request (same-sleep merge allowed). A reading saved under its own id is uploaded to iCloud; one the archive merged into an existing reading reaches iCloud through the archive's re-upload request for the merged id, and the merged reading (re-read) is what the baseline and deviation use. Bumps the archive signal (its own post reaches an ArchiveSignal listening on an injected centre).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.holdsCopy(of:)",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.deviation(for:)",
-    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()"
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)"
    ],
    "reads": [
     "archive:index"
    ],
    "writes": [
     "archive:session file+index",
+    "archive:modifiedAt stamp",
+    "notif:flowRecoveryArchiveSessionsNeedReupload (merged)",
     "ck:session record",
     "file:HRVBaseline",
     "mem:SessionState.baselineDeviation",
@@ -78,45 +81,29 @@
      "effect": "throws duplicateImport"
     },
     {
-     "at": "+10",
+     "at": "+7",
+     "cond": "merged into another id",
+     "effect": "baseline/deviation use the re-read merged reading (the import when the read fails); no direct upload"
+    },
+    {
+     "at": "+8",
+     "cond": "saved under its own id",
+     "effect": "uploadSession"
+    },
+    {
+     "at": "+14",
      "cond": "deviation computed",
      "effect": "publishes it; nil leaves the previous deviation"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "When the archive folds the import into an existing same-sleep reading (holdsCopy checks only same-recording copies with sameSleepGap nil, so a same-sleep segment passes and sameNightMerge merges it under the existing id), the merged reading never reaches iCloud: archive(_:) is called without requestingReupload so no reupload request is posted, and uploadSession(session) looks up the import's discarded id and skips. The baseline is also fed the un-merged segment, not the merged night.",
-     "evidence": [
-      "Emuqu/Sources/Collection/RRCollector+Import.swift:33",
-      "Emuqu/Sources/Collection/RRCollector+Import.swift:34",
-      "Emuqu/Sources/Collection/RRCollector+Import.swift:36",
-      "Emuqu/Sources/Storage/Archive+MergeTarget.swift:64",
-      "Emuqu/Sources/Storage/Archive+Internal.swift:157",
-      "Emuqu/Sources/Storage/Archive.swift:470",
-      "Emuqu/Sources/Storage/CloudKitSyncManager.swift:412"
-     ],
-     "found": "second read"
-    },
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "collector.archiveSignal.notifyChanged() repeats the .flowRecoveryArchiveChanged post that archive(_:) already makes; ArchiveSignal.notifyChanged is documented as kept only for legacy callers.",
-     "evidence": [
-      "Emuqu/Sources/Collection/RRCollector+Import.swift:40",
-      "Emuqu/Sources/Storage/Archive.swift:469",
-      "Emuqu/Sources/Collection/ArchiveSignal.swift:113"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.deviation(for:)": "eb395310f3a332ff",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)": "3d630ccb9de1838f",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.deviation(for:)": "81305e07fa0673d3",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)": "39b522c63ba99f84",
     "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "47c71a985b0f7b54",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.holdsCopy(of:)": "9ee650a0ac71e106",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "e1a5ccaab9fa4e3e",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "f0a309cc2b24de13",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)": "6be1af35552af634"
    }
   },

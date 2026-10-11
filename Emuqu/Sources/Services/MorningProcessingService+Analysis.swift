@@ -43,17 +43,17 @@ extension MorningProcessingService {
     /// Fold an estimated sleep window into the result, tagging where it came
     /// from. Both fallback estimators — RR-derived and Watch passive-HR —
     /// write the same four fields the same way; only the source label differs.
+    /// An estimate missing its start or its end is not applied at all, so
+    /// the boundaries never come from one source while labelled with another.
     static func applyEstimate(
         _ estimate: SleepData,
         source: HealthKitManager.SleepBoundarySource,
         effectiveStartDate: Date,
         to result: inout SleepPollResult
     ) {
-        func offsetMs(_ date: Date) -> Int64 {
-            MillisecondOffset.between(date, and: effectiveStartDate, fallback: 0)
-        }
-        if let sleepStart = estimate.sleepStart { result.sleepStartMs = offsetMs(sleepStart) }
-        if let sleepEnd = estimate.sleepEnd { result.wakeTimeMs = offsetMs(sleepEnd) }
+        guard let sleepStart = estimate.sleepStart, let sleepEnd = estimate.sleepEnd else { return }
+        result.sleepStartMs = MillisecondOffset.between(sleepStart, and: effectiveStartDate, fallback: 0)
+        result.wakeTimeMs = MillisecondOffset.between(sleepEnd, and: effectiveStartDate, fallback: 0)
         result.sleepBoundarySource = source
         result.fetchedSleepData = estimate
     }
@@ -90,26 +90,38 @@ extension MorningProcessingService {
     ///
     /// This is the single heaviest synchronous pass in the
     /// pipeline: two full sliding-window sweeps over the night. Inputs are
-    /// captured on the main actor and the scan runs on a background task;
-    /// `WindowSelector` is stateless with default config.
+    /// captured on the main actor and the scan runs on a background task on
+    /// a fresh `WindowSelector` (default config). The organized recovery
+    /// zones that search found come back with the result, for
+    /// `withOrganizedZones` to put on the analysis — the chart's overlay —
+    /// as `HRVAnalysisPipeline.analyzeWithAutoWindow` does.
     static func selectWindow(
         in series: RRSeries,
         flags: [ArtifactFlags],
         sleepResult: SleepPollResult,
         baselineStats: BaselineTracker.RecoveryBaselineStats?
-    ) async -> WindowSelector.WindowSelectionResult? {
+    ) async -> (result: WindowSelector.WindowSelectionResult?, zones: [HRVAnalysisResult.TimeRange]) {
         let started = Date()
         let sleepStartMs = sleepResult.sleepStartMs
         let wakeTimeMs = sleepResult.wakeTimeMs
-        let result = await Task.detached(priority: .userInitiated) {
-            WindowSelector().findBestWindowWithCapacity(
-                in: series, flags: flags,
-                sleepStartMs: sleepStartMs,
-                wakeTimeMs: wakeTimeMs,
-                baselineStats: baselineStats
+        let selected = await Task.detached(priority: .userInitiated) {
+            let selector = WindowSelector()
+            let result = selector.findBestWindowWithCapacity(
+                in: series, flags: flags, sleepStartMs: sleepStartMs, wakeTimeMs: wakeTimeMs, baselineStats: baselineStats
             )
+            return (result: result, zones: selector.lastOrganizedZones)
         }.value
         debugLog("[MorningTiming] window selection: \(Int(Date().timeIntervalSince(started) * 1000))ms")
+        return selected
+    }
+
+    /// `result` with `zones` as its organized recovery zones (nil when there
+    /// are none); nil stays nil.
+    static func withOrganizedZones(
+        _ zones: [HRVAnalysisResult.TimeRange], on result: HRVAnalysisResult?
+    ) -> HRVAnalysisResult? {
+        guard var result else { return nil }
+        result.organizedRecoveryZones = zones.isEmpty ? nil : zones
         return result
     }
 }

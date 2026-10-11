@@ -5,25 +5,13 @@
  "types": [
   "StrapRecordingCoordinator: extension — fetch/stop/download/retry/cancel of strap-memory recordings",
   "StrapTransferHandle: struct — id + cancel closure for the currently running transfer phase (stored on PolarManager.activeTransfer)",
-  "StrapRecordingSelection: enum — .newest(since:) or .exercise(id:) selection of which strap recording to download"
+  "StrapRecordingSelection: enum — .newest(since:) or .exercise(id:) selection of which strap recording to download (an .exercise selection names nothing on a Verity Sense)"
  ],
  "state": [
   "mem:StrapTransferHandle.id (per-instance UUID stored-property initializer)"
  ],
  "toplevel": "StrapTransferHandle.id defaults to UUID() at construction (StrapRecordingCoordinator+Transfer.swift:490). Conditional `import PolarBleSdk`. The coordinator mutates PolarManager state: mem:PolarManager.fetchCancelled, mem:PolarManager.activeTransfer, mem:PolarManager.transfersInFlight, mem:PolarManager.recordingState, mem:PolarManager.isRecordingOnDevice, mem:PolarManager.hasStoredExercise, mem:PolarManager.storedExerciseDate, mem:PolarManager.fetchProgress, and the download ledger ud:strapDownloadedRecordingStarts.",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "med",
-   "text": "Which strap recording belongs to a session is decided by parsing the H10 exercise id (yyyyMMddHHmmss) in TimeZone.current at download time; if the phone changed time zone between arming and download, the parsed start shifts by the zone difference and sessionRecording throws noRecordingSinceSessionStart (or picks a different entry), so the night falls back to the live stream instead of the strap copy.",
-   "evidence": [
-    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift:469",
-    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift:39",
-    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift:79"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "func StrapRecordingCoordinator.fetchRecording(recordedSince:budget:)",
@@ -95,8 +83,8 @@
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
     "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.downloadWithRetries(api:deviceId:selection:showsProgress:justStopped:)": "384a1d862afad69e",
     "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.noteDownloaded(_:showsProgress:)": "2b293aadf9bed37b",
-    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.runBounded(seconds:phase:_:)": "1ab827aa90012b63",
-    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.settleFailedTransfer(_:)": "82e579d6274bfe58",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.runBounded(seconds:phase:_:)": "7975d5ad896ee357",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.settleFailedTransfer(_:)": "b9ab24c66b0ce6c2",
     "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.stopRunningRecording(api:deviceId:showsProgress:)": "d8054721837df4f8"
    }
   },
@@ -205,7 +193,7 @@
   },
   {
    "key": "func StrapRecordingCoordinator.runBounded(seconds:phase:_:)",
-   "hash": "1878c968ce8221b5",
+   "hash": "ae03f0067d65ca86",
    "does": "Runs one transfer phase inside its own Task raced against StrapDeadline (seconds, timeout error fetchFailed \"strap <phase> timed out\"), registers a StrapTransferHandle on PolarManager.activeTransfer so Cancel can end it, propagates caller cancellation to the task, and clears the handle when done if it is still the current one.",
    "entry": null,
    "calls": [
@@ -223,32 +211,15 @@
     {
      "at": "+3",
      "cond": "fetchCancelled already set before starting",
-     "effect": "throws CancellationError without starting the phase"
+     "effect": "throws CancellationError without starting the phase (a later Cancel reaches the task through the registered handle)"
     },
     {
      "at": "+8",
      "cond": "on exit, activeTransfer is still this handle",
      "effect": "true: clears activeTransfer to nil; false: leaves a newer handle in place"
-    },
-    {
-     "at": "+9",
-     "cond": "fetchCancelled true after the task is created",
-     "effect": "cancels the task; unreachable in practice because no suspension separates it from the line-114 check"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "The line-120 re-check of fetchCancelled can never be true: lines 114-120 run synchronously on the main actor with no suspension point (Task creation does not suspend), and fetchCancelled is a main-actor PolarManager property, so it cannot change between the line-114 check and line 120. The first-pass branch effect ('became true between the first check and handle registration') describes a case that cannot occur.",
-     "evidence": [
-      "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift:114",
-      "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift:116",
-      "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift:120"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/StrapDeadline.swift::func StrapDeadline.race(seconds:timeout:operation:)": "4354517274b97049",
     "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "4ca4c631cc8c2212"
@@ -256,8 +227,8 @@
   },
   {
    "key": "func StrapRecordingCoordinator.settleFailedTransfer(_:)",
-   "hash": "e1de03b99fde7b6b",
-   "does": "After a failed transfer: clears fetchProgress, forces recordingState to .idle if it is not, and returns either the original error (logged as a failure) or, when the error is a CancellationError or fetchCancelled is set, PolarError.fetchFailed(\"Cancelled by user\").",
+   "hash": "fbf31445be4a97e8",
+   "does": "After a failed transfer: clears fetchProgress, forces recordingState to .idle if it is not, and returns either the original error (logged as a failure) or, when the error is a CancellationError or fetchCancelled is set, PolarError.fetchFailed(\"Cancelled by user\"); a failure other than the cancellation that came after the Cancel (a phase deadline) is named in the cancellation log line.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
@@ -279,20 +250,15 @@
     {
      "at": "+3",
      "cond": "error is not CancellationError and fetchCancelled is false",
-     "effect": "logs \"Strap transfer failed\" and returns the original error; else logs cancellation and returns fetchFailed(\"Cancelled by user\")"
-    }
-   ],
-   "flags": [
+     "effect": "logs \"Strap transfer failed\" and returns the original error; else continues to the cancellation result"
+    },
     {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Any failure (e.g. a deadline timeout) that happens after the user tapped Cancel is reported as \"Cancelled by user\" because fetchCancelled alone selects that mapping, hiding the real cause in the returned error.",
-     "evidence": [
-      "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift:134"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+7",
+     "cond": "error is CancellationError",
+     "effect": "true: logs a plain cancellation; false: logs the cancellation with the other failure's error; both return fetchFailed(\"Cancelled by user\")"
     }
    ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.fetchProgress": "9fbf2a3a7a28c5c5",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930",
@@ -391,7 +357,7 @@
     "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.connectToLastDevice()": "fd314598290b94f0",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
     "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.awaitLinkAndRecordingState(until:)": "4c7d878d5234e660",
-    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.runBounded(seconds:phase:_:)": "1ab827aa90012b63",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.runBounded(seconds:phase:_:)": "7975d5ad896ee357",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
@@ -417,13 +383,13 @@
    "deps": {
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.awaitConnection(until:)": "b0666f6a6a9489f5",
-    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.refreshRecordingState(until:)": "6abe502b8835f3db"
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.refreshRecordingState(until:)": "1a4bbb884d8ef953"
    }
   },
   {
    "key": "func StrapRecordingCoordinator.refreshRecordingState(until:)",
-   "hash": "4bffcbb6b6105085",
-   "does": "Once the recording feature (offlineRecording for Verity Sense, h10Recording otherwise) is usable, reads checkRecordingStatus then checkForStoredExercises; errors are only logged.",
+   "hash": "f24add5db78aa218",
+   "does": "Once the recording feature (offlineRecording for Verity Sense, h10Recording otherwise) is usable, reads checkRecordingStatus then checkForStoredExercises and returns true; when the feature never became usable or the status read failed, logs that the recording flags keep their last values and returns false (discardable), so a caller can tell a fresh reading from a stale one.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.whenFeatureUsable(_:until:while:perform:)",
@@ -442,14 +408,14 @@
    ],
    "branches": [
     {
-     "at": "+1",
+     "at": "+2",
      "cond": "device is Verity Sense",
      "effect": ".offlineRecording feature; else .h10Recording"
     },
     {
-     "at": "+7",
+     "at": "+9",
      "cond": "catch: feature never usable or status read failed",
-     "effect": "logs \"status unavailable\"; stored-exercise check is skipped and flags keep their previous values"
+     "effect": "logs \"status unavailable — flags keep their last values\", skips the stored-exercise check and returns false"
     }
    ],
    "flags": [
@@ -469,7 +435,7 @@
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.checkRecordingStatus(deviceId:)": "8e73f9473236c7de",
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.whenFeatureUsable(_:until:while:perform:)": "20ed6612da7db880",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.whenFeatureUsable(_:until:while:perform:)": "6d979db556d6e7c2",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
@@ -496,14 +462,14 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
-    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.stopH10Recording(api:deviceId:awaitFinalize:showsProgress:cancellable:streamHoldsIt:)": "cb5b7ff1b25d69b8",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.stopH10Recording(api:deviceId:awaitFinalize:showsProgress:cancellable:streamHoldsIt:)": "407eeca36b9e720b",
     "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.stopVeritySenseIfRecording(api:deviceId:showsProgress:)": "1f7440ec97294a98"
    }
   },
   {
    "key": "func StrapRecordingCoordinator.stopH10Recording(api:deviceId:awaitFinalize:showsProgress:cancellable:streamHoldsIt:)",
-   "hash": "3d98a91cf9e161b0",
-   "does": "The one H10 stop: optionally shows progress, reads the H10 recording status once the feature is usable (loop aborts on Cancel when cancellable), and if a recording is ongoing sets .stopping, sends stopRecording, marks state stopped with the start parsed from the entry id, optionally writes the ledger (streamHoldsIt) and optionally waits for the file to finalize. Returns true if it stopped something.",
+   "hash": "4acd3959d2508fc2",
+   "does": "The one H10 stop: optionally shows progress, reads the H10 recording status once the feature is usable (loop aborts on Cancel when cancellable), and if a recording is ongoing sets .stopping, sends stopRecording, marks state stopped with the start parsed from the entry id, optionally writes the ledger (streamHoldsIt) and optionally waits for that entry's file to be listed. Returns true if it stopped something.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.updateProgress(_:progress:attempt:maxAttempts:message:)",
@@ -514,7 +480,7 @@
     "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.recordingStart(fromExerciseId:timeZone:)",
     "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.markRecordingStopped(startedAt:)",
     "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.markDownloaded(recordingStartedAt:)",
-    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.awaitH10FileFinalize(api:deviceId:showsProgress:)"
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.awaitH10FileFinalize(api:deviceId:entryId:showsProgress:)"
    ],
    "reads": [
     "mem:PolarManager.fetchCancelled"
@@ -548,7 +514,7 @@
     {
      "at": "+20",
      "cond": "awaitFinalize",
-     "effect": "polls the listing until the file appears (awaitH10FileFinalize); else returns immediately"
+     "effect": "polls the listing until the stopped recording's entry appears (awaitH10FileFinalize); else returns immediately"
     }
    ],
    "flags": [],
@@ -558,10 +524,10 @@
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.h10RecordingStatus(api:deviceId:)": "00910fb076991bfb",
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930",
-    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.recordingStart(fromExerciseId:timeZone:)": "b201147d756569c3",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.whenFeatureUsable(_:until:while:perform:)": "20ed6612da7db880",
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.recordingStart(fromExerciseId:timeZone:)": "7f3d0c5801e047a8",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.whenFeatureUsable(_:until:while:perform:)": "6d979db556d6e7c2",
     "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.markDownloaded(recordingStartedAt:)": "f7777736bca46a35",
-    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.awaitH10FileFinalize(api:deviceId:showsProgress:)": "2fa20d4beb486187",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.awaitH10FileFinalize(api:deviceId:entryId:showsProgress:)": "961a43119d4469d9",
     "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.markRecordingStopped(startedAt:)": "42aef696bf5c0946"
    }
   },
@@ -643,19 +609,19 @@
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.stopOfflinePpiRecording()": "f601189cc624e75d",
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.veritySenseRecordingStatus(api:deviceId:)": "29af75722a0dcf81",
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.whenFeatureUsable(_:until:while:perform:)": "20ed6612da7db880",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.whenFeatureUsable(_:until:while:perform:)": "6d979db556d6e7c2",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
     "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851"
    }
   },
   {
-   "key": "func StrapRecordingCoordinator.awaitH10FileFinalize(api:deviceId:showsProgress:)",
-   "hash": "541d13360e83ae54",
-   "does": "Polls the H10 exercise listing up to 30 times at 0.5 s (≈15 s) until any entry is listed, returning early on Cancel/task cancellation; logs the time to ready or that it proceeds to the retry loop.",
+   "key": "func StrapRecordingCoordinator.awaitH10FileFinalize(api:deviceId:entryId:showsProgress:)",
+   "hash": "db4410ab99a566fc",
+   "does": "Polls the H10 exercise listing up to 30 times at 0.5 s (≈15 s) until the entry of the recording just stopped (`entryId`; any entry when it is empty) is listed, returning early on Cancel/task cancellation; logs the time to ready or that it proceeds to the retry loop.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.updateProgress(_:progress:attempt:maxAttempts:message:)",
-    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.h10ListsAnyRecording(api:deviceId:)",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.h10Lists(entryId:api:deviceId:)",
     "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
@@ -681,33 +647,22 @@
     },
     {
      "at": "+5",
-     "cond": "listing has any entry",
+     "cond": "listing has the stopped entry",
      "effect": "logs elapsed time and returns; else sleeps 0.5 s and polls again"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Finalize is judged by \"any entry is listed\", not by the entry of the recording just stopped; a strap that still lists an older exercise returns on the first poll, so the download can hit a not-yet-finalized file and spend its budget on retries.",
-     "evidence": [
-      "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift:287",
-      "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift:298"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.updateProgress(_:progress:attempt:maxAttempts:message:)": "21bd9b095f4b17a0",
-    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.h10ListsAnyRecording(api:deviceId:)": "dd62ae849a68ee48",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.h10Lists(entryId:api:deviceId:)": "4efe7c18bc1bbf0b",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
     "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851"
    }
   },
   {
-   "key": "func StrapRecordingCoordinator.h10ListsAnyRecording(api:deviceId:)",
-   "hash": "f8cd8dc90b29773e",
-   "does": "True when listing the H10 exercises succeeds and is non-empty; a listing error is logged and returns false.",
+   "key": "func StrapRecordingCoordinator.h10Lists(entryId:api:deviceId:)",
+   "hash": "247abfa3cd2a40d2",
+   "does": "True when listing the H10 exercises succeeds and contains `entryId` (any entry when entryId is empty); a listing error is logged and returns false.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.listStoredExercises(api:deviceId:)",
@@ -716,6 +671,11 @@
    "reads": [],
    "writes": [],
    "branches": [
+    {
+     "at": "+2",
+     "cond": "entryId empty or an entry's id equals it",
+     "effect": "true; else false"
+    },
     {
      "at": "+3",
      "cond": "catch: listing threw",
@@ -774,7 +734,7 @@
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930",
     "Emuqu/Sources/Collection/StrapDeadline.swift::func StrapDeadline.race(seconds:timeout:operation:)": "4354517274b97049",
-    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.stopH10Recording(api:deviceId:awaitFinalize:showsProgress:cancellable:streamHoldsIt:)": "cb5b7ff1b25d69b8",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.stopH10Recording(api:deviceId:awaitFinalize:showsProgress:cancellable:streamHoldsIt:)": "407eeca36b9e720b",
     "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.shouldStopDeviceRecording(deviceType:hasAPI:hasDeviceId:isRecordingOnDevice:)": "2f63916a61328330",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLogExternal(_:cause:file:line:)": "51fb21accda9b30b"
    }
@@ -840,7 +800,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.whenFeatureUsable(_:until:while:perform:)": "20ed6612da7db880",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.whenFeatureUsable(_:until:while:perform:)": "6d979db556d6e7c2",
     "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.readRecording(api:deviceId:selection:attempt:showsProgress:)": "98b08e02b28901d3",
     "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::var StrapRecordingCoordinator.downloadFeature": "dfd4356724ad7da7",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
@@ -994,18 +954,17 @@
    "deps": {
     "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.updateProgress(_:progress:attempt:maxAttempts:message:)": "21bd9b095f4b17a0",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930",
-    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.readFromStrap(api:deviceId:selection:)": "b2c8e5201deb2aaa",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.readFromStrap(api:deviceId:selection:)": "46a42fde865cb58c",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
    }
   },
   {
    "key": "func StrapRecordingCoordinator.readFromStrap(api:deviceId:selection:)",
-   "hash": "abb34658d4cf4f86",
-   "does": "Routes the read: Verity Sense → readVeritySenseRecording(since:), H10 → readH10Recording(selection).",
+   "hash": "c78fad99f16c5427",
+   "does": "Routes the read: Verity Sense → readVeritySenseRecording(since:) for a .newest selection, noRecordingFound for an .exercise one (a Verity files no exercise ids); H10 → readH10Recording(selection).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.readVeritySenseRecording(recordedSince:)",
-    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::var StrapRecordingSelection.since",
     "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.readH10Recording(api:deviceId:selection:)"
    ],
    "reads": [
@@ -1016,26 +975,19 @@
     {
      "at": "+1",
      "cond": "device is Verity Sense",
-     "effect": "VS read using selection.since (an .exercise selection becomes nil = all recordings); else H10 read"
-    }
-   ],
-   "flags": [
+     "effect": "Verity read below; else H10 read"
+    },
     {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "For a Verity Sense, an .exercise(id:) selection is reduced to since=nil and downloads all completed recordings rather than the named one; only H10 callers pass .exercise today (PolarManager+Recording.swift:168).",
-     "evidence": [
-      "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift:437",
-      "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift:503"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+2",
+     "cond": "selection is .newest(since)",
+     "effect": "true: reads the Verity recordings since `since`; false (.exercise): throws noRecordingFound"
     }
    ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
     "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.readH10Recording(api:deviceId:selection:)": "79526208d8da90cb",
-    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.readVeritySenseRecording(recordedSince:)": "8d5c8a517ff7c090",
-    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::var StrapRecordingSelection.since": "f2482953a64ff2e7"
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.readVeritySenseRecording(recordedSince:)": "8d5c8a517ff7c090"
    }
   },
   {
@@ -1055,7 +1007,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.convertToRRPoints(_:)": "f05ffac4c2ca1854",
-    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.recordingStart(fromExerciseId:timeZone:)": "b201147d756569c3",
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.recordingStart(fromExerciseId:timeZone:)": "7f3d0c5801e047a8",
     "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.selectedRecording(api:deviceId:selection:)": "55fa1e3da0f65ee5"
    }
   },
@@ -1084,9 +1036,8 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.sessionRecording(api:deviceId:recordedSince:)": "1e8324894c13d65f",
-    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.storedExercise(id:api:deviceId:)": "af3895f51441356b",
-    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::var StrapRecordingSelection.since": "f2482953a64ff2e7"
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.sessionRecording(api:deviceId:recordedSince:)": "07471e513980a28a",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.storedExercise(id:api:deviceId:)": "af3895f51441356b"
    }
   },
   {
@@ -1113,12 +1064,12 @@
   },
   {
    "key": "func StrapRecordingCoordinator.sessionRecording(api:deviceId:recordedSince:)",
-   "hash": "eb77237b9d2d91db",
-   "does": "Lists H10 exercises and returns the newest one whose id-parsed start is ≥ recordedSince − 2 s (newest of all, or first undated, when nil); if entries exist but none qualify and a date was given, throws noRecordingSinceSessionStart; otherwise noRecordingFound.",
+   "hash": "6f04b1feae8a3944",
+   "does": "Lists H10 exercises and returns newestSessionEntry: with recordedSince, the newest one whose id-parsed start lies in the session's span (from recordedSince − 2 s to 24 h after it); without, the newest of all (or first undated). If entries exist but none qualify and a date was given, throws noRecordingSinceSessionStart; otherwise noRecordingFound.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.listStoredExercises(api:deviceId:)",
-    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.newestRecording(_:exerciseId:notBefore:timeZone:)",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.newestSessionEntry(_:recordedSince:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
@@ -1126,7 +1077,7 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "newestRecording found a qualifying entry",
+     "cond": "newestSessionEntry found a qualifying entry",
      "effect": "returns it"
     },
     {
@@ -1135,22 +1086,42 @@
      "effect": "logs and throws noRecordingSinceSessionStart (deterministic, no retry); else throws noRecordingFound"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Unlike the recovery paths (StrapRecordingPolicy.recording(startedAt:belongsToSessionStartedAt:), which caps at 24 h), this selection has no upper bound: with recordedSince set it takes the newest recording that started any time after, including one from a later session.",
-     "evidence": [
-      "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift:469",
-      "Emuqu/Sources/Collection/StrapRecordingPolicy.swift:198"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.listStoredExercises(api:deviceId:)": "3d51e593ecf92c95",
-    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.newestRecording(_:exerciseId:notBefore:timeZone:)": "a9344f4e4b4ab7f1",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.newestSessionEntry(_:recordedSince:)": "685d56765c6364ba",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func StrapRecordingCoordinator.newestSessionEntry(_:recordedSince:)",
+   "hash": "f0abb586f7b4d0b6",
+   "does": "Without a session start, the newest entry by id-parsed start (first undated when none is dated). With one, keeps only entries whose parsed start belongs to that session (StrapRecordingPolicy.recording(startedAt:belongsToSessionStartedAt:): at or after the start less the id's 2 s slack and under 24 h after it — the rule recovery uses) and returns the newest of those, so a later session's recording is never taken.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.newestRecording(_:exerciseId:notBefore:timeZone:)",
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.recordingStart(fromExerciseId:timeZone:)",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recording(startedAt:belongsToSessionStartedAt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "recordedSince nil",
+     "effect": "newest of all entries (undated fallback to first)"
+    },
+    {
+     "at": "+5",
+     "cond": "entry id parses to a start",
+     "effect": "false: dropped (undated ids never belong to a dated session); true: kept when within the session span"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.newestRecording(_:exerciseId:notBefore:timeZone:)": "5baa244edf908419",
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.recordingStart(fromExerciseId:timeZone:)": "7f3d0c5801e047a8",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recording(startedAt:belongsToSessionStartedAt:)": "560f6c23efe28ae7"
    }
   },
   {
@@ -1174,24 +1145,6 @@
    "deps": {
     "Emuqu/Sources/Collection/PolarManager+VeritySense.swift::func StrapRecordingCoordinator.fetchOfflinePpiRecording(requireEveryEntry:recordedSince:)": "2a28e1081f0c7a5e"
    }
-  },
-  {
-   "key": "var StrapRecordingSelection.since",
-   "hash": "48089f52c40138b9",
-   "does": "The since date of a .newest selection; nil for .exercise.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "self is .newest(since)",
-     "effect": "returns since; else nil"
-    }
-   ],
-   "flags": [],
-   "deps": {}
   }
  ],
  "deps": {}

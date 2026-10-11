@@ -87,10 +87,11 @@ struct SettingsView: View {
     }
 
     /// Search results take over the list when the user has typed something;
-    /// otherwise the standard grouped structure renders.
+    /// otherwise the standard grouped structure renders. A query of only
+    /// spaces counts as empty, as it does for `SettingsSearchEntry.matches`.
     @ViewBuilder
     private func listContent(_ scrollProxy: ScrollViewProxy) -> some View {
-        if searchQuery.isEmpty {
+        if searchQuery.trimmingCharacters(in: .whitespaces).isEmpty {
             settingsBody(scrollProxy: scrollProxy)
         } else if filteredSearchResults.isEmpty {
             noSearchResultsSection
@@ -441,8 +442,8 @@ struct SettingsView: View {
         }
     }
 
-    /// How to reach the developer with a question or a problem. Plain text
-    /// when the `mailto:` does not parse, as on the privacy policy.
+    /// How to reach the developer with a question or a problem. The
+    /// `mailto:` literal is a valid URL, so the link always shows.
     @ViewBuilder
     private var supportLink: some View {
         if let mail = URL(string: "mailto:chrissharp80@gmail.com?subject=Emuqu%20Support") {
@@ -450,8 +451,6 @@ struct SettingsView: View {
                 Label(String(localized: "Contact Support", bundle: LanguageManager.appBundle), systemImage: "envelope")
             }
             .accessibilityIdentifier("settings.contactSupport")
-        } else {
-            Text(verbatim: "chrissharp80@gmail.com")
         }
     }
 
@@ -526,7 +525,6 @@ struct PermissionsSettingsPage: View {
     @State private var locationManager = CLLocationManager()
 
     private var anyHealthDenied: Bool { healthWrites.contains { $0.status == .sharingDenied } }
-    private var anyHealthUnset: Bool { healthWrites.contains { $0.status == .notDetermined } }
 
     var body: some View {
         Form {
@@ -548,9 +546,14 @@ struct PermissionsSettingsPage: View {
         .onChange(of: scenePhase) { _, phase in reloadOnReturn(phase) }
     }
 
+    /// A permission granted in iOS Settings also re-arms the morning push,
+    /// which the scheduler skips while notifications are not allowed.
     private func reloadOnReturn(_ phase: ScenePhase) {
         guard phase == .active else { return }
-        Task { await reload() }
+        Task { @MainActor in
+            await reload()
+            await dependencies.services.morningNotificationScheduler.rescheduleIfNeeded()
+        }
     }
 
     private var markAppleHealthWriteSection40: some View {
@@ -602,9 +605,10 @@ struct PermissionsSettingsPage: View {
 
     private var allowNotificationsButton: some View {
         Button {
-            Task {
-                _ = try? await UNUserNotificationCenter.current()
-                    .requestAuthorization(options: [.alert, .sound, .badge])
+            Task { @MainActor in
+                let scheduler = dependencies.services.morningNotificationScheduler
+                _ = await scheduler.requestAuthorizationIfNeeded()
+                await scheduler.rescheduleIfNeeded()
                 await reload()
             }
         } label: {

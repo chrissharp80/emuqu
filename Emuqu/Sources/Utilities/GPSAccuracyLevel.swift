@@ -51,7 +51,4 @@ enum GPSAccuracyLevel: String, CaseIterable, Equatable {
               meters >= Double(Int.min), meters < Double(Int.max) else { return nil }
         return Int(meters)
     }
-
-    /// Whether a direction arrow should be drawn at all.
-    var showsDirection: Bool { self != .waiting }
 }

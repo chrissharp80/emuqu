@@ -116,7 +116,7 @@ extension AnalysisSummaryGenerator {
     /// reading without a recovery score falls back to the diagnostic score on
     /// the same ladder.
     var headlineScore: Double {
-        compositeHeadlineScore ?? computeDiagnosticScore()
+        compositeHeadlineScore ?? diagnosticScore
     }
 
     var headlineVerdict: ScoreVerdict { ScoreVerdict(score: headlineScore) }
@@ -145,9 +145,9 @@ extension AnalysisSummaryGenerator {
         let sleepFormatted = NarrativeLanguage.hoursMinutes(sleep.totalSleepMinutes)
         return ExplanationCopy.Inputs(
             rmssd: NarrativeLanguage.number(result.timeDomain.rmssd),
-            stress: result.ansMetrics?.stressIndex ?? 150,
-            lfhf: result.frequencyDomain?.lfHfRatio ?? 1.0,
-            dfa: result.nonlinear.dfaAlpha1 ?? 1.0,
+            stress: result.ansMetrics?.stressIndex,
+            lfhf: result.frequencyDomain?.lfHfRatio,
+            dfa: result.nonlinear.dfaAlpha1,
             // The age note only belongs to the population band.
             ageNote: canonicalBaselineRMSSD == nil ? populationAgePhrase.map { " (\($0))" } ?? "" : "",
             isShortSleep: sleep.isShortSleep,
@@ -189,10 +189,35 @@ extension AnalysisSummaryGenerator {
     /// one (at or above the "good" ratio), by the absolute cut before that.
     /// So a low-baseline user's normal night gets no negative causes, and a
     /// fall from 90 to 42 ms is not "good".
-    private func isGoodReading(rmssd: Double, stress: Double, lfhf: Double, dfa: Double) -> Bool {
-        isGoodRMSSD(rmssd) && stress < HRVThresholds.stressIndexElevated
+    private func isGoodReading(rmssd: Double) -> Bool {
+        isGoodRMSSD(rmssd) && otherMarkersAreSettled
+    }
+
+    /// Stress index, LF/HF and DFA α1 were all measured and none is raised.
+    /// A missing marker is not evidence the night was fine, so a reading
+    /// without one never counts as good or excellent and keeps its negative
+    /// causes.
+    private var otherMarkersAreSettled: Bool {
+        guard let stress = result.ansMetrics?.stressIndex,
+              let lfhf = result.frequencyDomain?.lfHfRatio,
+              let dfa = result.nonlinear.dfaAlpha1 else { return false }
+        return stress < HRVThresholds.stressIndexElevated
             && lfhf < HRVThresholds.lfHfMildSympathetic && dfa < HRVThresholds.dfaAlpha1Fatigue
     }
+
+    /// Ratios to the recent average the narrative treats as notable.
+    private enum RecentAverageRatio {
+        /// Tonight's RMSSD this far over the average reads as an excellent
+        /// night for the causes (positive causes only).
+        static let excellentReading = 1.15
+        /// The sleep lines' "excellent HRV" against the average.
+        static let excellentHRV = 1.1
+        /// Within 5% under the average still counts as good HRV.
+        static let goodHRV = 0.95
+    }
+
+    /// Tonight's sleep this many percent off the recent average is news.
+    private static let notableSleepChangePercent = 25.0
 
     private func isGoodRMSSD(_ rmssd: Double) -> Bool {
         guard let baseline = canonicalBaselineRMSSD, baseline > 0 else { return rmssd >= HRVThresholds.rmssdModerate }
@@ -205,19 +230,22 @@ extension AnalysisSummaryGenerator {
         CauseDetector().detectCauses(in: causeContext, limit: 3).map { $0.toProbableCause() }
     }
 
+    /// The cause rules take every marker as a number, so a missing one goes in
+    /// at a resting value no rule fires on by itself (stress 150, LF/HF 1.0,
+    /// DFA α1 1.0). Good and excellent are decided from the real markers:
+    /// either one returns only the positive causes, so both need every other
+    /// marker measured and settled, not RMSSD alone.
     private var causeContext: CauseDetectionContext {
         let rmssd = result.timeDomain.rmssd
-        let stress = result.ansMetrics?.stressIndex ?? 150
-        let lfhf = result.frequencyDomain?.lfHfRatio ?? 1.0
-        let dfa = result.nonlinear.dfaAlpha1 ?? 1.0
+        let isExcellent = stats.hasData && rmssd > stats.avgRMSSD * RecentAverageRatio.excellentReading
         return CauseDetectionContext(
             rmssd: rmssd,
-            stressIndex: stress,
-            lfHfRatio: lfhf,
-            dfaAlpha1: dfa,
+            stressIndex: result.ansMetrics?.stressIndex ?? 150,
+            lfHfRatio: result.frequencyDomain?.lfHfRatio ?? 1.0,
+            dfaAlpha1: result.nonlinear.dfaAlpha1 ?? 1.0,
             pnn50: result.timeDomain.pnn50,
-            isGoodReading: isGoodReading(rmssd: rmssd, stress: stress, lfhf: lfhf, dfa: dfa),
-            isExcellentReading: stats.hasData && rmssd > stats.avgRMSSD * 1.15,
+            isGoodReading: isGoodReading(rmssd: rmssd),
+            isExcellentReading: isExcellent && otherMarkersAreSettled,
             selectedTags: selectedTags,
             trendStats: stats,
             sleepInput: sleep,
@@ -239,13 +267,58 @@ extension AnalysisSummaryGenerator {
         findings.append(contentsOf: heartRhythmFindings)
         findings.append(contentsOf: windowQualityFindings)
         findings.append(contentsOf: beatVariationFindings)
-
-        let isGoodHRV = result.timeDomain.rmssd >= HRVThresholds.rmssdModerate || (stats.hasData && result.timeDomain.rmssd >= stats.avgRMSSD * 0.95)
         findings.append(contentsOf: sleepFindings)
         findings.append(contentsOf: sleepTrendFindings(isGoodHRV: isGoodHRV))
         findings.append(contentsOf: trainingLoadFindings)
 
         return findings
+    }
+
+    /// Good HRV for the sleep lines: good the way `hrvCategory` judges it
+    /// (against the user's own baseline once there is one, the absolute cut
+    /// before), or within 5% under the recent average.
+    private var isGoodHRV: Bool {
+        let rmssd = result.timeDomain.rmssd
+        return isGoodRMSSD(rmssd) || (stats.hasData && rmssd >= stats.avgRMSSD * RecentAverageRatio.goodHRV)
+    }
+
+    // MARK: - Shared trend judgements
+    //
+    // The key findings and the trend insight word the same four judgements
+    // for two surfaces. Each band is decided once here, so the two lists can
+    // differ in wording but never in verdict.
+
+    /// Where tonight's RMSSD sits against the recent average.
+    enum AverageBand {
+        case wellAbove, above, consistent, below, wellBelow
+    }
+
+    /// Nil exactly on a moderate-change edge, where neither surface speaks.
+    static func averageBand(_ percent: Double) -> AverageBand? {
+        if percent > HRVThresholds.trendSignificantChange { return .wellAbove }
+        if percent > HRVThresholds.trendModerateChange { return .above }
+        if percent < -HRVThresholds.trendSignificantChange { return .wellBelow }
+        if percent < -HRVThresholds.trendModerateChange { return .below }
+        return abs(percent) < HRVThresholds.trendModerateChange ? .consistent : nil
+    }
+
+    /// Which side of a reference a difference falls, once past `threshold`.
+    enum Deviation {
+        case above, below
+    }
+
+    static func deviation(_ difference: Double, beyond threshold: Double) -> Deviation? {
+        if difference > threshold { return .above }
+        if difference < -threshold { return .below }
+        return nil
+    }
+
+    /// Percent off the 5-night personal baseline. Nil when the canonical
+    /// scoring baseline is present: `avgRMSSD` already is that baseline, and
+    /// a second, differently computed one could contradict it in one list.
+    func personalBaselinePercent(rmssd: Double) -> Double? {
+        guard canonicalBaselineRMSSD == nil, let baseline = stats.baselineRMSSD, baseline > 0 else { return nil }
+        return ((rmssd - baseline) / baseline) * 100
     }
 
     // MARK: - Key Findings Sub-Methods
@@ -260,33 +333,36 @@ extension AnalysisSummaryGenerator {
             + restingHRFindings
     }
 
+    /// A rise well above the average is not called excellent recovery: a
+    /// one-off jump that large can also follow heavy training
+    /// (parasympathetic saturation, Plews 2012). Same sentence as the
+    /// Morning Results trend card.
     private func recentAverageFindings(rmssdPct: Double) -> [String] {
         let (avg, pct) = (NarrativeLanguage.number(stats.avgRMSSD), NarrativeLanguage.number(rmssdPct))
-        if rmssdPct > HRVThresholds.trendSignificantChange {
-            return [String(localized: "HRV is significantly higher than your recent baseline of \(avg)ms (+\(pct)%) — excellent recovery today", bundle: NarrativeLanguage.bundle)]
-        } else if rmssdPct > HRVThresholds.trendModerateChange {
+        switch Self.averageBand(rmssdPct) {
+        case .wellAbove?:
+            return [String(localized: "Your HRV is well above your average of \(avg)ms (+\(pct)%). Read a jump this large alongside how you feel and your recent training.", bundle: NarrativeLanguage.bundle)]
+        case .above?:
             return [String(localized: "HRV is above your recent baseline of \(avg)ms (+\(pct)%) — good recovery", bundle: NarrativeLanguage.bundle)]
-        } else if rmssdPct < -HRVThresholds.trendSignificantChange {
+        case .wellBelow?:
             return [String(localized: "HRV is significantly below your recent baseline of \(avg)ms (\(pct)%) — recovery may be compromised", bundle: NarrativeLanguage.bundle)]
-        } else if rmssdPct < -HRVThresholds.trendModerateChange {
+        case .below?:
             return [String(localized: "HRV is below your recent baseline of \(avg)ms (\(pct)%) — below your usual range", bundle: NarrativeLanguage.bundle)]
+        case .consistent?, nil:
+            return []
         }
-        return []
     }
 
     /// The 5-night "personal baseline" line, only when there is no canonical
-    /// scoring baseline: with one, `avgRMSSD` already is that baseline and a
-    /// second, differently computed baseline could contradict it in one list.
+    /// scoring baseline (`personalBaselinePercent`).
     private func personalBaselineFindings(rmssd: Double) -> [String] {
-        guard canonicalBaselineRMSSD == nil, let baseline = stats.baselineRMSSD, baseline > 0 else { return [] }
-        let baselineDiff = ((rmssd - baseline) / baseline) * 100
+        guard let baselineDiff = personalBaselinePercent(rmssd: rmssd) else { return [] }
         let pct = NarrativeLanguage.number(abs(baselineDiff))
-        if baselineDiff > HRVThresholds.baselineAboveThreshold {
-            return [String(localized: "You're \(pct)% above your personal baseline — you're in great shape", bundle: NarrativeLanguage.bundle)]
-        } else if baselineDiff < -HRVThresholds.baselineAboveThreshold {
-            return [String(localized: "You're \(pct)% below your personal baseline", bundle: NarrativeLanguage.bundle)]
+        switch Self.deviation(baselineDiff, beyond: HRVThresholds.baselineAboveThreshold) {
+        case .above?: return [String(localized: "You're \(pct)% above your personal baseline — you're in great shape", bundle: NarrativeLanguage.bundle)]
+        case .below?: return [String(localized: "You're \(pct)% below your personal baseline", bundle: NarrativeLanguage.bundle)]
+        case nil: return []
         }
-        return []
     }
 
     /// `trend7Day` is present only when the shared trend verdict
@@ -295,23 +371,21 @@ extension AnalysisSummaryGenerator {
     private var sevenDayTrendFindings: [String] {
         guard let trend = stats.trend7Day else { return [] }
         let pct = NarrativeLanguage.number(trend)
-        if trend > 0 {
-            return [String(localized: "Your 7-day HRV trend is improving (+\(pct)%) — keep doing what you're doing!", bundle: NarrativeLanguage.bundle)]
-        } else if trend < 0 {
-            return [String(localized: "Your 7-day HRV trend shows a decline (\(pct)%)", bundle: NarrativeLanguage.bundle)]
+        switch Self.deviation(trend, beyond: 0) {
+        case .above?: return [String(localized: "Your 7-day HRV trend is improving (+\(pct)%) — keep doing what you're doing!", bundle: NarrativeLanguage.bundle)]
+        case .below?: return [String(localized: "Your 7-day HRV trend shows a decline (\(pct)%)", bundle: NarrativeLanguage.bundle)]
+        case nil: return []
         }
-        return []
     }
 
     private var restingHRFindings: [String] {
         let hrDiff = result.timeDomain.meanHR - stats.avgHR
         let bpm = NarrativeLanguage.number(abs(hrDiff))
-        if hrDiff > HRVThresholds.hrElevationThreshold {
-            return [String(localized: "Resting HR is elevated (+\(bpm) bpm vs average) — possible stress or incomplete recovery", bundle: NarrativeLanguage.bundle)]
-        } else if hrDiff < -HRVThresholds.hrElevationThreshold {
-            return [String(localized: "Resting HR is lower than average (\(bpm) bpm) — good cardiovascular state", bundle: NarrativeLanguage.bundle)]
+        switch Self.deviation(hrDiff, beyond: HRVThresholds.hrElevationThreshold) {
+        case .above?: return [String(localized: "Resting HR is elevated (+\(bpm) bpm vs average) — possible stress or incomplete recovery", bundle: NarrativeLanguage.bundle)]
+        case .below?: return [String(localized: "Resting HR is lower than average (\(bpm) bpm) — good cardiovascular state", bundle: NarrativeLanguage.bundle)]
+        case nil: return []
         }
-        return []
     }
 
     /// The HRV band line shown when no trend finding fired. It reads
@@ -430,10 +504,8 @@ extension AnalysisSummaryGenerator {
     }
 
     private var sleepDurationFindings: [String] {
-        let rmssd = result.timeDomain.rmssd
         let hours = NarrativeLanguage.number(Double(sleep.totalSleepMinutes) / 60.0, decimals: 1)
-        let isGoodHRV = rmssd >= HRVThresholds.rmssdModerate || (stats.hasData && rmssd >= stats.avgRMSSD * 0.95)
-        let isExcellentHRV = stats.hasData && rmssd > stats.avgRMSSD * 1.1
+        let isExcellentHRV = stats.hasData && result.timeDomain.rmssd > stats.avgRMSSD * RecentAverageRatio.excellentHRV
         if sleep.totalSleepMinutes < HRVThresholds.sleepShortMinutes {
             if isExcellentHRV {
                 return [String(localized: "Remarkable: Excellent HRV despite only \(hours)h sleep — your recovery capacity is impressive", bundle: NarrativeLanguage.bundle)]
@@ -489,24 +561,25 @@ extension AnalysisSummaryGenerator {
     /// Called out only when tonight is well off the recent average — a small
     /// nightly wobble is not news.
     private func tonightVsAverageFindings(_ sleepDiffPercent: Double, avgHours: Double) -> [String] {
-        guard abs(sleepDiffPercent) > 25 else { return [] }
+        guard abs(sleepDiffPercent) > Self.notableSleepChangePercent else { return [] }
         let tonight = NarrativeLanguage.number(Double(sleep.totalSleepMinutes) / 60.0, decimals: 1)
         let pct = NarrativeLanguage.integer(Int(abs(sleepDiffPercent)))
-        if sleepDiffPercent > 25 {
+        if sleepDiffPercent > Self.notableSleepChangePercent {
             return [String(localized: "Tonight's \(tonight)h is \(pct)% above your recent average", bundle: NarrativeLanguage.bundle)]
         }
         let avg = NarrativeLanguage.number(avgHours, decimals: 1)
         return [String(localized: "Tonight's \(tonight)h is \(pct)% below your \(avg)h average", bundle: NarrativeLanguage.bundle)]
     }
 
+    /// Descriptive load-range copy — no "overreaching" / "spike" framing.
+    /// Training load does not feed the recovery score, so these findings
+    /// appear in the Surface 2 / Load context, not as a score-penalty
+    /// explanation. They read `loadReading`, the source the push gate reads,
+    /// and the ratio only once the chronic load qualifies it, so a finding
+    /// never contradicts the steps' load advice.
     var trainingLoadFindings: [String] {
-        guard let training = trainingContext ?? result.trainingContext else { return [] }
-        // Descriptive load-range copy — no
-        // "overreaching" / "spike" framing. Training load does not
-        // feed the recovery score, so these
-        // findings appear in the Surface 2 / Load context, not as a
-        // score-penalty explanation.
-        if let acr = training.acuteChronicRatio {
+        guard let load = loadReading else { return [] }
+        if let acr = load.qualifiedACWR {
             if acr < TrainingConstants.ACR.detraining {
                 return [String(localized: "Recent training is below your usual range — regular activity helps maintain fitness", bundle: NarrativeLanguage.bundle)]
             } else if acr > TrainingConstants.ACR.overreaching {
@@ -514,10 +587,37 @@ extension AnalysisSummaryGenerator {
             } else if acr > TrainingConstants.ACR.building {
                 return [String(localized: "Recent training is above your usual range — listen to your body for signs of accumulated fatigue", bundle: NarrativeLanguage.bundle)]
             }
-        } else if training.ctl < RecoveryScoreConstants.Readiness.ctlThreshold, training.atl < RecoveryScoreConstants.Readiness.ctlThreshold {
+        } else if load.isVeryLowActivity {
             return [String(localized: "Very low activity level — even light exercise like walking helps maintain fitness", bundle: NarrativeLanguage.bundle)]
         }
         return []
+    }
+
+    /// The training load the findings and the load steps describe: the live
+    /// snapshot when the caller captured one, the session's frozen context
+    /// otherwise — the preference `TrainingAdviceGate.Load.preferring` gives
+    /// the push gate.
+    struct LoadReading {
+        let acwr: Double?
+        let ctl: Double
+        let atl: Double
+
+        /// The acute:chronic ratio, only once the chronic load reaches the
+        /// level at which the gate trusts it; below that one walk swings it.
+        var qualifiedACWR: Double? {
+            guard let acwr, acwr.isFinite, ctl >= RecoveryScoreConstants.Readiness.ctlThreshold else { return nil }
+            return acwr
+        }
+
+        var isVeryLowActivity: Bool {
+            ctl < RecoveryScoreConstants.Readiness.ctlThreshold && atl < RecoveryScoreConstants.Readiness.ctlThreshold
+        }
+    }
+
+    var loadReading: LoadReading? {
+        if let live = liveLoadSnapshot { return LoadReading(acwr: live.acwr, ctl: live.ctl, atl: live.atl) }
+        guard let frozen = trainingContext ?? result.trainingContext else { return nil }
+        return LoadReading(acwr: frozen.acuteChronicRatio, ctl: frozen.ctl, atl: frozen.atl)
     }
 
     // MARK: - Trend Insight
@@ -537,45 +637,49 @@ extension AnalysisSummaryGenerator {
         return insights.joined(separator: " ")
     }
 
+    /// The same bands as `recentAverageFindings`, and the same reading of a
+    /// rise well above the average: context, not "excellent recovery".
     private func rmssdAverageInsights(rmssdPct: Double) -> [String] {
         let (avg, pct) = (NarrativeLanguage.number(stats.avgRMSSD), NarrativeLanguage.number(rmssdPct))
-        if abs(rmssdPct) < HRVThresholds.trendModerateChange {
+        switch Self.averageBand(rmssdPct) {
+        case .consistent?:
             return [String(localized: "Your HRV is consistent with your recent average (\(avg)ms).", bundle: NarrativeLanguage.bundle)]
-        } else if rmssdPct > HRVThresholds.trendSignificantChange {
-            return [String(localized: "Your HRV is significantly higher than your average of \(avg)ms (+\(pct)%), suggesting excellent recovery today.", bundle: NarrativeLanguage.bundle)]
-        } else if rmssdPct > HRVThresholds.trendModerateChange {
+        case .wellAbove?:
+            return [String(localized: "Your HRV is well above your average of \(avg)ms (+\(pct)%). Read a jump this large alongside how you feel and your recent training.", bundle: NarrativeLanguage.bundle)]
+        case .above?:
             return [String(localized: "Your HRV is above your average of \(avg)ms (+\(pct)%), indicating good recovery.", bundle: NarrativeLanguage.bundle)]
-        } else if rmssdPct < -HRVThresholds.trendSignificantChange {
+        case .wellBelow?:
             return [String(localized: "Your HRV is significantly below your average of \(avg)ms (\(pct)%). Consider taking it easy today.", bundle: NarrativeLanguage.bundle)]
-        } else if rmssdPct < -HRVThresholds.trendModerateChange {
+        case .below?:
             return [String(localized: "Your HRV is below your average of \(avg)ms (\(pct)%). Below your usual range.", bundle: NarrativeLanguage.bundle)]
+        case nil:
+            return []
         }
-        return []
     }
 
     /// Same rule as `personalBaselineFindings`: silent when the canonical
     /// baseline is present.
     private func rmssdBaselineInsights(currentRMSSD: Double) -> [String] {
-        guard canonicalBaselineRMSSD == nil, let baseline = stats.baselineRMSSD, baseline > 0 else { return [] }
-        let baselineDiff = ((currentRMSSD - baseline) / baseline) * 100
+        guard let baselineDiff = personalBaselinePercent(rmssd: currentRMSSD) else { return [] }
         let pct = NarrativeLanguage.number(abs(baselineDiff))
-        if baselineDiff < -HRVThresholds.baselineAboveThreshold {
-            return [String(localized: "This is \(pct)% below your personal baseline.", bundle: NarrativeLanguage.bundle)]
-        } else if baselineDiff > HRVThresholds.baselineAboveThreshold {
-            return [String(localized: "This is \(pct)% above your baseline—you're in great shape.", bundle: NarrativeLanguage.bundle)]
+        switch Self.deviation(baselineDiff, beyond: HRVThresholds.baselineAboveThreshold) {
+        case .below?: return [String(localized: "This is \(pct)% below your personal baseline.", bundle: NarrativeLanguage.bundle)]
+        case .above?: return [String(localized: "This is \(pct)% above your baseline—you're in great shape.", bundle: NarrativeLanguage.bundle)]
+        case nil: return []
         }
-        return []
     }
 
     private var restingHRInsights: [String] {
         let hrDiff = result.timeDomain.meanHR - stats.avgHR
-        if hrDiff > HRVThresholds.hrElevationThreshold {
+        switch Self.deviation(hrDiff, beyond: HRVThresholds.hrElevationThreshold) {
+        case .above?:
             let bpm = NarrativeLanguage.number(hrDiff)
             return [String(localized: "Resting heart rate is elevated (+\(bpm) bpm), which may indicate stress, dehydration, or incomplete recovery.", bundle: NarrativeLanguage.bundle)]
-        } else if hrDiff < -HRVThresholds.hrElevationThreshold {
+        case .below?:
             return [String(localized: "Resting heart rate is lower than average, suggesting good cardiovascular fitness or deep rest.", bundle: NarrativeLanguage.bundle)]
+        case nil:
+            return []
         }
-        return []
     }
 
     private var stressInsights: [String] {
@@ -590,12 +694,11 @@ extension AnalysisSummaryGenerator {
     private var sevenDayTrendInsights: [String] {
         guard let trend = stats.trend7Day else { return [] }
         let pct = NarrativeLanguage.number(trend)
-        if trend > 0 {
-            return [String(localized: "Your 7-day HRV trend is improving (+\(pct)%)—keep doing what you're doing!", bundle: NarrativeLanguage.bundle)]
-        } else if trend < 0 {
-            return [String(localized: "Your 7-day HRV trend shows a decline (\(pct)%). Consider prioritizing recovery.", bundle: NarrativeLanguage.bundle)]
+        switch Self.deviation(trend, beyond: 0) {
+        case .above?: return [String(localized: "Your 7-day HRV trend is improving (+\(pct)%)—keep doing what you're doing!", bundle: NarrativeLanguage.bundle)]
+        case .below?: return [String(localized: "Your 7-day HRV trend shows a decline (\(pct)%). Consider prioritizing recovery.", bundle: NarrativeLanguage.bundle)]
+        case nil: return []
         }
-        return []
     }
 
     // MARK: - Diagnostic score bands
@@ -642,11 +745,13 @@ extension AnalysisSummaryGenerator {
 enum ExplanationCopy {
     /// What the builders read, numbers already formatted. A struct rather
     /// than a dozen parameters: SwiftLint caps a signature at seven.
+    /// A marker the night did not produce is nil, and no sentence that
+    /// needs it is chosen.
     struct Inputs {
         let rmssd: String
-        let stress: Double
-        let lfhf: Double
-        let dfa: Double
+        let stress: Double?
+        let lfhf: Double?
+        let dfa: Double?
         /// " (below average for your age)", or empty.
         let ageNote: String
         let isShortSleep: Bool
@@ -674,9 +779,9 @@ enum ExplanationCopy {
         if v.isShortSleep {
             return join(opening, String(localized: "With only \(v.sleepFormatted) of sleep, your body hasn't had adequate time to recover. This is the most likely explanation for your low HRV.", bundle: NarrativeLanguage.bundle))
         }
-        let reason = if v.stress > HRVThresholds.stressIndexHigh {
+        let reason = if exceeds(v.stress, HRVThresholds.stressIndexHigh) {
             String(localized: "Combined with high stress markers, this pattern is most often seen after hard training, very short or poor sleep, alcohol, heavy stress or travel, and sometimes at the start of an illness.", bundle: NarrativeLanguage.bundle)
-        } else if v.lfhf > HRVThresholds.lfHfSympatheticDominance {
+        } else if exceeds(v.lfhf, HRVThresholds.lfHfSympatheticDominance) {
             String(localized: "Your LF/HF ratio is well above its usual resting range too. That pattern turns up with mental or emotional stress, poor sleep quality, alcohol, and sometimes the start of an illness — though the ratio also moves with breathing rate, so read it alongside the rest.",
                 bundle: NarrativeLanguage.bundle)
         } else {
@@ -693,9 +798,9 @@ enum ExplanationCopy {
         if v.isFragmented {
             return join(opening, String(localized: "Fragmented sleep (\(v.awakeMinutes) min awake) may be preventing deep recovery even with adequate duration.", bundle: NarrativeLanguage.bundle))
         }
-        let reason = if v.dfa > HRVThresholds.dfaAlpha1Fatigue {
+        let reason = if exceeds(v.dfa, HRVThresholds.dfaAlpha1Fatigue) {
             String(localized: "The reduced complexity in your heart rhythm suggests fatigue or incomplete recovery from recent demands.", bundle: NarrativeLanguage.bundle)
-        } else if v.stress > HRVThresholds.stressIndexElevated {
+        } else if exceeds(v.stress, HRVThresholds.stressIndexElevated) {
             String(localized: "Elevated stress markers suggest your body is working harder than usual to maintain balance.", bundle: NarrativeLanguage.bundle)
         } else {
             String(localized: "This may reflect accumulated fatigue, short sleep, alcohol, mild dehydration or stress, and occasionally the start of an illness.", bundle: NarrativeLanguage.bundle)
@@ -703,6 +808,9 @@ enum ExplanationCopy {
         return join(opening, reason, v.sleepContext)
     }
 
+    /// The closing sentence never reads an autonomic-state verdict ("your
+    /// nervous system is well-balanced") off the markers: see
+    /// `ansBalanceFindings` for why.
     static func excellent(_ v: Inputs) -> String {
         let opening = String(localized: "Your HRV of \(v.rmssd)ms indicates strong vagal tone and excellent recovery capacity\(v.ageNote).", bundle: NarrativeLanguage.bundle)
         let reason = if v.isGoodSleep, !v.isFragmented, v.isConsolidated {
@@ -711,35 +819,38 @@ enum ExplanationCopy {
             String(localized: "However, with only \(v.sleepFormatted) of sleep, treat this as capacity rather than a green light.", bundle: NarrativeLanguage.bundle)
         } else if !v.isConsolidated {
             String(localized: "The pattern shows capacity but wasn't sustained long enough to confirm full readiness. Listen to your body.", bundle: NarrativeLanguage.bundle)
-        } else if v.stress < HRVThresholds.stressIndexLow {
-            String(localized: "Low stress markers confirm your nervous system is well-balanced and recovery is consolidated.", bundle: NarrativeLanguage.bundle)
         } else {
             String(localized: "Your beat-to-beat variation is in a good place relative to your own recent nights.", bundle: NarrativeLanguage.bundle)
         }
         return join(opening, reason)
     }
 
+    /// With neither good nor short sleep, the sleep note (fragmented or
+    /// inefficient sleep, if either) is all that follows the opening.
     static func good(_ v: Inputs) -> String {
         let opening = String(localized: "Your HRV of \(v.rmssd)ms is good\(v.ageNote).", bundle: NarrativeLanguage.bundle)
-        let reason = if v.isGoodSleep, !v.isFragmented {
-            String(localized: "Combined with quality sleep, you're well-positioned for activity today.", bundle: NarrativeLanguage.bundle)
-        } else if v.isShortSleep {
-            String(localized: "With better sleep, you could see even stronger recovery.", bundle: NarrativeLanguage.bundle)
-        } else {
-            String(localized: "Your autonomic nervous system is well-balanced.", bundle: NarrativeLanguage.bundle)
+        if v.isGoodSleep, !v.isFragmented {
+            return join(opening, String(localized: "Combined with quality sleep, you're well-positioned for activity today.", bundle: NarrativeLanguage.bundle))
         }
-        return join(opening, reason)
+        if v.isShortSleep {
+            return join(opening, String(localized: "With better sleep, you could see even stronger recovery.", bundle: NarrativeLanguage.bundle))
+        }
+        return join(opening, v.sleepContext)
     }
 
+    /// No sentence reads sympathetic activation or balance off LF/HF; the
+    /// key findings already say where the ratio sits.
     static func fair(_ v: Inputs) -> String {
         let opening = String(localized: "Your HRV of \(v.rmssd)ms is in a moderate range\(v.ageNote).", bundle: NarrativeLanguage.bundle)
         if v.isShortSleep {
             return join(opening, String(localized: "With only \(v.sleepFormatted) of sleep, your HRV may improve with better rest.", bundle: NarrativeLanguage.bundle))
         }
-        if v.lfhf > HRVThresholds.lfHfOptimalUpper {
-            return join(opening, String(localized: "There's some sympathetic activation present, which could be residual from yesterday's activities or mild ongoing stress.", bundle: NarrativeLanguage.bundle), v.sleepContext)
-        }
-        return join(opening, String(localized: "Your autonomic nervous system is reasonably balanced.", bundle: NarrativeLanguage.bundle))
+        return join(opening, v.sleepContext)
+    }
+
+    /// A marker above `threshold`; false when the marker is missing.
+    private static func exceeds(_ marker: Double?, _ threshold: Double) -> Bool {
+        marker.map { $0 > threshold } ?? false
     }
 
     private static func join(_ sentences: String?...) -> String {

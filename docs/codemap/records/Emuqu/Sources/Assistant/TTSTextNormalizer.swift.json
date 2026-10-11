@@ -15,14 +15,14 @@
  "units": [
   {
    "key": "func TTSTextNormalizer.normalize(_:english:)",
-   "hash": "f61fc154cf0b5ef3",
-   "does": "If english, applies expandDomainAbbreviations, expandPaceStrings, expandYears in that order; then returns PhoneticOverrides.speechAttributedString(working).",
+   "hash": "d20c676806d0e5a9",
+   "does": "If english, applies expandDomainAbbreviations, expandPaceStrings, expandYears in that order; then returns PhoneticOverrides.speechAttributedString(working, english:), which skips its English-only ZIP and 'live' passes when english is false.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandDomainAbbreviations(_:)",
     "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaceStrings(_:)",
     "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandYears(_:)",
-    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.speechAttributedString(_:)"
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.speechAttributedString(_:english:)"
    ],
    "reads": [],
    "writes": [],
@@ -30,28 +30,15 @@
     {
      "at": "+4",
      "cond": "english flag true (voice language starts with 'en' or no voice)",
-     "effect": "true: three English pre-passes run; false: text goes straight to PhoneticOverrides"
+     "effect": "true: three English pre-passes run and PhoneticOverrides runs its English passes; false: only AI markup is applied"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Doc says english:false skips passes that write English words, but PhoneticOverrides still runs: ZIP expansion inserts the English word 'dash' and 'live' is respelled 'lyve' in non-English utterances.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/TTSTextNormalizer.swift:41",
-      "Emuqu/Sources/Assistant/TTSTextNormalizer.swift:55",
-      "Emuqu/Sources/Assistant/PhoneticOverrides.swift:356",
-      "Emuqu/Sources/Assistant/PhoneticOverrides.swift:96"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.speechAttributedString(_:)": "e72d4dc3005247db",
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.speechAttributedString(_:english:)": "250478156c42fdea",
     "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandDomainAbbreviations(_:)": "7727ef5d1e310593",
     "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaceStrings(_:)": "2f666bc746f61c13",
-    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandYears(_:)": "adce142074b83cbb"
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandYears(_:)": "0af40a877b83c6f9"
    }
   },
   {
@@ -249,8 +236,8 @@
   },
   {
    "key": "func TTSTextNormalizer.expandYears(_:)",
-   "hash": "104f5d34435489fa",
-   "does": "Finds 4-digit numbers 1100-2099 not adjacent to digits/./,/:/$ and not followed by a unit word, and replaces each (right-to-left) with spokenYear().",
+   "hash": "d7e3ff92e1b546ce",
+   "does": "Finds 4-digit numbers 1100-2099 not adjacent to digits/./,/:/$, not the suffix of a ZIP+4 ('62704-1234', left for PhoneticOverrides), and not followed by a unit word, and replaces each (right-to-left) with spokenYear().",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.spokenYear(_:)"
@@ -274,40 +261,16 @@
      "effect": "false: continue"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Every unit-less 4-digit number 1100-2099 is treated as a year, e.g. 'about 1800 a day' becomes 'eighteen hundred a day' and 'a score of 1250' becomes 'twelve fifty'.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/TTSTextNormalizer.swift:226",
-      "Emuqu/Sources/Assistant/TTSTextNormalizer.swift:243"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "expandYears runs before PhoneticOverrides' ZIP expansion and its lookbehind does not reject '-', so a ZIP+4 suffix in 1100-2099 ('IL 62704-1234') is turned into a year first ('62704-twelve thirty-four'); the ZIP regex's optional (-\\d{4}) group then no longer matches and the result is spoken '6 2 7 0 4 twelve thirty-four' instead of '... dash 1 2 3 4'.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/TTSTextNormalizer.swift:50",
-      "Emuqu/Sources/Assistant/TTSTextNormalizer.swift:55",
-      "Emuqu/Sources/Assistant/TTSTextNormalizer.swift:226",
-      "Emuqu/Sources/Assistant/PhoneticOverrides.swift:181",
-      "Emuqu/Sources/Assistant/PhoneticOverrides.swift:315"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "1f1571698d506b97",
-    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.spokenYear(_:)": "ba3ef96723d1e579"
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.spokenYear(_:)": "46c6bdebb33c2be9"
    }
   },
   {
    "key": "func TTSTextNormalizer.spokenYear(_:)",
-   "hash": "5d2f15dbb363c87b",
-   "does": "Year reading: 2000-2009 'two thousand <n>', 2010-2099 'twenty <n>', 1100-1999 splitCenturyYear, else plain spelled number.",
+   "hash": "90bc3ef88800da51",
+   "does": "Year reading: 2000 'two thousand', 2001-2009 'two thousand <n>', 2010-2099 'twenty <n>', 1100-1999 splitCenturyYear, else plain spelled number (expandYears only passes 1100-2099).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.numberAsWords(_:)",
@@ -318,43 +281,26 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "2000...2009",
-     "effect": "'two thousand ' + words(year-2000) — for 2000 this is 'two thousand zero'"
+     "cond": "2000",
+     "effect": "'two thousand'"
     },
     {
      "at": "+2",
+     "cond": "2001...2009",
+     "effect": "'two thousand ' + words(year-2000)"
+    },
+    {
+     "at": "+3",
      "cond": "2010...2099",
      "effect": "'twenty ' + words(year-2000)"
     },
     {
-     "at": "+3",
+     "at": "+4",
      "cond": "outside 1100...1999",
-     "effect": "plain spelled number (unreachable from expandYears whose regex limits to 1100-2099); else splitCenturyYear"
+     "effect": "plain spelled number (unreachable from expandYears); else splitCenturyYear"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "Year 2000 is spoken 'two thousand zero' because numberAsWords(0) spells 'zero'; any unit-less '2000' in a reply (e.g. 'since 2000', 'about 2000 today') is read that way.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/TTSTextNormalizer.swift:250",
-      "Emuqu/Sources/Assistant/TTSTextNormalizer.swift:186"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Comment promises 1000-1099 read as 'one thousand X', but the regex only matches 1100+ and spokenYear's fallback is unreachable from its only caller.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/TTSTextNormalizer.swift:212",
-      "Emuqu/Sources/Assistant/TTSTextNormalizer.swift:226",
-      "Emuqu/Sources/Assistant/TTSTextNormalizer.swift:252"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.numberAsWords(_:)": "9b21c8d6b15c0595",
     "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.splitCenturyYear(_:)": "6b1aa816642a9172"

@@ -28,6 +28,13 @@
 # The rule: `StrapLinkCoordinator.linkEstablished` starts the feed, and nothing
 # in `StrapHeartRateFeed` waits on heart-rate readiness or sleeps.
 #
+# One readiness wait is allowed, and is not matched: on a Verity Sense during a
+# session, `resolveKind` waits for `.onlineStreaming` to decide between PPI and
+# HR. That wait has no deadline of its own but cannot outlast the link's settle
+# timer (`StrapLinkCoordinator.readinessSettleSec`): once the link settles,
+# `StrapReadiness.waitOutcome` answers `.unconfirmed` for a feature still
+# pending, and the feed opens PPI. A heart-rate-only strap never reaches it.
+#
 # Exit 0 clean, 1 on violation, 2 on config error.
 set -uo pipefail
 cd "$(dirname "$0")/.."

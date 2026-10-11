@@ -47,7 +47,13 @@ set -euo pipefail
 # had none — so all 99 of its localized literals fell back to their English keys
 # in every locale while three localization gates reported perfect scores. That
 # is `check_localization_resolution.sh`'s job, and it now scans both targets.
+cd "$(dirname "$0")/.."
 SOURCE_ROOT="${1:-Emuqu/Sources}"
+# A missing root walks nothing and would report clean.
+if [[ ! -d "$SOURCE_ROOT" ]]; then
+    echo "check_localization_bundle: source root not found: $SOURCE_ROOT" >&2
+    exit 2
+fi
 
 offenders="$(
     python3 - "$SOURCE_ROOT" <<'PY'
@@ -67,8 +73,15 @@ root = sys.argv[1]
 # two lines to keep it readable fails the gate while the bundle argument sits
 # right there on the next line. True positives are unaffected: a call that
 # genuinely names no bundle still has none anywhere between its parentheses.
+#
+# Naming a bundle is not enough when the bundle named is the default one:
+# `bundle: .main` or `bundle: Bundle.main` reads exactly what an unqualified
+# lookup reads. Any other bundle passes: `LanguageManager.appBundle`, or a
+# bundle derived from it and passed in (`bundle: bundle`, the narrative
+# language's `NarrativeLanguage.bundle`).
 call = re.compile(r'(String\(localized:|NSLocalizedString\()')
 bundle = re.compile(r'\bbundle:')
+main_bundle = re.compile(r'\bbundle:\s*(?:Bundle)?\.main\b')
 
 
 def mask_literals(text):
@@ -129,7 +142,8 @@ for dirpath, _dirnames, filenames in os.walk(root):
             if masked[line_start:match.start()].lstrip().startswith("//"):
                 continue
             open_paren = masked.index("(", match.start())
-            if bundle.search(masked[match.start():call_extent(masked, open_paren)]):
+            extent = masked[match.start():call_extent(masked, open_paren)]
+            if bundle.search(extent) and not main_bundle.search(extent):
                 continue
             lineno = text.count("\n", 0, match.start()) + 1
             snippet = text[line_start:text.find("\n", match.start())].strip()
@@ -141,7 +155,7 @@ PY
 )"
 
 if [[ -n "$offenders" ]]; then
-    echo "ERROR: localized-string lookups without an explicit bundle:" >&2
+    echo "ERROR: localized-string lookups without an explicit bundle, or naming Bundle.main:" >&2
     echo "$offenders" >&2
     echo >&2
     echo "These read from Bundle.main and therefore ignore the in-app language" >&2

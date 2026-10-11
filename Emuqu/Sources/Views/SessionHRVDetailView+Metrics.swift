@@ -168,21 +168,30 @@ extension SessionHRVDetailView {
         }
     }
 
-    /// Only shown when the metrics came from a window shorter than the
-    /// recording; full-series analyses use every beat.
+    /// Shown whenever the metrics came from a window shorter than the
+    /// recording (`windowEnd` is exclusive, so a full-series analysis spans
+    /// every point); full-series analyses use every beat.
     @ViewBuilder
     private var dataQualityNote: some View {
-        if let series = session.rrSeries, let minutes = analysisWindowMinutes,
-           result.windowEnd - result.windowStart < series.points.count - 1 {
+        if let series = session.rrSeries, result.windowEnd - result.windowStart < series.points.count,
+           let minutes = analysisWindowMinutes(in: series) {
             Text(String(localized: "HRV metrics are from a \(LocalizedDuration.minutes(minutes)) analysis window, not the whole recording (\(series.points.count) beats).", bundle: LanguageManager.appBundle))
                 .font(.caption2)
                 .foregroundColor(AppTheme.textSecondary)
         }
     }
 
-    private var analysisWindowMinutes: Int? {
-        guard let start = result.windowStartMs, let end = result.windowEndMs, end > start else { return nil }
-        return max(1, Int((Double(end - start) / 60_000).rounded()))
+    /// The window's length in minutes: from its recorded timestamps, else
+    /// from the beat timestamps at its ends. Nil when neither is usable.
+    private func analysisWindowMinutes(in series: RRSeries) -> Int? {
+        if let start = result.windowStartMs, let end = result.windowEndMs, end > start {
+            return max(1, Int((Double(end - start) / 60_000).rounded()))
+        }
+        guard series.points.indices.contains(result.windowStart),
+              series.points.indices.contains(result.windowEnd - 1) else { return nil }
+        let last = series.points[result.windowEnd - 1]
+        let spanMs = last.t_ms + Int64(last.rr_ms) - series.points[result.windowStart].t_ms
+        return spanMs > 0 ? max(1, Int((Double(spanMs) / 60_000).rounded())) : nil
     }
 
     // MARK: - Trend Comparison
@@ -237,9 +246,12 @@ extension SessionHRVDetailView {
         )
     }
 
+    /// Mean heart rate over the window, against the scoring baseline's mean
+    /// (or the prior nights' mean): labelled "Mean HR", which is what both
+    /// numbers are, not a resting or minimum rate.
     private func restingHRTrendRow(_ stats: TrendStats) -> some View {
         trendRow(
-            metric: String(localized: "Resting HR", bundle: LanguageManager.appBundle),
+            metric: String(localized: "Mean HR", bundle: LanguageManager.appBundle),
             current: result.timeDomain.meanHR,
             average: stats.avgHR,
             unit: String(localized: "bpm", bundle: LanguageManager.appBundle),
@@ -352,6 +364,12 @@ extension SessionHRVDetailView {
     /// produced impossible "vs average" figures (see TrendComparisonCard).
     /// Only nights before this one count: a night opened from History is
     /// compared with what came before it, never with later nights.
+    ///
+    /// HRV and heart rate compare with the scoring baseline when it is known
+    /// (geometric ln(RMSSD) mean; mean-HR baseline) — the reference the
+    /// morning card and TrendComparisonCard use, so the "vs average" figure
+    /// is the same number on every screen. The prior nights' plain mean
+    /// stands in only before a baseline exists.
     private func computeTrendStats() -> TrendStats {
         let valid = recentSessions.filter { isPriorReliableOvernight($0) }
         guard !valid.isEmpty else {
@@ -360,8 +378,8 @@ extension SessionHRVDetailView {
         let rmssdValues = valid.compactMap(\.rmssd)
         return TrendStats(
             hasData: !rmssdValues.isEmpty,
-            avgRMSSD: Self.mean(rmssdValues) ?? 0,
-            avgHR: Self.mean(valid.compactMap(\.meanHR)) ?? 0,
+            avgRMSSD: hrvBaseline ?? Self.mean(rmssdValues) ?? 0,
+            avgHR: baselineStats?.meanHRBaseline ?? Self.mean(valid.compactMap(\.meanHR)) ?? 0,
             avgStress: Self.mean(valid.compactMap(\.stressIndex)),
             avgReadiness: Self.mean(valid.compactMap(\.readinessScore))
         )

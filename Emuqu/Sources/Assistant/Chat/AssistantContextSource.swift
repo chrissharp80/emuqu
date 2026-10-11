@@ -40,8 +40,9 @@ final class AssistantContextSource: Sendable {
     ///
     /// The live-workout / live-HRV overlay after the build is belt-and-braces:
     /// `build()` populates both via ContextBuilder, but doing it again here
-    /// makes the snapshot reflect the state at the exact moment we return
-    /// rather than the instant the build started. (The workout broker returns
+    /// makes the snapshot (and the workout's samples, kept with it) reflect
+    /// the state at the exact moment we return rather than the instant the
+    /// build started. (The workout broker returns
     /// nil once its snapshot is more than 12 s old, and both brokers return
     /// nil when nothing is recording.)
     ///
@@ -55,7 +56,9 @@ final class AssistantContextSource: Sendable {
         return await withCheckedContinuation { continuation in
             queue.async {
                 var context = self.build(liveLoadSnapshot: liveLoadSnapshot, baselineTracker: tracker)
-                context.liveWorkout = AppDependencies.current.assistant.liveWorkoutBroker.currentSnapshot()
+                let broker = AppDependencies.current.assistant.liveWorkoutBroker
+                context.liveWorkout = broker.currentSnapshot()
+                context.liveWorkoutSamples = context.liveWorkout == nil ? nil : broker.currentSamples()
                 context.liveHRVSession = AppDependencies.current.assistant.liveHRVBroker.currentSnapshot()
                 continuation.resume(returning: context)
             }

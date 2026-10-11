@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift",
- "hash": "9496d199e893922c",
+ "hash": "7120bcf43dbc07b3",
  "role": "Tap-to-talk dictation for the chat input bar: Apple SFSpeechRecognizer (on-device required) fed from an AVAudioEngine tap, with audio-session claims via AudioSessionCoordinator.",
  "types": [
   "SpeechInputManager: final class (@Observable @MainActor) — one dictation recorder owned by ChatInputBar @State",
@@ -8,6 +8,7 @@
  ],
  "state": [
   "mem:SpeechInputManager.transcript/isRecording/lastError (@Observable)",
+  "mem:SpeechInputManager.isStarting (@ObservationIgnored: start() suspended on permissions)",
   "mem:SpeechInputManager.engine (lazy AVAudioEngine)",
   "mem:AudioSessionCoordinator claim .dictation"
  ],
@@ -16,24 +17,13 @@
   {
    "kind": "silent-failure",
    "sev": "med",
-   "text": "Recognition errors after start() (e.g. on-device model missing — start() requires on-device recognition but never checks supportsOnDeviceRecognition) are written only to lastError, which no view reads (AssistantChatSupport.swift only reads isRecording/transcript); the mic stays 'recording' with no transcript and no message.",
+   "text": "A recognition error after start() now ends the recording and sets lastError (and start() refuses a recognizer without on-device support), but no view reads lastError (AssistantChatSupport.swift only reads isRecording/transcript), so the user sees the mic switch off with no message. Needs ChatInputBar to show lastError in its Voice input alert (handoff).",
    "evidence": [
     "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift:71",
     "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift:164",
     "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift:246"
    ],
    "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Type doc says the single instance is 'owned by AssistantViewModel'; the only instance is ChatInputBar's @State (AssistantChatSupport.swift:78), and AssistantViewModel never references SpeechInputManager.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift:7",
-    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift:8",
-    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift:78"
-   ],
-   "found": "second read"
   }
  ],
  "units": [
@@ -63,7 +53,7 @@
    "key": "var SpeechInputManager.isAvailable",
    "hash": "32f1e314a9fc5e2e",
    "does": "True when the recognizer exists, is available and supports on-device recognition.",
-   "entry": null,
+   "entry": "read by start() before building the request",
    "calls": [],
    "reads": [],
    "writes": [],
@@ -74,66 +64,54 @@
      "effect": "false; else supportsOnDeviceRecognition"
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "isAvailable is never read (grep 'speech.isAvailable' / '.isAvailable' on SpeechInputManager finds no caller).",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift:42"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
    "key": "func SpeechInputManager.start()",
-   "hash": "046b24f87caebc3c",
-   "does": "Requests speech+mic permission, builds an on-device partial-results buffer request, claims the audio session and starts the engine, resets transcript/lastError, sets isRecording and starts the recognition task.",
+   "hash": "d385273a2a3d89dd",
+   "does": "Ignores a tap while recording or while an earlier start() is still waiting on permissions (isStarting); requests speech+mic permission, requires isAvailable (recognizer available AND on-device recognition supported, since the request sets requiresOnDeviceRecognition), builds an on-device partial-results buffer request, claims the audio session and starts the engine, resets transcript/lastError, sets isRecording and starts the recognition task.",
    "entry": "mic button tap in ChatInputBar.toggleDictation (AssistantChatSupport.swift:264)",
    "calls": [
     "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.requestPermissions()",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::var SpeechInputManager.isAvailable",
     "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.claimSessionAndStartEngine(appendingTo:)",
     "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.handleRecognition(result:error:)",
     "ext:SFSpeechRecognizer.recognitionTask"
    ],
-   "reads": [],
+   "reads": [
+    "mem:SpeechInputManager.isRecording",
+    "mem:SpeechInputManager.isStarting"
+   ],
    "writes": [
     "mem:SpeechInputManager.isRecording",
-    "mem:SpeechInputManager.transcript"
+    "mem:SpeechInputManager.isStarting",
+    "mem:SpeechInputManager.transcript",
+    "mem:SpeechInputManager.lastError"
    ],
    "branches": [
     {
      "at": "+1",
-     "cond": "already recording",
+     "cond": "already recording or a start is in progress",
      "effect": "return"
     },
     {
      "at": "+3",
-     "cond": "recognizer nil or unavailable",
+     "cond": "defer",
+     "effect": "isStarting cleared on every exit, thrown or not"
+    },
+    {
+     "at": "+5",
+     "cond": "recognizer nil, unavailable or without on-device support",
      "effect": "throw SpeechError.unavailable (shown in alert)"
     }
    ],
-   "flags": [
-    {
-     "kind": "race",
-     "sev": "low",
-     "text": "isRecording is only set after the awaited permission requests, so a second mic tap while the first start() is suspended passes the guard at line 66. The second run replaces self.request and reinstalls the tap, and the first recognition task is left running unfinished on a request that gets no audio and is never ended.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift:66",
-      "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift:67",
-      "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift:72",
-      "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift:76",
-      "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift:262"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.claimSessionAndStartEngine(appendingTo:)": "41c9c42700dbc6a3",
-    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.handleRecognition(result:error:)": "1a27bfde047ba5af",
-    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.requestPermissions()": "aa6d1a9d8b0e3721"
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.handleRecognition(result:error:)": "9d38175052529545",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.requestPermissions()": "aa6d1a9d8b0e3721",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::var SpeechInputManager.isAvailable": "a64517e452b41ad5"
    }
   },
   {
@@ -261,14 +239,15 @@
   },
   {
    "key": "func SpeechInputManager.handleRecognition(result:error:)",
-   "hash": "41e4e25c3c6f539c",
-   "does": "Recognition callback: publishes the best transcription to transcript; publishes non-benign errors (not 203/216/301) to lastError.",
+   "hash": "6c8a6fe8fd11f252",
+   "does": "Recognition callback: publishes the best transcription to transcript on the main actor; a non-benign error (not 203/216/301) ends the recording on the main actor via endRecording(failure:).",
    "entry": "SFSpeechRecognitionTask result handler",
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.endRecording(failure:)"
+   ],
    "reads": [],
    "writes": [
-    "mem:SpeechInputManager.transcript",
-    "mem:SpeechInputManager.lastError"
+    "mem:SpeechInputManager.transcript"
    ],
    "branches": [
     {
@@ -279,12 +258,33 @@
     {
      "at": "+5",
      "cond": "error nil or code 203/216/301",
-     "effect": "return; else set lastError (never displayed)"
+     "effect": "return; else endRecording(failure:) with the error text"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a"
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.endRecording(failure:)": "a8439667d3c00fd8"
+   }
+  },
+  {
+   "key": "func SpeechInputManager.endRecording(failure:)",
+   "hash": "0fc1b8913825a6c5",
+   "does": "Stores the failure text in lastError and calls stop(), which turns the mic off, releases the audio claim, clears isRecording and keeps the transcript so far.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.stop()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SpeechInputManager.lastError",
+    "mem:SpeechInputManager.isRecording",
+    "mem:AudioSessionCoordinator claims"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.stop()": "241347482ec4b62f"
    }
   },
   {

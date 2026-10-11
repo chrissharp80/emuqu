@@ -27,15 +27,16 @@
  "units": [
   {
    "key": "var SleepDetailV2View.stageBreakdownSection",
-   "hash": "ad45d9f4ac97e678",
-   "does": "Stage breakdown section: heading, stage pills over the night's minutes, and the expanded stage explanation, animated on expandedStage.",
+   "hash": "221839b174c8058c",
+   "does": "Stage breakdown section, for a staged night only (deep or REM data): heading, stage pills over the night's minutes, and the expanded stage explanation, animated on expandedStage.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.sectionHeading(_:)",
     "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.stagePills(_:totalMin:)",
     "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::var SleepDetailV2View.stageExplanationCard",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.isStaged(_:)"
    ],
    "reads": [
     "mem:LanguageManager.shared.bundle",
@@ -45,16 +46,17 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "sleepData non-nil and nightSleepMinutes > 0",
-     "effect": "renders section; else nothing"
+     "cond": "sleepData non-nil, nightSleepMinutes > 0 and isStaged",
+     "effect": "renders section; else nothing (an unstaged night has no breakdown and is not shown as Light)"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.isStaged(_:)": "ac7e3ae6d422b9b2",
     "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.sectionHeading(_:)": "b2531774c6b36177",
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.stagePills(_:totalMin:)": "a4458cd4ff2ccd1b",
+    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.stagePills(_:totalMin:)": "f5dd780dc7abe04c",
     "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::var SleepDetailV2View.stageExplanationCard": "7382104f97913fe9"
    }
   },
@@ -85,11 +87,12 @@
   },
   {
    "key": "func SleepDetailV2View.stagePills(_:totalMin:)",
-   "hash": "f14f902457859967",
-   "does": "Row of stage pills: Deep and REM when recorded, Light = night − deep − REM (floored at 0), and Awake (percent of in-bed time) only when efficiency was measured.",
+   "hash": "0f1bfb36a5008251",
+   "does": "Row of stage pills: Deep and REM when recorded, Light = night − deep − REM − unstaged ('Asleep') minutes (floored at 0), and Awake (percent of in-bed time) only when efficiency was measured.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.stagePill(kind:minutes:totalMin:color:)",
+    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.unstagedMinutes(_:)",
     "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency"
    ],
    "reads": [],
@@ -108,7 +111,7 @@
     {
      "at": "+8",
      "cond": "deep/REM nil",
-     "effect": "treated as 0 in the Light subtraction, so an unstaged night shows its whole duration as Light 100%"
+     "effect": "treated as 0 in the Light subtraction (the section only shows for staged nights)"
     },
     {
      "at": "+10",
@@ -117,17 +120,6 @@
     }
    ],
    "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "On a night with no stage data (deep and REM nil — HR-estimated or user-added unspecified sleep) the Light pill reports the entire night as \"Light\" 100%, and on staged nights unspecified/user-added minutes are also counted as Light; the hypnogram labels the same minutes \"Asleep\", not Light.",
-     "evidence": [
-      "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift:42-43",
-      "Emuqu/Sources/Views/SleepDetailV2View.swift:626-631",
-      "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift:535-538"
-     ],
-     "found": "first read, upheld on second"
-    },
     {
      "kind": "fragile",
      "sev": "low",
@@ -142,8 +134,35 @@
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
     "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency": "ec0ed6304aee409d",
     "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.stagePill(kind:minutes:totalMin:color:)": "15eaf33080601731",
+    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.unstagedMinutes(_:)": "34c511eb4171472d",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryDark": "f0f931939f03a4f6"
+   }
+  },
+  {
+   "key": "func SleepDetailV2View.isStaged(_:)",
+   "hash": "11c2a894fac852ea",
+   "does": "True when the night has deep or REM minutes.",
+   "entry": "Called from stageBreakdownSection and cyclesDescriptor.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SleepDetailV2View.unstagedMinutes(_:)",
+   "hash": "abdf03f452fb3b3a",
+   "does": "Total minutes of the night's .unspecified stage intervals (user-added or unstaged sleep), the minutes the hypnogram labels 'Asleep'.",
+   "entry": "Called from stagePills.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "4cec6874d7fcb65a"
    }
   },
   {
@@ -330,15 +349,14 @@
   },
   {
    "key": "var SleepDetailV2View.scoreBreakdownSection",
-   "hash": "4575db4429c1ed02",
-   "does": "Score breakdown section: heading, the six component rows and a footnote about weights and the duration cap.",
+   "hash": "81c9c4be44447e26",
+   "does": "Score breakdown section, when the view has a sleep analysis (sleepAnalysis non-nil, i.e. sleep data with night minutes > 0): heading, the six component rows and a footnote about weights and the duration cap.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.sectionHeading(_:)",
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.computeSleepBreakdowns(sleep:)",
     "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.scoreBreakdownRows(_:)",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.computeSleepBreakdowns(_:)"
    ],
    "reads": [
     "mem:LanguageManager.shared.bundle"
@@ -347,15 +365,14 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "sleepData non-nil and nightSleepMinutes > 0",
+     "cond": "sleepAnalysis non-nil",
      "effect": "renders; else nothing"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.computeSleepBreakdowns(sleep:)": "d0990f3799ff07bf",
+    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.computeSleepBreakdowns(_:)": "dec0647781b2eff6",
     "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.scoreBreakdownRows(_:)": "14ff6d0c4f08e6b8",
     "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.sectionHeading(_:)": "b2531774c6b36177",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
@@ -378,162 +395,19 @@
    }
   },
   {
-   "key": "func SleepDetailV2View.computeSleepBreakdowns(sleep:)",
-   "hash": "30998c58c69d6773",
-   "does": "Runs SleepScienceAnalyzer.analyze and returns six entries (Duration 25%, Efficiency 20%, Deep & REM 20%, Continuity 15%, Cycles 10%, Architecture 10%) with 0–100 component scores re-derived locally and ok thresholds (duration ≥85, efficiency ≥90, others ≥70).",
-   "entry": null,
+   "key": "func SleepDetailV2View.computeSleepBreakdowns(_:)",
+   "hash": "45cc30b1dfa0c09b",
+   "does": "Six rows (Duration, Efficiency, Deep & REM, Continuity, Cycles, Architecture), each score = the analyzer's own EnhancedScoreSections points for that part over its EnhancedScoreWeights maximum ×100, with the part's weight, and ok when ≥ the duration-debt threshold (Duration), 90 (Efficiency) or 70 (others).",
+   "entry": "Called from scoreBreakdownSection.",
    "calls": [
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyze(sleepData:userAge:typicalSleepHours:)",
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.breakdownDurationScore(_:)",
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.breakdownEfficiencyScore(_:norms:)",
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.breakdownStagesScore(_:norms:)",
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.breakdownCyclesScore(_:cycleCount:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
-   "reads": [
-    "mem:LanguageManager.shared.bundle"
-   ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "analyze returns nil (nightSleepMinutes ≤ 0)",
-     "effect": "returns []; else six entries"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Component scores are re-implemented from the private analyzer helpers (efficiencyRatio, stagesScore, stageHalf, cycle/fragmentation terms) scaled ×5/×100; only the weight constants are shared, so a change to the analyzer formula silently desynchronises the rows from the ring despite the comment saying they cannot drift.",
-     "evidence": [
-      "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift:179-180",
-      "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift:206-258",
-      "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift:431-511"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyze(sleepData:userAge:typicalSleepHours:)": "caebdd2209a1efbc",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.breakdownCyclesScore(_:cycleCount:)": "35e1cf148f04a186",
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.breakdownDurationScore(_:)": "673eec4cbe61f7d9",
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.breakdownEfficiencyScore(_:norms:)": "10ed0dc889640e85",
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.breakdownStagesScore(_:norms:)": "a321233513a20d6b"
-   }
-  },
-  {
-   "key": "func SleepDetailV2View.breakdownDurationScore(_:)",
-   "hash": "075747e39b4b02f0",
-   "does": "Duration component: min((night+nap)/max(target,1)h, 1.1)*100.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.totalSleepIncludingNapMinutes"
-   ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.totalSleepIncludingNapMinutes": "a4a2d3868396b45f"
-   }
-  },
-  {
-   "key": "func SleepDetailV2View.breakdownEfficiencyScore(_:norms:)",
-   "hash": "dc9d76ba9bc29f21",
-   "does": "Efficiency component: 50 when efficiency unmeasured; else min(efficiency / (age expected efficiency or SleepConstants.goodEfficiency), 1.1)*100.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "measuredSleepEfficiency nil",
-     "effect": "returns unmeasuredEfficiencyRatio*100 = 50"
-    },
-    {
-     "at": "+3",
-     "cond": "norms nil",
-     "effect": "expected = SleepConstants.goodEfficiency; else age-expected efficiency"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency": "ec0ed6304aee409d"
-   }
-  },
-  {
-   "key": "func SleepDetailV2View.breakdownStagesScore(_:norms:)",
-   "hash": "ad2a398b243a1e2d",
-   "does": "Deep & REM component 0–100: each recorded stage scored 0–50 by breakdownStageHalf, an unrecorded stage gets 25.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.breakdownStageHalf(minutes:night:targetPct:norm:)",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+3",
-     "cond": "night minutes ≤ 0",
-     "effect": "returns 50"
-    },
-    {
-     "at": "+12",
-     "cond": "deep or REM half nil (stage not recorded)",
-     "effect": "uses 25 for that half"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.breakdownStageHalf(minutes:night:targetPct:norm:)": "84efd98403514ca2"
-   }
-  },
-  {
-   "key": "func SleepDetailV2View.breakdownStageHalf(minutes:night:targetPct:norm:)",
-   "hash": "e80893a9bdbd5afb",
-   "does": "One stage half 0–50: without norms min(50, share/targetPct*50); with norms 50 unless below-range with negative deviation, then max(0, 50 − |dev|*0.5*5).",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+5",
-     "cond": "norm nil",
-     "effect": "population-target formula"
-    },
-    {
-     "at": "+6",
-     "cond": "in range or deviation > 0",
-     "effect": "returns 50; else applies the deviation penalty"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.deviation(for:)": "eb395310f3a332ff"
-   }
-  },
-  {
-   "key": "func SleepDetailV2View.breakdownCyclesScore(_:cycleCount:)",
-   "hash": "a8429c555835f436",
-   "does": "Cycles component: min(cycleCount / max(3, floor(night hours/1.5)), 1)*100.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },
   {
@@ -713,28 +587,34 @@
     "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency": "ec0ed6304aee409d",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.totalSleepIncludingNapMinutes": "a4a2d3868396b45f",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.deepShareInsight(_:)": "301b8f6b71d33bbb"
+    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.deepShareInsight(_:)": "4a31e4b3b61ab022"
    }
   },
   {
-   "key": "var SleepDetailV2View.typicalDeepShare",
-   "hash": "13021622993c7862",
-   "does": "Static range 0.13…0.23 used as the \"typical\" deep share.",
-   "entry": null,
+   "key": "func SleepDetailV2View.typicalDeepShare(for:)",
+   "hash": "7a9956848feaaaf1",
+   "does": "The deep-sleep share called typical: the age norms' expectedDeepPercent range /100 when norms are given, else the population 0.13…0.23.",
+   "entry": "Called from deepShareInsight.",
    "calls": [],
    "reads": [],
    "writes": [],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "norms nil",
+     "effect": "0.13…0.23; else the age range as a fraction"
+    }
+   ],
    "flags": [],
    "deps": {}
   },
   {
    "key": "func SleepDetailV2View.deepShareInsight(_:)",
-   "hash": "64cc7eeee4605952",
-   "does": "Deep-share insight: above 23% \"more than typical\", 13–23% \"typical share\", below 13% or no deep data → nil.",
+   "hash": "3819d2a76bbd2ba3",
+   "does": "Deep-share insight against typicalDeepShare(for: sleepAnalysis?.ageNorms) (the user's age range when known, else 13–23%): above it \"more than typical\", within it \"typical share\", below it or no deep data → nil.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::var SleepDetailV2View.typicalDeepShare",
+    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.typicalDeepShare(for:)",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
@@ -749,36 +629,22 @@
      "effect": "returns nil"
     },
     {
-     "at": "+4",
-     "cond": "share > 0.23",
+     "at": "+5",
+     "cond": "share > typical upper bound",
      "effect": "\"more of the night than is typical\""
     },
     {
-     "at": "+5",
-     "cond": "share ≥ 0.13",
-     "effect": "\"typical share\"; else nil (no insight for low deep sleep)"
+     "at": "+6",
+     "cond": "share ≥ typical lower bound",
+     "effect": "\"typical share\"; else nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "The deep-share insight judges against the fixed population 13-23% band regardless of age, while the age-group card on the same screen shows the Ohayon range for the user's age (e.g. 3-10% at 70+); a 70-year-old with 15% deep is told it is a \"typical share\" while the card shows it above their range.",
-     "evidence": [
-      "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift:344",
-      "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift:351-352",
-      "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift:585",
-      "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift:375-383"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.lowerBound": "42532e07486db197",
-    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.upperBound": "cc499f4494650948",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.ageNorms(userAge:sleepData:)": "4972e760c5845dd3",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::var SleepDetailV2View.typicalDeepShare": "8d8619c31e77e0de"
+    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.typicalDeepShare(for:)": "f5d9895385e21871"
    }
   },
   {
@@ -898,8 +764,8 @@
   },
   {
    "key": "func SleepDetailV2View.buildTrend(recentSessions:typicalSleepHours:userAge:)",
-   "hash": "b026d53dba76ef5e",
-   "does": "Static, nonisolated: for each recent session with a sleep snapshot of >0 night minutes, scores it with calculateSleepScore (0 on nil) and returns the first 15 (input order, newest-first from the archive) sorted oldest→newest.",
+   "hash": "0ffbf8c7b05abab0",
+   "does": "Static, nonisolated: walking the sessions newest first, keeps one per night (the first whose snapshot's sleepEnd ?? date falls on a calendar day not yet seen) with a sleep snapshot of >0 night minutes, scores it with calculateSleepScore (0 on nil), takes the first 15 and sorts them oldest→newest.",
    "entry": "Run on Task.detached from withSleepEditor .task(id: trendInputsKey)",
    "calls": [
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateSleepScore(sleepData:typicalSleepHours:userAge:)",
@@ -909,43 +775,19 @@
    "writes": [],
    "branches": [
     {
-     "at": "+7",
-     "cond": "no sleepSnapshot or night minutes ≤ 0",
+     "at": "+8",
+     "cond": "no sleepSnapshot, night minutes ≤ 0, or that night's day already has a bar",
      "effect": "session skipped"
     },
     {
-     "at": "+8",
+     "at": "+12",
      "cond": "calculateSleepScore nil",
      "effect": "score 0 (cannot happen for a non-nil snapshot)"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "No filter on sessionType or per-night de-duplication: every recent session carrying a sleepSnapshot becomes a bar, so two sessions sharing one night produce two bars for the same night.",
-     "evidence": [
-      "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift:432-441"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Opened from MorningResultsView, recentSessions are only nights strictly before the viewed session (recentSessionsAsync(limit:before:)), so the \"Recent trends\" strip omits the night on screen; from the Dashboard it is the full archive head (all session types) and includes it.",
-     "evidence": [
-      "Emuqu/Sources/Views/MorningResultsView.swift:327",
-      "Emuqu/Sources/Views/RecordView+Sections.swift:292-293",
-      "Emuqu/Sources/Views/HistoryView.swift:392-396",
-      "Emuqu/Sources/Views/ImportDataView+Actions.swift:158-159",
-      "Emuqu/Sources/Views/DashboardV2View.swift:483",
-      "Emuqu/Sources/Views/MainTabView+Tabs.swift:105"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateSleepScore(sleepData:typicalSleepHours:userAge:)": "7330a00595a0e155",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateSleepScore(sleepData:typicalSleepHours:userAge:)": "042f75023c6f6a31",
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29"
    }
@@ -1011,21 +853,20 @@
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.sectionHeading(_:)": "b2531774c6b36177",
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.structureCells(_:)": "a9de7d611e159644"
+    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.structureCells(_:)": "7ba2490f24f1cd11"
    }
   },
   {
    "key": "func SleepDetailV2View.structureCells(_:)",
-   "hash": "8fd59d915c8f30bb",
-   "does": "Runs SleepScienceAnalyzer.analyze and shows Cycles, Awakenings, Continuity and Architecture cells.",
+   "hash": "c65e59fd3827842e",
+   "does": "Shows Cycles, Awakenings, Continuity and Architecture cells from the view's sleepAnalysis (computed once in init).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyze(sleepData:userAge:typicalSleepHours:)",
     "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.structureCell(label:value:)",
     "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.cyclesDescriptor(_:analysis:)",
     "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.awakeningsDescriptor(_:)",
     "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.continuityDescriptor(_:)",
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.architectureDescriptor(_:)",
+    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.architectureDescriptor(_:analysis:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [
@@ -1035,32 +876,35 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyze(sleepData:userAge:typicalSleepHours:)": "caebdd2209a1efbc",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.architectureDescriptor(_:)": "782344ea36d5cfef",
+    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.architectureDescriptor(_:analysis:)": "3759c180a48893e7",
     "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.awakeningsDescriptor(_:)": "adf6f6c5d4b5d094",
     "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.continuityDescriptor(_:)": "6c49de01cbd80f8e",
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.cyclesDescriptor(_:analysis:)": "4d2b61d9576d38e9",
+    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.cyclesDescriptor(_:analysis:)": "5f954f44b1010502",
     "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.structureCell(label:value:)": "b0fce07c56d33692"
    }
   },
   {
    "key": "func SleepDetailV2View.cyclesDescriptor(_:analysis:)",
-   "hash": "70dbadb20af66618",
+   "hash": "2d02c4ac4701f3e7",
    "does": "Complete-cycle count as text, \"—\" when the night has no deep/REM data or no analysis.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.isStaged(_:)"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+2",
-     "cond": "night unstaged or analysis nil",
+     "at": "+1",
+     "cond": "night not isStaged or analysis nil",
      "effect": "\"—\"; else cycleCount"
     }
    ],
    "flags": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.isStaged(_:)": "ac7e3ae6d422b9b2"
+   }
   },
   {
    "key": "func SleepDetailV2View.awakeningsDescriptor(_:)",
@@ -1131,49 +975,30 @@
    }
   },
   {
-   "key": "func SleepDetailV2View.architectureDescriptor(_:)",
-   "hash": "898cf04de01be6f2",
-   "does": "Architecture word: \"Typical\" when deep share ≥13% and REM share ≥20%, else \"Atypical\"; \"—\" without both stages.",
-   "entry": null,
+   "key": "func SleepDetailV2View.architectureDescriptor(_:analysis:)",
+   "hash": "91726351276666bb",
+   "does": "\"Typical\" when the analyzer's architectureScore is ≥ 70 (where the Score breakdown's Architecture row stops warning), else \"Atypical\"; \"—\" without both deep and REM data or without an analysis.",
+   "entry": "Called from structureCells.",
    "calls": [
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::var SleepDetailV2View.typicalDeepShare",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
-   "reads": [
-    "mem:LanguageManager.shared.bundle"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+1",
-     "cond": "deep or REM nil, or night ≤ 0",
+     "cond": "deep or REM nil, or analysis nil",
      "effect": "\"—\""
     },
     {
-     "at": "+5",
-     "cond": "deep ≥ 0.13 and REM ≥ 0.20",
+     "at": "+2",
+     "cond": "architectureScore ≥ 70",
      "effect": "\"Typical\"; else \"Atypical\""
     }
    ],
-   "flags": [
-    {
-     "kind": "hack",
-     "sev": "low",
-     "text": "Uses a hard-coded 20% REM floor and the population deep floor, while the Architecture score row beside it uses analyzer.architectureScore and the age card uses Ohayon age ranges; the same night can read \"Atypical\" here with a high Architecture score.",
-     "evidence": [
-      "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift:517",
-      "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift:192",
-      "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift:274"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.lowerBound": "42532e07486db197",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::var SleepDetailV2View.typicalDeepShare": "8d8619c31e77e0de"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },
   {
@@ -1195,58 +1020,53 @@
   },
   {
    "key": "var SleepDetailV2View.ageGroupCard",
-   "hash": "9dc334e687c0c920",
-   "does": "Age-group card: shown with userAge, sleepData and night minutes > 0.",
+   "hash": "ea7b7e5d12b93991",
+   "does": "Age-group card, shown with userAge, sleepData and the analyzer's age norms (sleepAnalysis.ageNorms, set only for a staged night with an age), passing those norms on.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.ageGroupStack(age:sleep:)",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
+    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.ageGroupStack(age:sleep:norms:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+2",
-     "cond": "userAge, sleepData non-nil and night > 0",
+     "cond": "userAge, sleepData and sleepAnalysis?.ageNorms non-nil",
      "effect": "renders; else nothing"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.ageGroupStack(age:sleep:)": "6339067e2e7180b9",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.ageNorms(userAge:sleepData:)": "4972e760c5845dd3",
+    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.ageGroupStack(age:sleep:norms:)": "0168fbe87c567430",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
     "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
    }
   },
   {
-   "key": "func SleepDetailV2View.ageGroupStack(age:sleep:)",
-   "hash": "f0a7825f99d7690a",
-   "does": "Heading with age, comparison rows against Ohayon norms, citation footnote, and a footnote about unvalidated HRV-derived stages when present.",
-   "entry": null,
+   "key": "func SleepDetailV2View.ageGroupStack(age:sleep:norms:)",
+   "hash": "6e65295c9f994761",
+   "does": "Heading 'You vs your age group · age N', comparison rows against the given norms (the ones the Sleep score graded against), the Ohayon 2004 source line, and a footnote when any deep/core/REM stretch was HRV-classified.",
+   "entry": "Called from ageGroupCard.",
    "calls": [
     "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.sectionHeading(_:)",
     "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.ageComparisonRows(_:norms:)",
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.ageNorms(age:sleep:)",
     "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.hasHRVClassifiedStages(_:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
-   "reads": [
-    "mem:LanguageManager.shared.bundle"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+7",
-     "cond": "night has HRV-derived deep/core/REM intervals",
-     "effect": "adds the accuracy-unknown footnote; else omitted"
+     "cond": "hasHRVClassifiedStages",
+     "effect": "adds the unknown-accuracy footnote"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.ageComparisonRows(_:norms:)": "fe00d9cac1c6b91b",
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.ageNorms(age:sleep:)": "0cd1d2f0222ce9be",
     "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.hasHRVClassifiedStages(_:)": "c9204feed3e3bb06",
     "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.sectionHeading(_:)": "b2531774c6b36177",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
@@ -1292,53 +1112,6 @@
     "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.efficiencyText(_:)": "7c48f40f2b1faeb1",
     "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.rangeText(_:)": "90f0058201a596ec",
     "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.remPctText(sleep:)": "5381cebc86d7f453"
-   }
-  },
-  {
-   "key": "func SleepDetailV2View.ageNorms(age:sleep:)",
-   "hash": "3c4b5fa850e45fc9",
-   "does": "Computes Ohayon age norms via SleepScienceAnalyzer.computeAgeNorms, with deep/REM 0 when missing and efficiency 0 when unmeasured (only the expected ranges are used by the card).",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeAgeNorms(age:deepPercent:remPercent:efficiency:)",
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+4",
-     "cond": "deepSleepMinutes nil",
-     "effect": "0% deep passed"
-    },
-    {
-     "at": "+5",
-     "cond": "remSleepMinutes nil",
-     "effect": "0% REM passed"
-    },
-    {
-     "at": "+6",
-     "cond": "efficiency unmeasured",
-     "effect": "0 passed (parameter ignored by computeAgeNorms)"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Re-implements SleepScienceAnalyzer's private ageNorms(userAge:sleepData:) (same deep/REM percent derivation and computeAgeNorms call).",
-     "evidence": [
-      "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift:592-600",
-      "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift:101-110"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeAgeNorms(age:deepPercent:remPercent:efficiency:)": "d57672535b61d472",
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency": "ec0ed6304aee409d",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29"
    }
   },
   {

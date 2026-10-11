@@ -21,7 +21,7 @@ extension MorningSessionPipeline {
     /// Delegate the heavy work to the acceptance service.
     private func runAcceptance(_ session: HRVSession) async throws {
         let settings = collector.settingsManager.settings
-        let trainingContext = await acceptanceTrainingContext(session, frozen: session.analysisResult)
+        let trainingContext = await scoringTrainingContext(result: session.analysisResult, sessionEnd: session.endDate ?? session.startDate)
         let inputs = SessionAcceptanceService.AcceptanceInputs(
             scoringConfig: collector.currentScoringConfig,
             trainingContext: trainingContext,
@@ -39,26 +39,12 @@ extension MorningSessionPipeline {
         )
     }
 
-    /// The analysis result's own training context, else the load as of the
-    /// session's end: fetched for a past night, never read from today's cache.
-    private func acceptanceTrainingContext(_ session: HRVSession, frozen result: HRVAnalysisResult?) async -> TrainingContext? {
-        if let frozen = result?.trainingContext { return frozen }
-        return await collector.createTrainingContextEnsuringFresh(relativeTo: session.endDate ?? session.startDate)
-    }
-
     /// UI state updates stay here rather than in the service. The accepted
     /// night is kept, so it is no longer the one "Discard" may remove.
     @MainActor
     private func clearAcceptedSessionState() {
-        collector.currentSession = nil
-        collector.sessionState.reviewArchivedSessionId = nil
-        collector.needsAcceptance = false
-        collector.recordingPhase = .idle
-        collector.verificationResult = nil
-        collector.recoveryWindow = nil
-        collector.isDeviceFetchInProgress = false
+        clearAcceptanceState()
         collector.archiveSignal.notifyChanged()
-        collector.healthKit.stopObservingSleepData()
     }
 
     /// Recompute and re-archive the composite recovery score for a session.
@@ -73,7 +59,7 @@ extension MorningSessionPipeline {
         guard let result = session.analysisResult else { return }
 
         let settings = collector.settingsManager.settings
-        let trainingContext = await acceptanceTrainingContext(session, frozen: result)
+        let trainingContext = await scoringTrainingContext(result: result, sessionEnd: session.endDate ?? session.startDate)
 
         let updated = await collector.acceptanceService.updateCompositeRecoveryScore(
             for: session,
@@ -92,7 +78,8 @@ extension MorningSessionPipeline {
     }
 
     /// Clear acceptance UI state — for overnight sessions that are already
-    /// archived. The night stays, so "Discard" no longer points at it.
+    /// archived. The night stays, so "Discard" no longer points at it. The
+    /// one reset of the review UI: acceptance and rejection run it too.
     func clearAcceptanceState() {
         collector.currentSession = nil
         collector.sessionState.reviewArchivedSessionId = nil
@@ -119,14 +106,6 @@ extension MorningSessionPipeline {
             }
         )
 
-        await MainActor.run {
-            collector.currentSession = nil
-            collector.needsAcceptance = false
-            collector.recordingPhase = .idle
-            collector.verificationResult = nil
-            collector.recoveryWindow = nil
-            collector.isDeviceFetchInProgress = false
-            collector.healthKit.stopObservingSleepData()
-        }
+        await MainActor.run { clearAcceptanceState() }
     }
 }

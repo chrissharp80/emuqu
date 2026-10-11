@@ -173,7 +173,11 @@ struct StrapLinkCoordinator {
         guard !consumeDeliberateDrop(deviceId: deviceId, wasStreaming: wasStreaming) else { return }
         switch loss {
         case .deviceCommand:
+            // A strap told to restart or power off is not chased, so a
+            // session buffering on it is told now, as for a lost pairing,
+            // rather than waiting for beats that will not come.
             runtime.reconnectTargetId = nil
+            if wasStreaming { manager.reconnectExhausted = true }
         case let .pairingLost(reason):
             pairingLost(reason: reason, wasStreaming: wasStreaming)
         case .connectionLost:
@@ -224,6 +228,7 @@ struct StrapLinkCoordinator {
             manager.connectedDeviceType = nil
         }
         manager.batteryLevel = nil
+        manager.isBatteryReadingStale = false
         manager.currentHeartRate = nil
         manager.firmwareVersion = nil
         manager.hasReceivedSoftwareRevision = false
@@ -388,7 +393,7 @@ struct StrapLinkCoordinator {
                 return value
             } catch where StrapErrorClassifier.isNotReadyYet(error) {
                 refusals += 1
-                try await pauseBeforeRetrying(after: error, refusals: refusals, deadline: deadline)
+                try await pauseBeforeRetrying(after: error, refusals: refusals, deadline: deadline, while: keepWaiting)
             }
         }
     }
@@ -411,8 +416,12 @@ struct StrapLinkCoordinator {
     }
 
     /// Wait out a "not ready yet" refusal, or rethrow it when the retry would
-    /// land past the deadline. A readiness change wakes the wait early.
-    private func pauseBeforeRetrying(after error: Error, refusals: Int, deadline: Date?) async throws {
+    /// land past the deadline, the caller has stopped waiting (`keepWaiting`
+    /// false, e.g. the user's Cancel on a transfer) or the task was
+    /// cancelled, where the wait would return at once and the retries run
+    /// back to back. A readiness change wakes the wait early.
+    private func pauseBeforeRetrying(after error: Error, refusals: Int, deadline: Date?, while keepWaiting: () -> Bool) async throws {
+        guard keepWaiting(), !Task.isCancelled else { throw error }
         let delay = StrapFeedHealth.resubscribeDelay(afterFailures: refusals)
         if let deadline, Date().addingTimeInterval(delay) >= deadline { throw error }
         _ = await runtime.signal.wait(timeout: delay)

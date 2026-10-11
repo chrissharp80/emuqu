@@ -7,6 +7,12 @@ import Foundation
 // `message` builder; rules that need per-workout memory own a small state
 // class and a `resetWorkoutState` hook the engine calls at workout start.
 //
+// A condition may track per-reading streak state, keyed on the reading it
+// came from (α1 recompute, workout second), so evaluating the same snapshot
+// twice gives the same answer. Anything spent by firing (a once-per-workout
+// flag, a threshold's own cooldown) is spent in `didFire`, which the engine
+// runs only when the rule actually fires.
+//
 // The four group functions are internal rather than private because
 // `defaultRules()` lives in the other file and Swift's `private` is
 // file-scoped. Everything below them stays private to this file.
@@ -40,7 +46,9 @@ extension WorkoutTriggerEngine {
         return r2 >= 0.85
     }
 
-        // α1 crosses below aerobic threshold → call it out once
+        // α1 in the aerobic-edge band (0.60 ≤ α1 < 0.75). A level test, not
+        // a crossing: it fires again every 20 min (its cooldown) while α1
+        // stays in the band.
     private static func alpha1BelowAeTRule() -> Rule {
         Rule(
             // .silent rather than .spoken. Per
@@ -71,7 +79,8 @@ extension WorkoutTriggerEngine {
         return String(localized: "Your α1 just hit \(a) — you're at your aerobic edge. Back off to keep it easy, or hold this for tempo, your call.", bundle: LanguageManager.appBundle)
     }
 
-        // α1 dropping below VT2 (intense) during a session the user said was easy.
+        // α1 below 0.50 (above VT2, intense). It reads no target zone or
+        // stated intent, so it fires on any session, hard ones included.
         //
         // Debounced. Debug log
         // hrv_debug_log_1778086619.txt showed α1 going
@@ -106,23 +115,32 @@ extension WorkoutTriggerEngine {
 
     /// Closure-captured per-workout state for `alpha1AboveVT2Rule`.
     private final class Alpha1VT2State {
-            var consecutiveBelow: Int = 0
-            var lastSeen: Double = -1
+        var consecutiveBelow: Int = 0
+        var lastReading: Alpha1Reading?
     }
 
+    /// One α1 recompute as the context shows it: the value and its fit R².
+    /// Two recomputes rarely agree on both, so a repeat of the pair is the
+    /// same reading seen on a later tick.
+    fileprivate struct Alpha1Reading: Equatable {
+        let alpha: Double
+        let fitQuality: Double?
+    }
+
+    /// A window with no α1, or one the R² gate rejects, breaks the run: the
+    /// readings either side of it are not consecutive.
     private static func alpha1AboveVT2Condition(_ ctx: WorkoutAIContext, state: Alpha1VT2State) -> Bool {
-        guard alpha1FitOK(ctx) else { return false }
-        guard let alpha = ctx.alpha1 else { return false }
+        guard alpha1FitOK(ctx), let alpha = ctx.alpha1 else {
+            state.consecutiveBelow = 0
+            return false
+        }
         // Only count NEW readings. Tick fires at
         // 1 Hz but α1 only recomputes every 20 s,
-        // so we'd see the same value many times.
-        if alpha != state.lastSeen {
-            state.lastSeen = alpha
-            if alpha < 0.50 {
-                state.consecutiveBelow += 1
-            } else {
-                state.consecutiveBelow = 0
-            }
+        // so we'd see the same reading many times.
+        let reading = Alpha1Reading(alpha: alpha, fitQuality: ctx.alpha1FitQuality)
+        if reading != state.lastReading {
+            state.lastReading = reading
+            state.consecutiveBelow = alpha < 0.50 ? state.consecutiveBelow + 1 : 0
         }
         return state.consecutiveBelow >= 2 && alpha < 0.50
     }
@@ -134,7 +152,7 @@ extension WorkoutTriggerEngine {
 
     private static func alpha1AboveVT2ResetWorkoutState(state: Alpha1VT2State) {
         state.consecutiveBelow = 0
-        state.lastSeen = -1
+        state.lastReading = nil
     }
 
         // HR drift >5% in the back half of a long session.
@@ -151,12 +169,10 @@ extension WorkoutTriggerEngine {
         // explicitly called out (item #12). Skip when the current
         // sustained grade is >+2 % (climb) or <-2 % (descent —
         // HR dropping on a downhill mid-quartile would also distort
-        // the comparison, just in the other direction). Also bump
-        // the minimum elapsed time floor: 30 min was OK on paper
-        // but a single sharp hill landing in the back-quartile
-        // window can still push drift over 5 %. The user's spec:
-        // "only surface when genuinely meaningful." Doubling the
-        // back-quartile sample requirement protects against that.
+        // the comparison, just in the other direction). The workout
+        // must also be more than 30 min in, and the HR slope must be
+        // known and not falling (see the condition). The user's spec:
+        // "only surface when genuinely meaningful."
     private static func hrDriftHighRule() -> Rule {
         Rule(
             id: "hr.driftHigh",
@@ -219,10 +235,10 @@ extension WorkoutTriggerEngine {
         // slow. Firing on a single tick would let one
         // misclassified beat trigger an unwelcome
         // alert. Mirror the α1 VT2 rule's pattern: require two
-        // CONSECUTIVE NEW HR samples that meet the criteria
-        // before firing. Single-beat artifacts can't pass this
-        // gate; a real sustained spike (≥1-2 s of consistent
-        // 85%+ HR with slow pace) will.
+        // CONSECUTIVE samples that meet the criteria before
+        // firing. Single-beat artifacts can't pass this gate; a
+        // real sustained spike (≥2 s of consistent 85%+ HR with
+        // slow pace) will.
     private static func hrSpikeNoPaceRule() -> Rule {
         {
             let state = HRSpikeState()
@@ -239,33 +255,32 @@ extension WorkoutTriggerEngine {
 
     /// Closure-captured per-workout state for `hrSpikeNoPaceRule`.
     private final class HRSpikeState {
-            var consecutiveAbove: Int = 0
-            var lastSeenHR: Int = -1
+        var consecutiveAbove: Int = 0
+        var lastSampleSecond: Int = -1
     }
 
-    /// Fail-closed grade gate: require a known, flat grade so an
-    /// uphill doesn't false-positive.
-    ///
-    /// Only NEW samples advance the streak. The strap delivers HR at ~1 Hz and
-    /// the engine ticks faster, so without the `lastSeenHR` guard we'd count
-    /// the same sample repeatedly.
+    /// One sample per workout second: the engine ticks once a second and the
+    /// strap delivers HR at about 1 Hz, so a spike held at a steady HR
+    /// (165, 165, 165) counts every second, and the same snapshot evaluated
+    /// twice counts once. A second that fails any gate breaks the run.
     private static func hrSpikeNoPaceCondition(_ ctx: WorkoutAIContext, state: HRSpikeState) -> Bool {
-        guard let hr = ctx.heartRate, ctx.userMaxHR > 0 else {
-            state.consecutiveAbove = 0
-            return false
+        if ctx.elapsedSeconds != state.lastSampleSecond {
+            state.lastSampleSecond = ctx.elapsedSeconds
+            state.consecutiveAbove = hrSpikeSampleQualifies(ctx) ? state.consecutiveAbove + 1 : 0
         }
-        guard ctx.sport.usesGPS else { return false }
-        guard let current = ctx.currentPaceSecPerKm,
+        return state.consecutiveAbove >= 2
+    }
+
+    /// HR above 85 % of max while pace is more than 5 % slower than the last
+    /// split, on a GPS sport. Fail-closed grade gate: require a known, flat
+    /// grade so an uphill doesn't false-positive.
+    private static func hrSpikeSampleQualifies(_ ctx: WorkoutAIContext) -> Bool {
+        guard let hr = ctx.heartRate, ctx.userMaxHR > 0, ctx.sport.usesGPS,
+              let current = ctx.currentPaceSecPerKm,
               let recent = ctx.recentSplitPaces.first, recent > 0,
               let grade = ctx.currentGradePercent, abs(grade) <= 2.0
         else { return false }
-        let frac = Double(hr) / Double(ctx.userMaxHR)
-        let meetsCriteria = frac > 0.85 && current > recent * 1.05
-        if hr != state.lastSeenHR {
-            state.lastSeenHR = hr
-            state.consecutiveAbove = meetsCriteria ? state.consecutiveAbove + 1 : 0
-        }
-        return state.consecutiveAbove >= 2
+        return Double(hr) / Double(ctx.userMaxHR) > 0.85 && current > recent * 1.05
     }
 
     private static func hrSpikeNoPaceMessage(_ ctx: WorkoutAIContext, state: HRSpikeState) -> String {
@@ -284,52 +299,31 @@ extension WorkoutTriggerEngine {
 
     private static func hrSpikeNoPaceResetWorkoutState(state: HRSpikeState) {
         state.consecutiveAbove = 0
-        state.lastSeenHR = -1
+        state.lastSampleSecond = -1
     }
 
-    // Climbs ahead, route profile, and drift out of the target zone.
+    // Drift out of the target zone, and the route's climbs ahead. One climb
+    // rule: `route.climbAhead` covers every `upcomingClimb`, with its length
+    // and queue position.
     static func terrainAndZoneRules() -> [Rule] {
         [
-            terrainClimbAheadRule(),
             zoneDriftedHighRule(),
             zoneDriftedLowRule(),
             routeClimbAheadRule()
         ]
     }
 
-        // Entering a sustained climb (>3% over ~200 m)
-    private static func terrainClimbAheadRule() -> Rule {
-        Rule(
-            id: "terrain.climbAhead",
-            tier: .silent,
-            cooldown: 10 * 60,
-            condition: { ctx in
-                guard let climb = ctx.upcomingClimb else { return false }
-                return climb.gradePercent >= 3.0 && climb.distanceMeters >= 100
-            },
-            message: terrainClimbAheadMessage
-        )
-    }
-
-    private static func terrainClimbAheadMessage(_ ctx: WorkoutAIContext) -> String {
-        let dist = Int(ctx.upcomingClimb?.distanceMeters ?? 0)
-        let grade = String(format: "%.1f", ctx.upcomingClimb?.gradePercent ?? 0)
-        guard let hr = ctx.heartRate else {
-            return String(localized: "there's a \(grade)% climb ahead in about \(dist) meters — ease off before it if you want to save something, or stay on it, your call.", bundle: LanguageManager.appBundle)
-        }
-        return String(localized: "HR's at \(hr), there's a \(grade)% climb ahead in about \(dist) meters — ease off before it if you want to save something, or stay on it, your call.", bundle: LanguageManager.appBundle)
-    }
-
         // Zone-target drift rules. Only fire when the user has set a
         // target zone on the ready screen. Tier `.silent`: recorded in
-        // the engine history only, never spoken. Cooldowns 2.5 min so the
-        // user isn't nagged every
-        // tick of being slightly out of zone.
+        // the engine history only, never spoken. Each tests the current
+        // tick's HR against the target band (once the workout is 1 min /
+        // 3 min in; there is no drift-duration debounce), with a 2.5 min
+        // cooldown so the user isn't nagged every tick of being slightly
+        // out of zone.
         //
         // Scientific basis: HR-zone adherence in polarized training
         // (80/20 rule — Seiler, Kiely) requires actually *staying* in
-        // the chosen zone for most of the work. A brief deviation is
-        // not a coaching moment; a sustained 60s drift is.
+        // the chosen zone for most of the work.
         // Grade-aware suppression on
         // zone-drift-high too. Outdoor activities at >+2% sustained
         // grade legitimately push HR above the target band — that's
@@ -460,28 +454,55 @@ extension WorkoutTriggerEngine {
         return String(localized: "\(String(format: "%.1f", km)) kilometers", bundle: LanguageManager.appBundle)
     }
 
-    // Strap health, user-set thresholds, split markers, cadence.
+    // Strap health, user-set thresholds, cadence. Split markers are
+    // `WorkoutMileMarkerEngine`'s, not a rule here.
     static func equipmentAndProgressRules() -> [Rule] {
         [
             equipmentStrapDownRule(),
             userThresholdBreachRule(),
-            splitMarkerCompletedRule(),
             cadenceConsistencyDropRule()
         ]
     }
 
-        // Strap dropped mid-session
+        // Strap dropped mid-session: connected on one workout second, gone
+        // on the next. A workout recorded without a strap never had one to
+        // drop, so it never fires.
     private static func equipmentStrapDownRule() -> Rule {
-        Rule(
+        let state = StrapLinkState()
+        return Rule(
             id: "equipment.strapDown",
             tier: .haptic,
             urgency: .urgent,
             cooldown: 60,
-            condition: { ctx in !ctx.strapConnected },
+            condition: { strapDroppedCondition($0, state: state) },
             message: { _ in
                 String(localized: "Strap just went quiet — switching to your Watch's heart rate.", bundle: LanguageManager.appBundle)
-            }
+            },
+            resetWorkoutState: { state.reset() }
         )
+    }
+
+    /// The strap link on the last two distinct workout seconds, so the same
+    /// snapshot evaluated twice gives the same answer.
+    private final class StrapLinkState {
+        var observedSecond = -1
+        var previous = false
+        var current = false
+
+        func reset() {
+            observedSecond = -1
+            previous = false
+            current = false
+        }
+    }
+
+    private static func strapDroppedCondition(_ ctx: WorkoutAIContext, state: StrapLinkState) -> Bool {
+        if ctx.elapsedSeconds != state.observedSecond {
+            state.observedSecond = ctx.elapsedSeconds
+            state.previous = state.current
+            state.current = ctx.strapConnected
+        }
+        return state.previous && !state.current
     }
 
         // User-declared threshold breaches. ONE rule covers all
@@ -498,7 +519,9 @@ extension WorkoutTriggerEngine {
         // threshold's own `cooldownSec` gates repeats of THAT threshold
         // (tracked per threshold in `ThresholdCooldownState`, on the
         // workout clock); the engine's 30 s rule cooldown is only a floor
-        // between any two threshold cues.
+        // between any two threshold cues. The threshold's cooldown starts
+        // when its cue fires, which the engine lets happen only when it can
+        // be heard, so a muted coach doesn't spend it.
     private static func userThresholdBreachRule() -> Rule {
         let state = ThresholdCooldownState()
         return Rule(
@@ -508,6 +531,7 @@ extension WorkoutTriggerEngine {
             cooldown: 30,
             condition: { ctx in !dueThresholds(ctx, state: state).isEmpty },
             message: { ctx in userThresholdBreachMessage(ctx, state: state) },
+            didFire: { ctx in startThresholdCooldown(ctx, state: state) },
             resetWorkoutState: { state.lastSpokenAt.removeAll() }
         )
     }
@@ -531,15 +555,20 @@ extension WorkoutTriggerEngine {
     }
 
     /// Picks the due threshold with the longest sustained breach — that's
-    /// the most-needed cue right now if several are firing simultaneously —
-    /// and starts its cooldown.
+    /// the most-needed cue right now if several are firing simultaneously.
     private static func userThresholdBreachMessage(_ ctx: WorkoutAIContext, state: ThresholdCooldownState) -> String {
         guard let threshold = dueThresholds(ctx, state: state).first else {
             return String(localized: "Threshold breached.", bundle: LanguageManager.appBundle)
         }
-        state.lastSpokenAt[threshold.id] = ctx.elapsedSeconds
         if let userCue = threshold.userCue, !userCue.isEmpty { return userCue }
         return threshold.defaultCue(currentValue: observedValue(of: threshold, in: ctx))
+    }
+
+    /// Starts the cooldown of the threshold `userThresholdBreachMessage`
+    /// picked: the same `dueThresholds` lookup, before anything changed it.
+    private static func startThresholdCooldown(_ ctx: WorkoutAIContext, state: ThresholdCooldownState) {
+        guard let threshold = dueThresholds(ctx, state: state).first else { return }
+        state.lastSpokenAt[threshold.id] = ctx.elapsedSeconds
     }
 
     /// The live reading for whichever metric this threshold watches, falling
@@ -553,74 +582,6 @@ extension WorkoutTriggerEngine {
         case .cadenceSPM: return Double(ctx.cadenceStepsPerMin ?? 0)
         default: return threshold.value
         }
-    }
-
-        // Mile / km marker trigger (user request #6).
-        // Fires once per integer split unit (mi for imperial users,
-        // km for metric) with an AI prompt that compares the
-        // most-recent split against the user's historical sport
-        // baseline. Closure-captured `state` ref tracks the last
-        // split index emitted so duplicates are suppressed without
-        // relying on engine-wide cooldown timers (which are
-        // distance-blind and would mute the rule on slow miles or
-        // multi-fire on fast ones). The engine calls
-        // `resetWorkoutState` at workout start so mile 1 of every
-        // new workout fires cleanly — no "fresh workout" heuristic
-        // needed.
-    private static func splitMarkerCompletedRule() -> Rule {
-        {
-            let state = SplitMarkerState()
-            return Rule(
-                id: "split.markerCompleted",
-                // .silent. The opt-in WorkoutMileMarkerEngine
-                // (default off, user toggles on in Settings →
-                // Notifications) owns mile-marker announcements.
-                // This rule only records "split N completed" in
-                // the engine's in-memory history.
-                tier: .silent,
-                cooldown: 0, // gating happens via state, not time
-                condition: { splitMarkerCompletedCondition($0, state: state) },
-                message: { splitMarkerCompletedMessage($0, state: state) },
-                resetWorkoutState: { state.lastSplitFiredAt = 0 }
-            )
-        }()
-    }
-
-    /// Closure-captured per-workout state for `splitMarkerCompletedRule`.
-    private final class SplitMarkerState {
-        var lastSplitFiredAt: Int = 0
-    }
-
-    private static func splitMarkerCompletedCondition(_ ctx: WorkoutAIContext, state: SplitMarkerState) -> Bool {
-        let useImperial = ctx.userUnits.resolved == .imperial
-        let splitMeters: Double = useImperial ? 1609.344 : 1000.0
-        let currentSplitIndex = Int(ctx.distanceMeters / splitMeters)
-        guard currentSplitIndex > state.lastSplitFiredAt else { return false }
-        // Require some real elapsed time so a GPS
-        // glitch jumping us a mile in 30 seconds doesn't
-        // false-fire.
-        guard ctx.elapsedSeconds >= 60 else { return false }
-        state.lastSplitFiredAt = currentSplitIndex
-        return true
-    }
-
-    private static func splitMarkerCompletedMessage(_ ctx: WorkoutAIContext, state: SplitMarkerState) -> String {
-        let useImperial = ctx.userUnits.resolved == .imperial
-        let unitLabel = useImperial ? "mile" : "kilometer"
-        let splitNumber = Int(ctx.distanceMeters / (useImperial ? 1609.344 : 1000.0))
-        // Prompt asks the AI to compose a one-liner
-        // using whatever live + historical context is
-        // present in the fact sheet. We deliberately do
-        // NOT pre-compute the comparison here — that's
-        // the AI's job, with the prescribed-refusal
-        // grounding rules already in the system prompt
-        // ensuring it cites real numbers.
-        return "You just finished \(unitLabel) \(splitNumber). " +
-            "Speak ONE short sentence comparing this split's pace and HR " +
-            "to the historicalSportAvg* baseline if available, plus a quick " +
-            "trend note (faster/slower than last split, HR drift, decoupling). " +
-            "Skip the comparison if no historicalSportSampleCount in the " +
-            "context. End with an optional encourager."
     }
 
         // Cadence consistency drop. Fires when the
@@ -646,12 +607,14 @@ extension WorkoutTriggerEngine {
 
     // Rules that frame the session as a whole: decoupling, the opening
     // readiness note, race-pace detection, periodic check-ins, training load.
-    static func sessionNarrativeRules() -> [Rule] {
+    // `settings` is the engine's settings provider (the periodic check-in
+    // reads its toggle and cadence through it).
+    static func sessionNarrativeRules(settings: @escaping @MainActor () -> UserSettings) -> [Rule] {
         [
             aerobicDecouplingMaterialRule(),
             readinessOpeningRecommendationRule(),
             racePaceModeDetectedRule(),
-            coachPeriodicUpdateRule(),
+            coachPeriodicUpdateRule(settings: settings),
             trainingRecentLoadAboveUsualRangeRule()
         ]
     }
@@ -659,7 +622,9 @@ extension WorkoutTriggerEngine {
         // Aerobic decoupling alert. Fires when Pa:Hr
         // efficiency has dropped >5 % in the second half — the
         // generally-cited threshold for "your aerobic system is
-        // showing strain." Spoken so the AI can frame it.
+        // showing strain." Tier .silent: the message is written as a
+        // prompt for a model to frame, but no code sends it to one; it is
+        // recorded in the engine history only.
         //
         // Grade-aware suppression. Pa:Hr efficiency
         // legitimately drops on sustained climbs (more HR per unit
@@ -712,6 +677,7 @@ extension WorkoutTriggerEngine {
                     "If readiness is genuinely middling (no clear signal), say so " +
                     "rather than picking a side."
                 },
+                didFire: { _ in state.fired = true },
                 resetWorkoutState: { state.fired = false }
             )
         }()
@@ -728,12 +694,9 @@ extension WorkoutTriggerEngine {
         // Need at least one readiness datapoint to make
         // the call worth speaking. Without inputs, stay
         // silent rather than bluffing.
-        let hasInputs = ctx.todayRecoveryScore != nil
+        return ctx.todayRecoveryScore != nil
             || ctx.todayTSB != nil
             || ctx.projectedDaysUntilFresh != nil
-        guard hasInputs else { return false }
-        state.fired = true
-        return true
     }
 
         // Race-pace mode auto-trigger. Fires once per
@@ -764,6 +727,7 @@ extension WorkoutTriggerEngine {
                     "optional check — if they meant to be at easy pace, this is a " +
                     "warning, not a celebration."
                 },
+                didFire: { _ in state.fired = true },
                 resetWorkoutState: { racePaceModeDetectedResetWorkoutState(state: state) }
             )
         }()
@@ -771,45 +735,47 @@ extension WorkoutTriggerEngine {
 
     /// Closure-captured per-workout state for `racePaceModeDetectedRule`.
     private final class RacePaceState {
-            var sustainedSec: Int = 0
-            var fired: Bool = false
-            var lastTickAt: Date?
+        var sustainedSec: Int = 0
+        var fired: Bool = false
+        var lastElapsedSec: Int?
     }
+
+    /// Longest gap between two ticks credited as time at race pace. The
+    /// engine ticks once a second; a longer gap (the app suspended) is not
+    /// time the user was seen holding the pace.
+    private static let racePaceMaxCreditSec = 5
 
     /// Reset the sustained counter whenever we're not in the candidate band,
     /// so the rule requires CONTIGUOUS time at race pace, not cumulative.
+    /// Time is the workout clock (`elapsedSeconds`), so a pause adds nothing
+    /// and the same snapshot evaluated twice adds nothing.
     private static func racePaceModeDetectedCondition(_ ctx: WorkoutAIContext, state: RacePaceState) -> Bool {
         guard !state.fired,
               ctx.elapsedSeconds >= 300, // ≥ 5 min in
               let currentPace = ctx.currentPaceSecPerKm,
               currentPace > 0,
-              let raceSec = ctx.predictedRaceTime5KSec
-        else { return restartRacePaceWindow(state) }
+              let raceSec = ctx.predictedRaceTime5KSec, raceSec > 0
+        else { return restartRacePaceWindow(state, at: ctx.elapsedSeconds) }
         let racePace = raceSec / 5.0
-        guard abs(currentPace - racePace) / racePace <= 0.03 else { return restartRacePaceWindow(state) }
-        // Accumulate sustained seconds. Use wall-clock delta since the engine
-        // doesn't promise a fixed tick cadence.
-        let now = Date()
-        if let last = state.lastTickAt {
-            state.sustainedSec += max(0, Int(now.timeIntervalSince(last)))
+        guard abs(currentPace - racePace) / racePace <= 0.03 else { return restartRacePaceWindow(state, at: ctx.elapsedSeconds) }
+        if let last = state.lastElapsedSec {
+            state.sustainedSec += min(max(0, ctx.elapsedSeconds - last), racePaceMaxCreditSec)
         }
-        state.lastTickAt = now
-        guard state.sustainedSec >= 120 else { return false } // 2 min sustained
-        state.fired = true
-        return true
+        state.lastElapsedSec = ctx.elapsedSeconds
+        return state.sustainedSec >= 120 // 2 min sustained
     }
 
     /// Clear the sustained-seconds window and report "not firing".
-    private static func restartRacePaceWindow(_ state: RacePaceState) -> Bool {
+    private static func restartRacePaceWindow(_ state: RacePaceState, at elapsedSec: Int) -> Bool {
         state.sustainedSec = 0
-        state.lastTickAt = Date()
+        state.lastElapsedSec = elapsedSec
         return false
     }
 
     private static func racePaceModeDetectedResetWorkoutState(state: RacePaceState) {
         state.sustainedSec = 0
         state.fired = false
-        state.lastTickAt = nil
+        state.lastElapsedSec = nil
     }
 
         // Periodic coach check-in. Fires every
@@ -817,57 +783,53 @@ extension WorkoutTriggerEngine {
         // when (a) `enablePeriodicCoachUpdates` is on AND (b) at least
         // one live trend metric is present. Tier .silent: recorded in
         // the engine history only, never spoken. Closure-state tracks
-        // last-fired wall-clock; resets per workout via the engine's
-        // resetWorkoutState hook.
-    private static func coachPeriodicUpdateRule() -> Rule {
-        {
-            let state = CoachUpdateState()
-            return Rule(
-                id: "coach.periodicUpdate",
-                tier: .silent,
-                cooldown: 0, // gated via state + cadence setting
-                condition: { coachPeriodicUpdateCondition($0, state: state) },
-                message: { coachPeriodicUpdateMessage($0, state: state) },
-                resetWorkoutState: { state.lastFiredAt = nil }
-            )
-        }()
+        // the workout second it last fired; resets per workout via the
+        // engine's resetWorkoutState hook. Settings come through the
+        // engine's provider rather than the app-wide settings.
+    private static func coachPeriodicUpdateRule(settings: @escaping @MainActor () -> UserSettings) -> Rule {
+        let state = CoachUpdateState()
+        return Rule(
+            id: "coach.periodicUpdate",
+            tier: .silent,
+            cooldown: 0, // gated via state + cadence setting
+            condition: { coachPeriodicUpdateCondition($0, state: state, settings: settings()) },
+            message: coachPeriodicUpdateMessage,
+            didFire: { ctx in state.lastFiredElapsedSec = ctx.elapsedSeconds },
+            resetWorkoutState: { state.lastFiredElapsedSec = nil }
+        )
     }
 
     /// Closure-captured per-workout state for `coachPeriodicUpdateRule`.
     private final class CoachUpdateState {
-        var lastFiredAt: Date?
+        var lastFiredElapsedSec: Int?
     }
 
-    /// Reads the setting fresh each tick — the user can toggle it
-    /// mid-workout. `assumeIsolated` is safe; we're on the MainActor here per
-    /// engine isolation.
+    /// Reads the settings fresh each tick — the user can toggle them
+    /// mid-workout.
     ///
     /// Never fires inside the first cadence window: let the workout actually
     /// start and gather some data first.
-    private static func coachPeriodicUpdateCondition(_ ctx: WorkoutAIContext, state: CoachUpdateState) -> Bool {
-        let settings = MainActor.assumeIsolated { AppDependencies.current.app.settingsManager.settings }
+    private static func coachPeriodicUpdateCondition(_ ctx: WorkoutAIContext, state: CoachUpdateState, settings: UserSettings) -> Bool {
         guard settings.enablePeriodicCoachUpdates else { return false }
         let cadence = max(60, settings.periodicCoachCadenceSec) // floor 1 min
         guard ctx.elapsedSeconds >= cadence else { return false }
-        if let last = state.lastFiredAt, Date().timeIntervalSince(last) < Double(cadence) {
+        if let last = state.lastFiredElapsedSec, ctx.elapsedSeconds - last < cadence {
             return false
         }
-        guard hasLiveSignal(ctx) else { return false }
-        state.lastFiredAt = Date()
-        return true
+        return hasLiveSignal(ctx)
     }
 
-    /// At least one MEANINGFUL live signal. If there's nothing to say right
-    /// now, the periodic coach update stays silent instead of filling air.
+    /// At least one MEANINGFUL live trend metric. A cross-workout baseline
+    /// alone is not one. If there's nothing to say right now, the periodic
+    /// coach update stays silent instead of filling air.
     private static func hasLiveSignal(_ ctx: WorkoutAIContext) -> Bool {
         ctx.liveHRDriftPercent != nil
             || ctx.aerobicDecouplingPercent != nil
             || ctx.reverseSplitDeltaSecPerKm != nil
             || ctx.cadenceDriftSpm != nil
-            || ctx.historicalSportSampleCount > 0
     }
 
-    private static func coachPeriodicUpdateMessage(_ ctx: WorkoutAIContext, state: CoachUpdateState) -> String {
+    private static func coachPeriodicUpdateMessage(_ ctx: WorkoutAIContext) -> String {
         let elapsedMin = ctx.elapsedSeconds / 60
         return "You're \(elapsedMin) minutes into the workout. Speak ONE short sentence about the single most coaching-relevant signal right now: liveHRDriftPercent, aerobicDecouplingPercent, reverseSplitDeltaSecPerKm, cadenceDriftSpm, or pace vs historicalSportAvg. Cite the actual number and what it means for the user — DO NOT list multiple. If NO metric stands out (everything is in normal range), STAY SILENT: output nothing at all. NEVER speak generic encouragement (\"nice work\", \"keep it up\", \"go for it\", \"great run\") or filler just to fill space — a specific observation or nothing."
     }
@@ -892,7 +854,8 @@ extension WorkoutTriggerEngine {
                 tier: .silent,
                 cooldown: 0,
                 condition: { trainingRecentLoadAboveUsualRangeCondition($0, state: state) },
-                message: { trainingRecentLoadAboveUsualRangeMessage($0, state: state) },
+                message: trainingRecentLoadAboveUsualRangeMessage,
+                didFire: { _ in state.fired = true },
                 resetWorkoutState: { state.fired = false }
             )
         }()
@@ -906,13 +869,10 @@ extension WorkoutTriggerEngine {
     private static func trainingRecentLoadAboveUsualRangeCondition(_ ctx: WorkoutAIContext, state: RecentLoadState) -> Bool {
         guard !state.fired else { return false }
         guard let atl = ctx.todayATL, let ctl = ctx.todayCTL, ctl > 0 else { return false }
-        let acwr = atl / ctl
-        guard acwr >= 1.4 else { return false }
-        state.fired = true
-        return true
+        return atl / ctl >= 1.4
     }
 
-    private static func trainingRecentLoadAboveUsualRangeMessage(_ ctx: WorkoutAIContext, state: RecentLoadState) -> String {
+    private static func trainingRecentLoadAboveUsualRangeMessage(_ ctx: WorkoutAIContext) -> String {
         let atl = ctx.todayATL ?? 0
         let ctl = ctx.todayCTL ?? 1
         let acwr = atl / ctl

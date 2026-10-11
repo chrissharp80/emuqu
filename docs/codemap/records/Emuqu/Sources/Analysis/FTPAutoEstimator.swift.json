@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Analysis/FTPAutoEstimator.swift",
- "hash": "2c3e675feb0a6308",
+ "hash": "a6d85a54fb12217a",
  "role": "Auto-estimates running FTP as 0.95 × best rolling 20-minute mean power from running-family archived workouts in the last 90 days, cached in UserDefaults and used as the fallback when the user has not set running FTP.",
  "types": [
   "FTPAutoEstimator: enum — scanning, scoring and UserDefaults cache",
@@ -11,22 +11,12 @@
   "ud:FlowRecovery.ftpAutoEstimate.runningFTP (cachedFTPKey, Int watts)",
   "ud:FlowRecovery.ftpAutoEstimate.computedAt (cachedAsOfKey, Date)",
   "ud:FlowRecovery.ftpAutoEstimate.sourceSessionId (cachedSourceSessionKey, UUID string)",
-  "ud:FlowRecovery.ftpAutoEstimate.sourceNP (cachedSourcePowerKey, Double; name says NP but stores 20-min mean power)",
-  "static lookbackDays=90, effortWindowSeconds=1200, minimumPowerCoverage=0.9, twentyMinuteToFTPFactor=0.95"
+  "ud:FlowRecovery.ftpAutoEstimate.sourceNP (legacySourcePowerKey; no longer written, removed on every scan)",
+  "static lookbackDays=90, effortWindowSeconds=1200, minimumPowerCoverage=0.9, twentyMinuteToFTPFactor=0.95",
+  "static rescanInterval = 7 days"
  ],
  "toplevel": "Static constants only.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "UserDefaults key name 'sourceNP' stores the 20-minute mean power, not normalized power.",
-   "evidence": [
-    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift:40",
-    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift:194"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "var FTPAutoEstimator.cachedRunningFTP",
@@ -65,7 +55,7 @@
   {
    "key": "var FTPAutoEstimator.sourceSessionId",
    "hash": "8f77a850df63ee6d",
-   "does": "Returns the UUID of the session that anchored the estimate, from UserDefaults.",
+   "does": "Returns the UUID of the session that anchored the estimate, from UserDefaults; needsRecompute checks it is still archived.",
    "entry": null,
    "calls": [],
    "reads": [
@@ -79,50 +69,16 @@
      "effect": "false: nil; true: UUID(uuidString:) (nil if malformed)"
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No reader anywhere in the repo (grep of Swift sources and tests finds only its declaration); it is written by persist() but never read, despite the 'Diagnostic' doc.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/FTPAutoEstimator.swift:73"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
-  },
-  {
-   "key": "var FTPAutoEstimator.sourceMeanPower",
-   "hash": "5e07e551295061a0",
-   "does": "Returns the stored 20-minute mean power (0 when absent).",
-   "entry": null,
-   "calls": [],
-   "reads": [
-    "ud:FlowRecovery.ftpAutoEstimate.sourceNP"
-   ],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No reader anywhere in the repo (grep of Swift sources and tests finds only its declaration); it is written by persist() but never read, despite the 'Diagnostic' doc.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/FTPAutoEstimator.swift:79"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
    "key": "func FTPAutoEstimator.recomputeIfNeeded(archive:force:now:)",
-   "hash": "2d3387a6c63cc27f",
-   "does": "Unless forced, returns when the last scan is under 7 days old; otherwise starts a detached utility-priority Task that runs recompute(archive:now:).",
+   "hash": "4612b7f0346f1e6e",
+   "does": "Fire-and-forget: unless forced or needsRecompute, returns; otherwise starts a detached utility-priority Task that runs recompute(archive:now:) and returns at once.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::var FTPAutoEstimator.lastComputedAt",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.needsRecompute(archive:now:)",
     "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.recompute(archive:now:)"
    ],
    "reads": [
@@ -132,21 +88,11 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "!force and lastComputedAt exists and now - last < 7 days",
+     "cond": "!force and !needsRecompute",
      "effect": "returns without scanning; else launches Task.detached recompute"
     }
    ],
    "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Throttled only by time: a newly recorded hard run within 7 days of the last scan does not update the FTP (and so power-TSS) until the week passes; the only caller passes force=false.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/FTPAutoEstimator.swift:86",
-      "Emuqu/Sources/Services/AppLaunchTasks.swift:490"
-     ],
-     "found": "first read, upheld on second"
-    },
     {
      "kind": "race",
      "sev": "low",
@@ -158,22 +104,86 @@
       "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift:22"
      ],
      "found": "second read"
-    },
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Type doc says the estimate is cleared when the anchoring workout was deleted, but nothing reacts to deletion: the only caller is the throttled launch housekeeping, so a deleted anchor keeps scaling power-TSS for up to 7 days.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/FTPAutoEstimator.swift:28",
-      "Emuqu/Sources/Analysis/FTPAutoEstimator.swift:86",
-      "Emuqu/Sources/Services/AppLaunchTasks.swift:490"
-     ],
-     "found": "second read"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.recompute(archive:now:)": "976dc961cc0d3ba3",
-    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::var FTPAutoEstimator.lastComputedAt": "07775f853b5eb37f"
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.needsRecompute(archive:now:)": "1573afbe067a5006",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.recompute(archive:now:)": "976dc961cc0d3ba3"
+   }
+  },
+  {
+   "key": "func FTPAutoEstimator.recomputeIfNeededAndWait(archive:force:now:)",
+   "hash": "05f902af802a0952",
+   "does": "Like recomputeIfNeeded but awaits the detached scan, so a caller that refreshes training load next reads the new FTP.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.needsRecompute(archive:now:)",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.recompute(archive:now:)"
+   ],
+   "reads": [
+    "ud:FlowRecovery.ftpAutoEstimate.computedAt",
+    "ud:FlowRecovery.ftpAutoEstimate.sourceSessionId"
+   ],
+   "writes": [
+    "ud:FlowRecovery.ftpAutoEstimate.runningFTP",
+    "ud:FlowRecovery.ftpAutoEstimate.computedAt",
+    "ud:FlowRecovery.ftpAutoEstimate.sourceSessionId"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "!force and !needsRecompute",
+     "effect": "returns; else awaits the detached recompute"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.needsRecompute(archive:now:)": "1573afbe067a5006",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.recompute(archive:now:)": "976dc961cc0d3ba3"
+   }
+  },
+  {
+   "key": "func FTPAutoEstimator.needsRecompute(archive:now:)",
+   "hash": "301a3d95ea19ec44",
+   "does": "True when no scan has run, the last is at least 7 days old, a workout entry dated after the last scan is in the archive, or the anchoring session (sourceSessionId) is no longer in the archive index.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::var FTPAutoEstimator.lastComputedAt",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::var FTPAutoEstimator.sourceSessionId"
+   ],
+   "reads": [
+    "ud:FlowRecovery.ftpAutoEstimate.computedAt",
+    "ud:FlowRecovery.ftpAutoEstimate.sourceSessionId",
+    "archive:index entries"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no scan or older than rescanInterval",
+     "effect": "true"
+    },
+    {
+     "at": "+2",
+     "cond": "workout dated after the last scan",
+     "effect": "true"
+    },
+    {
+     "at": "+3",
+     "cond": "no anchor stored",
+     "effect": "false"
+    },
+    {
+     "at": "+4",
+     "cond": "anchor not in archive",
+     "effect": "true; else false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::var FTPAutoEstimator.lastComputedAt": "07775f853b5eb37f",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::var FTPAutoEstimator.sourceSessionId": "ead15d0317858c1c",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef"
    }
   },
   {
@@ -196,7 +206,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.bestEffort(in:)": "6966d0f5ca0e5a0d",
-    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.persist(_:at:)": "57e340be182f8d0c",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.persist(_:at:)": "d321852096406b4d",
     "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.recentRunningWorkouts(archive:now:)": "317a4d0fc13005bd"
    }
   },
@@ -419,8 +429,8 @@
   },
   {
    "key": "func FTPAutoEstimator.persist(_:at:)",
-   "hash": "e65c5002232f4301",
-   "does": "Stamps computedAt; with an effort stores FTP, source mean power and source session id and logs; without one removes the three estimate keys and logs that the estimate was cleared.",
+   "hash": "d4b8c2798a447bef",
+   "does": "Stamps computedAt and removes the legacy sourceNP key; with an effort stores FTP and source session id and logs; without one removes the FTP and source keys and logs that the estimate was cleared.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.ftp(for:)",
@@ -435,13 +445,13 @@
    ],
    "branches": [
     {
-     "at": "+3",
+     "at": "+4",
      "cond": "effort is nil",
      "effect": "removes cached FTP/source keys, logs, returns (FTP fallback disappears, so power TSS for users without manual FTP stops)"
     },
     {
-     "at": "+4",
-     "cond": "for each of the three keys",
+     "at": "+5",
+     "cond": "for each of the two keys",
      "effect": "removeObject"
     }
    ],

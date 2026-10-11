@@ -1,13 +1,14 @@
 import Foundation
 
 /// In-memory audit log of the last N LLM requests so we
-/// can answer "what did the AI actually see?" without hoping. Every
-/// provider's stream entry point pushes a record here right before
-/// `URLSession.bytes(for:)` (or, for Apple Foundation, before the
-/// `LanguageModelSession.send` call). The audit captures the system
-/// prompt, the messages array, the tools schema, the live_state
-/// block (when sliced out for cloud providers), and — once the stream
-/// finishes — token counts and the response text.
+/// can answer "what did the AI actually see?" without hoping. The chat's
+/// tool loop (`AssistantViewModel.recordPromptAudit`) records each provider
+/// round right before `provider.send`, for every provider, Apple included.
+/// The audit captures the system prompt, the messages array and the tools
+/// schema; as the stream runs the same caller attaches the response text
+/// (`append`) and token counts (`setUsage`), and `setError` records a
+/// failure. Sends outside the chat loop (summarizer, fact extraction, voice
+/// interjections) are not recorded.
 ///
 /// **Not persisted.** The audit lives only in memory and rolls a 10-
 /// entry FIFO. PHI/PII shows up in prompts (sleep, HRV, locations,
@@ -15,9 +16,11 @@ import Foundation
 /// reading the Troubleshooting page see the most recent N requests
 /// from THIS launch only; quitting the app drops the log.
 ///
-/// Storage cost is bounded: ~10 × ~50 KB = ~500 KB resident worst
-/// case (large coaching turn with a big tool catalog). Pruned with
-/// a hard limit so a tool-storm in a single turn can't blow the cap.
+/// Storage cost is bounded by the caps: each entry holds four strings
+/// (system prompt, messages, tools, response) of at most
+/// `maxPayloadCharacters` (60,000) each, so ten entries hold at most about
+/// 2.4M characters. A typical coaching turn is far smaller (~50 KB). Pruned
+/// with a hard limit so a tool-storm in a single turn can't blow the cap.
 @Observable
 @MainActor
 final class LLMRequestAudit {
@@ -75,7 +78,8 @@ final class LLMRequestAudit {
     private init() {}
 
     /// Record a request and return its ID so the streaming code can
-    /// later attach usage / response text via `update(...)`.
+    /// later attach response text, usage and a failure via `append`,
+    /// `setUsage` and `setError`.
     @discardableResult
     func record(
         provider: String,
@@ -115,8 +119,8 @@ final class LLMRequestAudit {
     }
 
     /// Stamp the final usage block (token counts) on the entry.
-    /// Called from each provider when it sees the SSE `usage` event
-    /// (Anthropic / OpenAI / Gemini all report this).
+    /// Called by the chat's stream handler on each `.usage` event a
+    /// provider yields (Anthropic / OpenAI / Gemini all report one).
     func setUsage(_ usage: Entry.Usage, for id: UUID) {
         guard let idx = entries.firstIndex(where: { $0.id == id }) else { return }
         var e = entries[idx]

@@ -37,9 +37,10 @@ final class CloudKitSyncManager {
     /// index updates asynchronously, so one just saved by the push can be
     /// absent from the listing that follows it.
     var missingFromLastListing: Set<UUID> = []
-    /// Most recent CloudKit error message that user code may want to
-    /// surface — typically the schema-promotion error. Decoupled from
-    /// `syncState` so transient UI status doesn't clobber it.
+    /// The message behind a sync that stays stopped (schema unavailable, no
+    /// usable iCloud account), written into `syncState` when it stops. Kept
+    /// apart from `syncState` so the account-change path can tell which error
+    /// it may clear; no screen reads it directly.
     private(set) var lastPermanentErrorMessage: String?
     /// Set by `pullRemoteChanges()` when the pull failed for a reason its
     /// internal catch would otherwise swallow with a debug log. Without it the
@@ -49,6 +50,12 @@ final class CloudKitSyncManager {
     /// ever comes down). Checked in `performFullSyncBody` so a failed pull
     /// surfaces as `.error` and does NOT advance `lastSyncDate`.
     var lastPullErrorMessage: String?
+    /// Set by `pushPendingSessions()` (cleared at its start) when a session
+    /// could not be prepared for a reason the user can act on
+    /// (`CloudSyncError`, e.g. the encryption key being unavailable). Like a
+    /// pull error, it ends the full sync as `.error` without advancing
+    /// `lastSyncDate`, so nothing reads "Up to date" while no session backs up.
+    var lastPushErrorMessage: String?
 
     /// Detect CloudKit errors that won't resolve without server-side action
     /// (schema promotion, container changes). Recognizing these stops the
@@ -209,7 +216,8 @@ final class CloudKitSyncManager {
     let syncSerializer = SyncSerializer()
 
     /// Token for the `.CKAccountChanged` observer (sign in/out
-    /// of iCloud mid-run). Stored so `deinit` can remove it. Without an
+    /// of iCloud mid-run), kept for the manager's lifetime — the process-long
+    /// singleton, so it is never removed. Without an
     /// account-change listener, signing out of
     /// iCloud during a session failed silently — sync just stopped working
     /// with no state change the UI could surface.
@@ -265,8 +273,6 @@ final class CloudKitSyncManager {
         ) { _ in handler() }
     }
 
-    deinit { observers.removeAll() }
-
     /// Re-check the CloudKit account status after `.CKAccountChanged` and
     /// reflect it in sync state. A signed-out / restricted account surfaces
     /// as `.error` (read by the same UI as every other sync error) rather
@@ -309,9 +315,14 @@ final class CloudKitSyncManager {
     /// records as uploaded and queues anything the remote listing is missing
     /// (`reuploadSessionsMissingFromCloud`), so a normal `performFullSync()`
     /// reconciles a switched account without the brute-force reset.
+    ///
+    /// The schema-unavailable error is not an account error and stays: it
+    /// pauses sync for the rest of the launch, and `performFullSync` returns
+    /// at once while it is set, so clearing it showed "Up to date" over a
+    /// paused sync.
     private func resumeSyncForAvailableAccount() async {
         debugLog("[CloudKit] Account change: iCloud account available — refreshing sync")
-        if case .error = syncState { syncState = .idle }
+        if case .error = syncState, !schemaUnavailable { syncState = .idle }
         if lastPermanentErrorMessage == CloudSyncMessages.notSignedIn {
             lastPermanentErrorMessage = nil
         }
@@ -457,7 +468,9 @@ final class CloudKitSyncManager {
 
     /// With iCloud Sync off, records uploaded while it was on still hold the
     /// Apple Health readings earlier builds sent. Rewrite them in place, a
-    /// batch per launch, without uploading anything new: the session records
+    /// batch each time `performFullSyncIfNeeded` runs with sync off (every
+    /// foreground activation; an account check and, once the list is done, an
+    /// empty pass), without uploading anything new: the session records
     /// (`CloudHealthScrubCoordinator.scrubInPlace`) and the settings record
     /// (`CloudKitSettingsSync.scrubStoredRecord`). Needs an iCloud account;
     /// without one nothing is read or written.
@@ -503,10 +516,6 @@ final class CloudKitSyncManager {
         await pull.pullRemoteChanges()
     }
 
-    /// "Record to insert already exists": a fresh CKRecord has no change tag,
-    /// so every re-upload of a synced session lands here. The data is on the
-    /// server, so it is marked uploaded rather than queued for retry, as the
-    /// batch push does.
     /// Re-save a record that lost a revision race on the direct upload path.
     ///
     /// Simply marking the record uploaded here would be wrong: CloudKit
@@ -515,44 +524,14 @@ final class CloudKitSyncManager {
     /// path is reached by `forceReuploadSession` after a reanalysis — the one
     /// caller whose entire purpose is replacing what the server already holds.
     ///
-    /// The error carries the server's record; re-applying this device's fields
-    /// onto it preserves the change tag, which is what makes the save succeed.
+    /// The batch push's resolution (`resolveConflict`) decides it — a server
+    /// tombstone wins unless this is a Trash restore, otherwise this device's
+    /// fields go over the server's record, edited-later wins — and the
+    /// outcome is then persisted, as this path saves state after every upload.
     private func resolveDirectConflict(
         _ error: CKError, record: CKRecord, sessionId: UUID
     ) async {
-        guard let serverRecord = error.serverRecord else {
-            debugLog("[CloudKit] Conflict with no server record for \(sessionId.uuidString.prefix(8)); will retry",
-                     level: .error)
-            state.markFailed(sessionId)
-            await state.saveSyncStateAsync()
-            return
-        }
-        if (serverRecord["isDeleted"] as? Int64 ?? 0) == 1, !trashRestore.isRestored(sessionId) {
-            pull.applyDeletionMetDuringUpload(sessionId)
-            return
-        }
-        await saveOverServerRecord(serverRecord, from: record, sessionId: sessionId)
-    }
-
-    /// This device's copy wins unless the server's was edited more recently:
-    /// every field is written over the server's record, saved with its change tag.
-    private func saveOverServerRecord(_ serverRecord: CKRecord, from record: CKRecord, sessionId: UUID) async {
-        guard CloudKitSessionFreshness.overwrite(
-            serverRecord, with: record, restoring: trashRestore.isRestored(sessionId), yieldingIn: &state
-        ) else {
-            return await state.saveSyncStateAsync()
-        }
-        trashRestore.markIfReplacingTombstone(serverRecord, sessionId: sessionId)
-        do {
-            try await privateDB.save(serverRecord)
-            state.markUploaded(sessionId)
-            trashRestore.clear(sessionId)
-        } catch {
-            CloudKitSessionFreshness.noteSaveFailure(error)
-            debugLog("[CloudKit] Conflict resolution failed for \(sessionId.uuidString.prefix(8)): \(error)",
-                     level: .error)
-            state.markFailed(sessionId)
-        }
+        _ = await resolveConflict(error, prepared: PreparedUpload(record: record), sessionId: sessionId)
         await state.saveSyncStateAsync()
     }
 
@@ -583,10 +562,17 @@ final class CloudKitSyncManager {
 
     /// Force re-upload a session that was previously uploaded (e.g., after a repair).
     /// Stamps the edit, so devices holding the session take this copy, and unmarks it.
+    ///
+    /// The unmark waits in `syncSerializer`, as `markSessionsForReupload`
+    /// does: a push or upload of the same session already in flight, with a
+    /// record built before the change, finishes first, and its `markUploaded`
+    /// can no longer land after the unmark and turn the upload below away.
     func forceReuploadSession(_ session: HRVSession) async {
         await CloudKitSessionFreshness.stampEdit(of: session.id, in: archive)
-        state.markRemoved(session.id)
-        await state.saveSyncStateAsync()
+        await syncSerializer.run { [self] in
+            state.markRemoved(session.id)
+            await state.saveSyncStateAsync()
+        }
         await uploadSession(session)
     }
 
@@ -657,36 +643,49 @@ final class CloudKitSyncManager {
     func performFullSync() async {
         let correlation = LogCorrelation.begin("sync")
         defer { LogCorrelation.end(correlation) }
-        if schemaUnavailable {
-            debugLog("[CloudKit] performFullSync skipped — schema unavailable (this launch)")
+        if let reason = fullSyncSkipReason() {
+            debugLog("[CloudKit] performFullSync skipped — \(reason)")
             return
         }
-        if syncState == .syncing, !recoverFromStuckSync() {
-            debugLog("[CloudKit] performFullSync skipped — already syncing")
-            return
-        }
-        guard settings.iCloudSyncEnabled else {
-            debugLog("[CloudKit] performFullSync skipped — iCloud Sync setting is OFF")
-            syncState = .idle
-            return
-        }
+        fullSyncsAdmitted += 1
+        defer { fullSyncsAdmitted -= 1 }
         debugLog("[CloudKit] performFullSync entering serializer (uploaded=\(state.uploadedSessionIds.count), pending=\(state.pendingUploadIds.count), archive=\(archive.entries.count))")
         await syncSerializer.run { [self] in
             await performFullSyncBody()
         }
     }
 
-    /// Stuck-state recovery. If `syncState` was last entered more
-    /// than `syncStuckThresholdSec` ago, the previous sync is hung (network
-    /// wedge, CloudKit wedge, record save with no timeout). Force-reset and
-    /// let the caller proceed. Without this, ONE hung sync froze sync forever
-    /// — the user saw "Syncing…" with no progress and 28 days since the last
-    /// successful sync. Returns false when the in-flight sync is still young
-    /// enough to be believed.
+    /// Full syncs admitted past `fullSyncSkipReason` and not yet finished,
+    /// waiting in the serializer included. `syncState` turns `.syncing` only
+    /// inside the body, so without this two calls arriving together both
+    /// passed the "already syncing" check and ran two full syncs back to back.
+    @ObservationIgnored private var fullSyncsAdmitted = 0
+
+    /// Why this call does not run a full sync, or nil to run it.
+    private func fullSyncSkipReason() -> String? {
+        if schemaUnavailable { return "schema unavailable (this launch)" }
+        if syncState == .syncing || fullSyncsAdmitted > 0, !recoverFromStuckSync() { return "already syncing" }
+        guard settings.iCloudSyncEnabled else {
+            syncState = .idle
+            return "iCloud Sync setting is OFF"
+        }
+        return nil
+    }
+
+    /// Stuck-state recovery. If the sync in flight has shown no sign of life
+    /// — neither its start nor a pushed record, pulled page or processed
+    /// remote record (`lastSyncProgressAt`) — for `syncStuckThresholdSec`, it
+    /// is hung (network wedge, CloudKit wedge, record save with no timeout).
+    /// Force-reset and let the caller proceed. Without this, ONE hung sync
+    /// froze sync forever — the user saw "Syncing…" with no progress and 28
+    /// days since the last successful sync. A slow sync that keeps
+    /// progressing is not stuck, the rule the body's watchdog follows.
+    /// Returns false when the in-flight sync is still to be believed (or none
+    /// has started its body).
     private func recoverFromStuckSync() -> Bool {
         guard let startedAt = syncingStartedAt,
-              Date().timeIntervalSince(startedAt) > syncStuckThresholdSec else { return false }
-        debugLog("[CloudKit] performFullSync detected stuck syncing state (\(Int(Date().timeIntervalSince(startedAt)))s old) — force-reset", level: .warning)
+              Date().timeIntervalSince(max(startedAt, lastSyncProgressAt)) > syncStuckThresholdSec else { return false }
+        debugLog("[CloudKit] performFullSync detected stuck syncing state (\(Int(Date().timeIntervalSince(startedAt)))s old, no progress for \(syncStuckThresholdSec)s) — force-reset", level: .warning)
         syncingStartedAt = nil
         syncState = .error(CloudSyncMessages.previousSyncTimedOut)
         return true
@@ -750,11 +749,13 @@ final class CloudKitSyncManager {
     /// failure) made Settings show "Last Sync: just now" / "Up to date" on a
     /// device where zero records had synced — the beta user had no way to see
     /// sync was broken, and the `performFullSyncIfNeeded` interval gate then
-    /// suppressed retries as if the sync had worked.
+    /// suppressed retries as if the sync had worked. A push that could not
+    /// prepare sessions for a reason the user can act on
+    /// (`lastPushErrorMessage`) ends the same way.
     private func finishSuccessfulSync(pushed: Int, startedAt: Date) {
         if !schemaUnavailable {
-            if let pullError = lastPullErrorMessage {
-                syncState = .error(pullError)
+            if let syncError = lastPullErrorMessage ?? lastPushErrorMessage {
+                syncState = .error(syncError)
             } else {
                 lastSyncDate = Date()
                 syncState = .idle

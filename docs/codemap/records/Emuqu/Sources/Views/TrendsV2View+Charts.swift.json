@@ -9,22 +9,7 @@
  ],
  "state": [],
  "toplevel": "Only type declarations (MetricPoint, GridCell) inside the extension; no stored state, no globals.",
- "flags": [
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "Two deltaColor functions colour the same 'vs baseline' delta with different palettes: the scrub pill uses AppTheme.wongOptimalText/wongCautionText (contrast-adjusted text variants) while the stats grid uses AppTheme.wongOptimal/wongCaution (fill colours), so the same +X% text has different contrast in the two places; the '+N% vs baseline' string is also built twice (deltaLabel and inline in statsCell).",
-   "evidence": [
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift:249",
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift:253",
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift:351",
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift:355",
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift:242",
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift:461"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "var TrendsV2View.metricChartCard",
@@ -71,7 +56,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.chartContent(points:)": "44178d56aef0aaae"
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.chartContent(points:)": "29d393aa1ed77930"
    }
   },
   {
@@ -158,14 +143,13 @@
   },
   {
    "key": "func TrendsV2View.chartContent(points:)",
-   "hash": "1936405da5900f85",
-   "does": "Stacks metricChart with the 'Building baseline' overlay when the 60-day band has <4 samples, then below it shows a scrub pill for the visible point nearest scrubbedDate if the user is dragging.",
+   "hash": "ded88253862c3193",
+   "does": "Stacks metricChart with the 'Building baseline' overlay when the 60-day band has <4 samples, then below it shows a scrub pill for the point nearest scrubbedDate (among every reading in the period) if the user is dragging.",
    "entry": "SwiftUI view builder via metricChartContent",
    "calls": [
     "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.metricChart(points:band:)",
     "Emuqu/Sources/Views/TrendsV2View+Charts.swift::var TrendsV2View.buildingBaselineOverlay",
     "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.nearestPoint(to:in:)",
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.chartVisiblePoints(_:)",
     "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.scrubPill(point:band:)",
     "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.BaselineStats.hasData"
    ],
@@ -188,45 +172,19 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.chartVisiblePoints(_:)": "c73339690f5e708c",
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.metricChart(points:band:)": "7e0868ec4e6191e2",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.metricChart(points:band:)": "c4eb096b388ec109",
     "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.nearestPoint(to:in:)": "2034dabf6b605bda",
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.scrubPill(point:band:)": "82f38a74cafd5335",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.scrubPill(point:band:)": "b6c96057ca8687ec",
     "Emuqu/Sources/Views/TrendsV2View+Charts.swift::var TrendsV2View.buildingBaselineOverlay": "839ff0471fba8a11",
     "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.BaselineStats.hasData": "58b3b540d9784f0e"
    }
   },
   {
-   "key": "func TrendsV2View.chartVisiblePoints(_:)",
-   "hash": "5cc3d66d13617831",
-   "does": "Returns the newest 120 points (suffix(120)) — the cap the chart, baseline line, scrubbing and audio graph share.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "The chart silently drops all but the newest 120 readings (e.g. on 'All' with >120 overnights) while the overall card, stats grid and insights use every reading; ARCHITECTURE.md's Trend cap contract says no code path may reduce the set below the selected period and FLOWCHART says 'Nothing else reduces the set'.",
-     "evidence": [
-      "Emuqu/Sources/Views/TrendsV2View+Charts.swift:101",
-      "docs/ARCHITECTURE.md:662",
-      "docs/FLOWCHART.md:730"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
-  },
-  {
    "key": "func TrendsV2View.metricChart(points:band:)",
-   "hash": "7954239e12d67038",
-   "does": "Builds the Swift Chart for the visible (<=120) points: 60-day ±1 SD band + mean rule, daily dots tinted when outside the band, 7-reading rolling line, scrub crosshair; binds chartXSelection to scrubbedDate and attaches an AudioGraph accessibility descriptor.",
+   "hash": "e6846c277794b103",
+   "does": "Builds the Swift Chart for every reading in the selected period (no cap): 60-day ±1 SD band + mean rule, daily dots tinted by side when outside the band, 7-reading rolling line, scrub crosshair; binds chartXSelection to scrubbedDate and attaches an AudioGraph accessibility descriptor over the same readings.",
    "entry": "SwiftUI view composition; chartXSelection writes scrubbedDate on drag",
    "calls": [
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.chartVisiblePoints(_:)",
     "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.normalRangeBand(band:points:)",
     "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.dailyDots(_:bandLow:bandHigh:)",
     "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.baselineLine(from:)",
@@ -259,9 +217,8 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/AudioGraphHelpers.swift::func AudioGraphDescriptor.line(title:xLabel:yLabel:points:)": "30acaeef99b7e535",
     "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.baselineLine(from:)": "6147b26095607ba5",
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.chartVisiblePoints(_:)": "c73339690f5e708c",
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.dailyDots(_:bandLow:bandHigh:)": "5b6a56f9bac4cbd8",
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.normalRangeBand(band:points:)": "f54274d5b4bd79b5",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.dailyDots(_:bandLow:bandHigh:)": "97a2682a3b12597e",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.normalRangeBand(band:points:)": "00966cd71ebf15d1",
     "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.scrubMarks(points:)": "9909f2eba0c842ea",
     "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.BaselineStats.hasData": "58b3b540d9784f0e",
     "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.Metric.localizedName": "15087af78edc1f72"
@@ -269,10 +226,11 @@
   },
   {
    "key": "func TrendsV2View.normalRangeBand(band:points:)",
-   "hash": "5ca3e20aaadf5338",
-   "does": "Emits a RectangleMark spanning the visible points' first..last date between mean-sd and mean+sd plus a dashed RuleMark at the mean, only when the band has >=4 samples.",
+   "hash": "7b509ea071d02db2",
+   "does": "Emits a RectangleMark over bandSpan(points) between mean-sd and mean+sd plus a dashed RuleMark at the mean, only when the band has >=4 samples and there are points.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.bandSpan(_:)",
     "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.BaselineStats.hasData",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary"
@@ -282,68 +240,61 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "band.hasData",
-     "effect": "true: band + mean rule; false: no marks"
-    },
-    {
-     "at": "+4",
-     "cond": "points.first is nil",
-     "effect": "fallback Date() as xStart (only when no points; unreachable here because chart is only built for non-empty points)"
-    },
-    {
-     "at": "+5",
-     "cond": "points.last is nil",
-     "effect": "fallback Date() as xEnd (same as above)"
+     "cond": "band.hasData and bandSpan non-nil",
+     "effect": "band + mean rule; else no marks"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "With exactly one visible point (e.g. 7-day range with one overnight while the 60-day baseline has >=4) xStart == xEnd, so the RectangleMark band has zero width and is invisible; only the dashed mean RuleMark shows.",
-     "evidence": [
-      "Emuqu/Sources/Views/TrendsV2View+Charts.swift:130",
-      "Emuqu/Sources/Views/TrendsV2View+Charts.swift:131"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.bandSpan(_:)": "16d77762f09bc171",
     "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.BaselineStats.hasData": "58b3b540d9784f0e"
    }
   },
   {
+   "key": "func TrendsV2View.bandSpan(_:)",
+   "hash": "95f6fdd0b50d5f90",
+   "does": "First to last reading date, widened by 12 h each side when they are the same date (one reading) so the band is never zero-width; nil with no points.",
+   "entry": "Called from normalRangeBand.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no points",
+     "effect": "nil"
+    },
+    {
+     "at": "+2",
+     "cond": "first != last",
+     "effect": "(first, last); else ±12 h"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
    "key": "func TrendsV2View.dailyDots(_:bandLow:bandHigh:)",
-   "hash": "7fdf68a534b18918",
-   "does": "One PointMark per point (size 30); colour wongCaution when the value is below bandLow or above bandHigh, otherwise primary 70%.",
+   "hash": "654c85ef6011657f",
+   "does": "One PointMark per point (size 30), coloured by dotColor with the selected metric's better direction (higherIsBetter).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.Metric.localizedName",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary"
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.higherIsBetter(_:)",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.dotColor(_:bandLow:bandHigh:higherIsBetter:)",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.Metric.localizedName"
    ],
    "reads": [
     "mem:TrendsV2View.selectedMetric"
    ],
    "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "bandLow/bandHigh nil (?? false) or value outside them",
-     "effect": "outside band: wongCaution dot; inside or no band: primary 0.7 dot"
-    },
-    {
-     "at": "+8",
-     "cond": "outOfBand",
-     "effect": "true: wongCaution; false: primary opacity 0.7"
-    }
-   ],
+   "branches": [],
    "flags": [
     {
      "kind": "broken",
      "sev": "med",
-     "text": "Dots outside the 60-day mean ±1 SD are painted wongCaution whichever side they fall on, so a night ABOVE the band on a higher-is-better metric (Recovery, RMSSD, SDNN, HF Power) is shown in the caution colour, while the scrub pill for the same dot colours its delta wongOptimalText (good). The band is a raw arithmetic mean ±1 SD (population), so ~1/3 of normally distributed nights are tinted caution, and for log-normal RMSSD/SDNN/HF it is the raw mean±SD treatment the #19 comment says mis-flags readings.",
+     "text": "The band is a raw arithmetic mean ±1 SD (population) from BaselineStats.from (TrendsV2View.swift), so ~1/3 of normally distributed nights are tinted, and for log-normal RMSSD/SDNN/HF it is the raw mean±SD treatment the #19 comment says mis-flags readings. (The side-blind caution tint is fixed: dotColor tints the better side optimal.) Needs a log-space band in BaselineStats, outside this file.",
      "evidence": [
       "Emuqu/Sources/Views/TrendsV2View+Charts.swift:145",
       "Emuqu/Sources/Views/TrendsV2View+Charts.swift:151",
@@ -356,10 +307,61 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.MetricPoint.outOfBand(mean:sd:)": "4b94770f89624678",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.dotColor(_:bandLow:bandHigh:higherIsBetter:)": "d411cbd6e92b8941",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.higherIsBetter(_:)": "91489d901e0d23ac",
     "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.Metric.localizedName": "15087af78edc1f72"
    }
+  },
+  {
+   "key": "func TrendsV2View.dotColor(_:bandLow:bandHigh:higherIsBetter:)",
+   "hash": "e9d66204c6e6ec6d",
+   "does": "Dot colour: primary 70% inside the band (or with no band); outside it wongCaution on the worse side and wongOptimal on the better side, and wongCaution either side when the metric has no better direction (nil).",
+   "entry": "Called from dailyDots.",
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "inside band",
+     "effect": "primary 0.7"
+    },
+    {
+     "at": "+4",
+     "cond": "higherIsBetter nil",
+     "effect": "wongCaution"
+    },
+    {
+     "at": "+5",
+     "cond": "outside on the better side",
+     "effect": "wongOptimal; else wongCaution"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.higherIsBetter(_:)": "91489d901e0d23ac"
+   }
+  },
+  {
+   "key": "func TrendsV2View.higherIsBetter(_:)",
+   "hash": "9e1fa09269c286a9",
+   "does": "Better direction per metric: true for Recovery, RMSSD, SDNN, HF Power; false for Mean HR, Stress; nil for Balance.",
+   "entry": "Called from dailyDots and scrubPill.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "switch on metric",
+     "effect": "true/false/nil as listed"
+    }
+   ],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "func TrendsV2View.baselineLine(from:)",
@@ -416,14 +418,15 @@
   },
   {
    "key": "func TrendsV2View.scrubPill(point:band:)",
-   "hash": "608be00ecc15f478",
-   "does": "Capsule pill with the point's abbreviated month/day, formatted metric value, and '+N% vs baseline' coloured by deltaColor when the 60-day baseline exists and mean > 0.",
+   "hash": "2515f9cf44bce0ff",
+   "does": "Capsule pill with the point's abbreviated month/day, formatted metric value, and deltaLabel coloured by deltaColor(pct:higherIsBetter:) for the selected metric when the 60-day baseline exists and mean > 0.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.formatMetricValue(_:)",
     "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.BaselineStats.deltaPercent(_:)",
     "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.deltaLabel(_:)",
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.deltaColor(_:)",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.deltaColor(pct:higherIsBetter:)",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.higherIsBetter(_:)",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary"
@@ -443,9 +446,10 @@
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.deltaColor(_:)": "970a3a3efce83413",
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.deltaLabel(_:)": "86c4b775e3cb37d7",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.deltaColor(pct:higherIsBetter:)": "49b35b0185715037",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.deltaLabel(_:)": "8f117e9b64d0c90e",
     "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.formatMetricValue(_:)": "ec71761f41222803",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.higherIsBetter(_:)": "91489d901e0d23ac",
     "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.BaselineStats.deltaPercent(_:)": "7313918916dc6015",
     "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
    }
@@ -545,8 +549,8 @@
   },
   {
    "key": "func TrendsV2View.deltaLabel(_:)",
-   "hash": "fc4d3063eeffae5b",
-   "does": "Returns localized '<sign><rounded pct>% vs baseline'.",
+   "hash": "f4b47f3e78c25e7a",
+   "does": "Static: returns localized '<sign><rounded pct>% vs baseline'; used by the scrub pill and the stats cells.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
@@ -564,67 +568,6 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
-  },
-  {
-   "key": "func TrendsV2View.deltaColor(_:)",
-   "hash": "4ab9d5d6cb6b4403",
-   "does": "Scrub-pill delta colour: textSecondary when |pct|<5 or metric is Balance; otherwise wongOptimalText if the change is in the good direction (lower for Stress/Mean HR, higher otherwise) else wongCautionText.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.wongOptimalText",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.wongCautionText",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary"
-   ],
-   "reads": [
-    "mem:TrendsV2View.selectedMetric"
-   ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "|pct| < 5 or metric == .balance",
-     "effect": "true: neutral textSecondary, return; false: continue"
-    },
-    {
-     "at": "+3",
-     "cond": "isInverted (stress/meanHR)",
-     "effect": "true: good = pct < 0; false: good = pct > 0"
-    },
-    {
-     "at": "+4",
-     "cond": "goodDirection",
-     "effect": "true: wongOptimalText; false: wongCautionText"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.wongCautionText": "86bb825991469512",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.wongOptimalText": "6e537adbf549c0ed"
-   }
-  },
-  {
-   "key": "func TrendsV2View.MetricPoint.outOfBand(mean:sd:)",
-   "hash": "f82fbbe2600c19c6",
-   "does": "Returns whether value lies outside mean ± sd.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "MetricPoint.outOfBand(mean:sd:) has no caller anywhere in the repo (grep 'outOfBand(mean' / '.outOfBand(' finds only the declaration, tests included); dailyDots recomputes the same test inline.",
-     "evidence": [
-      "Emuqu/Sources/Views/TrendsV2View+Charts.swift:261",
-      "Emuqu/Sources/Views/TrendsV2View+Charts.swift:145"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
   },
   {
    "key": "func TrendsV2View.buildMetricPoints(from:metric:)",
@@ -796,17 +739,20 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.deltaColor(pct:higherIsBetter:)": "2eeacda0a22fcc57",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.deltaColor(pct:higherIsBetter:)": "49b35b0185715037",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.higherIsBetter(_:)": "91489d901e0d23ac",
     "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.BaselineStats.deltaPercent(_:)": "7313918916dc6015"
    }
   },
   {
    "key": "func TrendsV2View.deltaColor(pct:higherIsBetter:)",
-   "hash": "dfee6ab38121819d",
-   "does": "Stats-grid delta colour: textSecondary when direction or pct is nil or |pct|<5; else wongOptimal for the good direction, wongCaution otherwise.",
+   "hash": "d4d471ccd27ec7fa",
+   "does": "Delta text colour for the stats grid and the scrub pill: textSecondary when direction or pct is nil or |pct|<5; else wongOptimalText for the good direction, wongCautionText otherwise (the status colours' text shades).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.wongOptimalText",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.wongCautionText"
    ],
    "reads": [],
    "writes": [],
@@ -814,41 +760,30 @@
     {
      "at": "+1",
      "cond": "higherIsBetter or pct nil",
-     "effect": "return textSecondary"
+     "effect": "textSecondary"
     },
     {
      "at": "+2",
      "cond": "|pct| < 5",
-     "effect": "return textSecondary"
+     "effect": "textSecondary"
     },
     {
      "at": "+3",
-     "cond": "direction (higherIsBetter)",
-     "effect": "true: good = pct>0; false: good = pct<0"
+     "cond": "direction",
+     "effect": "good = pct>0; else pct<0"
     },
     {
      "at": "+4",
      "cond": "goodDirection",
-     "effect": "true: wongOptimal; false: wongCaution"
+     "effect": "wongOptimalText; else wongCautionText"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "Stats-grid delta TEXT is coloured with AppTheme.wongOptimal/wongCaution, which Theme.swift documents as failing WCAG contrast as text on the light theme (wongCaution 2.3:1) and provides wongOptimalText/wongCautionText for; the scrub pill's deltaColor uses the text variants.",
-     "evidence": [
-      "Emuqu/Sources/Views/TrendsV2View+Charts.swift:355",
-      "Emuqu/Sources/Views/TrendsV2View+Charts.swift:342",
-      "Emuqu/Sources/Views/Theme.swift:150",
-      "Emuqu/Sources/Views/Theme.swift:152",
-      "Emuqu/Sources/Views/TrendsV2View+Charts.swift:253"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.wongCautionText": "86bb825991469512",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.wongOptimalText": "6e537adbf549c0ed",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.higherIsBetter(_:)": "91489d901e0d23ac"
    }
   },
   {
@@ -895,7 +830,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.statsCell(label:values:format:sublineSuffix:baseline:higherIsBetter:)": "2479e0b063b5699a"
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.statsCell(label:values:format:sublineSuffix:baseline:higherIsBetter:)": "a8e3a1566a0a6589"
    }
   },
   {
@@ -913,7 +848,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.statsCell(label:values:format:sublineSuffix:baseline:higherIsBetter:)": "2479e0b063b5699a"
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.statsCell(label:values:format:sublineSuffix:baseline:higherIsBetter:)": "a8e3a1566a0a6589"
    }
   },
   {
@@ -933,7 +868,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.statsCell(label:values:format:sublineSuffix:baseline:higherIsBetter:)": "2479e0b063b5699a"
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.statsCell(label:values:format:sublineSuffix:baseline:higherIsBetter:)": "a8e3a1566a0a6589"
    }
   },
   {
@@ -953,16 +888,17 @@
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.statsCell(label:values:format:sublineSuffix:baseline:higherIsBetter:)": "2479e0b063b5699a"
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.statsCell(label:values:format:sublineSuffix:baseline:higherIsBetter:)": "a8e3a1566a0a6589"
    }
   },
   {
    "key": "func TrendsV2View.statsCell(label:values:format:sublineSuffix:baseline:higherIsBetter:)",
-   "hash": "bf14732ed8098d82",
+   "hash": "7b09171dfba55539",
    "does": "Generic cell builder: arithmetic mean of values formatted, subline '<count> <suffix>', delta % vs baseline mean when baseline has data and |pct| >= 1; '—' and '0 <suffix>' when no values.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.BaselineStats.deltaPercent(_:)",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.deltaLabel(_:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
@@ -976,17 +912,14 @@
     {
      "at": "+16",
      "cond": "baseline nil, deltaPercent nil, or |pct| < 1",
-     "effect": "deltaPct nil → no delta line; else pct"
-    },
-    {
-     "at": "+20",
-     "cond": "pct >= 0",
-     "effect": "'+' prefix; else none"
+     "effect": "deltaPct nil → no delta line; else deltaLabel(pct)"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.deltaLabel(_:)": "8f117e9b64d0c90e",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.higherIsBetter(_:)": "91489d901e0d23ac",
     "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.BaselineStats.deltaPercent(_:)": "7313918916dc6015"
    }
   },
@@ -1045,12 +978,12 @@
   },
   {
    "key": "func TrendsV2View.buildInsights(metric:points:days:totalDays:)",
-   "hash": "78c42173bd1aa2c5",
-   "does": "Builds insight sentences: <3 points → one 'need at least 3 readings' line; else a direction sentence from TrendVerdict on the metric's scale, a variation (CV) sentence when CV > 0, and an outlier-count sentence when outliers > 0.",
+   "hash": "d25f5bb531d17aa7",
+   "does": "Builds insight sentences: <3 points → one 'need at least 3 readings' line; else a direction sentence from TrendVerdict.evaluate's movement on the metric's scale, a variation (CV) sentence when CV > 0, and an outlier-count sentence when outliers > 0.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.computeDirection(_:scale:)",
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.directionSentence(name:glyph:days:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.directionSentence(name:movement:days:)",
     "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.variationStats(metric:points:)",
     "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.trendScale(_:)",
     "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.variationSentence(metric:cv:)",
@@ -1063,17 +996,17 @@
     {
      "at": "+1",
      "cond": "pts.count < 3",
-     "effect": "return single 'Trends need at least 3 readings' sentence"
+     "effect": "single need-3-readings sentence"
     },
     {
-     "at": "+8",
+     "at": "+9",
      "cond": "spread.cv > 0",
-     "effect": "append variation sentence; else skip"
+     "effect": "append variation sentence"
     },
     {
-     "at": "+11",
+     "at": "+12",
      "cond": "spread.outliers > 0",
-     "effect": "append outlier sentence; else skip"
+     "effect": "append outlier sentence"
     }
    ],
    "flags": [
@@ -1099,20 +1032,20 @@
     }
    ],
    "deps": {
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)": "61c752e205f41dc0",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.directionSentence(name:glyph:days:)": "a93120ad93a4dd26",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.directionSentence(name:movement:days:)": "dfeee38b41667d06",
     "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.trendScale(_:)": "7212f31eb3cec888",
     "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.variationSentence(metric:cv:)": "e0b55632faa4461b",
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.variationStats(metric:points:)": "1f22353d48d80a2b",
-    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.computeDirection(_:scale:)": "51cec13b934c1292",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.variationStats(metric:points:)": "97dd4f6d2f732e50",
     "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.Metric.localizedName": "15087af78edc1f72"
    }
   },
   {
-   "key": "func TrendsV2View.directionSentence(name:glyph:days:)",
-   "hash": "07c9c4c53211d981",
-   "does": "Maps (direction glyph, optional days) to a whole localized sentence: rising/falling/stable over the last N days or across all readings; any other glyph → 'not enough readings yet'.",
-   "entry": null,
+   "key": "func TrendsV2View.directionSentence(name:movement:days:)",
+   "hash": "acfe91f72701a332",
+   "does": "One whole localized sentence per TrendVerdict movement (up rising / down falling / flat stable / insufficient not enough readings) and period (days, or across all readings when nil).",
+   "entry": "Called from buildInsights.",
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
@@ -1121,52 +1054,11 @@
    "branches": [
     {
      "at": "+3",
-     "cond": "glyph arrow.up.right with days",
-     "effect": "'rising over the last N days'"
-    },
-    {
-     "at": "+4",
-     "cond": "arrow.up.right, all",
-     "effect": "'rising across all your readings'"
-    },
-    {
-     "at": "+5",
-     "cond": "arrow.down.right with days",
-     "effect": "'falling over the last N days'"
-    },
-    {
-     "at": "+6",
-     "cond": "arrow.down.right, all",
-     "effect": "'falling across all'"
-    },
-    {
-     "at": "+7",
-     "cond": "arrow.right with days",
-     "effect": "'stable over the last N days'"
-    },
-    {
-     "at": "+8",
-     "cond": "arrow.right, all",
-     "effect": "'stable across all'"
-    },
-    {
-     "at": "+9",
-     "cond": "default (circle.dashed = insufficient)",
-     "effect": "'not enough readings yet to call a trend'"
+     "cond": "switch on (movement, days)",
+     "effect": "seven sentences"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Direction is recovered by string-matching SF Symbol names produced by computeDirection; changing a glyph silently turns every sentence into 'not enough readings yet'.",
-     "evidence": [
-      "Emuqu/Sources/Views/TrendsV2View+Charts.swift:516",
-      "Emuqu/Sources/Views/TrendsV2View.swift:503"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
@@ -1174,7 +1066,7 @@
   {
    "key": "func TrendsV2View.variationStats(metric:points:)",
    "hash": "eba4aff134ea09bb",
-   "does": "For RMSSD/SDNN computes CV and outliers in log space (CV = sqrt(exp(sd²)-1)·100, outlier = |ln v - mean| > 2 SD, sample SD); other metrics use rawVariationStats.",
+   "does": "For the log-scale metrics (isLogNormal: RMSSD, SDNN, HF Power, Balance) computes CV and outliers in log space (CV = sqrt(exp(sd²)-1)·100, outlier = |ln v - mean| > 2 SD, sample SD); other metrics use rawVariationStats.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.isLogNormal(_:)",
@@ -1199,29 +1091,16 @@
      "effect": "return (0,0): no variation/outlier sentence"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "Only RMSSD/SDNN take the log-space path; HF Power and LF/HF Balance, which trendScale itself treats as logarithmic, go through rawVariationStats whose outlier rule is |v-mean| > 25% of mean — the exact problem the #19 comment describes (normal skewed readings reported as 'well outside your typical range').",
-     "evidence": [
-      "Emuqu/Sources/Views/TrendsV2View+Charts.swift:553",
-      "Emuqu/Sources/Views/TrendsV2View+Charts.swift:561",
-      "Emuqu/Sources/Views/TrendsV2View+Charts.swift:549",
-      "Emuqu/Sources/Views/TrendsV2View+Charts.swift:527"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.isLogNormal(_:)": "a47a6b5e257d1084",
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.rawVariationStats(points:)": "391bccb528d48486"
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.isLogNormal(_:)": "72f54b5a4e75d16b",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.rawVariationStats(points:)": "517cdfe191c4ebc2"
    }
   },
   {
    "key": "func TrendsV2View.rawVariationStats(points:)",
-   "hash": "ec9a7ad4d4dd2056",
-   "does": "Population CV (%) and count of points more than 25% away from the arithmetic mean.",
+   "hash": "a604b9bbaaacd986",
+   "does": "Population CV (%) and count of points more than 2 SD from the arithmetic mean (0 when SD is 0).",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -1231,33 +1110,31 @@
      "at": "+4",
      "cond": "mean > 0",
      "effect": "CV = sd/mean*100; else 0"
-    }
-   ],
-   "flags": [
+    },
     {
-     "kind": "hack",
-     "sev": "low",
-     "text": "Outlier threshold is a fixed 25% of the mean, not a spread-based band; e.g. for Stress index or Recovery the count does not reflect the user's own variability, yet is presented as 'well outside your typical range'.",
-     "evidence": [
-      "Emuqu/Sources/Views/TrendsV2View+Charts.swift:549",
-      "Emuqu/Sources/Views/TrendsV2View+Charts.swift:505"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+5",
+     "cond": "sd > 0",
+     "effect": "count beyond 2 SD; else 0"
     }
    ],
+   "flags": [],
    "deps": {}
   },
   {
    "key": "func TrendsV2View.isLogNormal(_:)",
-   "hash": "794fe23878af4603",
-   "does": "True for .rmssd and .sdnn.",
+   "hash": "4ac298b4766df4f4",
+   "does": "True for the metrics trendScale reads as logarithms: RMSSD, SDNN, HF Power, Balance.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.trendScale(_:)"
+   ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.trendScale(_:)": "7212f31eb3cec888"
+   }
   },
   {
    "key": "func TrendsV2View.trendScale(_:)",
@@ -1315,7 +1192,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.isLogNormal(_:)": "a47a6b5e257d1084"
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.isLogNormal(_:)": "72f54b5a4e75d16b"
    }
   },
   {

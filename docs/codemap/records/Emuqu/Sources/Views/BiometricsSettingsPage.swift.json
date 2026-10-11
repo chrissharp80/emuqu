@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/BiometricsSettingsPage.swift",
- "hash": "28dae87022a0b4b0",
+ "hash": "52316d05b8f345c1",
  "role": "Settings > Biometrics page core: state, bounds-clamping bindings for VO2max/HR/LTHR/FTP/body weight, lower-bound cleanup on defocus/disappear, the 'Fill from Apple Health' action, and the HR-zones mode label/footer. The Form content lives in BiometricsSettingsPage+Sections.swift.",
  "types": [
   "BiometricsSettingsPage: struct (View) — biometrics settings page; reads/writes SettingsManager.settings"
@@ -15,7 +15,7 @@
   "static lthrRange 80...220",
   "static ftpRange 50...600",
   "static minimumBodyWeightKg 30.0",
-  "body-weight ceiling 250 kg literal (line 235)",
+  "static maximumBodyWeightKg 250.0",
   "lb/kg factor 2.20462 literal (lines 167, 223, 230)"
  ],
  "toplevel": "Static range constants (67-73) are read by BiometricsSettingsPage+Sections.swift when building the clamped bindings. No #if blocks.",
@@ -102,7 +102,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.biometricsForm": "8941a3b63899f4d1",
-    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.dropValuesBelowMinimum()": "9f007d9099e94fd4",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.dropValuesBelowMinimum()": "9136009cf6371cb3",
     "Emuqu/Sources/Views/BiometricsSettingsPage.swift::var BiometricsSettingsPage.keyboardDismissOverlay": "bf1fa34dcc587e3f"
    }
   },
@@ -150,7 +150,7 @@
     {
      "at": "+8",
      "cond": "body weight >= 30 kg",
-     "effect": "kept; below 30 → nil. Applies equally to a Health-filled weight under 30 kg (fill path does not check the minimum), which is silently removed when the page closes."
+     "effect": "kept; below 30 → nil (a Health fill never stores one below 30, fillBodyWeight skips it)"
     },
     {
      "at": "+9",
@@ -158,20 +158,7 @@
      "effect": "early return with no write; otherwise assigns settingsManager.settings (save + notification)"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "fillFromAppleHealth writes Apple Health body mass without the 30 kg minimum or 250 kg ceiling and reports 'Filled: weight (N kg)'; a Health weight below 30 kg is then silently cleared by dropValuesBelowMinimum on page disappear, so the feedback says it was filled but the value is gone, and a weight above 250 kg is stored unclamped.",
-     "evidence": [
-      "Emuqu/Sources/Views/BiometricsSettingsPage.swift:163-164",
-      "Emuqu/Sources/Views/BiometricsSettingsPage.swift:86",
-      "Emuqu/Sources/Views/BiometricsSettingsPage.swift:38",
-      "Emuqu/Sources/Views/BiometricsSettingsPage.swift:235"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.lowerBound": "42532e07486db197",
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
@@ -314,13 +301,13 @@
    "deps": {
     "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillBiologicalSex(_:from:)": "c99215f1b465dff1",
     "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillBirthday(_:from:)": "46be4c833141a632",
-    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillBodyWeight(_:from:)": "cca4f674de4a9c4a"
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillBodyWeight(_:from:)": "2dbc9074828ec5aa"
    }
   },
   {
    "key": "func BiometricsSettingsPage.fillBodyWeight(_:from:)",
-   "hash": "263ba3a666cc9b63",
-   "does": "If profile has a body weight and settings has none, sets bodyWeightKg, marks .bodyWeight as Health-sourced (so iCloud backup excludes it), and returns a label 'weight (N lb|kg)' using the units preference; otherwise nil.",
+   "hash": "c77a8ec5470584f1",
+   "does": "If profile has a body weight within minimumBodyWeightKg…maximumBodyWeightKg (30–250 kg) and settings has none, sets bodyWeightKg, marks .bodyWeight as Health-sourced (so iCloud backup excludes it), and returns a label 'weight (N lb|kg)' using the units preference; otherwise nil (nothing filled, nothing reported).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
@@ -336,11 +323,11 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "profile weight present AND settings weight nil",
-     "effect": "fills and marks; otherwise returns nil (existing manual value kept)"
+     "cond": "profile weight present, settings weight nil, and weight within 30–250 kg",
+     "effect": "fills and marks; otherwise returns nil (existing manual value kept, out-of-range Health weight not filled)"
     },
     {
-     "at": "+4",
+     "at": "+5",
      "cond": "units preference resolves to imperial",
      "effect": "label in pounds (kg*2.20462 rounded); otherwise kg rounded"
     }
@@ -458,7 +445,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR": "8d8a7ef3cdac7b54",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR": "d8f21d4214c3f50a",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "6de242bd745f1424",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
@@ -466,8 +453,8 @@
   },
   {
    "key": "func BiometricsSettingsPage.bodyWeightDisplayBinding(isImperial:)",
-   "hash": "10ee54c0c72bcaaa",
-   "does": "Binding<Double?> for the body-weight field: get shows kg or kg*2.20462 lb; set converts lb→kg when imperial, stores nil for nil, else min(kg, 250).",
+   "hash": "7a2d9497a9ab98d8",
+   "does": "Binding<Double?> for the body-weight field: get shows kg or kg*2.20462 lb; set converts lb→kg when imperial, stores nil for nil, else min(kg, maximumBodyWeightKg = 250).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings"

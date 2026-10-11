@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/ContributorChip.swift",
- "hash": "851d743eda44bcf3",
+ "hash": "e784e0db9e8dcff5",
  "role": "Reusable dashboard metric chip (HRV / Sleep / Vitals / Load) with five display states; a Button wrapping label, value and subline with a combined accessibility label.",
  "types": [
   "ContributorChip: struct (View) — the chip",
@@ -10,7 +10,7 @@
   "ContributorChip.DisplayState: enum — default/loading/buildingBaseline/noData/locked"
  ],
  "state": [],
- "toplevel": "Stored properties: variant, state (default .default), compact (default true), onTap (default no-op). No globals.",
+ "toplevel": "Stored properties: variant, state (default .default), compact (default true), recordedAgo (optional age caption, default nil), onTap (default no-op). No globals.",
  "flags": [
   {
    "kind": "dead",
@@ -23,18 +23,6 @@
     "Emuqu/Sources/Views/DashboardV2View+Chips.swift:274",
     "EmuquTests/DashboardChipSnapshotTests.swift:100",
     "EmuquTests/DashboardChipSnapshotTests.swift:124"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Header doc says loading = \"skeleton shimmer\" and noData = \"tappable to source-config screen\"; code renders a static \"—\" for loading and noData taps run the same onTap (dashboard routes to the metric detail view, not a source-config screen).",
-   "evidence": [
-    "Emuqu/Sources/Views/ContributorChip.swift:13",
-    "Emuqu/Sources/Views/ContributorChip.swift:15",
-    "Emuqu/Sources/Views/ContributorChip.swift:147",
-    "Emuqu/Sources/Views/ContributorChip.swift:75"
    ],
    "found": "first read, upheld on second"
   }
@@ -169,23 +157,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Header doc says the chip is \"Reused inside detail views\"; the only production constructions are the four dashboard chip builders (plus EmuquTests/DashboardChipSnapshotTests.swift), no detail view uses it.",
-     "evidence": [
-      "Emuqu/Sources/Views/ContributorChip.swift:4",
-      "Emuqu/Sources/Views/DashboardV2View+Chips.swift:20",
-      "Emuqu/Sources/Views/DashboardV2View+Chips.swift:27",
-      "Emuqu/Sources/Views/DashboardV2View+Chips.swift:34",
-      "Emuqu/Sources/Views/DashboardV2View+Chips.swift:50"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accessibilityLabel": "9fac1ef95944a5ff",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accessibilityLabel": "746a7a8b6eeb3a60",
     "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.content": "1ca9f847d5f22724"
    }
   },
@@ -315,7 +289,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.subline": "2792e973547100c6",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.subline": "05931e2386c6ccfa",
     "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
    }
@@ -610,8 +584,8 @@
   },
   {
    "key": "var ContributorChip.subline",
-   "hash": "4dc8af7f9721f074",
-   "does": "Subline by state: calibrating / tap to set up / none / variantSubline.",
+   "hash": "b9ee5d955caa0049",
+   "does": "Subline by state: calibrating / tap to set up / none / recordedAgo else variantSubline (default) / variantSubline (locked).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
@@ -637,7 +611,12 @@
     },
     {
      "at": "+5",
-     "cond": ".locked or .default",
+     "cond": ".default",
+     "effect": "recordedAgo when set, else variantSubline"
+    },
+    {
+     "at": "+6",
+     "cond": ".locked",
      "effect": "variantSubline"
     }
    ],
@@ -782,8 +761,8 @@
   },
   {
    "key": "var ContributorChip.accessibilityLabel",
-   "hash": "e0894836010ea4c0",
-   "does": "VoiceOver label following display state; locked never reads the value.",
+   "hash": "6d3584348699386e",
+   "does": "VoiceOver label following display state (default state appends recordedAgo when set); locked never reads the value.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.variantAccessibilityLabel",
@@ -796,7 +775,7 @@
     {
      "at": "+3",
      "cond": ".default",
-     "effect": "variantAccessibilityLabel"
+     "effect": "variantAccessibilityLabel, plus recordedAgo when set"
     },
     {
      "at": "+4",

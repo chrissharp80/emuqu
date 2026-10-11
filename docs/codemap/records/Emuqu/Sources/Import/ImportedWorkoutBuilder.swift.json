@@ -12,6 +12,18 @@
  "flags": [],
  "units": [
   {
+   "key": "func ImportedWorkoutTrack.timeOrdered()",
+   "hash": "3d3b342d423c7312",
+   "does": "Returns a copy of the track with its CLLocation points sorted by timestamp; dates, HR, cadence and sport unchanged.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
    "key": "var ImportedWorkoutBuilder.Source.gpxFile",
    "hash": "317c67ebb9aff133",
    "does": "Source for GPX imports: deviceId 'gpx-import', label 'GPX Import', alreadyInHealthKit false.",
@@ -54,30 +66,19 @@
      "effect": "label 'Apple Health'; otherwise 'Apple Health — <sourceName>'"
     }
    ],
-   "flags": [
-    {
-     "kind": "coupling",
-     "sev": "low",
-     "text": "The deviceId strings 'healthkit-import' and 'healthkit-rebuild' are re-declared as literals in CloudSessionPayload.healthKitDeviceIds, which HealthKitWorkoutExport.sampleOptions uses to decide not to write Health's own samples back; renaming either literal here without the other silently re-enables write-back of Health data under Emuqu's name.",
-     "evidence": [
-      "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift:74",
-      "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift:82",
-      "Emuqu/Sources/Storage/CloudKitSyncSupport.swift:535",
-      "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift:96"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },
   {
    "key": "func ImportedWorkoutBuilder.buildSession(from:source:replacing:)",
-   "hash": "6be953b4c497f5bd",
-   "does": "Clamps duration to 0...48 h, generates one WorkoutSample per second, and assembles the finished session (optionally reusing an existing id).",
+   "hash": "fbf972358888ec46",
+   "does": "Puts the track's points in time order, clamps the duration via clampedDurationSeconds (0...48 h), generates one WorkoutSample per second from the ordered track, and assembles the finished session (optionally reusing an existing id).",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutTrack.timeOrdered()",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.clampedDurationSeconds(from:to:)",
     "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.perSecondSamples(from:duration:)",
     "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.session(from:samples:source:replacing:)"
    ],
@@ -97,9 +98,23 @@
     }
    ],
    "deps": {
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.clampedDurationSeconds(from:to:)": "9af2d2772ff62865",
     "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.perSecondSamples(from:duration:)": "cb81614d89bb9b09",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.session(from:samples:source:replacing:)": "134787195f5faa97"
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.session(from:samples:source:replacing:)": "134787195f5faa97",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutTrack.timeOrdered()": "d08b14e1d7de59c8"
    }
+  },
+  {
+   "key": "func ImportedWorkoutBuilder.clampedDurationSeconds(from:to:)",
+   "hash": "7b91c0a731378493",
+   "does": "Whole seconds from start to end, floored at 0 and capped at 48 h (172800 s) so a bogus timestamp cannot make the per-second loop allocate billions of samples.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "func ImportedWorkoutBuilder.secondKeyedSamples(from:)",
@@ -133,18 +148,7 @@
      "effect": "add distance from previous point; first point cumulative 0"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Assumes the track is time-ordered (doc comment 'time-ordered'); cumulative distance is summed in array order and `advancing` only moves forward, so an unsorted track yields wrong distance/altitude per second. Ordering is left to the caller (GPXImporter / TrainingHealthQueries.routeLocations).",
-     "evidence": [
-      "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift:140",
-      "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift:185"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -198,7 +202,7 @@
     "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.advancing(_:to:elapsed:)": "624c46c302bf8255",
     "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.nearestValue(in:near:within:)": "145df9bcea00d94a",
     "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.secondKeyedSamples(from:)": "2178c82a6719bf6a",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.trackIndex(_:)": "aef27655106fc1b7",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.trackIndex(_:)": "d0691e63229713fa",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.track": "c1dc8df0f9c68727"
    }
@@ -253,7 +257,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodePolyline(track:)": "f42191bee7fea21e",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.blankSession(startDate:source:existingID:)": "e6e14430dcf9fe3d",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.blankSession(startDate:source:existingID:)": "d62a52b956d07164",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35"
    }
   },
@@ -276,18 +280,7 @@
      "effect": "new session via convenience init; otherwise memberwise init with existingID"
     }
    ],
-   "flags": [
-    {
-     "kind": "data-loss",
-     "sev": "low",
-     "text": "When replacing a stub, the new session is built from scratch with no tags/notes, so any tags or notes the user put on the stub are lost on rebuild.",
-     "evidence": [
-      "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift:222",
-      "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift:135"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SessionMetadata.swift::func DeviceProvenance.current(deviceId:deviceModel:firmwareVersion:recordingMode:)": "0b05308ede465bfe",
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",

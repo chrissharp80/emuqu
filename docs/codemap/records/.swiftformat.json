@@ -1,47 +1,11 @@
 {
  "file": ".swiftformat",
- "hash": "35284678dee408a4",
+ "hash": "098974e8e667674f",
  "role": "SwiftFormat configuration used by `make format` (Makefile:15, write mode over Emuqu and EmuquTests), by .githooks/pre-commit:77-91 (advisory --lint on staged .swift files, failures swallowed) and by scripts/lint_changed_swift.sh:21 (blocking --lint, but that script is wired to nothing).",
  "types": [],
  "state": [],
- "toplevel": "Options: --swiftversion 5.10, --indent 4, --linebreaks lf, --trimwhitespace always, --wraparguments/--wrapcollections before-first, --elseposition same-line, --header strip, --exclude .build,build,DerivedData,Emuqu.xcodeproj, --trailing-commas never (lines 24-36: yields to SwiftLint trailing_comma so the two tools do not fight over ~745 commas and the .ci/swiftlint_warning_budget.txt). Line 105 disables 40 rules (docComments, redundantSwiftUIGroup, wrap*Bodies, indent, redundantSelf, redundantReturn, conditionalAssignment, hoistPatternLet, redundantClosure, redundantType, preferKeyPath, andOperator, redundantViewBuilder, fileHeader, numberFormatting, sortSwitchCases, modifierOrder, noForceUnwrapInTests, wrapArguments, wrapMultilineStatementBraces, consecutiveSpaces, blankLines*, trailingSpace, spaceAroundOperators, unusedArguments, hoistTry, hoistAwait, docCommentsBeforeModifiers, redundantVariable, redundantThrows, redundantOptionalBinding, redundantFileprivate) with per-rule reasons in comments 38-104. Header (3-7) records that neither tool had ever run and the pre-commit hook was a no-op before being wired. `make format` (Makefile:15) only formats `Emuqu EmuquTests`, so the 8 watch-app Swift files are never formatted by it. No runtime effect on the app.",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "--swiftversion 5.10 while every target compiles with SWIFT_VERSION = 6.0; SwiftFormat gates version-dependent rewrites on this value, so it formats against the wrong language mode.",
-   "evidence": [
-    ".swiftformat:14",
-    "Emuqu.xcodeproj/project.pbxproj:4852"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "Several options configure rules that line 105 disables, so they have no effect: --wraparguments/--wrapcollections (wrapArguments disabled), --trimwhitespace (trailingSpace disabled), --header strip (fileHeader disabled). The comment at line 82 claims '--header strip below already governs this' while the governing rule is turned off and the option sits above, at line 21.",
-   "evidence": [
-    ".swiftformat:17",
-    ".swiftformat:18",
-    ".swiftformat:19",
-    ".swiftformat:21",
-    ".swiftformat:82",
-    ".swiftformat:105"
-   ],
-   "found": "second read"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Header says the rule set makes `make format` 'idempotent and safe to run at any time rather than a 416-file surprise', but .githooks/pre-commit:72 states the repo does not conform to .swiftformat and 416/540 files differ, so running `make format` still rewrites hundreds of files.",
-   "evidence": [
-    ".swiftformat:9",
-    ".swiftformat:12",
-    ".githooks/pre-commit:72"
-   ],
-   "found": "second read"
-  }
- ],
+ "toplevel": "Options: --swiftversion 6.0 (comment: the language mode every target compiles in, SWIFT_VERSION in project.pbxproj), --indent 4, --linebreaks lf, --elseposition same-line, --exclude .build,build,DerivedData,Emuqu.xcodeproj, --trailing-commas never (yields to SwiftLint trailing_comma so the two tools do not fight over ~745 commas and the .ci/swiftlint_warning_budget.txt). Options for the disabled wrapArguments, trailingSpace and fileHeader rules are left out, as the header says. The last line disables 40 rules (docComments, redundantSwiftUIGroup, wrap*Bodies, indent, redundantSelf, redundantReturn, conditionalAssignment, hoistPatternLet, redundantClosure, redundantType, preferKeyPath, andOperator, redundantViewBuilder, fileHeader, numberFormatting, sortSwitchCases, modifierOrder, noForceUnwrapInTests, wrapArguments, wrapMultilineStatementBraces, consecutiveSpaces, blankLines*, trailingSpace, spaceAroundOperators, unusedArguments, hoistTry, hoistAwait, docCommentsBeforeModifiers, redundantVariable, redundantThrows, redundantOptionalBinding, redundantFileprivate) with per-rule reasons in comments. Header records that neither tool had ever run and the pre-commit hook was a no-op before being wired, and says the disabled rules remove the worst churn but the tree still does not conform (see .githooks/pre-commit), so `make format` still rewrites many files and should be run as a change of its own. `make format` (Makefile:15) only formats `Emuqu EmuquTests`, so the 8 watch-app Swift files are never formatted by it. No runtime effect on the app.",
+ "flags": [],
  "units": [],
  "deps": {}
 }

@@ -1,33 +1,22 @@
 {
  "file": "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift",
- "hash": "e2585df081c75bb5",
+ "hash": "1b07485109a35b94",
  "role": "The session.* (overnight record, by ordinal/id/date, tail walking), workout full-record builder shared with workout.*/walks.*, walks.* (walk/hike aggregates), training.* (live and historical CTL/ATL/TSB/ACWR from TrainingMetricsCache, by-sport TRIMP) and heat.acclimation.* assistant fact namespaces.",
  "types": [
   "SessionNamespace: struct — session.* facts + workout record helpers (extension)",
   "WalksNamespace: struct — walks.* facts",
   "TrainingLoadNamespace: struct — training.* facts (projections/trajectory in other files)",
-  "HeatAcclimationNamespace: struct — heat.acclimation.* facts"
+  "HeatAcclimationNamespace: struct — heat.acclimation.* facts",
+  "HeatAcclimationNamespace.Computed: private struct — a finished heat compute's readout (nil when nothing to score), so a timeout is told apart from no readout"
  ],
  "state": [
   "mem:WalksNamespace.walkSports = [.walk, .hike] (static let)",
   "mem:TrainingMetricsCache (read via AppDependencies.current.analysis)",
-  "mem:HeatAcclimationCache (read via AppDependencies.current.analysis)"
+  "mem:HeatAcclimationCache (read via AppDependencies.current.analysis)",
+  "HeatAcclimationNamespace.stillComputing: private static let FactValue — missing(notYetComputed) answer for a compute past the 8 s cap"
  ],
  "toplevel": "Namespace structs hold namespace strings ('session','walks','training','heat'), the injected SessionArchive and settings closure; TrainingLoadNamespace and HeatAcclimationNamespace reach shared caches through AppDependencies.current (service location) rather than injected dependencies.",
- "flags": [
-  {
-   "kind": "coupling",
-   "sev": "low",
-   "text": "TrainingLoadNamespace and HeatAcclimationNamespace read AppDependencies.current.analysis.* singletons inside fact closures instead of receiving them from AppFactResolverFactory.build (which injects only archive + settings), so these facts cannot be exercised with a test registry built from a fake archive.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift:516",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift:651",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift:805",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift:173"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "func SessionNamespace.overnightAvailability()",
@@ -143,21 +132,7 @@
      "effect": "?? falls back to entries.first (newest overnight of any quality, possibly a partial); nil if no overnights"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Comment and session.latest description say this is 'the night hrv.latest and sleep.latest report', but those use OvernightArchive.latest, which picks the newest local day among reliable overnight+nap+quick entries and returns a nap/quick reading when that day has no overnight; this function only considers overnights, so on a day with only a reliable nap or quick reading session.latest returns the previous night while hrv.latest returns the nap. It also returns an unreliable partial when no overnight is reliable, where OvernightArchive.latest returns nil.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift:54",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift:57",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift:76",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift:118",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift:127"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.overnightEntries()": "a3a2d4d5110c3c70",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var SessionNamespace.entries": "3884a94e94565ba1",
@@ -207,35 +182,10 @@
     {
      "at": "+1",
      "cond": "date string fails to parse",
-     "effect": "returns nil, which record(for:) reports as notRecorded 'no overnight session matched' rather than invalidParameter"
+     "effect": "returns nil (resolveByDate rejects such dates before calling this)"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "A malformed date (e.g. '04/21') is reported as 'no overnight session matched' (notRecorded) instead of invalidParameter, so the model is told the user has no data rather than that its argument was wrong.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift:69",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift:196"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "session.by_date's description promises 'the same night hrv.by_date and sleep.by_date return', but entry(onDate:) takes any overnight (unreliable .insufficient/.preSleep partials included) and never a nap/quick, while OvernightArchive.byDate takes only reliable overnight/nap/quick entries. On a day whose only overnight is a partial, session.by_date returns that partial while hrv.by_date/sleep.by_date return nil or a nap, so the two routes report different sessions for the same date.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift:155",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift:71",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift:38",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift:92",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift:120",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift:128"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.day(of:calendar:)": "4ec83925afd256a3",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.overnightEntries()": "a3a2d4d5110c3c70",
@@ -260,18 +210,18 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var SessionNamespace.sessionByDateDateEntry": "4304caa4ca8f0fad",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var SessionNamespace.sessionByDateDateEntry": "7ce27c456b82e8b0",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var SessionNamespace.sessionByIdIdEntry": "af54ec969a0c7369",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var SessionNamespace.sessionByOrdinalNEntry": "249f9b309f07457a",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var SessionNamespace.sessionLatestDateEntry": "6fb0e3cfca43255d",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var SessionNamespace.sessionLatestEntry": "16dd0892323e7768",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var SessionNamespace.sessionLatestEntry": "2d34a6b4d58f1710",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var SessionNamespace.sessionLatestIdEntry": "9e13c06c9d42028b"
    }
   },
   {
    "key": "var SessionNamespace.sessionLatestEntry",
-   "hash": "c5cf281c14057a91",
-   "does": "Declares fixed fact session.latest: availability = overnightAvailability, resolve = record(for: latestEntry()).",
+   "hash": "af660abede4f669a",
+   "does": "Declares fixed fact session.latest: availability = overnightAvailability, resolve = record(for: latestEntry()). Description says it is the newest reliable overnight (partial only when none is reliable), that hrv.latest/sleep.latest report a newer nap or quick reading instead, and that the nested sleep/vitals are accepted-night snapshots while sleep.latest/vitals.latest read HealthKit live when a snapshot is missing.",
    "entry": "Invoked by FactResolverRegistry when the assistant's tool-use loop (or CompactToolRouter) resolves this fact key; availability closure is evaluated during tool-schema build.",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)",
@@ -286,9 +236,9 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.latestEntry()": "85b4a465260e34b2",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.latestEntry()": "cd0e4b26f740eb7f",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.overnightAvailability()": "be8c77761f50e6bc",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "d095a70f8795f9e9",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "7c257547ad1cd2d2",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)": "2ede3d3bbb6ddc46"
    }
   },
@@ -310,7 +260,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.latestEntry()": "85b4a465260e34b2",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.latestEntry()": "cd0e4b26f740eb7f",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.overnightAvailability()": "be8c77761f50e6bc",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)": "2ede3d3bbb6ddc46",
     "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: String?, reason: MissingReason, detail: String?)": "944da9d754759532"
@@ -334,7 +284,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.latestEntry()": "85b4a465260e34b2",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.latestEntry()": "cd0e4b26f740eb7f",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.overnightAvailability()": "be8c77761f50e6bc",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)": "2ede3d3bbb6ddc46",
     "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Date?, reason: MissingReason, detail: String?)": "3518f2eb24433cd0"
@@ -372,7 +322,7 @@
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.entry(atOrdinal:)": "a80137391352f570",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.field(of:tail:)": "49e5ae6df306cea5",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.overnightAvailability()": "be8c77761f50e6bc",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "d095a70f8795f9e9"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "7c257547ad1cd2d2"
    }
   },
   {
@@ -398,15 +348,13 @@
   },
   {
    "key": "var SessionNamespace.sessionByDateDateEntry",
-   "hash": "7a39ec1d86164d59",
-   "does": "Declares parameterized fact session.by_date($date): record for the main overnight filed under that local day, then walks the tail.",
+   "hash": "a59ad922e73b2eb6",
+   "does": "Declares parameterized fact session.by_date($date) resolving through resolveByDate. Description says it matches hrv.by_date/sleep.by_date when the day has a reliable overnight and returns the partial (where they return a nap, quick reading or nothing) when it has none.",
    "entry": "Invoked by FactResolverRegistry when the assistant's tool-use loop (or CompactToolRouter) resolves this fact key; availability closure is evaluated during tool-schema build.",
    "calls": [
     "ext:FactEntry.parameterized enum case",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.overnightAvailability()",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.field(of:tail:)",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.entry(onDate:)"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.resolveByDate(_:tail:)"
    ],
    "reads": [
     "mem:SessionArchive.index (archive.entries)"
@@ -415,10 +363,40 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.entry(onDate:)": "fbc60d5ee63d64f3",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.field(of:tail:)": "49e5ae6df306cea5",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.overnightAvailability()": "be8c77761f50e6bc",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "d095a70f8795f9e9"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.resolveByDate(_:tail:)": "f40faa4bd5e8af87"
+   }
+  },
+  {
+   "key": "func SessionNamespace.resolveByDate(_:tail:)",
+   "hash": "c98134bf615a059b",
+   "does": "Rejects a date that FactLocalDay cannot parse with missing(invalidParameter, 'expected yyyy-MM-dd'); otherwise builds the record for the main overnight filed under that local day and walks the tail.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func FactLocalDay.formatter()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.entry(onDate:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.field(of:tail:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.index (archive.entries)",
+    "file:archive session JSON (lightweight decode, rrSeries skipped)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "date string fails to parse",
+     "effect": "returns missing(invalidParameter, 'expected yyyy-MM-dd, got …')"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func HeatAcclimationNamespace.missing(otherwise:)": "f9741dae41b2876f",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.entry(onDate:)": "e6c2f77ba6006a1f",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.field(of:tail:)": "49e5ae6df306cea5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "7c257547ad1cd2d2",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func FactLocalDay.formatter()": "458f43b535dfaa23"
    }
   },
   {
@@ -458,7 +436,7 @@
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func HeatAcclimationNamespace.missing(otherwise:)": "f9741dae41b2876f",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.field(of:tail:)": "49e5ae6df306cea5",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "d095a70f8795f9e9",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "7c257547ad1cd2d2",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.wrongTypeDetail(_:entry:)": "086aa372ec9f2b7c",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e"
    }
@@ -489,15 +467,15 @@
   },
   {
    "key": "func SessionNamespace.record(for:)",
-   "hash": "b1bbcfa07c8709ee",
-   "does": "Builds the overnight record: retrieves the lightweight session, merges identity fields, overnights_that_day, and nested hrv/recovery/sleep/vitals records from the HRV/Recovery/Sleep/Vitals namespaces' sync builders (sleep uses the user's age and typicalSleepHours from settings).",
+   "hash": "6d4682e73fae6b2e",
+   "does": "Builds the overnight record: retrieves the lightweight session, merges identity fields, overnights_that_day, and nested hrv/recovery/sleep/vitals records from the HRV/Recovery/Sleep/Vitals namespaces' sync builders (hrv gets the archive so its nadir time is placed from the RR series; sleep uses the user's age and typicalSleepHours from settings; sleep and vitals are the accepted-night snapshots, no live HealthKit fallback).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)",
     "closure:settings — @Sendable () -> UserSettings injected by AppFactResolverFactory.build",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.overnightIdentityFields(_:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.overnightsSharingDay(with:)",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.hrvRecord(for:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.hrvRecord(for:archive:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func RecoveryNamespace.scoreRecord(for:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func SleepNamespace.sleepRecord(for:userAge:typicalSleepHours:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func VitalsNamespace.vitalsRecord(for:)"
@@ -505,7 +483,8 @@
    "reads": [
     "file:archive session JSON (lightweight decode, rrSeries skipped)",
     "mem:UserSettings.age",
-    "mem:UserSettings.typicalSleepHours"
+    "mem:UserSettings.typicalSleepHours",
+    "file:archive session JSON (full decode with RR series, for the hrv nadir time)"
    ],
    "writes": [],
    "branches": [
@@ -515,26 +494,12 @@
      "effect": "returns missing(notRecorded, 'no overnight session matched'); a decode/read failure is logged by retrieveLightweightOrLog and indistinguishable to the model from no data"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Comment says the nested records are the ones hrv.*/sleep.*/vitals.* return 'so the two routes cannot disagree', but the nested sleep and vitals come from the sync snapshot builders, while sleep.latest and vitals.latest fall back to a live HealthKit read when the snapshot is nil. For an un-accepted night (or late-synced sleep/vitals) session.latest.sleep says 'session has no sleep snapshot' while sleep.latest returns the night's sleep.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift:191",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift:203",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift:204",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift:229",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift:548"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func HeatAcclimationNamespace.missing(otherwise:)": "f9741dae41b2876f",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.overnightIdentityFields(_:)": "fa9ca9074667bccd",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.overnightsSharingDay(with:)": "7b780738c377aa07",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.hrvRecord(for:)": "bbbc989e5fbcbe49",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.hrvRecord(for:archive:)": "588527c718c69ff5",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func RecoveryNamespace.scoreRecord(for:)": "e765b5ff7dba3206",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func SleepNamespace.sleepRecord(for:userAge:typicalSleepHours:)": "e380d713447cce54",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func VitalsNamespace.vitalsRecord(for:)": "1bdabea4c3a24ba2",
@@ -621,7 +586,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func HeatAcclimationNamespace.missing(otherwise:)": "f9741dae41b2876f",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.fieldStep(_:tokens:at:)": "02359c2ae252f8d5",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "d095a70f8795f9e9",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "7c257547ad1cd2d2",
     "Emuqu/Sources/Assistant/Facts/FactKey.swift::var FactKey.Token.rendered": "985b727d38ff4dc2",
     "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)": "ebc1bd00eb993ff5"
    }
@@ -653,7 +618,7 @@
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.hrrFields(_:)": "538a380fd828887f",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.identityFields(_:meta:)": "ad22c523e057d1c0",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.loadFields(_:)": "30584d3950f6c49d",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "d095a70f8795f9e9"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "7c257547ad1cd2d2"
    }
   },
   {
@@ -819,12 +784,41 @@
    "deps": {}
   },
   {
-   "key": "func WalksNamespace.walksInPeriod(_:)",
-   "hash": "9d67b5682566dcd2",
-   "does": "Returns walk and hike workouts whose start date is in the parsed period, newest first: filters workout index entries by interval, loads each lightweight session from disk, keeps sport .walk/.hike.",
+   "key": "func WalksNamespace.withWalks(in:_:)",
+   "hash": "f8fd7ee5b90bb1a5",
+   "does": "Parses the period with PeriodParser; an unknown period returns PeriodParser.unknownPeriod (missing(invalidParameter) listing the accepted periods), otherwise runs the body on walksInPeriod(interval) and returns its value.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.interval(for:now:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.unknownPeriod(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.walksInPeriod(_:)",
+    "closure:body — the calling entry's aggregation"
+   ],
+   "reads": [
+    "mem:SessionArchive.index (archive.entries)",
+    "file:archive session JSON (lightweight decode per workout in period)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "period does not parse",
+     "effect": "returns PeriodParser.unknownPeriod(period)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.walksInPeriod(_:)": "8217c6c7778d799b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.interval(for:now:)": "e66f9b4913f074f8",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.unknownPeriod(_:)": "c328a78356e85e54"
+   }
+  },
+  {
+   "key": "func WalksNamespace.walksInPeriod(_:)",
+   "hash": "872dcc7a03df0bce",
+   "does": "Returns walk and hike workouts whose start date is in the interval, newest first: filters workout index entries by interval, loads each lightweight session from disk, keeps sport .walk/.hike.",
+   "entry": null,
+   "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func DateInterval.containsBeforeEnd(_:)",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)"
@@ -836,29 +830,12 @@
    "writes": [],
    "branches": [
     {
-     "at": "+1",
-     "cond": "period string does not parse",
-     "effect": "returns [] — callers report 0 walks / 'no walks in period' instead of an invalid-parameter error"
-    },
-    {
-     "at": "+6",
+     "at": "+5",
      "cond": "session has no workoutMetadata (?? false)",
      "effect": "excluded; otherwise kept only when sport is walk or hike"
     }
    ],
    "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "An unrecognised period (e.g. 'last_fortnight') yields [] and walks.count answers 0 (and list answers []), telling the model the user did no walks rather than that the argument was invalid; training.load.recent/by_sport return invalidParameter for the same input.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift:381",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift:413",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift:467",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift:764"
-     ],
-     "found": "first read, upheld on second"
-    },
     {
      "kind": "untested",
      "sev": "low",
@@ -874,7 +851,6 @@
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func DateInterval.containsBeforeEnd(_:)": "1945fdef858257a3",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.interval(for:now:)": "56c1cbdd7c4b4a86",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
    }
@@ -926,22 +902,22 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var WalksNamespace.walksCountPeriodEntry": "1c79d96965ff68ab",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var WalksNamespace.walksHardestPeriodEntry": "92608e2b85da0f74",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var WalksNamespace.walksListPeriodEntry": "27d1be3afb59321e",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var WalksNamespace.walksTotalDistanceMPeriodEntry": "d5c8641b8001ba02",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var WalksNamespace.walksTotalTrimpPeriodEntry": "bbb20b86c388c1cf"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var WalksNamespace.walksCountPeriodEntry": "ba839bb3e28bb203",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var WalksNamespace.walksHardestPeriodEntry": "14bdaf6e7ccc32db",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var WalksNamespace.walksListPeriodEntry": "c38519db26dc981c",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var WalksNamespace.walksTotalDistanceMPeriodEntry": "11558c5a1a4ba3a6",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var WalksNamespace.walksTotalTrimpPeriodEntry": "b916fe64d47be4df"
    }
   },
   {
    "key": "var WalksNamespace.walksCountPeriodEntry",
-   "hash": "93bfd9f539fbaf48",
-   "does": "Declares walks.count($period): integer count of walksInPeriod.",
+   "hash": "3216a0226ac6143e",
+   "does": "Declares walks.count($period): integer count of the walks in the period via withWalks (invalidParameter for an unknown period).",
    "entry": "Invoked by FactResolverRegistry when the assistant's tool-use loop (or CompactToolRouter) resolves this fact key; availability closure is evaluated during tool-schema build.",
    "calls": [
     "ext:FactEntry.parameterized enum case",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.walksAvailability()",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.walksInPeriod(_:)"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.withWalks(in:_:)"
    ],
    "reads": [
     "mem:SessionArchive.index (archive.entries)"
@@ -951,18 +927,18 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.walksAvailability()": "d58d772e05f22570",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.walksInPeriod(_:)": "b98ae85778585c3b"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.withWalks(in:_:)": "9ed51320c9363e2a"
    }
   },
   {
    "key": "var WalksNamespace.walksTotalDistanceMPeriodEntry",
-   "hash": "84434f3db11ac1aa",
-   "does": "Declares walks.total_distance_m($period): sum of distanceMeters over walks in period; missing(notRecorded) when the sum is 0.",
+   "hash": "fa59c2fed3f62611",
+   "does": "Declares walks.total_distance_m($period): via withWalks, sum of distanceMeters over walks in period; missing(notRecorded) when the sum is 0; invalidParameter for an unknown period.",
    "entry": "Invoked by FactResolverRegistry when the assistant's tool-use loop (or CompactToolRouter) resolves this fact key; availability closure is evaluated during tool-schema build.",
    "calls": [
     "ext:FactEntry.parameterized enum case",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.walksAvailability()",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.walksInPeriod(_:)"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.withWalks(in:_:)"
    ],
    "reads": [
     "mem:SessionArchive.index (archive.entries)"
@@ -970,7 +946,7 @@
    "writes": [],
    "branches": [
     {
-     "at": "+8",
+     "at": "+9",
      "cond": "summed distance > 0",
      "effect": "returns .double(total); otherwise missing(notRecorded, 'no distance-bearing walks in period')"
     }
@@ -979,18 +955,18 @@
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func HeatAcclimationNamespace.missing(otherwise:)": "f9741dae41b2876f",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.walksAvailability()": "d58d772e05f22570",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.walksInPeriod(_:)": "b98ae85778585c3b"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.withWalks(in:_:)": "9ed51320c9363e2a"
    }
   },
   {
    "key": "var WalksNamespace.walksTotalTrimpPeriodEntry",
-   "hash": "45cbb3a2fb5b7fae",
-   "does": "Declares walks.total_trimp($period): sum of luciaTRIMP over walks in period; missing when 0.",
+   "hash": "d35fb77ca0fa8cf7",
+   "does": "Declares walks.total_trimp($period): via withWalks, sum of luciaTRIMP over walks in period; missing when 0; invalidParameter for an unknown period.",
    "entry": "Invoked by FactResolverRegistry when the assistant's tool-use loop (or CompactToolRouter) resolves this fact key; availability closure is evaluated during tool-schema build.",
    "calls": [
     "ext:FactEntry.parameterized enum case",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.walksAvailability()",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.walksInPeriod(_:)"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.withWalks(in:_:)"
    ],
    "reads": [
     "mem:SessionArchive.index (archive.entries)"
@@ -998,7 +974,7 @@
    "writes": [],
    "branches": [
     {
-     "at": "+8",
+     "at": "+9",
      "cond": "summed TRIMP > 0",
      "effect": "returns .double(total); otherwise missing(notRecorded, 'no TRIMP data on walks in period')"
     }
@@ -1007,48 +983,64 @@
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func HeatAcclimationNamespace.missing(otherwise:)": "f9741dae41b2876f",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.walksAvailability()": "d58d772e05f22570",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.walksInPeriod(_:)": "b98ae85778585c3b"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.withWalks(in:_:)": "9ed51320c9363e2a"
    }
   },
   {
    "key": "var WalksNamespace.walksHardestPeriodEntry",
-   "hash": "34027c7add3ef9ad",
-   "does": "Declares walks.hardest($period): the walk with the highest luciaTRIMP (nil TRIMP counts as 0) as a full workout record.",
+   "hash": "6d64f612c0b633ac",
+   "does": "Declares walks.hardest($period): via withWalks, hardest(of:) — the walk with the highest luciaTRIMP as a full workout record; invalidParameter for an unknown period.",
    "entry": "Invoked by FactResolverRegistry when the assistant's tool-use loop (or CompactToolRouter) resolves this fact key; availability closure is evaluated during tool-schema build.",
    "calls": [
     "ext:FactEntry.parameterized enum case",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.walksAvailability()",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.walksInPeriod(_:)",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.fullRecord(for:)"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.withWalks(in:_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.hardest(of:)"
    ],
    "reads": [
     "mem:SessionArchive.index (archive.entries)"
    ],
    "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.hardest(of:)": "bed3e37d931a033b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.walksAvailability()": "d58d772e05f22570",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.withWalks(in:_:)": "9ed51320c9363e2a"
+   }
+  },
+  {
+   "key": "func WalksNamespace.hardest(of:)",
+   "hash": "372a4db35c47865e",
+   "does": "Returns the full workout record of the walk with the highest luciaTRIMP (nil TRIMP counts as 0), or missing(notRecorded, 'no walks in period') for an empty list.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.fullRecord(for:)"
+   ],
+   "reads": [],
+   "writes": [],
    "branches": [
     {
-     "at": "+8",
-     "cond": "no walks in period (max returns nil); within the comparator a nil luciaTRIMP uses ?? 0",
-     "effect": "sessions empty → returns missing(notRecorded, 'no walks in period'); otherwise fullRecord of the max-TRIMP walk. nil luciaTRIMP counts as 0; Sequence.max(by:) keeps the first maximal element, so when no walk has TRIMP (all 0) it returns the newest walk (walksInPeriod is newest-first)."
+     "at": "+1",
+     "cond": "no walks (max returns nil); a nil luciaTRIMP counts as 0 in the comparator",
+     "effect": "returns missing(notRecorded, 'no walks in period'); otherwise fullRecord of the max-TRIMP walk — Sequence.max(by:) keeps the first maximal element, so with no TRIMP at all it is the newest walk"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func HeatAcclimationNamespace.missing(otherwise:)": "f9741dae41b2876f",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.fullRecord(for:)": "36449474fed1fa1e",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.walksAvailability()": "d58d772e05f22570",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.walksInPeriod(_:)": "b98ae85778585c3b"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.fullRecord(for:)": "36449474fed1fa1e"
    }
   },
   {
    "key": "var WalksNamespace.walksListPeriodEntry",
-   "hash": "f9bf50d28b385491",
-   "does": "Declares walks.list($period): list of full workout records for walks in period (empty list when none).",
+   "hash": "13cf4c24843c8b6a",
+   "does": "Declares walks.list($period): via withWalks, list of full workout records for walks in period (empty list when none; invalidParameter for an unknown period).",
    "entry": "Invoked by FactResolverRegistry when the assistant's tool-use loop (or CompactToolRouter) resolves this fact key; availability closure is evaluated during tool-schema build.",
    "calls": [
     "ext:FactEntry.parameterized enum case",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.walksAvailability()",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.walksInPeriod(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.withWalks(in:_:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.fullRecord(for:)"
    ],
    "reads": [
@@ -1060,7 +1052,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.fullRecord(for:)": "36449474fed1fa1e",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.walksAvailability()": "d58d772e05f22570",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.walksInPeriod(_:)": "b98ae85778585c3b"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.withWalks(in:_:)": "9ed51320c9363e2a"
    }
   },
   {
@@ -1086,21 +1078,7 @@
      "effect": "returns nil (callers report notRecorded); otherwise maps to TrainingLoadState"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "The doc comment says this reads dailySeries[today] instead of snapshot() and falls back to snapshot() then the latest session's trainingSnapshot; the code just calls TrainingLoadRegistry.live(), which reads cache.snapshot() (cache.current) FIRST and only then the daily series, with no session fallback — the opposite order of the comment.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift:482",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift:492",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift:506",
-      "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift:166",
-      "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift:172"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.live()": "36ee2153414390ef",
     "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
@@ -1149,22 +1127,10 @@
      "effect": "acwr = atl/ctl; otherwise acwr is missing(notYetComputed, 'ctl=0')"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "training.load.by_date and training.load.recent descriptions tell the model the day's load is in the `trimp` field, but the record key is `trimp_that_day`; a tail or model looking for `trimp` finds nothing.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift:531",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift:643",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift:664"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func HeatAcclimationNamespace.missing(otherwise:)": "f9741dae41b2876f",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "d095a70f8795f9e9",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "7c257547ad1cd2d2",
     "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
    }
   },
@@ -1201,7 +1167,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var TrainingLoadNamespace.trainingLoadEntries": "1f84e94c0ece2753",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var TrainingLoadNamespace.trainingTrajectoryEntry": "a737b0978e8b63b6"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var TrainingLoadNamespace.trainingTrajectoryEntry": "4faac14bb69c4870"
    }
   },
   {
@@ -1242,9 +1208,9 @@
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var TrainingLoadNamespace.trainingLoadAcwrEntry": "2e71ad8f4d40278c",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var TrainingLoadNamespace.trainingLoadAtlEntry": "86c5894f55a740a3",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var TrainingLoadNamespace.trainingLoadByDateDateEntry": "d7b3577ebfec4a99",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var TrainingLoadNamespace.trainingLoadByDateDateEntry": "c1a11bf2068b1976",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var TrainingLoadNamespace.trainingLoadCtlEntry": "c5b312b47c44a19e",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var TrainingLoadNamespace.trainingLoadRecentPeriodEntry": "b007742d32348e4a",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var TrainingLoadNamespace.trainingLoadRecentPeriodEntry": "f88ab93d27d69e5d",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var TrainingLoadNamespace.trainingLoadTsbEntry": "0aacdc19933ea2f1"
    }
   },
@@ -1274,8 +1240,8 @@
   },
   {
    "key": "var TrainingLoadNamespace.trainingTrajectoryEntry",
-   "hash": "fa87c14f7d2bfe3d",
-   "does": "Declares fixed fact training.trajectory (Load & Trajectory verdict record) gated on historicalAvailability, resolved by trajectoryRecord().",
+   "hash": "e9a793706aed0e05",
+   "does": "Declares fixed fact training.trajectory (Load & Trajectory verdict record) gated on historicalAvailability, resolved by trajectoryRecord(); description explains verdict_as_of versus the live current_ctl/atl/tsb.",
    "entry": "Invoked by FactResolverRegistry when the assistant's tool-use loop (or CompactToolRouter) resolves this fact key; availability closure is evaluated during tool-schema build.",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)",
@@ -1290,7 +1256,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.historicalAvailability()": "3cfd9d71634b09e4",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift::func TrainingLoadNamespace.trajectoryRecord()": "c7d14efb822c08da",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift::func TrainingLoadNamespace.trajectoryRecord()": "a83d7b396be46443",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)": "2ede3d3bbb6ddc46"
    }
   },
@@ -1311,7 +1277,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.liveOrCached()": "dde23a0266529754",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.liveOrCached()": "f65f5f3d62365a97",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
     "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Double?, reason: MissingReason, detail: String?)": "47972947e76f100c"
    }
@@ -1333,7 +1299,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.liveOrCached()": "dde23a0266529754",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.liveOrCached()": "f65f5f3d62365a97",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
     "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Double?, reason: MissingReason, detail: String?)": "47972947e76f100c",
     "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
@@ -1362,7 +1328,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func HeatAcclimationNamespace.missing(otherwise:)": "f9741dae41b2876f",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.liveOrCached()": "dde23a0266529754",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.liveOrCached()": "f65f5f3d62365a97",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
    }
   },
@@ -1383,15 +1349,15 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.liveOrCached()": "dde23a0266529754",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.liveOrCached()": "f65f5f3d62365a97",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
     "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Double?, reason: MissingReason, detail: String?)": "47972947e76f100c"
    }
   },
   {
    "key": "var TrainingLoadNamespace.trainingLoadByDateDateEntry",
-   "hash": "8784bc67f46d243d",
-   "does": "Declares training.load.by_date($date): parses yyyy-MM-dd, looks up the cached daily sample and returns the full load record.",
+   "hash": "0ac59586d354326d",
+   "does": "Declares training.load.by_date($date): parses yyyy-MM-dd, looks up the cached daily sample and returns the full load record (description names the day's load field trimp_that_day).",
    "entry": "Invoked by FactResolverRegistry when the assistant's tool-use loop (or CompactToolRouter) resolves this fact key; availability closure is evaluated during tool-schema build.",
    "calls": [
     "ext:FactEntry.parameterized enum case",
@@ -1422,15 +1388,15 @@
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.sampleOn(date:)": "b9050b7f2eb5bf8d",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func HeatAcclimationNamespace.missing(otherwise:)": "f9741dae41b2876f",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.historicalAvailability()": "3cfd9d71634b09e4",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.loadRecord(for:)": "e6f5fc1802455426",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.loadRecord(for:)": "ae21e3b9603b78be",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func FactLocalDay.formatter()": "458f43b535dfaa23",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
    }
   },
   {
    "key": "var TrainingLoadNamespace.trainingLoadRecentPeriodEntry",
-   "hash": "d83adc5e94ad662c",
-   "does": "Declares training.load.recent($period): daily load records in the period, newest first.",
+   "hash": "3170f026b27a67d1",
+   "does": "Declares training.load.recent($period): daily load records in the period, newest first (description names the day's load field trimp_that_day).",
    "entry": "Invoked by FactResolverRegistry when the assistant's tool-use loop (or CompactToolRouter) resolves this fact key; availability closure is evaluated during tool-schema build.",
    "calls": [
     "ext:FactEntry.parameterized enum case",
@@ -1459,9 +1425,9 @@
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func HeatAcclimationNamespace.missing(otherwise:)": "f9741dae41b2876f",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.historicalAvailability()": "3cfd9d71634b09e4",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.loadRecord(for:)": "e6f5fc1802455426",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.loadRecord(for:)": "ae21e3b9603b78be",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.loadSamples(in:)": "66e28d4b0f37a8d9",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.interval(for:now:)": "56c1cbdd7c4b4a86"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.interval(for:now:)": "e66f9b4913f074f8"
    }
   },
   {
@@ -1677,10 +1643,10 @@
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func HeatAcclimationNamespace.missing(otherwise:)": "f9741dae41b2876f",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "d095a70f8795f9e9",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "7c257547ad1cd2d2",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var TrainingLoadNamespace.entries": "2d60c9f9825b42bf",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func DateInterval.containsBeforeEnd(_:)": "1945fdef858257a3",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.interval(for:now:)": "56c1cbdd7c4b4a86",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.interval(for:now:)": "e66f9b4913f074f8",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.displayName": "77a6486ffa8861f3",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
@@ -1717,8 +1683,8 @@
   },
   {
    "key": "func HeatAcclimationNamespace.readout()",
-   "hash": "5d7e784fa451c453",
-   "does": "Awaits HeatAcclimationCache.currentAwaitingRefresh() under an 8 s FactResolveTimeout. That returns nil when heat tracking is off; returns the cached readout when <5 min old; otherwise runs computeStatus (lightweight-decodes outdoor archive workouts in the replay window + fetches outdoor HealthKit workouts, replays recorded weather — no weather network fetch), stores the status and persists a ready readout to UserDefaults. Timeout → nil; the compute keeps running.",
+   "hash": "5de4d8f4c3b0e1e4",
+   "does": "Awaits HeatAcclimationCache.currentAwaitingRefresh() under an 8 s FactResolveTimeout and wraps the result in Computed. That returns nil when heat tracking is off; returns the cached readout when <5 min old; otherwise runs computeStatus (lightweight-decodes outdoor archive workouts in the replay window + fetches outdoor HealthKit workouts, replays recorded weather — no network), stores the status and persists a ready readout to UserDefaults. Returns nil only on timeout (the compute keeps running); Computed.readout nil means no readout.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)",
@@ -1738,36 +1704,11 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "withTimeout returned nil (timeout) — ?? nil",
-     "effect": "flattens to nil; otherwise the readout (itself nil when tracking is off or nothing computed)"
+     "cond": "withTimeout returned nil (timeout)",
+     "effect": "returns nil; otherwise Computed wrapping the readout (itself nil when tracking is off or nothing computed)"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "An 8 s timeout returns nil exactly like 'no readout', so with tracking on the user is told 'no outdoor workouts with weather yet' when the compute (archive decode of every outdoor workout in the replay window + a HealthKit workout query) was merely slow.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift:804",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift:825",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift:870",
-      "Emuqu/Sources/Analysis/HeatAcclimationCache.swift:205",
-      "Emuqu/Sources/Analysis/HeatAcclimationCache.swift:280"
-     ],
-     "found": "second read"
-    },
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Doc comment says 'the compute does one weather fetch'; HeatAcclimationCache.computeStatus does no weather fetch — it only uses weather recorded with each workout, and its own comment says nothing in it waits on the network.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift:802",
-      "Emuqu/Sources/Analysis/HeatAcclimationCache.swift:9",
-      "Emuqu/Sources/Analysis/HeatAcclimationCache.swift:163"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.currentAwaitingRefresh()": "d259729c0e2f72e9",
     "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)": "ee8ecd721e21103a",
@@ -1788,14 +1729,14 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var HeatAcclimationNamespace.heatAcclimationLevelEntry": "e0298a4de2264d44",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var HeatAcclimationNamespace.heatAcclimationLevelEntry": "786cffed202fdd17",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var HeatAcclimationNamespace.heatAcclimationSummaryEntry": "2342583fd77a8875"
    }
   },
   {
    "key": "var HeatAcclimationNamespace.heatAcclimationLevelEntry",
-   "hash": "0afeca8249379efe",
-   "does": "Declares always-available async fact heat.acclimation.level: readout level 0–100 or a missing explanation.",
+   "hash": "331db1d03840c11a",
+   "does": "Declares always-available async fact heat.acclimation.level: readout level 0–100, missing(notYetComputed) when the compute is past the 8 s cap, or the missing(otherwise:) explanation when there is no readout.",
    "entry": "Invoked by FactResolverRegistry when the assistant's tool-use loop (or CompactToolRouter) resolves this fact key; availability closure is evaluated during tool-schema build.",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixedAsync(key:description:valueType:resolve:)",
@@ -1809,7 +1750,12 @@
    "branches": [
     {
      "at": "+9",
-     "cond": "readout is nil",
+     "cond": "readout() timed out (nil)",
+     "effect": "returns stillComputing — missing(notYetComputed, 'still being computed — ask again in a few seconds')"
+    },
+    {
+     "at": "+10",
+     "cond": "compute finished with no readout",
      "effect": "returns missing(otherwise:) — tracking-off message or 'no outdoor workouts with weather yet'; else .double(level)"
     }
    ],
@@ -1817,7 +1763,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func HeatAcclimationNamespace.missing(otherwise:)": "f9741dae41b2876f",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func HeatAcclimationNamespace.readout()": "8f02392beb843d36",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func HeatAcclimationNamespace.readout()": "bbfa9f4d8925a6fa",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixedAsync(key:description:valueType:resolve:)": "7ac0cf1ea91ba5f2"
    }
   },
@@ -1835,14 +1781,14 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func HeatAcclimationNamespace.resolveHeatAcclimationSummary()": "f4e6ccca150d73bf",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func HeatAcclimationNamespace.resolveHeatAcclimationSummary()": "adbcfcd29d257af8",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixedAsync(key:description:valueType:resolve:)": "7ac0cf1ea91ba5f2"
    }
   },
   {
    "key": "func HeatAcclimationNamespace.resolveHeatAcclimationSummary()",
-   "hash": "8b9ead767ff59dcc",
-   "does": "Builds the heat summary record: level_percent, band label, hot_exposures_in_window, adapted WBGT + approximate air temperature, and status/days-to-full.",
+   "hash": "bb3cf2be6860e983",
+   "does": "Builds the heat summary record: level_percent, band label, hot_exposures_in_window, adapted WBGT + approximate air temperature, and status/days-to-full; missing(notYetComputed) when the compute is past the 8 s cap, missing(otherwise:) when there is no readout.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func HeatAcclimationNamespace.readout()",
@@ -1858,11 +1804,16 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "no readout",
+     "cond": "readout() timed out (nil)",
+     "effect": "returns stillComputing — missing(notYetComputed, 'still being computed — ask again in a few seconds')"
+    },
+    {
+     "at": "+2",
+     "cond": "compute finished with no readout",
      "effect": "returns missing(otherwise: 'no outdoor workouts with weather yet')"
     },
     {
-     "at": "+9",
+     "at": "+10",
      "cond": "readout has an adapted WBGT",
      "effect": "adds adapted_to_wbgt_c and adapted_to_air_temp_c_approx; otherwise those keys are absent"
     }
@@ -1888,8 +1839,8 @@
     "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func HeatAcclimationNamespace.addAcclimationStatus(_:daysToTarget:)": "2f7f865d7e8115ef",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func HeatAcclimationNamespace.missing(otherwise:)": "f9741dae41b2876f",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func HeatAcclimationNamespace.readout()": "8f02392beb843d36",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "d095a70f8795f9e9"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func HeatAcclimationNamespace.readout()": "bbfa9f4d8925a6fa",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "7c257547ad1cd2d2"
    }
   },
   {

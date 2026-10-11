@@ -1,13 +1,13 @@
 {
  "file": "Emuqu/Sources/Analysis/HRVThresholds.swift",
- "hash": "bd1b6c0697883b1b",
+ "hash": "acd712c3b313beea",
  "role": "Central table of HRV/sleep/stress/DFA/verification thresholds (HRVThresholds), plus age- and sex-adjusted RMSSD banding (AgeAdjustedHRV) and its result types RMSSDCategory / RMSSDInterpretation.",
  "types": [
   "HRVThresholds: enum — namespace of static threshold constants used by Verification, AnalysisSummaryGenerator, CauseDetection, scoring",
   "AgeAdjustedHRV: enum — age/sex population RMSSD norms and banding",
   "AgeAdjustedHRV.Sex: enum — male/female with RMSSD multiplier",
-  "RMSSDCategory: enum — excellent/good/fair/reduced/low band with localized label/age phrase/color name",
-  "RMSSDInterpretation: struct — category + optional age context, percentile, age-adjusted median"
+  "RMSSDCategory: enum — excellent/good/fair/reduced/low band with localized label and age phrase",
+  "RMSSDInterpretation: struct — category + optional app-language age context"
  ],
  "state": [
   "mem:HRVThresholds.minimumRRIntervalMs=300",
@@ -83,16 +83,6 @@
    "text": "HRVThresholds.illnessConsecutiveDeclineDays has no reference anywhere in the repo outside its declaration.",
    "evidence": [
     "Emuqu/Sources/Analysis/HRVThresholds.swift:247"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Comment says the verification constants can be overridden by tests/tuning 'via the existing Config surface', but they are plain static lets with no override hook.",
-   "evidence": [
-    "Emuqu/Sources/Analysis/HRVThresholds.swift:17",
-    "Emuqu/Sources/Analysis/HRVThresholds.swift:25"
    ],
    "found": "first read, upheld on second"
   },
@@ -219,14 +209,13 @@
   },
   {
    "key": "func AgeAdjustedHRV.interpret(rmssd:age:sex:)",
-   "hash": "802d56d11de324a2",
-   "does": "Interprets an RMSSD value: with no age returns the absolute-threshold interpretation; with age returns category + English age phrase from categorize, a percentile estimate and the age-adjusted median. Called by AnalysisSummaryGenerator.ageAdjustedInterpretation and ReportSectionRenderer.ageAdjustedInterpretation.",
+   "hash": "9a074a975edba32a",
+   "does": "Interprets an RMSSD value: with no age returns the absolute-threshold interpretation; with age returns the age-banded category from categorize and its app-language age phrase (RMSSDCategory.localizedAgeContext) as ageContext. Called by AnalysisSummaryGenerator.ageAdjustedInterpretation and ReportSectionRenderer.ageAdjustedInterpretation.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.interpretAbsolute(rmssd:)",
-    "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.medianRMSSD(forAge:sex:)",
     "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.categorize(rmssd:age:sex:)",
-    "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.estimatePercentile(rmssd:median:)"
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::var RMSSDCategory.localizedAgeContext"
    ],
    "reads": [],
    "writes": [],
@@ -234,35 +223,20 @@
     {
      "at": "+1",
      "cond": "age is nil",
-     "effect": "early return interpretAbsolute(rmssd) (no ageContext/percentile/median); otherwise age-banded interpretation"
+     "effect": "early return interpretAbsolute(rmssd) (ageContext nil); otherwise age-banded interpretation"
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "RMSSDInterpretation.ageAdjustedMedian is filled here (median) but never read anywhere in app or tests; callers read only category, ageContext (as a nil check), localizedLabel and localizedAgeContext.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/HRVThresholds.swift:320",
-      "Emuqu/Sources/Analysis/HRVThresholds.swift:425",
-      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift:17",
-      "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift:301"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.categorize(rmssd:age:sex:)": "8e1a237d6296fe12",
-    "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.estimatePercentile(rmssd:median:)": "2b40785baa6a7867",
-    "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.interpretAbsolute(rmssd:)": "aa935e64ca2f612e",
-    "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.medianRMSSD(forAge:sex:)": "6dc65df7357d7689",
-    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "315f6413360002af"
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.categorize(rmssd:age:sex:)": "cff3c034db73edc2",
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.interpretAbsolute(rmssd:)": "dd4f9e90b8552c74",
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::var RMSSDCategory.localizedAgeContext": "465506b05bb30d83"
    }
   },
   {
    "key": "func AgeAdjustedHRV.categorize(rmssd:age:sex:)",
-   "hash": "81831b46a60bb6c1",
-   "does": "Returns (category, English age phrase) by comparing rmssd to the age/sex thresholds from top band down.",
+   "hash": "9f238954982ca456",
+   "does": "Returns the RMSSDCategory by comparing rmssd to the age/sex thresholds from top band down (the phrase for it is RMSSDCategory.localizedAgeContext).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.rmssdThresholds(forAge:sex:)"
@@ -271,53 +245,39 @@
    "writes": [],
    "branches": [
     {
-     "at": "+4",
+     "at": "+2",
      "cond": "rmssd >= excellent (1.4x median)",
-     "effect": "(.excellent, 'well above average for your age')"
+     "effect": ".excellent"
+    },
+    {
+     "at": "+3",
+     "cond": "rmssd >= good (1.15x)",
+     "effect": ".good"
+    },
+    {
+     "at": "+4",
+     "cond": "rmssd >= fair (0.85x)",
+     "effect": ".fair"
     },
     {
      "at": "+5",
-     "cond": "rmssd >= good (1.15x)",
-     "effect": "(.good, 'above average...')"
-    },
-    {
-     "at": "+6",
-     "cond": "rmssd >= fair (0.85x)",
-     "effect": "(.fair, 'typical for your age')"
-    },
-    {
-     "at": "+7",
      "cond": "rmssd >= low (0.6x)",
-     "effect": "(.reduced, 'below average...'); else falls through to (.low, 'significantly below average...')"
+     "effect": ".reduced; else falls through to .low"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "The English age phrases returned here are a third copy of the same five phrases: RMSSDCategory.localizedAgeContext (sentence case) and ExplanationCopy.agePhrase (NarrativeLanguage). The English string itself is only used as a non-nil marker, so the copies can drift without any test noticing.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/HRVThresholds.swift:329",
-      "Emuqu/Sources/Analysis/HRVThresholds.swift:400",
-      "Emuqu/Sources/Analysis/HRVThresholds.swift:447",
-      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift:166",
-      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift:662"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.excellent(_:)": "7a1d9795af058a58",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.fair(_:)": "3086c92c4b85cc2f",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.good(_:)": "08f40e10114e44f0",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.low(_:)": "ae0e5ba829843964",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.excellent(_:)": "32ef5872d3b536c5",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.fair(_:)": "a5fefa381c71f597",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.good(_:)": "c6b63e41e15ce7ec",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.low(_:)": "0dbc3b9bab439012",
     "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.rmssdThresholds(forAge:sex:)": "3df80fffefa3fee2"
    }
   },
   {
    "key": "func AgeAdjustedHRV.interpretAbsolute(rmssd:)",
-   "hash": "6b28c14a3dffddb0",
-   "does": "Absolute RMSSD banding when age unknown: >=50 excellent, >=35 good, >=25 fair, >=20 reduced, else low; ageContext/percentile/median nil.",
+   "hash": "334d11b81c1f0af7",
+   "does": "Absolute RMSSD banding when age unknown: >=50 excellent, >=35 good, >=25 fair, >=20 reduced, else low; ageContext nil.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -345,70 +305,6 @@
     }
    ],
    "flags": [],
-   "deps": {}
-  },
-  {
-   "key": "func AgeAdjustedHRV.estimatePercentile(rmssd:median:)",
-   "hash": "96b41b8ea5649a64",
-   "does": "Maps rmssd/median ratio to a coarse percentile step (95/85/75/60/50/35/20/10/5).",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+5",
-     "cond": "ratio >= 1.8",
-     "effect": "95"
-    },
-    {
-     "at": "+6",
-     "cond": "ratio >= 1.5",
-     "effect": "85"
-    },
-    {
-     "at": "+7",
-     "cond": "ratio >= 1.3",
-     "effect": "75"
-    },
-    {
-     "at": "+8",
-     "cond": "ratio >= 1.1",
-     "effect": "60"
-    },
-    {
-     "at": "+9",
-     "cond": "ratio >= 0.95",
-     "effect": "50"
-    },
-    {
-     "at": "+10",
-     "cond": "ratio >= 0.8",
-     "effect": "35"
-    },
-    {
-     "at": "+11",
-     "cond": "ratio >= 0.65",
-     "effect": "20"
-    },
-    {
-     "at": "+12",
-     "cond": "ratio >= 0.5",
-     "effect": "10; else 5"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "The percentile it produces is stored in RMSSDInterpretation.percentile, which is read only by percentileDescription, which has no callers; the computed value never reaches a user.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/HRVThresholds.swift:319",
-      "Emuqu/Sources/Analysis/HRVThresholds.swift:451"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   },
   {
@@ -500,105 +396,6 @@
    }
   },
   {
-   "key": "var RMSSDCategory.color",
-   "hash": "c33a52a450b35f8f",
-   "does": "Returns a color name string per category (green/teal/yellow/orange/red).",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": ".excellent",
-     "effect": "'green'"
-    },
-    {
-     "at": "+3",
-     "cond": ".good",
-     "effect": "'teal'"
-    },
-    {
-     "at": "+4",
-     "cond": ".fair",
-     "effect": "'yellow'"
-    },
-    {
-     "at": "+5",
-     "cond": ".reduced",
-     "effect": "'orange'"
-    },
-    {
-     "at": "+6",
-     "cond": ".low",
-     "effect": "'red'"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "RMSSDCategory.color has no callers in app or tests (PDF uses its own hrvScoreColor switch; HelpCenter .color is a different type).",
-     "evidence": [
-      "Emuqu/Sources/Analysis/HRVThresholds.swift:410",
-      "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift:304"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
-  },
-  {
-   "key": "var RMSSDInterpretation.fullDescription",
-   "hash": "de9aa4e737a7ed94",
-   "does": "English 'Category – context' string, or just the category raw value when no age context.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "ageContext non-nil",
-     "effect": "returns 'rawValue – context'; else rawValue"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "fullDescription is never referenced in app or tests.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/HRVThresholds.swift:428"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
-  },
-  {
-   "key": "var RMSSDInterpretation.label",
-   "hash": "533739af5769d40b",
-   "does": "Returns category.rawValue (English).",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "RMSSDInterpretation.label has no callers; screens use localizedLabel.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/HRVThresholds.swift:436"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
-  },
-  {
    "key": "var RMSSDInterpretation.localizedLabel",
    "hash": "ff8804145055a853",
    "does": "Returns category.localizedLabel.",
@@ -635,34 +432,6 @@
    "deps": {
     "Emuqu/Sources/Analysis/HRVThresholds.swift::var RMSSDCategory.localizedAgeContext": "465506b05bb30d83"
    }
-  },
-  {
-   "key": "var RMSSDInterpretation.percentileDescription",
-   "hash": "e4c5f2cd9289dfad",
-   "does": "'<p>th percentile for your age' or nil when percentile is nil.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "percentile nil",
-     "effect": "returns nil"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "percentileDescription has no callers in app or tests.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/HRVThresholds.swift:451"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
   }
  ],
  "deps": {}

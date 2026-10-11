@@ -10,13 +10,9 @@ import os
 // MARK: - CMAltimeter availability check
 //
 // Stand-alone helper so the app.* namespace can answer without
-// importing CoreMotion into this file's import set.
+// importing CoreMotion into its own file.
 func CMAltimeterIsAvailable() -> Bool {
-    #if canImport(CoreMotion)
-        return CMAltimeter.isRelativeAltitudeAvailable()
-    #else
-        return false
-    #endif
+    CMAltimeter.isRelativeAltitudeAvailable()
 }
 
 // MARK: - Local-day parameter format
@@ -98,6 +94,9 @@ enum OvernightArchive {
     /// and quick readings; each record's `session_type` labels them. Same
     /// midpoint rule as `byDate`: on the start date, last night began
     /// yesterday and "today" came back empty beside this morning's score.
+    /// An unknown period gives []; callers reject it first with
+    /// `PeriodParser.invalidPeriod` so the model is not told the user has
+    /// no data.
     static func inPeriod(_ period: String, archive: SessionArchive, types: Set<SessionType>? = nil) -> [HRVSession] {
         guard let interval = PeriodParser.interval(for: period) else { return [] }
         let allowed = types ?? hrvBearingTypes
@@ -279,6 +278,7 @@ struct SleepNamespace: FactNamespaceResolver {
             description: "List of sleep records over a recent period (last_7d / last_14d / last_30d / last_90d / all_time), overnights and naps. Each item is the same record shape as sleep.latest; session_type says which. Most recent first.",
             availability: { OvernightArchive.availability(self.archive) },
             resolve: { param, _ in
+                if let invalid = PeriodParser.invalidPeriod(param) { return invalid }
                 let sessions = OvernightArchive.inPeriod(param, archive: self.archive, types: [.overnight, .nap])
                 guard !sessions.isEmpty else {
                     return .missing(reason: .notRecorded, detail: "no overnight sessions in period")
@@ -319,7 +319,10 @@ struct HRVNamespace: FactNamespaceResolver {
     let namespace = "hrv"
     let archive: SessionArchive
 
-    static func hrvRecord(for session: HRVSession?) -> FactValue {
+    /// `archive` lets a single-night lookup load the session's RR series,
+    /// which the lightweight decode skips, to put the nadir on the wall
+    /// clock; list callers pass nil and the record has no nadir time.
+    static func hrvRecord(for session: HRVSession?, archive: SessionArchive? = nil) -> FactValue {
         guard let session else {
             return .missing(reason: .notRecorded, detail: "no overnight session matched")
         }
@@ -330,7 +333,7 @@ struct HRVNamespace: FactNamespaceResolver {
         record.merge(nonlinearFields(analysis)) { current, _ in current }
         record.merge(frequencyFields(analysis)) { current, _ in current }
         record.merge(ansFields(analysis)) { current, _ in current }
-        if let nadirAt = nadirWallClock(session: session, analysis: analysis) {
+        if let nadirAt = nadirWallClock(session: session, analysis: analysis, archive: archive) {
             record["overnight_nadir_at_iso"] = .date(nadirAt)
         }
         return OvernightArchive.labeled(.record(record), session)
@@ -407,13 +410,14 @@ struct HRVNamespace: FactNamespaceResolver {
         return out
     }
 
-    /// The wall-clock time of the overnight nadir, when we can derive it from
-    /// the series timeline. Falls back to session start + offset.
-    private static func nadirWallClock(session: HRVSession, analysis: HRVAnalysisResult) -> Date? {
-        guard let offsetMs = analysis.overnightNadirTimeMs else { return nil }
-        guard let series = session.rrSeries else {
-            return session.startDate.addingTimeInterval(TimeInterval(offsetMs) / 1000.0)
-        }
+    /// The wall-clock time of the overnight nadir. The analysis stores it as
+    /// cumulative RR time, which runs behind the clock by every strap gap
+    /// before the nadir, so it is placed through the RR series' wall-clock
+    /// stamps. Nil without the series rather than a drifted time.
+    private static func nadirWallClock(session: HRVSession, analysis: HRVAnalysisResult, archive: SessionArchive?) -> Date? {
+        guard let offsetMs = analysis.overnightNadirTimeMs,
+              let series = session.rrSeries ?? archive?.retrieveOrLog(session.id)?.rrSeries
+        else { return nil }
         return series.wallClockTime(forTMs: offsetMs)
     }
 
@@ -465,7 +469,7 @@ struct HRVNamespace: FactNamespaceResolver {
             description: "HRV analysis for a specific local date (yyyy-MM-dd). Midpoint-in-day session matching.",
             availability: { OvernightArchive.availability(self.archive) },
             resolve: { param, _ in
-                Self.hrvRecord(for: OvernightArchive.byDate(param, archive: self.archive))
+                Self.hrvRecord(for: OvernightArchive.byDate(param, archive: self.archive), archive: self.archive)
             }
         )
     }
@@ -474,9 +478,10 @@ struct HRVNamespace: FactNamespaceResolver {
         .parameterized(
             pattern: "hrv.recent($period)",
             paramExample: "last_7d",
-            description: "List of HRV analyses over a recent period. Each item is the same record shape as hrv.latest. Most recent first.",
+            description: "List of HRV analyses over a recent period. Each item is the same record shape as hrv.latest, without overnight_nadir_at_iso (hrv.by_date gives one night's nadir time). Most recent first.",
             availability: { OvernightArchive.availability(self.archive) },
             resolve: { param, _ in
+                if let invalid = PeriodParser.invalidPeriod(param) { return invalid }
                 let sessions = OvernightArchive.inPeriod(param, archive: self.archive)
                 guard !sessions.isEmpty else {
                     return .missing(reason: .notRecorded, detail: "no overnight sessions in period")
@@ -497,7 +502,7 @@ struct HRVNamespace: FactNamespaceResolver {
             """,
             valueType: "Record",
             availability: { OvernightArchive.availability(self.archive) },
-            resolve: { Self.hrvRecord(for: OvernightArchive.latest(self.archive)) }
+            resolve: { Self.hrvRecord(for: OvernightArchive.latest(self.archive), archive: self.archive) }
         )
     }
 }
@@ -727,6 +732,7 @@ struct RecoveryNamespace: FactNamespaceResolver {
             description: "List of recovery scores over a recent period. Each item is a record with date + score. Most recent first. Use for 'have I been recovering?' / 'am I trending up?'.",
             availability: { OvernightArchive.availability(self.archive) },
             resolve: { param, _ in
+                if let invalid = PeriodParser.invalidPeriod(param) { return invalid }
                 let sessions = OvernightArchive.inPeriod(param, archive: self.archive).filter { $0.recoveryScore != nil }
                 guard !sessions.isEmpty else {
                     return .missing(reason: .notRecorded, detail: "no scored overnight sessions in period")
@@ -758,6 +764,7 @@ struct RecoveryNamespace: FactNamespaceResolver {
         // (period .all — inPeriod already did the windowing) apply the
         // shared trend verdict the Trends screen uses. Needs ≥2 readings
         // for statistics and ≥4 for a direction.
+        if let invalid = PeriodParser.invalidPeriod(param) { return invalid }
         let sessions = OvernightArchive.inPeriod(param, archive: archive)
         guard let summary = TrendAnalyzer.analyze(sessions: sessions, period: .all) else {
             return .missing(

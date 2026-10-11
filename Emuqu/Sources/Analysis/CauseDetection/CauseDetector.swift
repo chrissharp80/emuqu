@@ -84,16 +84,8 @@ struct CauseDetectionContext {
         session.analysisResult?.timeDomain.meanHR
     }
 
-    var isShortSleep: Bool {
-        sleepInput.isShortSleep
-    }
-
     var isGoodSleep: Bool {
         sleepInput.isGoodSleep
-    }
-
-    var isFragmented: Bool {
-        sleepInput.isFragmented
     }
 }
 
@@ -120,7 +112,9 @@ final class CauseDetector {
         ]
     }
 
-    /// Initialize with custom strategies (useful for testing)
+    /// Initialize with custom strategies: the test seam
+    /// (`CauseDetectorTests.testDetectorWithCustomStrategies`); the app uses
+    /// `init()`.
     init(strategies: [CauseDetectionStrategy]) {
         self.strategies = strategies
     }

@@ -29,8 +29,8 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.isGoodReading(rmssd:stress:lfhf:dfa:)": "f75be3d3da4a805f",
-    "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift::func SevereCauseDetector.detectElevatedHRWithLowHRV(in:)": "6c462b5351e2eb20",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.isGoodReading(rmssd:)": "a553c84c2cc0efa5",
+    "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift::func SevereCauseDetector.detectElevatedHRWithLowHRV(in:)": "2bd0189a91869691",
     "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift::func SevereCauseDetector.detectHRVCrash(in:)": "9b3b196bc8ce3275"
    }
   },
@@ -73,11 +73,11 @@
   },
   {
    "key": "func SevereCauseDetector.detectElevatedHRWithLowHRV(in:)",
-   "hash": "5ab66053fd20bebb",
-   "does": "'Elevated HR + Low HRV' (high, 0.70) when tonight's HR exceeds trendStats.avgHR by more than hrSignificantElevation and RMSSD < 0.8 × avgRMSSD.",
+   "hash": "2cdc8ca391d87ad8",
+   "does": "'Elevated HR + Low HRV' (high, 0.70) quoting the elevation when SevereCauseDetector.elevatedHRWithLowHRV finds the pattern (tonight's HR more than hrSignificantElevation above trendStats.avgHR and RMSSD < 0.8 × avgRMSSD).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::var CauseDetectionContext.currentHR",
+    "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift::func SevereCauseDetector.elevatedHRWithLowHRV(in:)",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
     "ext:String(localized:bundle:)"
@@ -86,14 +86,9 @@
    "writes": [],
    "branches": [
     {
-     "at": "+4",
-     "cond": "no trend data, avgHR <= 0 or no current HR",
-     "effect": "returns []"
-    },
-    {
-     "at": "+11",
-     "cond": "HR elevated and HRV suppressed",
-     "effect": "adds cause"
+     "at": "+2",
+     "cond": "pattern found",
+     "effect": "adds cause; else []"
     }
    ],
    "flags": [
@@ -110,9 +105,36 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::var CauseDetectionContext.currentHR": "4c3a7898e9bb7b17",
+    "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift::func SevereCauseDetector.elevatedHRWithLowHRV(in:)": "89b9ef71a9897e4c",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func SevereCauseDetector.elevatedHRWithLowHRV(in:)",
+   "hash": "97f90d54acb259c8",
+   "does": "The resting-HR elevation (tonight's HR − trendStats.avgHR) when it exceeds HRVThresholds.hrSignificantElevation and RMSSD < 0.8 × trendStats.avgRMSSD; nil otherwise or without trend data, an HR baseline or tonight's HR. Shared with MetricBasedCauseDetector so the same rise is reported once.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::var CauseDetectionContext.currentHR"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no trend data, avgHR <= 0 or no current HR",
+     "effect": "nil"
+    },
+    {
+     "at": "+5",
+     "cond": "HR elevated and HRV suppressed",
+     "effect": "elevation; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::var CauseDetectionContext.currentHR": "4c3a7898e9bb7b17"
    }
   }
  ],

@@ -80,9 +80,16 @@ enum PedometerHistoryImporter {
     /// a user a whole recorded walk.
     private static func queryPedometerData(pedometer: CMPedometer, from: Date, to: Date) async -> DailySteps? {
         await withCheckedContinuation { continuation in
-            pedometer.queryPedometerData(from: from, to: to) { @Sendable data, _ in
+            pedometer.queryPedometerData(from: from, to: to) { @Sendable data, error in
+                Self.logFailure(error, dayStart: from)
                 continuation.resume(returning: Self.reduced(data, dayStart: from))
             }
         }
+    }
+
+    /// A failed day is left out of the list; the log says why.
+    private static func logFailure(_ error: Error?, dayStart: Date) {
+        guard let error else { return }
+        debugLog("[PedometerHistory] Query for \(dayStart) failed: \(error.localizedDescription)")
     }
 }

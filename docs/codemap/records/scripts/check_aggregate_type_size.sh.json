@@ -1,6 +1,6 @@
 {
  "file": "scripts/check_aggregate_type_size.sh",
- "hash": "6a3f96a272598592",
+ "hash": "ecd679210eb35917",
  "role": "CI gate: sums each Swift type's lines across every declaration/extension under Emuqu/Sources and fails if the count of types over 1500 lines or the summed excess exceeds .ci budgets.",
  "types": [],
  "state": [
@@ -10,29 +10,8 @@
   "env:AGGREGATE_TYPE_EXCESS_BUDGET_FILE",
   "env:AGGREGATE_TYPE_THRESHOLD"
  ],
- "toplevel": "cd to repo root. SCAN_DIR=$1 or Emuqu/Sources (exit 2 if missing). Budgets from AGGREGATE_TYPE_BUDGET_FILE (.ci/aggregate_type_size_budget.txt, value 0) and AGGREGATE_TYPE_EXCESS_BUDGET_FILE (.ci/aggregate_type_excess_budget.txt, value 0); THRESHOLD env default 1500. Embedded Python: regex DECL matches class/struct/enum/actor/extension/protocol headers, brace-counts each (strings and // stripped; gives up after 4000 lines), adds the span to sizes[name], then jumps past the body (so nested types are never measured separately). Prints count, total excess and top 12 'OVER' rows. Empty Python output -> exit 2. Fails (exit 1) if count>budget or excess>excess_budget; prints 'lower budget' hint when below; else 'clean'. Wired: Makefile aggregate-type-size, gates.yml (push), ci.yml.",
+ "toplevel": "cd to repo root. SCAN_DIR=$1 or Emuqu/Sources (exit 2 if missing). Budgets from AGGREGATE_TYPE_BUDGET_FILE (.ci/aggregate_type_size_budget.txt, value 0) and AGGREGATE_TYPE_EXCESS_BUDGET_FILE (.ci/aggregate_type_excess_budget.txt, value 0); THRESHOLD env default 1500. Embedded Python: each file is masked (// and nestable /* */ comments, single-line, multi-line and raw string literals blanked, newlines kept); regex DECL matches top-level class/struct/enum/actor/extension/protocol headers on masked lines; private/fileprivate non-extension types are keyed name@file; body_end brace-counts to the closing line (no line cap); a body that never closes is reported UNBALANCED; otherwise the span is added to sizes[name] and scanning jumps past the body (nested types not measured separately). Prints count, total excess, top 12 'OVER' rows and UNBALANCED rows. Empty output or any UNBALANCED -> exit 2. Fails (exit 1) if count>budget or excess>excess_budget; prints 'lower budget' hint when below; else 'clean'. Header documents that file-scope code and sibling types are not attributed to a type. Wired: Makefile aggregate-type-size, gates.yml (push), ci.yml.",
  "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "Types are keyed by bare name only, so unrelated types with the same name in different files/scopes (e.g. two private `struct Row`) are summed together; brace counting ignores block comments and multi-line string literals.",
-   "evidence": [
-    "scripts/check_aggregate_type_size.sh:74",
-    "scripts/check_aggregate_type_size.sh:115"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "silent-failure",
-   "sev": "low",
-   "text": "A declaration whose braces do not balance within 4000 lines (e.g. braces inside a multi-line \"\"\" literal, which strip() does not mask) is dropped from `sizes` entirely and scanning resumes on the next line, so the type contributes 0 lines rather than erroring.",
-   "evidence": [
-    "scripts/check_aggregate_type_size.sh:82",
-    "scripts/check_aggregate_type_size.sh:112",
-    "scripts/check_aggregate_type_size.sh:120"
-   ],
-   "found": "second read"
-  },
   {
    "kind": "hack",
    "sev": "med",

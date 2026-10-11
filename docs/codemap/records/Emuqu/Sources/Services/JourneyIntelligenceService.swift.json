@@ -1,26 +1,16 @@
 {
  "file": "Emuqu/Sources/Services/JourneyIntelligenceService.swift",
- "hash": "5c29835f03d8c239",
+ "hash": "243d6cef43c54e1f",
  "role": "Pure analysis of a breadcrumb trail into a journey snapshot: shape (out-and-back/loop/point-to-point), direction relative to origin, path/crow-fly distances, and out-and-back time projections, used by AI location.journey facts and live coaching.",
  "types": [
   "JourneyIntelligenceService: enum — static snapshot heuristics",
-  "JourneyIntelligenceService.Shape: enum",
-  "JourneyIntelligenceService.Direction: enum",
+  "JourneyIntelligenceService.Shape: enum — snake_case raw values (out_and_back_returning, out_and_back_outbound, loop, point_to_point, unknown) sent to the model",
+  "JourneyIntelligenceService.Direction: enum — snake_case raw values (toward_origin, away_from_origin, stationary, unknown)",
   "JourneyIntelligenceService.Snapshot: struct — result record"
  ],
  "state": [],
  "toplevel": "No top-level code beyond type declarations.",
  "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Snapshot.projectedTotalSeconds is documented as set for both .outAndBackReturning and .outAndBackOutbound, but project() returns total nil for .outAndBackOutbound.",
-   "evidence": [
-    "Emuqu/Sources/Services/JourneyIntelligenceService.swift:82-85",
-    "Emuqu/Sources/Services/JourneyIntelligenceService.swift:160"
-   ],
-   "found": "first read, upheld on second"
-  },
   {
    "kind": "untested",
    "sev": "low",
@@ -69,20 +59,7 @@
      "effect": "originLabel falls back to geocoded label, else nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Snapshot shape/direction are emitted as Swift rawValues ('outAndBackReturning', 'outAndBackOutbound', 'towardOrigin', 'awayFromOrigin'), but the location.journey tool description and the system prompt rules key on snake_case values ('out_and_back_returning', 'out_and_back_outbound', 'toward_origin'), so the model is told values that never appear and the system-prompt rules for surfacing the return projection and hedging the outbound 'remaining' (which is really 'time back if you turn now') do not match the data.",
-     "evidence": [
-      "Emuqu/Sources/Services/JourneyIntelligenceService.swift:42-60",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift:867-868",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift:898",
-      "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift:447-448"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbTrail.walkedTrailLengthMeters()": "7d07246a8ccabe1d",
     "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.asCLLocation": "60e5c26d5f60676c",

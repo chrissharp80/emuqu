@@ -41,22 +41,11 @@
      "effect": "skip first line; otherwise parse it as data"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "looksLikeHeader treats any first line containing 'ms', 'rr', 'time', 'ibi' or 'interval' as a header; a headerless file is fine, but a header with none of those words (e.g. 'beat,value') is parsed as data and silently dropped by the range filter, and a header naming e.g. 'timestamp_ms' only gets column 0 matched if no 'rr'/'ibi' column exists (rrColumnIndex only matches exact 'ms').",
-     "evidence": [
-      "Emuqu/Sources/Import/RRDataImporter+CSV.swift:56",
-      "Emuqu/Sources/Import/RRDataImporter+CSV.swift:63"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.detectSeparator(firstLine:)": "6f0e1dfe45616755",
     "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.looksLikeHeader(_:)": "812f8866fbe54d0e",
-    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrColumnIndex(inHeaderLine:separator:)": "d1cde97e02eb08cd",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrColumnIndex(inHeaderLine:separator:)": "2cabd9766c826325",
     "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValues(from:separator:rrColumn:)": "3c594bf03d246328"
    }
   },
@@ -74,7 +63,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)": "2ec956267d8ac7b2",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)": "77db942b7880f4ff",
     "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValue(fromColumns:rrColumnIndex:convert:)": "9fcc368a80967cc6"
    }
   },
@@ -110,25 +99,36 @@
   },
   {
    "key": "func RRDataImporter.rrColumnIndex(inHeaderLine:separator:)",
-   "hash": "f4eb5a5604cca193",
-   "does": "Index of the first header column containing 'rr' or 'ibi', or equal to 'ms' or 'interval'; nil if none.",
+   "hash": "d20b617f619ca119",
+   "does": "Index of the first header column that namesRRColumn accepts (a word starting with 'rr' or 'ibi', or exactly 'ms' or 'interval'); nil if none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.namesRRColumn(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.namesRRColumn(_:)": "9a0e2af575a94283"
+   }
+  },
+  {
+   "key": "func RRDataImporter.namesRRColumn(_:)",
+   "hash": "06bb5f7de91e3be0",
+   "does": "True when the lowercased header, split into letter/digit words, has a word starting with 'rr' or 'ibi' ('rr_ms', 'rr interval (ms)', 'ibi'), or the whole header is 'ms' or 'interval'; 'current_hr', 'error', 'correction' do not match.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
-   "branches": [],
-   "flags": [
+   "branches": [
     {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "A header column is chosen as RR when its name merely CONTAINS 'rr' or 'ibi', so a column such as 'current_hr', 'error' or 'correction' that precedes the real RR column is picked (firstIndex), and its values are trusted verbatim by rrValue with no physiological range check.",
-     "evidence": [
-      "Emuqu/Sources/Import/RRDataImporter+CSV.swift:67",
-      "Emuqu/Sources/Import/RRDataImporter+CSV.swift:93"
-     ],
-     "found": "second read"
+     "at": "+2",
+     "cond": "some word starts with rr/ibi, or header == 'ms' / 'interval'",
+     "effect": "true; otherwise false"
     }
    ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -180,7 +180,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrColumnIndex(inHeaderLine:separator:)": "d1cde97e02eb08cd",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrColumnIndex(inHeaderLine:separator:)": "2cabd9766c826325",
     "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.validRRValue(_:)": "9c98d9b3c9631938"
    }
   },
@@ -247,9 +247,37 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)": "2ec956267d8ac7b2",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)": "77db942b7880f4ff",
     "Emuqu/Sources/Utilities/Constants.swift::func HRVConstants.RRInterval.isValid(_:)": "330523605d6eeba2"
    }
+  },
+  {
+   "key": "func RRDataImporter.csvRecords(_:)",
+   "hash": "9de873ccdec512eb",
+   "does": "Splits CSV text into records at newlines outside double quotes, so a quoted field containing a newline stays in one record; quote characters are kept for parseCSVLine. Empty records are returned as empty strings.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for each character",
+     "effect": "iterate the text"
+    },
+    {
+     "at": "+5",
+     "cond": "character is a double quote",
+     "effect": "toggle inQuotes"
+    },
+    {
+     "at": "+6",
+     "cond": "newline outside quotes",
+     "effect": "close the current record; otherwise append the character to it"
+    }
+   ],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "func RRDataImporter.parseCSVLine(_:)",
@@ -281,48 +309,35 @@
   },
   {
    "key": "func RRDataImporter.convertToMilliseconds(_:)",
-   "hash": "b50eb34ca20cf48e",
-   "does": "Converts a value to Int ms: values < 10 are treated as seconds (x1000); non-finite -> 0; clamps to Int bounds; no range validation.",
+   "hash": "f4fe8ffc01a24748",
+   "does": "Converts a value to Int ms, rounded to the nearest millisecond: values < 10 are treated as seconds (x1000); non-finite -> 0; clamps to Int bounds; no range validation.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+7",
+     "at": "+9",
      "cond": "value < 10",
-     "effect": "treated as seconds and multiplied by 1000 (this includes every negative value); otherwise taken as ms"
+     "effect": "treated as seconds and multiplied by 1000 (this includes every negative value); otherwise taken as ms; either way rounded"
     },
     {
-     "at": "+8",
+     "at": "+10",
      "cond": "ms is finite",
      "effect": "continue; otherwise return 0"
     },
     {
-     "at": "+9",
+     "at": "+11",
      "cond": "ms >= Int.max",
      "effect": "return Int.max"
     },
     {
-     "at": "+10",
+     "at": "+12",
      "cond": "ms <= Int.min",
-     "effect": "return Int.min; otherwise Int(ms), truncating toward zero"
+     "effect": "return Int.min; otherwise Int(ms) of the rounded value"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Seconds are converted with a truncating Int(value*1000), so binary floating point loses a millisecond on some exact inputs: e.g. 1.005, 1.001, 1.003 s become 1004/1000/1002 ms (12 values in 0.300-2.000 s). MillisecondOffset documents exactly this truncation as a defect and rounds instead.",
-     "evidence": [
-      "Emuqu/Sources/Import/RRDataImporter+CSV.swift:166",
-      "Emuqu/Sources/Import/RRDataImporter+CSV.swift:170",
-      "Emuqu/Sources/Utilities/MillisecondOffset.swift:12",
-      "Emuqu/Sources/Utilities/MillisecondOffset.swift:46"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {

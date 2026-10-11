@@ -41,20 +41,25 @@ final class LanguageManager {
     /// Posted after an in-app language change so caches can be invalidated.
     static let languageDidChangeNotification = Notification.Name("LanguageManagerDidChangeLanguage")
 
-    /// The locale matching the user's selected language.
-    /// `nonisolated` and stored in a lock (like `bundle` below) so the
-    /// nonisolated `init` can set it and any context can read it. Written by
-    /// `init` and `setLanguage`; SwiftUI reactivity rides on the observable
-    /// `revision` that `setLanguage` bumps, which the getter registers.
-    nonisolated private(set) var locale: Locale {
-        get {
-            access(keyPath: \.revision)
-            return localeBox.withLock { $0 }
-        }
-        set { localeBox.withLock { $0 = newValue } }
+    /// The selected language's locale and `.lproj` bundle, kept together in
+    /// one lock so a nonisolated reader (the PDF and report generators) never
+    /// sees the new locale with the old bundle, or the reverse.
+    private struct Localization {
+        let locale: Locale
+        let bundle: Bundle
     }
 
-    @ObservationIgnored private let localeBox: OSAllocatedUnfairLock<Locale>
+    @ObservationIgnored private let localizationBox: OSAllocatedUnfairLock<Localization>
+
+    /// The locale matching the user's selected language.
+    /// `nonisolated` and read from the lock so the nonisolated `init` can set
+    /// it and any context can read it. Written by `init` and `setLanguage`;
+    /// SwiftUI reactivity rides on the observable `revision` that
+    /// `setLanguage` bumps, which the getter registers.
+    nonisolated var locale: Locale {
+        access(keyPath: \.revision)
+        return localizationBox.withLock { $0.locale }
+    }
 
     /// The `.lproj` bundle for the selected language (falls back to `.main`).
     ///
@@ -65,15 +70,10 @@ final class LanguageManager {
     /// `init` and `setLanguage` (which is `@MainActor`); SwiftUI reactivity is
     /// preserved by the observable `revision` that `setLanguage` bumps in the
     /// same call, which the getter registers.
-    nonisolated private(set) var bundle: Bundle {
-        get {
-            access(keyPath: \.revision)
-            return bundleBox.withLock { $0 }
-        }
-        set { bundleBox.withLock { $0 = newValue } }
+    nonisolated var bundle: Bundle {
+        access(keyPath: \.revision)
+        return localizationBox.withLock { $0.bundle }
     }
-
-    @ObservationIgnored private let bundleBox: OSAllocatedUnfairLock<Bundle>
 
     /// Bumped on every language change. Lock-backed and observed by hand so
     /// the nonisolated `bundle` and `locale` getters can register it.
@@ -95,8 +95,7 @@ final class LanguageManager {
 
     nonisolated private init() {
         let (locale, bundle) = Self.resolve(AppLanguage.current)
-        localeBox = OSAllocatedUnfairLock(initialState: locale)
-        bundleBox = OSAllocatedUnfairLock(initialState: bundle)
+        localizationBox = OSAllocatedUnfairLock(initialState: Localization(locale: locale, bundle: bundle))
     }
 
     nonisolated private static func resolve(_ language: AppLanguage) -> (Locale, Bundle) {
@@ -111,13 +110,14 @@ final class LanguageManager {
     /// then, so switching back to System Default would otherwise keep the old
     /// language until a relaunch. `AppLanguage.apply` has removed the app's
     /// `AppleLanguages` override by now, so the lookup falls through to the
-    /// device list.
+    /// device list. Without a matching `.lproj` the fallback locale is also
+    /// built from that fresh list, not `Locale.current`.
     nonisolated private static func systemLanguage() -> (Locale, Bundle) {
         let preferred = UserDefaults.standard.stringArray(forKey: "AppleLanguages") ?? Locale.preferredLanguages
         let available = Bundle.main.localizations.filter { $0 != "Base" }
         guard let code = Bundle.preferredLocalizations(from: available, forPreferences: preferred).first,
               let bundle = lprojBundle(for: code)
-        else { return (.current, .main) }
+        else { return (preferred.first.map { Locale(identifier: $0) } ?? .current, .main) }
         let current = Locale.current
         let sameLanguage = current.language.languageCode == Locale(identifier: code).language.languageCode
         return (sameLanguage ? current : Locale(identifier: code), bundle)
@@ -129,7 +129,8 @@ final class LanguageManager {
         // Persist for next launch
         language.apply()
 
-        (locale, bundle) = Self.resolve(language)
+        let (newLocale, newBundle) = Self.resolve(language)
+        localizationBox.withLock { $0 = Localization(locale: newLocale, bundle: newBundle) }
 
         // Notify components that cache locale-dependent data (e.g. MorningNotificationScheduler)
         NotificationCenter.default.post(name: Self.languageDidChangeNotification, object: nil)

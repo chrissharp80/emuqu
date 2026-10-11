@@ -79,8 +79,6 @@ enum SessionStorageDiagnostic {
         /// never called. Could indicate recoverable sessions that
         /// never made it to history.
         let orphanedBackupIds: [UUID]
-
-        var repairableCount: Int { backupOnlyCount }
     }
 
     // MARK: - Run
@@ -99,8 +97,7 @@ enum SessionStorageDiagnostic {
     static func run(archive: SessionArchive, backup: RawRRBackup) -> Report {
         let archiveEntries = archive.entries
         let archivedIds = Set(archiveEntries.map(\.sessionId))
-        let backupIds = Set(backup.unarchivedSessionIds)
-            .union(backup.allBackupIds())
+        let backupIds = Set(backup.allBackupIds())
         let sessions = archiveEntries.map { inspectSession(entry: $0, archive: archive, backup: backup) }
         let counts = statusCounts(in: sessions)
         // Orphaned backups: in RawRRBackup index but not in archive index.
@@ -141,12 +138,14 @@ enum SessionStorageDiagnostic {
         // (1) Archive file size — useful regardless of decode outcome.
         let fileURL = archive.archiveDirectory.appendingPathComponent(entry.filePath)
         let fileSize: Int64 = (try? FileManager.default.attributesOfItem(atPath: fileURL.path)[.size] as? Int64) ?? 0
+        // Looked up before the decode: an unreadable archive file whose beats
+        // survive in the backup is exactly the case the audit exists to show.
+        let backupBeats = backup.backedUpBeatCount(entry.sessionId) ?? 0
         guard let session = archive.retrieveOrLog(entry.sessionId, caller: "SessionStorageDiagnostic") else {
-            return report(for: entry, fileSize: fileSize, archiveBeats: 0, backupBeats: 0,
+            return report(for: entry, fileSize: fileSize, archiveBeats: 0, backupBeats: backupBeats,
                           status: .unreadable, analysisSummary: nil)
         }
         let archiveBeats = session.rrSeries?.points.count ?? 0
-        let backupBeats = backup.backedUpBeatCount(entry.sessionId) ?? 0
         return report(
             for: entry, fileSize: fileSize, archiveBeats: archiveBeats, backupBeats: backupBeats,
             status: status(archiveBeats: archiveBeats, backupBeats: backupBeats),

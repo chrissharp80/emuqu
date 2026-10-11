@@ -1,7 +1,7 @@
 {
  "file": "scripts/lib/preflight.sh",
  "hash": "f6462e79608176da",
- "role": "Sourced library for gates: fail-closed temp file/dir creation and a working-tree mutation lock shared by verify_gates_fail.sh, verify_tests_fail.sh and simulate_ci.sh.",
+ "role": "Sourced library for gates: fail-closed temp file/dir creation, a fail-closed non-empty-input assertion, and a working-tree mutation lock taken by verify_gates_fail.sh / verify_tests_fail.sh and checked only by simulate_ci.sh.",
  "types": [],
  "state": [
   "env:GATE_TREE_LOCK (default <git-dir>/emuqu-tree-mutation.lock, or $TMPDIR//tmp if not a repo)",
@@ -38,7 +38,7 @@
   {
    "key": "fn gate_require_nonempty",
    "hash": "830b4c48d9a29736",
-   "does": "Exits 70 with a FATAL message if the given path is missing or empty.",
+   "does": "Exits 70 with a FATAL message if the given path is missing or empty. Must be called directly (not in $( )) so the exit ends the caller; check_thread_sanitizer.sh calls it on its xcodebuild log.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -50,24 +50,13 @@
      "effect": "FATAL, exit 70; else return 0"
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No script calls gate_require_nonempty (repo-wide grep: only its definition and a claim in docs/whitepapers/04-claims-governance.md:289 that it 'exits 70 when an input the gate is about to parse is missing or empty'), so no gate actually guards against parsing an empty log/report with it.",
-     "evidence": [
-      "scripts/lib/preflight.sh:62",
-      "docs/whitepapers/04-claims-governance.md:289"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
    "key": "fn gate_mktemp_dir",
-   "hash": "75c3bd9268a33d32",
-   "does": "Creates a temp directory with `mktemp -d -t <label>` and prints it; exits 70 on failure.",
+   "hash": "80b9c6fdaa311dce",
+   "does": "Creates $TMPDIR(or /tmp)/<label>.XXXXXX with `mktemp -d` and an explicit template (works on GNU and BSD mktemp) and prints it; exits 70 on failure (only the $( ) subshell - callers must `|| exit $?`).",
    "entry": null,
    "calls": [
     "ext:mktemp"
@@ -76,34 +65,52 @@
    "writes": [],
    "branches": [
     {
-     "at": "+3",
+     "at": "+5",
      "cond": "mktemp failed or path not a dir",
      "effect": "FATAL, exit 70; else print path"
     }
    ],
-   "flags": [
+   "flags": [],
+   "deps": {
+    "scripts/lib/preflight.sh::fn gate_mktemp": "2bf9e9cec64b1ffe"
+   }
+  },
+  {
+   "key": "fn _gate_lock_holder_pid",
+   "hash": "e630f0f87778f422",
+   "does": "Prints the pid in <lock>/pid, retrying every 0.1 s up to 20 times while the lock dir exists but the pid file is still missing/empty (the holder may be between mkdir and its pid write); prints 0 when there is none.",
+   "entry": null,
+   "calls": [
+    "ext:cat",
+    "ext:sleep"
+   ],
+   "reads": [
+    "file:<lock>/pid"
+   ],
+   "writes": [],
+   "branches": [
     {
-     "kind": "broken",
-     "sev": "med",
-     "text": "Uses `mktemp -d -t \"$label\"` with no X's — the exact BSD/GNU incompatibility gate_mktemp's own comment warns about. On GNU coreutils it fails ('too few X's in template', reproduced here), so verify_gates_fail.sh and verify_tests_fail.sh abort with exit 70 on any Linux host; they only work on macOS. In verify_gates_fail.sh the lock is already taken before this call and no trap is set yet, leaving a stale lock behind.",
-     "evidence": [
-      "scripts/lib/preflight.sh:43",
-      "scripts/lib/preflight.sh:76",
-      "scripts/verify_gates_fail.sh:37",
-      "scripts/verify_gates_fail.sh:38",
-      "scripts/verify_tests_fail.sh:62"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+3",
+     "cond": "loop: fewer than 20 tries",
+     "effect": "read pid"
+    },
+    {
+     "at": "+5",
+     "cond": "pid non-empty or lock dir gone",
+     "effect": "stop waiting"
     }
    ],
+   "flags": [],
    "deps": {}
   },
   {
    "key": "fn gate_acquire_tree_lock",
-   "hash": "dab7b2c8abf4258a",
-   "does": "Takes the tree-mutation lock with atomic mkdir; if held by a live PID exits 75; if the holder PID is dead (or pid file missing -> '0') warns, removes and re-creates it (exit 70 if that fails); then writes owner and pid ($$).",
+   "hash": "e4360264e9f5483e",
+   "does": "Takes the tree-mutation lock with atomic mkdir; if it exists, reads the holder pid via _gate_lock_holder_pid (which waits up to 2 s for a holder still writing its pid): live pid -> exit 75; dead or absent -> warns, removes and re-creates it (exit 70 if that fails). Then writes pid ($$) first, then owner.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "scripts/lib/preflight.sh::fn _gate_lock_holder_pid"
+   ],
    "reads": [
     "file:<lock>/owner",
     "file:<lock>/pid"
@@ -123,22 +130,10 @@
      "effect": "FATAL, exit 75; otherwise treat as stale: warn, rm -rf, mkdir (exit 70 on failure)"
     }
    ],
-   "flags": [
-    {
-     "kind": "race",
-     "sev": "low",
-     "text": "mkdir and the pid write are separate steps; a concurrent acquirer or gate_require_unmutated_tree that reads between them sees no pid ('0'), declares the lock stale and rm -rf's a live lock, after which two mutators can run at once.",
-     "evidence": [
-      "scripts/lib/preflight.sh:116",
-      "scripts/lib/preflight.sh:120",
-      "scripts/lib/preflight.sh:131",
-      "scripts/lib/preflight.sh:138",
-      "scripts/lib/preflight.sh:161"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
+   "flags": [],
+   "deps": {
+    "scripts/lib/preflight.sh::fn _gate_lock_holder_pid": "f17cd95e79a7f4fd"
+   }
   },
   {
    "key": "fn gate_release_tree_lock",
@@ -162,10 +157,12 @@
   },
   {
    "key": "fn gate_require_unmutated_tree",
-   "hash": "a4e752c4c9c4a9fa",
-   "does": "For read-only consumers: returns 0 if no lock; exits 75 if a live PID holds it; otherwise warns that a stale lock exists, deletes it and returns 0.",
+   "hash": "e14f1f4bc6ae9901",
+   "does": "For readers (only simulate_ci.sh calls it; individual gates do not, as the lock comment now says): no lock -> return 0; holder pid (via _gate_lock_holder_pid) alive -> FATAL exit 75; otherwise warns about a stale lock, removes it and returns 0.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "scripts/lib/preflight.sh::fn _gate_lock_holder_pid"
+   ],
    "reads": [
     "file:<lock>/owner",
     "file:<lock>/pid"
@@ -185,25 +182,17 @@
      "effect": "FATAL, exit 75; else warn, remove lock, return 0 (the leaked mutation is not checked, only a hint printed)"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "The lock contract says it is 'checked by whoever is measuring', but simulate_ci.sh is the only caller; every individual gate run via make ci, gates.yml or ci.yml reads the tree without checking the lock, so a gate run concurrently with verify_gates_fail.sh/verify_tests_fail.sh still measures planted violations.",
-     "evidence": [
-      "scripts/lib/preflight.sh:99",
-      "scripts/simulate_ci.sh:47"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {}
+   "flags": [],
+   "deps": {
+    "scripts/lib/preflight.sh::fn _gate_lock_holder_pid": "f17cd95e79a7f4fd"
+   }
   }
  ],
  "deps": {
-  "scripts/lib/preflight.sh::fn gate_acquire_tree_lock": "d605a361d71d1614",
+  "scripts/lib/preflight.sh::fn gate_acquire_tree_lock": "8261ba2c532e1783",
   "scripts/lib/preflight.sh::fn gate_mktemp": "2bf9e9cec64b1ffe",
-  "scripts/lib/preflight.sh::fn gate_mktemp_dir": "db452e7a5baf7d20",
-  "scripts/lib/preflight.sh::fn gate_release_tree_lock": "7a8e2c68b3650dea"
+  "scripts/lib/preflight.sh::fn gate_mktemp_dir": "9f63eab3fc268bc7",
+  "scripts/lib/preflight.sh::fn gate_release_tree_lock": "7a8e2c68b3650dea",
+  "scripts/lib/preflight.sh::fn gate_require_unmutated_tree": "de19fe67d79d4de5"
  }
 }

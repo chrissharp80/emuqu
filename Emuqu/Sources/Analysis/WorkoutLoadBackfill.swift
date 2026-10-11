@@ -13,20 +13,24 @@ import Foundation
 /// read coherent numbers without forcing the user to re-record.
 ///
 /// Idempotent: the per-session "did we already try" is the presence
-/// of `extrapolatedTRIMP` itself (set when the estimator succeeds) or
-/// the global `lastBackfillRunDate` flag below (so we skip the entire
-/// scan after it's converged and only re-run if the user later adds a
-/// pile of saved routes). O(N) over recent workouts; each step is an
+/// of `extrapolatedTRIMP` itself (set when the estimator succeeds), and
+/// the whole scan is gated by two UserDefaults keys below — when it last
+/// ran (`lastRunDefaultsKey`) and which saved routes existed then
+/// (`lastRunRouteIdsKey`) — so it is skipped once converged and re-runs
+/// when the saved-route library changes. O(N) over recent workouts; each step is an
 /// archive read and polyline decode off the main actor plus a
 /// polyline-shape match on it.
 @MainActor
 enum WorkoutLoadBackfill {
     /// UserDefaults key that records when the scan last ran. Used to
     /// skip the scan on subsequent launches once it's stable — only
-    /// re-run if a new saved route is added (signal: route count
-    /// changed) or 7 days have passed.
+    /// re-run if the saved routes changed (`lastRunRouteIdsKey`) or 7
+    /// days have passed.
     private static let lastRunDefaultsKey = "FlowRecovery.workoutLoadBackfill.lastRun"
-    private static let lastRunRouteCountKey = "FlowRecovery.workoutLoadBackfill.routeCountAtLastRun"
+    /// The saved routes' IDs at the last run, sorted and joined. IDs rather
+    /// than a count: deleting one route and adding another leaves the count
+    /// equal while changing which sessions can match.
+    private static let lastRunRouteIdsKey = "FlowRecovery.workoutLoadBackfill.routeIdsAtLastRun"
 
     /// Run the backfill if it hasn't run recently. Safe to call on
     /// every launch — the gate keeps it cheap.
@@ -36,22 +40,28 @@ enum WorkoutLoadBackfill {
         lookbackDays: Int = 90
     ) async {
         let defaults = UserDefaults.standard
-        let routeCount = savedRouteStore.routes.count
-        let lastRouteCount = defaults.integer(forKey: lastRunRouteCountKey)
-        let lastRun = defaults.object(forKey: lastRunDefaultsKey) as? Date
-
-        // Skip if we ran in the last 7 days AND the saved-route
-        // library hasn't grown. New routes change which sessions can
-        // match, so we re-scan in that case.
-        if let lastRun, Date().timeIntervalSince(lastRun) < 7 * 24 * 3600,
-           routeCount == lastRouteCount {
-            return
-        }
+        let routeIds = routeFingerprint(savedRouteStore.routes)
+        guard !ranRecently(defaults: defaults, routeIds: routeIds) else { return }
 
         await run(archive: archive, savedRouteStore: savedRouteStore, lookbackDays: lookbackDays)
 
         defaults.set(Date(), forKey: lastRunDefaultsKey)
-        defaults.set(routeCount, forKey: lastRunRouteCountKey)
+        defaults.set(routeIds, forKey: lastRunRouteIdsKey)
+    }
+
+    /// Whether the scan ran in the last 7 days against the same saved
+    /// routes. Different routes change which sessions can match, so the scan
+    /// runs again then.
+    private static func ranRecently(defaults: UserDefaults, routeIds: String) -> Bool {
+        guard let lastRun = defaults.object(forKey: lastRunDefaultsKey) as? Date else { return false }
+        return Date().timeIntervalSince(lastRun) < 7 * 24 * 3600
+            && defaults.string(forKey: lastRunRouteIdsKey) == routeIds
+    }
+
+    /// The routes' IDs, sorted and joined, so the same library always gives
+    /// the same string whatever its order.
+    private static func routeFingerprint(_ routes: [SavedRoute]) -> String {
+        routes.map(\.id.uuidString).sorted().joined(separator: ",")
     }
 
     /// Walk recent workout entries, run `RouteTRIMPEstimator` on any

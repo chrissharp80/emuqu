@@ -20,7 +20,9 @@ name: Gates
 # All of those still run in `ci.yml` and in `make ci` locally.
 #
 # `check_gates_wired.sh` audits `ci.yml`, not this file: this is a fast
-# subset, and the manual workflow remains the complete list.
+# subset, and the manual workflow remains the complete list. Nothing checks
+# that a new plain-bash `make ci` gate is added below as well, so add it here
+# by hand when you add it to the Makefile.
 
 on:
   push:
@@ -57,7 +59,7 @@ jobs:
         run: make localization-guard localization-bundle-guard localization-resolution-guard localization-orphan-guard localization-format-guard locale-format-guard
 
       - name: Source hygiene guards
-        run: make sendable-guard no-unowned-guard logger-self-reference-guard license-header-guard dated-comment-budget shared-root-guard snapshot-refs-guard empty-range-guard leaked-mutations-guard eager-prompt-guard date-ms-guard log-redaction-guard uitest-reset-guard skip-budget fixed-font-budget orphan-swift-guard aggregate-type-size comment-citations strict-concurrency-enabled
+        run: make sendable-guard no-unowned-guard logger-self-reference-guard coremotion-isolation-guard hr-feed-link-guard license-header-guard dated-comment-budget shared-root-guard snapshot-refs-guard empty-range-guard leaked-mutations-guard eager-prompt-guard date-ms-guard log-redaction-guard uitest-reset-guard skip-budget fixed-font-budget orphan-swift-guard aggregate-type-size comment-citations strict-concurrency-enabled
 
       - name: Info.plist and CloudKit guards (the plutil-free two)
         run: ./scripts/check_no_health_data_in_cloudkit.sh && ./scripts/check_infoplist_key_drift.sh
@@ -84,14 +86,30 @@ jobs:
       - name: Tech-debt budgets and refactor-spec conformance
         run: make debt-budget spec-conformance
 
-      # Same baseline rule as ci.yml: the parent commit, or the pull request's
-      # target. A root commit has nothing to compare against and says so.
+      # The baseline is everything this run did not see before. On a pull
+      # request that is the target branch. On a push it is the tip before the
+      # push (`github.event.before`), so every commit in a multi-commit push is
+      # inside the compared range and inside the `budget-raise-ok` trailer
+      # scan; comparing with HEAD~1 alone let a raise in any commit but the
+      # last go unseen. A push that creates the branch or is forced reports a
+      # before-commit this checkout may not hold, so it falls back to the
+      # parent commit and says so. A root commit has nothing to compare
+      # against and says so. Every comparison requires its baseline: a
+      # ratchet that could not compare fails instead of passing.
       - name: Debt budgets ratchet down only
+        env:
+          PUSH_BEFORE: ${{ github.event.before }}
         run: |
           set -euo pipefail
           if [[ -n "${GITHUB_BASE_REF:-}" ]]; then
-            ./scripts/check_budget_monotonicity.sh "origin/${GITHUB_BASE_REF}"
+            BUDGET_REQUIRE_BASELINE=1 ./scripts/check_budget_monotonicity.sh "origin/${GITHUB_BASE_REF}"
+          elif [[ -n "${PUSH_BEFORE:-}" && ! "$PUSH_BEFORE" =~ ^0{40}$ ]] \
+              && git rev-parse --verify --quiet "${PUSH_BEFORE}^{commit}" >/dev/null; then
+            BUDGET_REQUIRE_BASELINE=1 ./scripts/check_budget_monotonicity.sh "$PUSH_BEFORE"
           elif git rev-parse --verify --quiet HEAD~1 >/dev/null; then
+            if [[ -n "${PUSH_BEFORE:-}" ]]; then
+              echo "The tip before this push ('${PUSH_BEFORE}') is a null SHA or not in this checkout; comparing with the parent commit only."
+            fi
             BUDGET_REQUIRE_BASELINE=1 ./scripts/check_budget_monotonicity.sh "$(git rev-parse HEAD~1)"
           else
             echo "HEAD is a root commit: nothing to ratchet against."

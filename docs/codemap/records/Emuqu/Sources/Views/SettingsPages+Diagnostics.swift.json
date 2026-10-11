@@ -1,13 +1,13 @@
 {
  "file": "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift",
- "hash": "20f767d24a109449",
+ "hash": "acbb01a832c65896",
  "role": "TroubleshootingPage struct: consumer problem/crash read-outs, and (behind Advanced Diagnostics) keyboard capture, archive read health, AI cache telemetry, prompt audit, pre-score and usage telemetry; plus the reanalysis/repair worker methods.",
  "types": [
   "TroubleshootingPage: struct (View) — Settings › Troubleshooting"
  ],
  "state": [
   "ud:debugModeEnabled (@AppStorage, default false)",
-  "mem:TroubleshootingPage @State: logCopiedConfirmation, showingRepairAlert, repairMessage, showingTrainingRepairAlert, showingTrainingRepairConfirm, trainingRepairMessage, isRepairingTraining, isRebuildingLoad, trainingRepairProgress/Total, isReanalyzing, reanalyzeMessage, showingReanalyzeAlert, reanalyzeStopped, reanalyzeProgress/Total, reanalyzeTask, showingReanalyzeConfirm, reanalyzeDateRange, reanalyzeFromDate (now − 2 weeks), reanalyzeToDate (now)"
+  "mem:TroubleshootingPage @State: logCopiedConfirmation, crashReportCleared, showingTrainingRepairAlert, showingTrainingRepairConfirm, trainingRepairMessage, isRepairingTraining, isRebuildingLoad, trainingRepairProgress/Total, isReanalyzing, reanalyzeMessage, showingReanalyzeAlert, reanalyzeStopped, reanalyzeProgress/Total, reanalyzeTask, showingReanalyzeConfirm, reanalyzeDateRange, reanalyzeFromDate (now − 2 weeks), reanalyzeToDate (now)"
  ],
  "toplevel": "@State initializers: reanalyzeFromDate = now minus 2 weeks (?? now), reanalyzeToDate = now, evaluated when the view value is created. reanalyzeTask is not cancelled when the page is dismissed, so a running reanalysis continues in the background.",
  "flags": [],
@@ -130,9 +130,9 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.actionSections": "32d71f549d9c6f8c",
-    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.crashReportSection": "cad8b07a51fa89dc",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.crashReportSection": "8f24768d8399c700",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.developerSections": "828616a191fb03e5",
-    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.problemsSection": "fb2c8c75ce73b9a8",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.problemsSection": "75d36b9e1c9cfdb7",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.recentProblemsSection": "1e02f77b53162fa0"
    }
   },
@@ -164,7 +164,7 @@
    "deps": {
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.aiCacheHealthSection": "c19d01104282f524",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.aiPromptAuditSection": "08eb3b53bcf6c126",
-    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.archiveReadHealthSection": "047124509ff5d004",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.archiveReadHealthSection": "27f837cb0c816c25",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.keyboardCaptureSection": "90b700da5a41c135",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.preScoreTelemetrySection": "0c498c79f8debc57",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.rolloutTelemetrySection": "30367b408aa564ce"
@@ -232,7 +232,7 @@
   {
    "key": "var TroubleshootingPage.archiveReadHealthSection",
    "hash": "d4dcaac4c9dd4188",
-   "does": "Section \"Archive read health\" shown only when SessionArchive.hasReadHealthIssue (≥10 EPERM failures and >50% failure rate).",
+   "does": "Section \"Archive read health\" shown only when SessionArchive.hasReadHealthIssue (>10 EPERM failures and >50% failure rate).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
@@ -253,23 +253,12 @@
      "effect": "section shown; else nothing"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Comment says the card renders on \">10 EPERM failures\"; SessionArchive.hasReadHealthIssue uses `>= 10`.",
-     "evidence": [
-      "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift:108",
-      "Emuqu/Sources/Storage/Archive.swift:106"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.hasReadHealthIssue": "f2e33caad75b0936",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.hasReadHealthIssue": "a01ee868ed25feb9",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "b0514085566dc374",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "4fcad23c55561141",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive": "2c8002649ba22b7f",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.archiveReadHealthBody": "a27adcd34faba22d"
    }
@@ -721,36 +710,58 @@
    }
   },
   {
-   "key": "var TroubleshootingPage.problemsSection",
-   "hash": "32d3d88c4e078be2",
-   "does": "\"No Problems Found\" card when (catalog empty OR Advanced Diagnostics off) AND no previous crash file.",
-   "entry": null,
+   "key": "var TroubleshootingPage.hasCrashReport",
+   "hash": "111faa1af895229e",
+   "does": "True when previous_crash.txt exists and the report has not been cleared from this page (crashReportCleared).",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.crashLogManager",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.hasPreviousCrash",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.hasPreviousCrash"
+   ],
+   "reads": [
+    "file:previous_crash.txt",
+    "mem:TroubleshootingPage.crashReportCleared"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "4fcad23c55561141",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.crashLogManager": "1b529e89fe88d675",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.hasPreviousCrash": "9a2b5d78578e55cc"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.problemsSection",
+   "hash": "8a3421f41626ff7c",
+   "does": "\"No Problems Found\" card when (catalog empty OR Advanced Diagnostics off) AND hasCrashReport is false.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.logger",
-    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.noProblemsSection"
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.noProblemsSection",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.hasCrashReport"
    ],
    "reads": [
     "mem:DebugLogger.errorCatalog",
     "ud:debugModeEnabled (@AppStorage)",
-    "file:previous_crash.txt"
+    "file:previous_crash.txt",
+    "mem:TroubleshootingPage.crashReportCleared"
    ],
    "writes": [],
    "branches": [
     {
-     "at": "+2",
-     "cond": "(errorCatalog.isEmpty || !debugModeEnabled) && !hasPreviousCrash",
-     "effect": "noProblemsSection shown; else nothing"
+     "at": "+1",
+     "cond": "(catalog empty || Advanced off) && !hasCrashReport",
+     "effect": "noProblemsSection; else nothing"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "b0514085566dc374",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.crashLogManager": "1b529e89fe88d675",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.hasPreviousCrash": "9a2b5d78578e55cc",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "4fcad23c55561141",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.hasCrashReport": "136203def1d3033a",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.logger": "2e176c615c703f2b",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.noProblemsSection": "f41e93dc33b6f80e"
    }
@@ -888,35 +899,33 @@
   },
   {
    "key": "var TroubleshootingPage.crashReportSection",
-   "hash": "048a307a00f41f26",
-   "does": "Crash Report section with link when previous_crash.txt exists.",
+   "hash": "c2a640fd504aa6d1",
+   "does": "Crash Report section with link while hasCrashReport.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.crashLogManager",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.hasPreviousCrash",
-    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.crashReportLink"
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.crashReportLink",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.hasCrashReport"
    ],
    "reads": [
-    "file:previous_crash.txt"
+    "file:previous_crash.txt",
+    "mem:TroubleshootingPage.crashReportCleared"
    ],
    "writes": [],
    "branches": [
     {
-     "at": "+2",
-     "cond": "crashLogManager.hasPreviousCrash",
+     "at": "+1",
+     "cond": "report on file and not cleared",
      "effect": "section shown; else nothing"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "b0514085566dc374",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.crashLogManager": "1b529e89fe88d675",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.hasPreviousCrash": "9a2b5d78578e55cc",
-    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.crashReportLink": "082f96111685ef66"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "4fcad23c55561141",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.crashReportLink": "082f96111685ef66",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.hasCrashReport": "136203def1d3033a"
    }
   },
   {
@@ -1068,55 +1077,6 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
-   }
-  },
-  {
-   "key": "func TroubleshootingPage.repairArchive()",
-   "hash": "e37e6fb7b06f4b0a",
-   "does": "Runs SessionArchive.repairArchive off-main (Task.detached) — deletes *.encrypted files in the archive dir, rebuilds and saves index.json — then shows \"Removed corrupted files and rebuilt the index. Sessions recovered: N\".",
-   "entry": "\"Repair Archive\" button action (archiveDiagnosticsLink)",
-   "calls": [
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
-    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.repairArchive()",
-    "ext:Task.detached",
-    "ext:FileManager.removeItem (inside repairArchive)"
-   ],
-   "reads": [
-    "file:archive directory listing"
-   ],
-   "writes": [
-    "file:archive/*.encrypted (deleted)",
-    "archive:index.json (rebuilt)",
-    "mem:SessionArchive.index"
-   ],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "\"Sessions recovered: N\" reports index.count after the rebuild (every session in the archive), not the number recovered.",
-     "evidence": [
-      "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift:506",
-      "Emuqu/Sources/Storage/Archive+Repair.swift:37"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same repair as ArchiveDiagnosticsView.performRepair, which is behind a confirmation dialog and refreshes diagnostics afterwards; this copy runs a file-deleting repair with no confirmation.",
-     "evidence": [
-      "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift:497",
-      "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift:311",
-      "Emuqu/Sources/Views/ExportAndArchiveViews.swift:719",
-      "Emuqu/Sources/Storage/Archive+Repair.swift:47"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.repairArchive()": "c85791267b532f9c"
    }
   },
   {

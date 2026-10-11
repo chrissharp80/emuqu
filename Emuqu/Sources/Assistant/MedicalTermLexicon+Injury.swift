@@ -13,7 +13,10 @@ import Foundation
 // sprained, bleeding, being unable to walk, or asking for an ambulance. They
 // avoid the everyday senses of the same words: "fell asleep", "fell behind",
 // "broke my PR", "cut myself some slack", "my legs hurt after the run" and
-// "bleeding edge" all proceed.
+// "bleeding edge" all proceed. The English injury nouns count only in a report
+// shape; several other locales still list a bare noun (entorse, esguince,
+// distorsione, hjernerystelse, 捻挫, 骨折, 염좌 …), so a general question that
+// names one is answered with the injury reply.
 //
 // Input-only, like the symptom family: the model may say these words while
 // explaining what to do, so `scrubFromOutput` does not list this concept.
@@ -46,7 +49,13 @@ extension MedicalTermLexicon {
         "i\\s+(?:just\\s+)?(?:fell|took\\s+a\\s+(?:bad\\s+)?fall|had\\s+a\\s+(?:bad\\s+)?fall)" + notAFall,
         "i(?:['’]ve|\\s+have)\\s+(?:just\\s+)?fallen" + notAFall,
         "(?:crashed|came\\s+off|fell\\s+off)\\s+(?:my|the)\\s+(?:bike|bicycle)",
-        "sprain(?:ed)?", "concussion", "bleeding(?!\\s+edge)", "ambulance",
+        // The nouns only in a report shape, so "how long does a sprain take to
+        // heal?" and "what is concussion protocol?" reach the model.
+        "sprained", "concussed",
+        "(?:i\\s+(?:think\\s+i\\s+)?(?:have|got|had)|i['’]?ve\\s+got|it['’]?s|might\\s+be|may\\s+be|could\\s+be)\\s+"
+            + "(?:a\\s+)?(?:sprain|concussion)",
+        "(?:is|are|it['’]?s|keeps?|won['’]?t\\s+stop|started)\\s+bleeding", "bleeding\\s+(?:badly|heavily|a\\s+lot)",
+        "(?:call|need|get|send)\\s+(?:me\\s+)?(?:an?\\s+)?ambulance",
         "(?:can['’]?t|cannot|can\\s+not|unable\\s+to)\\s+(?:walk|put\\s+weight|move\\s+my)"
     ]
 

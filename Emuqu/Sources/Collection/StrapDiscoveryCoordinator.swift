@@ -46,11 +46,12 @@ struct StrapDiscoveryCoordinator {
             return api
         }
 
-        /// The task captures the MANAGER weakly, not this coordinator: a
-        /// successful weak load has to prove the manager is alive, because
-        /// everything the search does afterwards goes through it. Capturing a
-        /// value type that holds the manager strongly would keep it alive
-        /// instead, which is the opposite of what a search task should do.
+        /// The task captures the MANAGER weakly, not this coordinator: a task
+        /// that starts after the manager is gone does nothing. Once the weak
+        /// load succeeds, the coordinator it builds holds the manager for as
+        /// long as the search runs; the search ends when the SDK stream ends
+        /// or fails, or when `stopScanning` (also called by `connect`)
+        /// cancels the task.
         private func beginSearch(api: any StrapRadio) {
             manager.discoveredDevices = []
             manager.connectionState = .scanning
@@ -66,9 +67,15 @@ struct StrapDiscoveryCoordinator {
     #if canImport(PolarBleSdk)
         /// Uses async/await with the `.values` extension (matches the official
         /// Polar example pattern).
+        ///
+        /// A stream that ends without an error leaves `.scanning` too
+        /// (`endSearch`), so the next scan is not refused as already running.
         fileprivate func consumeDeviceSearch(api: any StrapRadio) async {
             do {
                 try await forwardDiscoveries(api: api)
+                guard !Task.isCancelled else { return }
+                debugLog("[PolarManager] Search ended")
+                await MainActor.run { self.endSearch() }
             } catch {
                 guard !Task.isCancelled else { return }
                 debugLog("[PolarManager] Search error: \(error)")
@@ -91,6 +98,14 @@ struct StrapDiscoveryCoordinator {
         @MainActor
         private func failSearch(_ error: Error) {
             manager.lastError = error
+            manager.connectionState = .disconnected
+        }
+
+        /// Only from `.scanning`: a connect begun from the results owns the
+        /// state by then.
+        @MainActor
+        private func endSearch() {
+            guard manager.connectionState == .scanning else { return }
             manager.connectionState = .disconnected
         }
     #endif

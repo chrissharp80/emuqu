@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Assistant/CoachVoiceGuard.swift",
- "hash": "a894487a7767a0a6",
+ "hash": "6539a974a8094c68",
  "role": "Request-time output filter for LLM assistant replies: rewrites any sentence matching a MedicalTermLexicon concept (diagnosis, referral, AFib, overtraining, cure, etc.) or an OffensiveTermLexicon slur/sexual term into a neutral localized deflection, and provides the sentence-segmentation helpers the streaming buffer uses to hold back incomplete sentences.",
  "types": [
   "CoachVoiceGuard: enum — namespace for scrub rules, deflection copy, sentence splitting and the scrub/containsProhibitedLanguage API",
@@ -18,13 +18,14 @@
   "mem:CoachVoiceGuard.everyReplyEntries (private static let)",
   "mem:CoachVoiceGuard.emphasisMarkers (private static let: * _ `)",
   "mem:CoachVoiceGuard.sentenceTerminators (static let: . ! ? \\n 。 ！ ？ ، ؟ …)",
+  "mem:CoachVoiceGuard.softTerminators (static let: \\n ، — terminators that can fall inside a deflected phrase)",
   "mem:OffensiveTermLexicon.offensiveLanguage (static let Concept id offensive-language)",
   "mem:OffensiveTermLexicon.englishOnly (static let Concept id offensive-language-english, ['kike'])",
   "mem:OffensiveTermLexicon.conceptIDs (static let)",
   "mem:OffensiveTermLexicon.minimumLanguageConfidence = 0.6",
   "mem:OffensiveTermLexicon.minimumWordsToDetect = 3"
  ],
- "toplevel": "Static lets are lazily initialised on first access: rules maps MedicalTermLexicon.scrubFromOutput to Rule(reason 'Coach output: <id>.'); medicalEntries/offensiveEntry/englishOnlyOffensiveEntry compile each rule via MedicalTermLexicon.regex(for:) and compactMap drops any concept whose pattern fails to compile (silently removed from the perimeter except for a DebugLogger signal inside regex). everyReplyEntries = medical entries then the offensive entry. Callers: AssistantViewModel+Context.swift:575 (stream flush), AssistantViewModel+Routing.swift:717 (post-stream whole message), VoiceConversationController+Speech.swift:688 (every spoken utterance), VoiceConversationController+Control.swift:312 (interjection text).",
+ "toplevel": "Static lets are lazily initialised on first access: rules maps MedicalTermLexicon.scrubFromOutput to Rule(reason 'Coach output: <id>.') — one rule per scrubbed concept, and a concept without a specific deflection falls back to observationFallback (the comment on rules says so); medicalEntries/offensiveEntry/englishOnlyOffensiveEntry compile each rule via entry(for:), which logs an error naming any rule whose pattern fails to compile before compactMap drops it. everyReplyEntries = medical entries then the offensive entry. Callers: AssistantViewModel+Context.swift (stream flush), AssistantViewModel+Routing.swift (post-stream whole message), VoiceConversationController+Speech.swift (every spoken utterance), VoiceConversationController+Control.swift (interjection text).",
  "flags": [],
  "units": [
   {
@@ -52,7 +53,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "c36696f346c953ad"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d"
    }
   },
   {
@@ -79,21 +80,7 @@
      "effect": "fallback observationFallback ('Emuqu's readings can't establish or rule out a cause or condition...') used for any concept with no specific/shared line"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Comment says a lexicon concept without a deflection is a 'compile-time-visible omission rather than a silent pass-through' and that testEveryScrubbedConceptHasARule asserts the mapping is total, but that test only compares CoachVoiceGuard.rules (built by mapping scrubFromOutput itself, so tautological) and testDeflectionsCoverExactlyTheScrubbedConcepts checks only deflection keys -> scrubbed ids. A new scrubFromOutput concept with no deflection silently gets observationFallback via ??; nothing fails. All 21 current concepts are mapped (6 specific + 3 verdict + 12 shared).",
-     "evidence": [
-      "Emuqu/Sources/Assistant/CoachVoiceGuard.swift:76",
-      "Emuqu/Sources/Assistant/CoachVoiceGuard.swift:93",
-      "EmuquTests/CoachVoiceGuardTests.swift:23",
-      "EmuquTests/CoachVoiceGuardTests.swift:169",
-      "Emuqu/Sources/Assistant/MedicalTermLexicon.swift:832"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.deflections": "a9eae079b93fc230",
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.observationFallback": "182e24614fbc4efc",
@@ -271,30 +258,26 @@
   },
   {
    "key": "func CoachVoiceGuard.entry(for:)",
-   "hash": "ecbd049b8c4475ad",
-   "does": "Compiles a rule's concept into an NSRegularExpression via MedicalTermLexicon.regex(for:) and pairs it with the rule; nil when the pattern fails to compile (rule then dropped by the callers' compactMap).",
+   "hash": "05cecc4e9f3e4460",
+   "does": "Compiles a rule's concept into an NSRegularExpression via MedicalTermLexicon.regex(for:) and pairs it with the rule; when the pattern fails to compile, logs an error naming the rule (shown under Recent Problems) and returns nil, so the callers' compactMap drops it.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)"
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
    "writes": [],
-   "branches": [],
-   "flags": [
+   "branches": [
     {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "A concept whose pattern fails to compile is dropped from medicalEntries/offensiveEntry via compactMap, silently removing that term from the output perimeter at runtime; only tests (testEveryConceptCompiles) and a DebugLogger path in the shared compiler notice.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/CoachVoiceGuard.swift:217",
-      "Emuqu/Sources/Assistant/CoachVoiceGuard.swift:230",
-      "Emuqu/Sources/Assistant/MedicalTermLexicon.swift:986"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+1",
+     "cond": "regex(for:) nil",
+     "effect": "log error, return nil; else (rule, regex)"
     }
    ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
@@ -339,8 +322,8 @@
   },
   {
    "key": "func CoachVoiceGuard.scrub(_:)",
-   "hash": "c0bbe632638bcdf4",
-   "does": "Scrubs a reply: selects active rules, returns the input unchanged if empty or no rule matches anywhere; otherwise splits into sentence segments, replaces each matching segment's core with its rule's deflection while collecting (reason, sentence) triggers; if no single segment matched, delegates to deflectStraddlingMatch; else returns tidy(rebuilt) plus triggers. Called from AssistantViewModel+Context.swift:576, AssistantViewModel+Routing.swift:718, VoiceConversationController+Speech.swift:689, VoiceConversationController+Control.swift:312 and tests.",
+   "hash": "299c7487e1c70411",
+   "does": "Scrubs a reply: selects active rules, returns the input unchanged if empty or no rule matches anywhere; otherwise splits into sentence segments and rewrites each matching segment's core with its rule's deflection (collecting (reason, sentence) triggers), tidying only rewritten segments so untouched sentences stay byte-identical; if no single segment matched, delegates to deflectStraddlingMatch; else returns the rebuilt text plus triggers. Called from AssistantViewModel+Context.swift, AssistantViewModel+Routing.swift, VoiceConversationController+Speech.swift, VoiceConversationController+Control.swift and tests.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)",
@@ -361,46 +344,38 @@
     {
      "at": "+9",
      "cond": "for each sentence segment",
-     "effect": "rewrite appends either the original segment or its deflected form"
+     "effect": "rewrite returns either the original segment or its deflected form"
     },
     {
-     "at": "+12",
-     "cond": "triggers is empty after per-sentence pass (whole text matched but no single sentence did)",
-     "effect": "true: return deflectStraddlingMatch(...) (partial or whole-message deflection); false: return tidy(rebuilt) with triggers"
-    }
-   ],
-   "flags": [
+     "at": "+11",
+     "cond": "segment was rewritten",
+     "effect": "append tidy(rewritten); else append the segment as is"
+    },
     {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Doc says sentences that match nothing are returned byte-identical, whitespace included, but tidy() is applied to the whole rebuilt string, so every double space, ' .' and ' ,' in untouched sentences is also rewritten (e.g. 4-space markdown indentation in a clean sentence becomes 2 spaces) whenever any one sentence is deflected.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/CoachVoiceGuard.swift:262",
-      "Emuqu/Sources/Assistant/CoachVoiceGuard.swift:289",
-      "Emuqu/Sources/Assistant/CoachVoiceGuard.swift:397"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+13",
+     "cond": "triggers is empty after per-sentence pass (whole text matched but no single sentence did)",
+     "effect": "true: return deflectStraddlingMatch(...); false: return rebuilt with triggers"
     }
    ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflectStraddlingMatch(_:segments:entry:among:)": "f165f01de8919df9",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflectStraddlingMatch(_:segments:entry:among:)": "5aa09298379bbd07",
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "6b2f9d164ff0a50e"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2"
    }
   },
   {
    "key": "func CoachVoiceGuard.deflectStraddlingMatch(_:segments:entry:among:)",
-   "hash": "f555a50b19b8002c",
-   "does": "Handles a match that spans a sentence boundary: logs an error, re-runs the matching regex on the original text, replaces all segments overlapping the match with one deflection, and returns that tidied text if no rule matches it any more; otherwise (no raw match, e.g. matched only after emphasis stripping, no overlap, or residual match) returns just the deflection as the whole message with the full output as the trigger.",
+   "hash": "b3810c28b82c8ce2",
+   "does": "Handles a match that spans a sentence boundary: logs an error, re-runs the matching regex on the original text, replaces all segments overlapping the match with one deflection, and returns that text (the other segments byte-identical, no tidy pass) if no rule matches it any more; otherwise (no raw match, e.g. matched only after emphasis stripping, no overlap, or residual match) returns just the deflection as the whole message with the full output as the trigger.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.replacing(_:spanning:with:)",
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)",
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Rule.deflection"
    ],
    "reads": [],
@@ -409,16 +384,15 @@
     {
      "at": "+11",
      "cond": "raw regex match found on original text AND its range converts AND replacing() returns non-nil AND rebuilt text has no remaining match",
-     "effect": "true: Result(tidy(rebuilt), trigger = matched substring); false: fail closed — Result(scrubbed: entire reply replaced by the rule's deflection, trigger = whole output)"
+     "effect": "true: Result(rebuilt, trigger = matched substring); false: fail closed — Result(scrubbed: entire reply replaced by the rule's deflection, trigger = whole output)"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "1f1571698d506b97",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entry(for:)": "d50b150dd98d4a30",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entry(for:)": "0a544b102bd6f8f2",
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.replacing(_:spanning:with:)": "7ff5aa40668aa3e7",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "6b2f9d164ff0a50e",
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Rule.deflection": "6d7cf9301a98b32c",
     "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
@@ -456,9 +430,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "c36696f346c953ad",
-    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.lowerBound": "42532e07486db197",
-    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.upperBound": "cc499f4494650948"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d"
    }
   },
   {
@@ -544,7 +516,7 @@
   {
    "key": "func CoachVoiceGuard.tidy(_:)",
    "hash": "2f5c40ca8eb593f2",
-   "does": "Collapses '  '→' ', ' .'→'.', ' ,'→',' in one pass each over the whole text.",
+   "does": "Collapses '  '→' ', ' .'→'.', ' ,'→',' in one pass each over the text it is given (only rewritten segments).",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -588,7 +560,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entry(for:)": "d50b150dd98d4a30",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entry(for:)": "0a544b102bd6f8f2",
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Rule.deflection": "6d7cf9301a98b32c"
    }
@@ -684,8 +656,30 @@
   },
   {
    "key": "func CoachVoiceGuard.splitAtLastSentenceBoundary(_:)",
-   "hash": "221345556120189a",
-   "does": "Splits streaming text into (complete sentences up to and including the last terminator, remaining tail); called by AssistantViewModel+Context.swift:565 to scrub/publish only complete sentences.",
+   "hash": "3ffcb2f8a3001eb3",
+   "does": "Splits streaming text into (complete part up to lastSafeCut, remaining tail); called by AssistantViewModel+Context.swift to scrub/publish only complete sentences. A line ending only in soft terminators (newline, Arabic comma) stays in the tail until the next sentence completes, so a phrase wrapped across it is scrubbed whole.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.lastSafeCut(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "lastSafeCut nil",
+     "effect": "return ('', text) — everything held back as tail; else cut there"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.lastSafeCut(in:)": "16ad6c94c43e7b6d"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuard.lastSafeCut(in:)",
+   "hash": "7d35c8f8162a87ce",
+   "does": "Index just past the last terminator nothing later can join to the text before it: the last terminator itself when it is hard (. ! ? etc.) or when the trailing run of terminators/whitespace ending at it contains a hard one; when that run holds only soft terminators (newline, Arabic comma), the last terminator before the run, so the line it closes waits; nil when there is none.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)"
@@ -695,27 +689,31 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "no terminator anywhere in text",
-     "effect": "return ('', text) — everything held back as tail; otherwise cut after the last terminator character"
-    }
-   ],
-   "flags": [
+     "cond": "no terminator in text",
+     "effect": "return nil"
+    },
     {
-     "kind": "fragile",
-     "sev": "med",
-     "text": "'\\n' is a sentence terminator, so in streaming a prohibited phrase wrapped across a newline (the 'see a\\ndoctor' case deflectStraddlingMatch exists for) is split by splitAtLastSentenceBoundary: StreamTextBuffer scrubs and publishes 'see a\\n' (no match) before 'doctor' arrives, so the phrase is rendered and the speakable cursor advances past it; only the post-stream whole-message pass (AssistantViewModel+Routing.swift:717) rewrites it afterwards. The straddle tests only cover whole-text scrub, and the streaming test has no newline straddle.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/CoachVoiceGuard.swift:471",
-      "Emuqu/Sources/Assistant/CoachVoiceGuard.swift:493",
-      "Emuqu/Sources/Assistant/CoachVoiceGuard.swift:295",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:565",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:535",
-      "EmuquTests/CoachVoiceGuardTests.swift:79",
-      "EmuquTests/CoachVoiceGuardTests.swift:582"
-     ],
-     "found": "second read"
+     "at": "+2",
+     "cond": "last terminator is not soft",
+     "effect": "cut after it"
+    },
+    {
+     "at": "+4",
+     "cond": "walk back over the trailing run of terminators/whitespace",
+     "effect": "stop at the first other character"
+    },
+    {
+     "at": "+8",
+     "cond": "a hard terminator in the run",
+     "effect": "cut after the last terminator"
+    },
+    {
+     "at": "+11",
+     "cond": "run is soft-only",
+     "effect": "cut after the last terminator before the run, nil when none"
     }
    ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325"
    }

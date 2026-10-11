@@ -1,30 +1,19 @@
 {
  "file": "Emuqu/Sources/Views/GPXPreviewSheet.swift",
- "hash": "b593b62561081488",
- "role": "Preview sheet shown before sharing an exported GPX: map of the track, distance/duration/points tiles, file name and size, and a Send button that invokes the caller's share closure. Also defines GPXPreviewPayload and the MKMapView wrapper GPXPreviewMap.",
+ "hash": "9cc375cd04aea5de",
+ "role": "Preview sheet shown before sharing an exported GPX: map of the track, distance/duration/points tiles, file name and size, and a Send button that only invokes the caller's onSend closure (the presenter dismisses the sheet and shares). Also defines GPXPreviewPayload and the MKMapView wrapper GPXPreviewMap.",
  "types": [
   "GPXPreviewPayload: struct (Identifiable) — temp GPX URL, decoded track, session",
   "GPXPreviewSheet: struct (View) — the preview",
-  "GPXPreviewMap: struct (UIViewRepresentable) — MKMapView with polyline",
-  "GPXPreviewMap.Coordinator: class (MKMapViewDelegate) — polyline renderer"
+  "GPXPreviewMap: struct (UIViewRepresentable) — MKMapView with polyline, fitted once per track",
+  "GPXPreviewMap.Coordinator: class (MKMapViewDelegate) — polyline renderer; remembers the track last drawn (renderedTrack)"
  ],
  "state": [
-  "mem:GPXPreviewPayload.id (UUID generated per payload)"
+  "mem:GPXPreviewPayload.id (UUID generated per payload)",
+  "mem:GPXPreviewMap.Coordinator.renderedTrack ([CLLocation]?, the track last drawn)"
  ],
  "toplevel": "Used only by FitnessTabView.gpxPreviewSheet (FitnessTabView.swift:492).",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Doc comment says the sheet 'Dismisses itself and invokes onSend', but sendGPXButton only calls onSend; dismissal happens because FitnessTabView.shareGPXAfterPreview sets gpxPreviewPayload = nil.",
-   "evidence": [
-    "Emuqu/Sources/Views/GPXPreviewSheet.swift:19",
-    "Emuqu/Sources/Views/GPXPreviewSheet.swift:62",
-    "Emuqu/Sources/Views/FitnessTabView.swift:498"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "var GPXPreviewSheet.body",
@@ -243,35 +232,50 @@
   },
   {
    "key": "func GPXPreviewMap.updateUIView(_:context:)",
-   "hash": "719353e16f73c9e5",
-   "does": "Removes overlays, adds the track polyline and fits the visible rect with 15% padding.",
+   "hash": "966991bb827bc953",
+   "does": "When the track differs from the one last drawn (identity of each CLLocation): records it, removes overlays, adds the track polyline and fits the visible rect via fittedRect(for:). The same track again leaves the map — and the user's pan/zoom — alone.",
    "entry": "UIViewRepresentable.updateUIView (SwiftUI).",
    "calls": [
+    "Emuqu/Sources/Views/GPXPreviewSheet.swift::func GPXPreviewMap.Coordinator.isShowing(_:)",
+    "Emuqu/Sources/Views/GPXPreviewSheet.swift::func GPXPreviewMap.fittedRect(for:)",
     "ext:MKMapView.addOverlay/setVisibleMapRect"
    ],
    "reads": [],
-   "writes": [],
+   "writes": [
+    "mem:GPXPreviewMap.Coordinator.renderedTrack"
+   ],
    "branches": [
     {
-     "at": "+2",
-     "cond": "track empty",
-     "effect": "returns after clearing; otherwise draws"
-    }
-   ],
-   "flags": [
+     "at": "+1",
+     "cond": "track already drawn",
+     "effect": "returns without touching the map"
+    },
     {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "updateUIView removes and re-adds the overlay and resets the visible rect on every SwiftUI update, so a user's pan or zoom is undone by any parent re-render. A 1-point track has a zero-size boundingMapRect, which pads to 0 and zooms to the maximum.",
-     "evidence": [
-      "Emuqu/Sources/Views/GPXPreviewSheet.swift:157",
-      "Emuqu/Sources/Views/GPXPreviewSheet.swift:163",
-      "Emuqu/Sources/Views/GPXPreviewSheet.swift:164",
-      "Emuqu/Sources/Views/GPXPreviewSheet.swift:166"
-     ],
-     "found": "second read"
+     "at": "+4",
+     "cond": "track empty",
+     "effect": "returns after clearing overlays; otherwise draws and fits"
     }
    ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::var SystemCueAudioSession.coordinator": "1c56830bce5016ed",
+    "Emuqu/Sources/Views/GPXPreviewSheet.swift::func GPXPreviewMap.Coordinator.isShowing(_:)": "7bfe9bf5475563b9",
+    "Emuqu/Sources/Views/GPXPreviewSheet.swift::func GPXPreviewMap.fittedRect(for:)": "c4cfa486412ade66"
+   }
+  },
+  {
+   "key": "func GPXPreviewMap.fittedRect(for:)",
+   "hash": "56090eed34d91d8c",
+   "does": "The polyline's bounding rect padded on every side by the larger of 15% of its longer side and 250 m (in map points at its centre latitude), so a one-point track does not zoom to the maximum.",
+   "entry": null,
+   "calls": [
+    "ext:MKMapPointsPerMeterAtLatitude",
+    "ext:MKMapRect.insetBy"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
    "deps": {}
   },
   {
@@ -283,6 +287,26 @@
    "reads": [],
    "writes": [],
    "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func GPXPreviewMap.Coordinator.isShowing(_:)",
+   "hash": "0d99e501fdf2f1d2",
+   "does": "True when a track was drawn before and it is element-for-element the same CLLocation objects as the given one.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:GPXPreviewMap.Coordinator.renderedTrack"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "nothing drawn yet",
+     "effect": "false"
+    }
+   ],
    "flags": [],
    "deps": {}
   },

@@ -296,7 +296,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)": "172cbbf9780d85bf",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)": "7b4e5cf2bd983fa0",
     "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.elapsedStreamingMs(at:)": "339893bba3fe4698",
     "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.publishStreamingProgress(heartbeatLabel:)": "038f31a574db4c2d",
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
@@ -328,7 +328,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)": "172cbbf9780d85bf"
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)": "7b4e5cf2bd983fa0"
    }
   },
   {
@@ -358,7 +358,7 @@
   {
    "key": "func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)",
    "hash": "39e0364ab07612e4",
-   "does": "Appends RRPoint(t_ms: cumulative, rr_ms, wallClockMs, hr) and advances the cumulative clock; at 100,000 points refuses, logging the cap once per session.",
+   "does": "Appends RRPoint(t_ms: cumulative, rr_ms, wallClockMs, hr) and advances the cumulative clock; at maxStreamingBufferSize (250,000 beats, about 35 h at 120 bpm) refuses, logging the cap (⚠️, so it reaches Recent Problems) once per session.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
@@ -375,7 +375,7 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "buffer count < maxStreamingBufferSize (100,000)",
+     "cond": "buffer count < maxStreamingBufferSize (250,000)",
      "effect": "true → append and return true; false → return false (beat dropped)"
     },
     {
@@ -384,18 +384,7 @@
      "effect": "log the cap warning once and set the flag"
     }
    ],
-   "flags": [
-    {
-     "kind": "data-loss",
-     "sev": "low",
-     "text": "Beats beyond 100,000 in one session are dropped silently apart from one log line; the comment sizes this at ~28 h at 1 beat/s, but at an average HR of 70+ the cap is reached after roughly 24 h, after which the session keeps running with no new data.",
-     "evidence": [
-      "Emuqu/Sources/Collection/PolarManager+Streaming.swift:160",
-      "Emuqu/Sources/Collection/PolarManager.swift:281"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"

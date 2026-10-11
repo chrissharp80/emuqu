@@ -1,44 +1,23 @@
 {
  "file": "Emuqu/Sources/Assistant/Context/AppKnowledgeBase.swift",
- "hash": "49e9581264612d89",
+ "hash": "8b458a3f8bbec241",
  "role": "Static app FAQ/feature reference injected into the assistant's system prompt (full or compact, AIProvider+SystemPrompt.swift:140) and served section-by-section by the app.help.lookup fact tool (AppFactResolver+HealthKitFacts.swift:137).",
  "types": [
   "AppKnowledgeBase: enum — holds reference/referenceCompact prompt text, help topic list and the lookup/extractSection functions"
  ],
  "state": [
   "mem:AppKnowledgeBase.reference (static let, full markdown manual)",
-  "mem:AppKnowledgeBase.referenceCompact (static let)",
-  "mem:AppKnowledgeBase.helpTopics (static let [String], 14 topics incl. 'all')",
+  "mem:AppKnowledgeBase.referenceCompact (static let, interpolates helpTopics without 'all')",
+  "mem:AppKnowledgeBase.helpTopics (static let [String], 14 topics incl. 'all'; read by referenceCompact and the app.help.lookup tool description)",
   "mem:AppKnowledgeBase.topicHeadings (private static let alias→heading map)"
  ],
- "toplevel": "reference and referenceCompact are multi-line string literals of product claims (tabs, recovery-score weights 60/25/15, SpO2 -10 penalty below 95%, Comeback 80/20/0 for 21 days, HR zones, exports, navigation paths, capabilities). helpTopics is declared but never read anywhere in the repo; the topic list is hard-coded again in the tool description at AppFactResolver+HealthKitFacts.swift:133.",
- "flags": [
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "AppKnowledgeBase.helpTopics is never read (grep finds only its declaration); its doc says it is listed in the tool description, but that description hard-codes the same list separately, so the two can drift.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/Context/AppKnowledgeBase.swift:215",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+HealthKitFacts.swift:133"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "broken",
-   "sev": "low",
-   "text": "referenceCompact tells the model to call app.help.lookup for 'what's pNN50', but no section of reference mentions pNN50 (Metrics section lists RMSSD, SDNN, DFA, LF/HF, TRIMP, hrTSS, Pa:Hr, EF, HRR, METs, nocturnal dip), so the lookup returns no answer for that example.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/Context/AppKnowledgeBase.swift:207",
-    "Emuqu/Sources/Assistant/Context/AppKnowledgeBase.swift:121"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "reference and referenceCompact are multi-line string literals of product claims (tabs, recovery-score weights 60/25/15 with all three factors, 70/30 without vitals or 85/15 on a night with HRV more than 1 SD below baseline and a sleep score under 50, HRV only without sleep, SpO2 -10 penalty below 95%, Comeback 80/20/0 for 21 days, HR zones, exports, navigation paths, capabilities). referenceCompact's lookup example is 'what's TRIMP' (covered by the Metrics section) and its valid-topic list is interpolated from helpTopics, which the tool description in AppFactResolver+HealthKitFacts.swift interpolates too.",
+ "flags": [],
  "units": [
   {
    "key": "func AppKnowledgeBase.lookup(topic:)",
-   "hash": "7338657edf6e29ea",
-   "does": "Returns the app-reference section for a topic string: normalizes (lowercase, '-' and ' ' → '_', then trim whitespace), returns the full reference for 'all', the matching '## heading' section for a known alias, and referenceCompact for unknown topics or a missing heading. Called by the app.help.lookup fact (AppFactResolver+HealthKitFacts.swift:137).",
+   "hash": "4255b887ffd309d7",
+   "does": "Returns the app-reference section for a topic string: normalizes (trim surrounding whitespace/newlines first, then lowercase, '-' and ' ' → '_'), returns the full reference for 'all', the matching '## heading' section for a known alias, and referenceCompact for unknown topics or a missing heading. Called by the app.help.lookup fact (AppFactResolver+HealthKitFacts.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Context/AppKnowledgeBase.swift::func AppKnowledgeBase.extractSection(named:)"
@@ -62,18 +41,7 @@
      "effect": "fallback referenceCompact when the heading text is not found in reference"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Whitespace is trimmed after spaces were already converted to underscores, so the trim never removes spaces; a topic with surrounding spaces (' metrics ') becomes '_metrics_', misses topicHeadings and silently returns the compact reference instead of the section.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Context/AppKnowledgeBase.swift:241",
-      "Emuqu/Sources/Assistant/Context/AppKnowledgeBase.swift:242"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Context/AppKnowledgeBase.swift::func AppKnowledgeBase.extractSection(named:)": "8a611afdbaa14272"
    }

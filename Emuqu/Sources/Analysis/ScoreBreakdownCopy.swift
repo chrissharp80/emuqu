@@ -16,13 +16,19 @@ enum ScoreBreakdownCopy {
     private static let englishSpO2Prefix = "Low blood oxygen"
 
     static var lowBloodOxygenPenalty: String {
-        let points = Int(RecoveryScoreConstants.Vitals.spo2Penalty)
-        return String(localized: "Low blood oxygen (−\(points))", bundle: NarrativeLanguage.bundle)
+        lowBloodOxygenLine(points: Int(RecoveryScoreConstants.Vitals.spo2Penalty))
     }
 
     static var missingSleepPenalty: String {
-        let points = Int(RecoveryScoreConstants.missingSleepPenalty)
-        return String(localized: "No sleep data (−\(points))", bundle: NarrativeLanguage.bundle)
+        missingSleepLine(points: Int(RecoveryScoreConstants.missingSleepPenalty))
+    }
+
+    private static func lowBloodOxygenLine(points: Int) -> String {
+        String(localized: "Low blood oxygen (−\(points))", bundle: NarrativeLanguage.bundle)
+    }
+
+    private static func missingSleepLine(points: Int) -> String {
+        String(localized: "No sleep data (−\(points))", bundle: NarrativeLanguage.bundle)
     }
 
     /// Whether English penalty lines include the SpO₂ deduction.
@@ -35,13 +41,26 @@ enum ScoreBreakdownCopy {
     /// lines were localized, else that night's app language, or another
     /// device's after an iCloud sync — so it is recognised by its name in any
     /// language the app ships. A line no shipped language recognises is
-    /// shown as stored.
+    /// shown as stored. The points are the ones the line was stored with —
+    /// what was actually deducted that night — not today's constant; the
+    /// constant stands in only for a line that names no number.
     static func displayPenalty(_ line: String) -> String {
         switch storedPenaltyNames[penaltyName(line)] {
-        case .lowBloodOxygen?: lowBloodOxygenPenalty
-        case .missingSleep?: missingSleepPenalty
+        case .lowBloodOxygen?:
+            lowBloodOxygenLine(points: storedPoints(line) ?? Int(RecoveryScoreConstants.Vitals.spo2Penalty))
+        case .missingSleep?:
+            missingSleepLine(points: storedPoints(line) ?? Int(RecoveryScoreConstants.missingSleepPenalty))
         case nil: line
         }
+    }
+
+    /// The N of a stored line's " (−N)", read in whichever digits the line
+    /// was written in. Nil when the line names no number.
+    private static func storedPoints(_ line: String) -> Int? {
+        guard let tail = line.components(separatedBy: " (").dropFirst().first else { return nil }
+        let digits = tail.compactMap(\.wholeNumberValue)
+        guard !digits.isEmpty else { return nil }
+        return digits.reduce(0) { $0 * 10 + $1 }
     }
 
     private enum PenaltyKind: Sendable {
@@ -85,12 +104,22 @@ enum ScoreBreakdownCopy {
     /// accumulated fatigue turns a strong score's message to an easier
     /// session, and only a clear load allows "Go hard". Nil when the caller
     /// has no load to give.
+    ///
+    /// Only factors that carry weight are judged (`scoredFactors`): in
+    /// Comeback mode the Vitals row is listed at weight 0 and contributes
+    /// nothing, so it is never named as what holds the score back or up.
     static func message(for breakdown: Breakdown, loadLevel: TrainingAdviceGate.LoadLevel?) -> String {
-        let weakest = breakdown.factors.min(by: { $0.score < $1.score })
-        let strongest = breakdown.factors.max(by: { $0.score < $1.score })
+        let weakest = scoredFactors(breakdown).min(by: { $0.score < $1.score })
+        let strongest = scoredFactors(breakdown).max(by: { $0.score < $1.score })
         if let penalised = vitalsPenaltyMessage(breakdown, weakest: weakest) { return penalised }
         if let drifted = baselineDriftMessage(breakdown) { return drifted }
         return bandMessage(breakdown, weakest: weakest, strongest: strongest, loadLevel: loadLevel)
+    }
+
+    /// The factors that contribute to the composite: every factor with a
+    /// weight above zero.
+    private static func scoredFactors(_ breakdown: Breakdown) -> [Factor] {
+        breakdown.factors.filter { $0.weight > 0 }
     }
 
     // MARK: - Penalties and drift
@@ -102,7 +131,7 @@ enum ScoreBreakdownCopy {
         guard !breakdown.penalties.isEmpty, breakdown.gapFromFactors > 1 else { return nil }
         let points = Int(breakdown.gapFromFactors)
         let onlySpO2 = breakdown.spo2PenaltyApplied && breakdown.penalties.count == 1
-        if breakdown.factors.allSatisfy({ $0.score >= 60 }) {
+        if scoredFactors(breakdown).allSatisfy({ $0.score >= 60 }) {
             guard !onlySpO2 else {
                 return String(localized: "Your component scores are strong, but a SpO₂ reading below 95% reduced your score by \(points) points. Check the SpO₂ value in your vitals.", bundle: NarrativeLanguage.bundle)
             }
@@ -130,7 +159,7 @@ enum ScoreBreakdownCopy {
     /// original frozen score — don't claim a penalty that doesn't exist.
     private static func baselineDriftMessage(_ breakdown: Breakdown) -> String? {
         guard breakdown.gapFromFactors > 5, breakdown.penalties.isEmpty,
-              breakdown.factors.allSatisfy({ $0.score >= 60 }) else { return nil }
+              scoredFactors(breakdown).allSatisfy({ $0.score >= 60 }) else { return nil }
         return String(localized: "Your baselines have improved since this session. Today those same HRV and sleep numbers score higher, but this score reflects how you compared at the time.", bundle: NarrativeLanguage.bundle)
     }
 
@@ -172,8 +201,8 @@ enum ScoreBreakdownCopy {
             let name = midSentenceName(w.label)
             return String(localized: "Strong overall, but \(name) is holding you back. Fix that and you're flying.", bundle: NarrativeLanguage.bundle)
         }
-        let others = breakdown.factors.filter { $0.label != "HRV" }
-        if let hrv = breakdown.factors.first(where: { $0.label == "HRV" }), hrv.score < 72, !others.isEmpty {
+        let others = scoredFactors(breakdown).filter { $0.label != "HRV" }
+        if let hrv = scoredFactors(breakdown).first(where: { $0.label == "HRV" }), hrv.score < 72, !others.isEmpty {
             return carriersMessage(others)
         }
         return allClearMessage(breakdown, goHardAllowed: loadLevel == .clear)
@@ -191,8 +220,9 @@ enum ScoreBreakdownCopy {
 
     /// Every factor is strong, HRV included.
     private static func allClearMessage(_ breakdown: Breakdown, goHardAllowed: Bool) -> String {
-        let all = listPhrase(breakdown.factors.map { midSentenceName($0.label) })
-        let single = breakdown.factors.count <= 1
+        let scored = scoredFactors(breakdown)
+        let all = listPhrase(scored.map { midSentenceName($0.label) })
+        let single = scored.count <= 1
         guard breakdown.compositeScore.rounded() >= 90, goHardAllowed else {
             let subject = sentenceCase(all)
             return single
@@ -210,7 +240,9 @@ enum ScoreBreakdownCopy {
     /// through" is misleading: a heavy week of training legitimately
     /// depresses TSB and the right action is to RESPECT the fatigue, not
     /// "address" it. Other factors keep the actionable wording — they ARE
-    /// actionable.
+    /// actionable. Current scoring builds no Training Load factor; the
+    /// branch serves breakdowns archived before load left the composite,
+    /// which are still decoded and shown.
     private static func decentBandMessage(weakest: Factor?, strongest: Factor?) -> String {
         guard let w = weakest, w.score < 45, let s = strongest else {
             return String(localized: "Decent recovery overall. Check the component scores — the lowest one is your bottleneck.", bundle: NarrativeLanguage.bundle)
@@ -223,6 +255,8 @@ enum ScoreBreakdownCopy {
         return String(localized: "\(carrier) is carrying you but \(drag) is dragging the score down. Address that to break through.", bundle: NarrativeLanguage.bundle)
     }
 
+    /// As `decentBandMessage`: the Training Load branch is for archived
+    /// breakdowns scored when load was a factor.
     private static func mediocreBandMessage(weakest: Factor?) -> String {
         guard let w = weakest, w.score < 40 else {
             return String(localized: "Incomplete recovery. Multiple factors are mediocre — no single fix, focus on the weakest.", bundle: NarrativeLanguage.bundle)

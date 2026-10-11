@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/HelpLocalization.swift",
- "hash": "f3a89ffbb20b2f2d",
+ "hash": "64ac9a8710db67f4",
  "role": "Display-time translator for the Help Center: looks each English Help string up by its exact English text in the separate 'Help' string table of the app-language bundle, with a {token} template formatter and a test-only key recorder; plus `localized` projections for HelpCategory/HelpArticle/ArticleSection.",
  "types": [
   "HelpLocalization: enum — string/format/startRecording/stopRecording",
@@ -10,29 +10,16 @@
  ],
  "state": [
   "mem:HelpLocalization.table = \"Help\" (string table name, HelpLocalization.swift:16)",
-  "mem:HelpLocalization.formattedMark U+2060 word joiner marking already-translated strings (HelpLocalization.swift:39)",
-  "mem:HelpLocalization.recorder OSAllocatedUnfairLock<Set<String>?> — nil in the app, a set while a test records lookups (HelpLocalization.swift:43)"
+  "mem:HelpLocalization.formattedTexts OSAllocatedUnfairLock<Set<String>> — every text format() has handed out (already translated and filled), so the localized pass passes it through; grows by a handful of age-personalised strings per age and language",
+  "mem:HelpLocalization.recorder OSAllocatedUnfairLock<Set<String>?> — nil in the app, a set while a test records lookups"
  ],
- "toplevel": "Static let initialisers: table name 'Help', formattedMark U+2060, recorder lock initialised to nil (recording off).",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "format() output carries an invisible leading U+2060 that is stripped only when the string later passes through HelpLocalization.string (the `localized` pass). HelpContent.englishCategories(forAge:) with a non-nil age returns un-localized categories whose age-personalised strings still start with U+2060; today only tests call englishCategories and always with age nil, so the mark is never exposed, but any future non-localized consumer with an age would show/search strings with a hidden character.",
-   "evidence": [
-    "Emuqu/Sources/Views/HelpLocalization.swift:32",
-    "Emuqu/Sources/Views/HelpLocalization.swift:21",
-    "Emuqu/Sources/Views/HelpContent+Science.swift:21",
-    "EmuquTests/HelpContentAccuracyTests.swift:12"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "Static let initialisers: table name 'Help', formattedTexts lock initialised empty, recorder lock initialised to nil (recording off).",
+ "flags": [],
  "units": [
   {
    "key": "func HelpLocalization.string(_:)",
-   "hash": "57a810030ed87249",
-   "does": "Translates one English Help string: if it starts with the U+2060 mark (already translated by format) returns it with the mark dropped; otherwise records the key when a test has recording on, then returns LanguageManager.appBundle.localizedString(forKey: english, value: english, table: 'Help'), i.e. the English itself when the table lacks the key.",
+   "hash": "32cfbb31037ed4f4",
+   "does": "Translates one English Help string: if it is a text format() already handed out (formattedTexts) returns it unchanged and does not record it; otherwise records the key when a test has recording on, then returns LanguageManager.appBundle.localizedString(forKey: english, value: english, table: 'Help'), i.e. the English itself when the table lacks the key.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
@@ -41,7 +28,8 @@
    ],
    "reads": [
     "file:Help.xcstrings (compiled Help.strings in LanguageManager.appBundle)",
-    "mem:HelpLocalization.recorder"
+    "mem:HelpLocalization.recorder",
+    "mem:HelpLocalization.formattedTexts"
    ],
    "writes": [
     "mem:HelpLocalization.recorder"
@@ -49,8 +37,8 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "first character is the U+2060 formattedMark",
-     "effect": "returns the rest of the string untranslated and does not record it; otherwise records (if recording) and looks the key up, falling back to the English"
+     "cond": "english is a text format() handed out",
+     "effect": "returned as is, not recorded; otherwise recorded (if recording) and looked up, falling back to the English"
     }
    ],
    "flags": [],
@@ -60,18 +48,21 @@
   },
   {
    "key": "func HelpLocalization.format(_:_:)",
-   "hash": "3ede57621d1bbaaa",
-   "does": "Translates an English {token} template via string(), substitutes each values entry for '{key}', and prefixes U+2060 so the later localized pass passes it through untouched.",
+   "hash": "dbda5d0a8c213a40",
+   "does": "Translates an English {token} template via string(), substitutes each values entry for '{key}', remembers the result in formattedTexts (so the later localized pass passes it through untouched) and returns it with no marker character.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.string(_:)"
+    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.string(_:)",
+    "ext:OSAllocatedUnfairLock.withLock"
    ],
    "reads": [],
-   "writes": [],
+   "writes": [
+    "mem:HelpLocalization.formattedTexts"
+   ],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.string(_:)": "f15cd7bae82ff838"
+    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.string(_:)": "0277394aa70cf404"
    }
   },
   {
@@ -128,7 +119,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.string(_:)": "f15cd7bae82ff838",
+    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.string(_:)": "0277394aa70cf404",
     "Emuqu/Sources/Views/HelpLocalization.swift::var HelpArticle.localized": "e651e04da0d378ed"
    }
   },
@@ -146,7 +137,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.string(_:)": "f15cd7bae82ff838",
+    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.string(_:)": "0277394aa70cf404",
     "Emuqu/Sources/Views/HelpLocalization.swift::var ArticleSection.localized": "a9c0361da38a04ab"
    }
   },
@@ -209,8 +200,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.DescribedDetail.note(_:)": "a76e785a36f0e4e6",
-    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.string(_:)": "f15cd7bae82ff838",
+    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.string(_:)": "0277394aa70cf404",
     "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.bullets(_:)": "9359f2a9d37fe082",
     "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.heading(_:)": "96313fd993bfcc52"
    }

@@ -12,17 +12,11 @@ import Foundation
 extension HRVAnalysisPipeline {
     // MARK: - Pure Computation Helpers
 
-    /// Compute median heart rate from clean RR intervals.
+    /// Compute median heart rate from clean RR intervals (non-positive
+    /// intervals skipped), with the shared `RecurrenceClassifier.median`.
     /// Pure function: takes values in, returns value out.
     static func nocturnalMedianHR(from cleanRRs: [Double]) -> Double? {
-        guard !cleanRRs.isEmpty else { return nil }
-        let hrValues = cleanRRs.compactMap { $0 > 0 ? 60000.0 / $0 : nil }
-        let sorted = hrValues.sorted()
-        guard !sorted.isEmpty else { return nil }
-        if sorted.count % 2 == 0 {
-            return (sorted[sorted.count / 2 - 1] + sorted[sorted.count / 2]) / 2.0
-        }
-        return sorted[sorted.count / 2]
+        RecurrenceClassifier.median(cleanRRs.compactMap { $0 > 0 ? 60000.0 / $0 : nil })
     }
 
     /// Compute nocturnal HR dip percentage.
@@ -75,6 +69,10 @@ extension HRVAnalysisPipeline {
     }
 
     /// Compute autonomic nervous system metrics from time domain and nonlinear results.
+    /// The window metrics use the analysis window; the nocturnal median HR
+    /// (and the dip from it) use every clean beat of the series, as
+    /// `attachOvernightHRStats` does, because the window on the overnight path
+    /// is the calmest slice of the night, not the night.
     func computeANSMetrics(
         series: RRSeries,
         flags: [ArtifactFlags],
@@ -83,7 +81,7 @@ extension HRVAnalysisPipeline {
         timeDomain: TimeDomainMetrics,
         nonlinear: NonlinearMetrics,
         daytimeRestingHR: Double? = nil,
-        config: ANSConfiguration
+        config: ANSConfiguration?
     ) -> ANSMetrics {
         let cleanRR = Self.extractCleanRRs(series: series, flags: flags, windowStart: windowStart, windowEnd: windowEnd)
         let stressIndex = StressAnalyzer.computeStressIndex(cleanRR)
@@ -91,7 +89,8 @@ extension HRVAnalysisPipeline {
             meanRR: timeDomain.meanRR, rmssd: timeDomain.rmssd, sd1: nonlinear.sd1
         )
         let snsIndex = stressIndex.map { StressAnalyzer.computeSNSIndex(meanHR: timeDomain.meanHR, stressIndex: $0, sd2: nonlinear.sd2) }
-        let nocturnalMedian = Self.nocturnalMedianHR(from: cleanRR)
+        let nightRR = Self.extractCleanRRs(series: series, flags: flags, windowStart: 0, windowEnd: min(series.points.count, flags.count))
+        let nocturnalMedian = Self.nocturnalMedianHR(from: nightRR)
         return ANSMetrics(
             stressIndex: stressIndex,
             pnsIndex: pnsIndex,
@@ -109,16 +108,18 @@ extension HRVAnalysisPipeline {
         nonlinear: NonlinearMetrics,
         pnsIndex: Double?,
         snsIndex: Double?,
-        config: ANSConfiguration
+        config: ANSConfiguration?
     ) -> Double? {
+        // Without a configuration there is no baseline: the score uses the
+        // absolute RMSSD bands rather than an invented one.
         StressAnalyzer.computeReadinessScore(
             rmssd: timeDomain.rmssd,
-            baselineRMSSD: config.baselineRMSSD,
+            baselineRMSSD: config?.baselineRMSSD,
             alpha1: nonlinear.dfaAlpha1,
             pnsIndex: pnsIndex,
             snsIndex: snsIndex,
-            trainingLoadAdjustment: config.trainingLoadAdjustment,
-            vo2Max: config.vo2Max
+            trainingLoadAdjustment: config?.trainingLoadAdjustment ?? 0,
+            vo2Max: config?.vo2Max
         )
     }
 

@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift",
- "hash": "dcd993e1eb9abe37",
+ "hash": "8caad3fbee20a6d7",
  "role": "@Observable @MainActor view model behind MorningResultsView (the Recovery Report sheet): resolves the displayed session (input or re-analysed/archived copy), computes the frozen-or-live composite recovery score and its breakdown, generates and memoises the narrative summary, loads sleep (frozen snapshot or live HealthKit/estimate) and persists the perceived-readiness answer for unreliable nights.",
  "types": [
   "MorningResultsViewModel: class (@Observable, @MainActor, final) — presentation state + scoring/sleep loading for MorningResultsView"
@@ -20,22 +20,12 @@
   "mem:MorningResultsViewModel.onUpdateSleep (closure set by view to collector.updateSessionSleepBoundaries)",
   "mem:MorningResultsViewModel.summaryMemo (@ObservationIgnored (key, AnalysisSummary) memo)",
   "mem:MorningResultsViewModel.settingsManager (private let SettingsManager)",
-  "mem:MorningResultsViewModel.healthKit (let HealthKitManager)"
+  "mem:MorningResultsViewModel.healthKit (let HealthKitManager)",
+  "mem:MorningResultsViewModel.archiveUpdateGeneration (@ObservationIgnored Int, bumped per applyExternalArchiveUpdate)",
+  "static liveSleepWaitNanoseconds = 60 s"
  ],
- "toplevel": "Stored-property initializers: isReanalyzing/isGeneratingPDF/isGeneratingEmailPDF=false, isSleepLoading=true, summaryMemo=nil. init default arguments read AppDependencies.current.app.settingsManager and AppDependencies.current.collection.healthKitManager. No conformances beyond @Observable macro synthesis.",
+ "toplevel": "Stored-property initializers: isReanalyzing/isGeneratingPDF/isGeneratingEmailPDF=false, isSleepLoading=true, summaryMemo=nil, archiveUpdateGeneration=0, liveSleepWaitNanoseconds=60 s. init default arguments read AppDependencies.current.app.settingsManager and AppDependencies.current.collection.healthKitManager. No conformances beyond @Observable macro synthesis.",
  "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "The live composite (liveRecoveryScore) and live breakdown (liveBreakdown) call RecoveryScoreCalculator with the default referenceDate = Date(), while applyPerceivedReadinessScore passes the session's own end date; the baseline-staleness penalty (RecoveryScoreCalculator+Tiers.swift:61) is therefore measured against 'now' for an unaccepted historical session, so its live score depends on the day the report is opened.",
-   "evidence": [
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:178",
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:221",
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:112",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift:61"
-   ],
-   "found": "first read, upheld on second"
-  },
   {
    "kind": "spec-mismatch",
    "sev": "low",
@@ -206,47 +196,30 @@
   },
   {
    "key": "func MorningResultsViewModel.updatePerceivedReadiness(_:)",
-   "hash": "0ed2c17aa115723e",
-   "does": "Copies displaySession, sets perceivedReadiness, re-scores it (applyPerceivedReadinessScore), assigns it to reanalyzedSession so the UI updates, and for a non-nil value persists rating+score to the archive off-main.",
-   "entry": "SubjectiveReadinessCard binding setter in MorningResultsView.subjectiveReadinessSection (MorningResultsView.swift:279) and unreadableFallbackCard (MorningResultsView.swift:682)",
+   "hash": "6e5c2ad8fc2d6705",
+   "does": "Copies displaySession, sets perceivedReadiness (nil clears it), re-scores it (applyPerceivedReadinessScore), assigns it to reanalyzedSession so the UI updates, and persists the rating — nil included — through persistPerceivedReadiness, which reverts the screen to the previous session if the write fails.",
+   "entry": "SubjectiveReadinessCard binding setter in MorningResultsView.subjectiveReadinessSection and unreadableFallbackCard",
    "calls": [
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.applyPerceivedReadinessScore(to:)",
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.persistPerceivedReadiness(_:scored:)"
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.persistPerceivedReadiness(_:scored:revertTo:)"
    ],
    "reads": [],
    "writes": [
     "mem:MorningResultsViewModel.reanalyzedSession"
    ],
-   "branches": [
-    {
-     "at": "+5",
-     "cond": "guard value != nil",
-     "effect": "nil → in-memory session shows cleared rating but nothing is persisted; non-nil → persistPerceivedReadiness"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "The nil path (clear rating in memory, never persisted) cannot be reached from the UI: SubjectiveReadinessCard only ever writes a normalized non-nil value; if it were reached the archive would keep the old rating so the cleared state reverts on reopen.",
-     "evidence": [
-      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:90",
-      "Emuqu/Sources/Views/SubjectiveReadinessCard.swift:109"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "branches": [],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.applyPerceivedReadinessScore(to:)": "b32ee4fc9d1dba3c",
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.persistPerceivedReadiness(_:scored:)": "5a83d80fcc9f8633",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.applyPerceivedReadinessScore(to:)": "6b8801813087451a",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.persistPerceivedReadiness(_:scored:revertTo:)": "a652bdb1ab2b9526",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "eccc568f4bbb99c3"
    }
   },
   {
    "key": "func MorningResultsViewModel.applyPerceivedReadinessScore(to:)",
-   "hash": "83a85c1a24f10acd",
-   "does": "For an unreliable-HRV night with baseline loaded, recomputes the breakdown via calculateWithBreakdown(useBaselineHRV: true, perceivedReadiness, ansBalance, referenceDate = session date) and writes recoveryScore (0-10), scoreBreakdown and frozenReadiness onto the inout session.",
+   "hash": "3d726d3ba3effb06",
+   "does": "For an unreliable-HRV night with baseline loaded, recomputes the breakdown via calculateWithBreakdown(useBaselineHRV: true, perceivedReadiness, ansBalance, referenceDate = session date) from the session's frozen sleep snapshot only (the same sleep input ReanalysisService.rescoreBreakdown uses), and writes recoveryScore (0-10), scoreBreakdown and frozenReadiness onto the inout session.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates",
@@ -259,8 +232,7 @@
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)"
    ],
    "reads": [
-    "mem:MorningResultsViewModel.baselineStats",
-    "mem:MorningResultsViewModel.healthKitSleep"
+    "mem:MorningResultsViewModel.baselineStats"
    ],
    "writes": [],
    "branches": [
@@ -280,105 +252,145 @@
      "effect": "frozen training snapshot, else analysis context"
     },
     {
-     "at": "+8",
-     "cond": "session.sleepSnapshot ?? healthKitSleep",
-     "effect": "frozen sleep snapshot, else the sleep loaded into the view model"
-    },
-    {
      "at": "+14",
      "cond": "session.endDate ?? session.startDate",
      "effect": "reference date for staleness = end date, else start date"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "The perceived-readiness re-score reads session.sleepSnapshot ?? healthKitSleep, while the deterministic re-score in ReanalysisService.rescoreBreakdown reads session.sleepSnapshot only; a score frozen here before a sleep snapshot exists is built on live-fetched sleep and changes on the next re-analysis of the same night.",
-     "evidence": [
-      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:106",
-      "Emuqu/Sources/Services/ReanalysisService.swift:594"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)": "18aa103b513d602d",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)": "ca2be1737136e0d8",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)": "6ba2b8b8a5adb0f2",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)": "7aa853f03a8994f8",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.scoringVitals(of:result:)": "584b891459e5121f",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "245c2d41dcd0a692",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "3d86c57d7f933cf7",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.liveAnsBalance": "25168dc29921e27f",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.scoringConfig": "e063c5c4aca0bc87",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.settings": "0c0458cf718410e0"
    }
   },
   {
-   "key": "func MorningResultsViewModel.persistPerceivedReadiness(_:scored:)",
-   "hash": "910d7750ee88883f",
-   "does": "Detached task: retrieves the archived session by id (or uses the scored copy if absent), copies perceivedReadiness/recoveryScore/scoreBreakdown/frozenReadiness onto it and re-archives with requestingReupload: true (stamps modifiedAt so CloudKit re-uploads; archive posts .flowRecoveryArchiveChanged).",
+   "key": "func MorningResultsViewModel.persistPerceivedReadiness(_:scored:revertTo:)",
+   "hash": "9f1cadb42bdfede3",
+   "does": "Main-actor Task: reads the archived copy off main (loadArchived), applies the rating to it and re-scores it from its own inputs (falls back to the in-memory scored copy when the session is not archived), then off main writes only the rating and score fields (writePerceivedReadiness: SessionArchive.update under the archive lock, or a whole archive when not archived). If the user has not changed the rating meanwhile, a successful write adopts the written copy for display and a failed read or write restores the session shown before the change.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.loadArchived(_:)",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.applyPerceivedReadinessScore(to:)",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.writePerceivedReadiness(_:isArchived:)",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.adoptArchivedSession(_:)"
    ],
    "reads": [
     "archive:SessionArchive.retrieve"
    ],
    "writes": [
+    "archive:SessionArchive.update(requestingReupload:true)",
+    "archive:SessionArchive.archive(skipSameNightMerge:false, requestingReupload:true)",
+    "mem:MorningResultsViewModel.reanalyzedSession",
+    "mem:MorningResultsViewModel.healthKitSleep",
+    "mem:MorningResultsViewModel.recoveryVitals"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "archived.session ?? scored",
+     "effect": "archived copy when present (its inputs are re-scored); the in-memory scored copy when the session is not archived (or could not be read)"
+    },
+    {
+     "at": "+11",
+     "cond": "archive unreadable",
+     "effect": "no write attempted; saved = false"
+    },
+    {
+     "at": "+13",
+     "cond": "reanalyzedSession's rating no longer equals value (a newer edit)",
+     "effect": "leaves the screen alone"
+    },
+    {
+     "at": "+14",
+     "cond": "write saved",
+     "effect": "adopts the written copy (rating, score, snapshots); else reverts reanalyzedSession to the pre-change session"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.adoptArchivedSession(_:)": "dad680e4c7fc5d48",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.applyPerceivedReadinessScore(to:)": "6b8801813087451a",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.loadArchived(_:)": "2b08235ebb6e98d9",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.writePerceivedReadiness(_:isArchived:)": "f2df85436f777c93"
+   }
+  },
+  {
+   "key": "func MorningResultsViewModel.loadArchived(_:)",
+   "hash": "52343147e3f6fd93",
+   "does": "Nonisolated: retrieves the session from the shared archive; returns (session or nil when not archived, readable = true), or (nil, false) after a warning log when retrieve throws.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieve"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "retrieve throws",
+     "effect": "logs at warning level and returns (nil, false)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func MorningResultsViewModel.writePerceivedReadiness(_:isArchived:)",
+   "hash": "225e29d5c32095a5",
+   "does": "Nonisolated: for an archived session, SessionArchive.update(id) sets perceivedReadiness, recoveryScore, scoreBreakdown and frozenReadiness from the re-scored copy under one archive lock (other fields keep the archive's newest values; stamps modifiedAt and requests re-upload); for an unarchived one, archives the copy (skipSameNightMerge: false, requestingReupload: true). Logs the outcome; returns false when the write threw.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:SessionArchive.update(requestingReupload:true)",
     "archive:SessionArchive.archive(skipSameNightMerge:false, requestingReupload:true)",
     "notif:flowRecoveryArchiveChanged",
-    "notif:flowRecoveryArchiveSessionsNeedReupload (only when the id was already archived, Archive.swift:471)",
+    "notif:flowRecoveryArchiveSessionsNeedReupload",
     "ck:session reupload (modifiedAt stamp)"
    ],
    "branches": [
     {
-     "at": "+5",
-     "cond": "archive.retrieve(sessionId) ?? scored",
-     "effect": "archived copy when present (keeps archive-side fields); the in-memory scored copy when the session is not archived"
+     "at": "+3",
+     "cond": "isArchived",
+     "effect": "in-place update of the four fields; else archive the whole copy"
     },
     {
-     "at": "+12",
-     "cond": "catch on retrieve/archive error",
-     "effect": "error only debug-logged; in-memory UI already shows the new rating/score so the user is not told the write failed"
+     "at": "+15",
+     "cond": "update/archive throws (e.g. fileNotFound after a delete)",
+     "effect": "warning log, returns false"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "A failed archive write is only debug-logged while reanalyzedSession already shows the new rating and score, so the screen shows a value that is gone on next open.",
-     "evidence": [
-      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:134",
-      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:89"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "race",
-     "sev": "med",
-     "text": "Unlocked read-modify-write: retrieve() and archive() take the archive lock separately, so a write landing in between (e.g. the onUpdateSleep sleep-boundary update or a dashboard re-analysis fired around report open) is overwritten by this copy. SessionArchive.update(_:requestingReupload:_:) exists for exactly this and its doc describes this lost update. The score copied in was also computed from the in-memory session's inputs, not the archived copy's.",
-     "evidence": [
-      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:127",
-      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:132",
-      "Emuqu/Sources/Storage/Archive.swift:477",
-      "Emuqu/Sources/Storage/Archive.swift:486"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "245c2d41dcd0a692",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "3d86c57d7f933cf7",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "e1a5ccaab9fa4e3e",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "e021c7f17b266931",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
@@ -442,21 +454,23 @@
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
     "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.clampedDisplayScore(_:)": "0e3e974933bc5204",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "eccc568f4bbb99c3",
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.liveRecoveryScore": "f2d10ca56d91067b"
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.liveRecoveryScore": "bb8f4c6373666e0f"
    }
   },
   {
    "key": "var MorningResultsViewModel.liveRecoveryScore",
-   "hash": "3a47ff89e188e0c2",
-   "does": "Live composite via RecoveryScoreCalculator.calculate(trainingContext:) from displayResult HRV metrics, baselineStats, healthKitSleep, recoveryVitals, typicalSleepHours, scoringConfig and the ANS-balance term; finite 0-100 guaranteed by calculate.",
+   "hash": "affc75505decd400",
+   "does": "Live composite from calculateWithBreakdown(trainingContext:…, referenceDate: sessionReferenceDate) using displayResult HRV metrics, baselineStats, healthKitSleep, recoveryVitals, typicalSleepHours, scoringConfig and the ANS-balance term, clamped to a finite 0-100 by ScoreVerdict.clampedDisplayScore. The staleness penalty is measured at the session's own date, not today.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displayResult",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.calculate(_:trainingContext:config:ansBalance:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.settings",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.scoringConfig",
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.liveAnsBalance"
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.liveAnsBalance",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.sessionReferenceDate",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.clampedDisplayScore(_:)"
    ],
    "reads": [
     "mem:MorningResultsViewModel.baselineStats",
@@ -468,18 +482,20 @@
     {
      "at": "+1",
      "cond": "displaySession.trainingSnapshot ?? displayResult.trainingContext",
-     "effect": "frozen training snapshot, else analysis context (ignored by the composite per RecoveryScoreCalculator.swift:487)"
+     "effect": "frozen training snapshot, else analysis context (ignored by the composite)"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.calculate(_:trainingContext:config:ansBalance:)": "fc05f16d5d71d6fe",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)": "ca2be1737136e0d8",
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.clampedDisplayScore(_:)": "0e3e974933bc5204",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displayResult": "215489cda008c57b",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "eccc568f4bbb99c3",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.liveAnsBalance": "25168dc29921e27f",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.scoringConfig": "e063c5c4aca0bc87",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.sessionReferenceDate": "bbadc7c5415450e9",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.settings": "0c0458cf718410e0"
    }
   },
@@ -527,16 +543,16 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "245c2d41dcd0a692",
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.liveBreakdown()": "fd4e216987566545",
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.pinnedToFrozenScore(_:)": "866c0c0b534912f6",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "3d86c57d7f933cf7",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.liveBreakdown()": "aeac0b18f1ae0d45",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.pinnedToFrozenScore(_:)": "da283a835db29e0e",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "eccc568f4bbb99c3"
    }
   },
   {
    "key": "func MorningResultsViewModel.liveBreakdown()",
-   "hash": "46974ddbca5adf5c",
-   "does": "Computes a breakdown with calculateWithBreakdown(trainingContext:) preferring frozen sleep/vitals/training snapshots over the live-loaded sleep/vitals; referenceDate defaults to now.",
+   "hash": "6ea9199c419828ca",
+   "does": "Computes a breakdown with calculateWithBreakdown(trainingContext:) preferring frozen sleep/vitals/training snapshots over the live-loaded sleep/vitals; referenceDate is the session's own date (sessionReferenceDate).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession",
@@ -544,7 +560,8 @@
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.settings",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.scoringConfig",
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.liveAnsBalance"
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.liveAnsBalance",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.sessionReferenceDate"
    ],
    "reads": [
     "mem:MorningResultsViewModel.baselineStats",
@@ -580,13 +597,14 @@
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "eccc568f4bbb99c3",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.liveAnsBalance": "25168dc29921e27f",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.scoringConfig": "e063c5c4aca0bc87",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.sessionReferenceDate": "bbadc7c5415450e9",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.settings": "0c0458cf718410e0"
    }
   },
   {
    "key": "func MorningResultsViewModel.pinnedToFrozenScore(_:)",
-   "hash": "66855413fe20260a",
-   "does": "If a frozen score exists and the live composite differs from frozen×10 by more than 1 point, returns a new ScoreBreakdown with compositeScore = frozen×10 and the live tier/factors/penalties/spo2 flag; else returns the live breakdown unchanged.",
+   "hash": "b90424aa21d4ace0",
+   "does": "If a frozen score exists and the live composite differs from frozen×10 by more than 1 point, returns a new ScoreBreakdown with compositeScore = frozen×10, the live tier/factors/penalties/spo2 flag and scoringVersion 'unversioned' (the frozen composite has no recorded algorithm); else returns the live breakdown unchanged.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession",
@@ -603,21 +621,10 @@
     {
      "at": "+5",
      "cond": "guard |live.composite − frozen×10| > 1",
-     "effect": "within 1 point → live breakdown; else pinned copy (factors no longer add up to the composite)"
+     "effect": "within 1 point → live breakdown; else pinned copy labelled unversioned (factors no longer add up to the composite)"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "The pinned breakdown is built with the ScoreBreakdown init's default scoringVersion = ScoringVersion.current, so a legacy session's breakdown carries the current version label even though its composite is the legacy frozen value.",
-     "evidence": [
-      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:244",
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:119"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "6d045d2ab75f0630",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
@@ -665,54 +672,82 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()": "dbee6f6b31b89e1c",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()": "886c28e6678bd645",
     "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift::func AnalysisSummaryCache.fingerprint(for:)": "a4476dba8f515d35",
     "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift::func AnalysisSummaryCache.set(_:forSessionId:fingerprint:)": "fba692c6cd1caeb1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.summaryGenerator(readiness:)": "617e91fdd9a156a9",
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.summaryKey(readiness:)": "3c9756f4e8396018",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.summaryKey(readiness:)": "b06bac6e021f779c",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "eccc568f4bbb99c3",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.todayReadiness": "c4c07e6a4c738cb5"
    }
   },
   {
    "key": "func MorningResultsViewModel.summaryKey(readiness:)",
-   "hash": "b1cb3555d51df767",
-   "does": "Hashes the session fingerprint, narrative language flag, app locale, selected tags, two sleep fields, two sleep-trend fields, two baseline fields and the live readiness score/TRIMP into an Int memo key.",
+   "hash": "62b0ae6dc9ede6d8",
+   "does": "Hashes the session fingerprint, narrative language flag, app locale, selected tags, every sleep field the generator reads (combineSleepInputs), two sleep-trend fields, two baseline fields, the live readiness score/TRIMP and the live training load (combineLiveLoad(adviceLiveLoad)) into an Int memo key. recentSessions is an immutable input and is not hashed.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift::func AnalysisSummaryCache.fingerprint(for:)",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.combineSleepInputs(into:)",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.combineLiveLoad(_:into:)",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.adviceLiveLoad"
    ],
    "reads": [
     "mem:NarrativeLanguage.isEnglish",
     "mem:MorningResultsViewModel.selectedTags",
-    "mem:MorningResultsViewModel.healthKitSleep",
-    "mem:MorningResultsViewModel.sleepTrendStats",
-    "mem:MorningResultsViewModel.baselineStats"
+    "mem:MorningResultsViewModel.baselineStats",
+    "mem:TrainingLoadRegistry.live"
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "The key omits inputs summaryGenerator reads: adviceLiveLoad (TrainingLoadRegistry.live()), recentSessions, and every SleepData field except night/deep minutes; a live training-load change while the report is open leaves the memoised narrative advice stale.",
-     "evidence": [
-      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:276",
-      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:319"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift::func AnalysisSummaryCache.fingerprint(for:)": "a4476dba8f515d35",
     "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.finalize()": "dd0ee2d1995fab40",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.combineLiveLoad(_:into:)": "ad829337fb8bb017",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.combineSleepInputs(into:)": "224d64ace7e2a228",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.adviceLiveLoad": "9f431de25d8c23b6",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "eccc568f4bbb99c3"
+   }
+  },
+  {
+   "key": "func MorningResultsViewModel.combineSleepInputs(into:)",
+   "hash": "0c440f74cf078959",
+   "does": "Feeds the hasher the AnalysisSleepInput built from healthKitSleep (total, in-bed, deep, REM, awake minutes and measured efficiency — what the generator reads) plus sleepTrendStats average minutes and nights analysed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(from:)"
+   ],
+   "reads": [
+    "mem:MorningResultsViewModel.healthKitSleep",
+    "mem:MorningResultsViewModel.sleepTrendStats"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(from:)": "59f6fee3b5af8655",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183"
+   }
+  },
+  {
+   "key": "func MorningResultsViewModel.combineLiveLoad(_:into:)",
+   "hash": "6071ff6322eb58c8",
+   "does": "Feeds the hasher the live load's ATL, CTL, TSB, ACWR, today's TRIMP, monotony and strain (all nil for a past night).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
    }
   },
   {
@@ -922,7 +957,7 @@
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "6a80ac7c585d4e2f",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.loadLiveSleep()": "120d067a1b7de540",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.loadLiveSleep()": "df07f1de27edb8f0",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "eccc568f4bbb99c3"
    }
   },
@@ -950,13 +985,14 @@
   },
   {
    "key": "func MorningResultsViewModel.loadLiveSleep()",
-   "hash": "72f4e7184372de0e",
-   "does": "Fetches HealthKit sleep for the computed window (with the session's RR points), resolves zero-sleep via estimate fallback, assigns healthKitSleep, clears loading and hands measured sleep to onUpdateSleep; errors clear loading.",
+   "hash": "9c54dcf0a5847cf3",
+   "does": "Fetches HealthKit sleep for the computed window (with the session's RR points), resolves zero-sleep via estimate fallback, assigns healthKitSleep, clears loading and hands measured sleep to onUpdateSleep; when today's night has nothing yet it starts the 60 s spinner timeout; errors clear loading.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.sleepFetchWindow()",
     "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.resolveSleep(_:window:)",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.endSleepLoadingAfterWait()",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.storeSleepBoundariesIfMeasured(_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
@@ -971,33 +1007,48 @@
     {
      "at": "+11",
      "cond": "guard resolveSleep returned non-nil",
-     "effect": "nil (today, 0 sleep, no estimate) → return leaving isSleepLoading=true until a later refetch; else assign and store boundaries"
+     "effect": "nil (today, 0 sleep, no estimate) → endSleepLoadingAfterWait (spinner for up to 60 s, then '--'; a later refetch still fills the card) and return; else assign and store boundaries"
     },
     {
-     "at": "+15",
+     "at": "+18",
      "cond": "catch fetch error",
      "effect": "debug-logged, isSleepLoading=false, healthKitSleep stays nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "When today's night has no HealthKit sleep and no estimate, isSleepLoading stays true with no timeout; it clears only if morningCoordination later bumps and a refetch finds data.",
-     "evidence": [
-      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:446",
-      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:483",
-      "Emuqu/Sources/Views/MorningResultsView.swift:579"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)": "247d0472c54f578e",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.endSleepLoadingAfterWait()": "f377cb1f427ecec6",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.resolveSleep(_:window:)": "0e0ae3ddbea7fdb1",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.sleepFetchWindow()": "ff75a8cbf997224c",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.storeSleepBoundariesIfMeasured(_:)": "bcd63bed12a5fe00"
+   }
+  },
+  {
+   "key": "func MorningResultsViewModel.endSleepLoadingAfterWait()",
+   "hash": "9e5af00fccff1f75",
+   "does": "Main-actor Task: waits liveSleepWaitNanoseconds (60 s) via sleepQuietly, then clears isSleepLoading unless sleep arrived meanwhile or the view model is gone.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)"
+   ],
+   "reads": [
+    "mem:MorningResultsViewModel.healthKitSleep"
+   ],
+   "writes": [
+    "mem:MorningResultsViewModel.isSleepLoading"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "view model deallocated or healthKitSleep set during the wait",
+     "effect": "returns without touching isSleepLoading"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851"
    }
   },
   {
@@ -1104,33 +1155,29 @@
   },
   {
    "key": "func MorningResultsViewModel.applyExternalArchiveUpdate()",
-   "hash": "ac026fbfb6ddfd58",
-   "does": "On any archive signal bump, retrieves this session id from the archive off-main and, unless reportsSame says nothing material changed, adopts it as the displayed session.",
-   "entry": "MorningResultsView .onChange(of: archiveSignal.version) (MorningResultsView.swift:586)",
+   "hash": "e4c5919bf958a860",
+   "does": "On any archive signal bump: takes a new generation, snapshots displaySession, and off main retrieves this session id and compares it with the snapshot (changedArchivedCopy); if it changed and no later bump has started since, adopts it as the displayed session (with its sleep/vitals snapshots) and logs.",
+   "entry": "MorningResultsView .onChange(of: archiveSignal.version)",
    "calls": [
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)",
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.reportsSame(_:_:)",
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.adoptArchivedSession(_:)",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.changedArchivedCopy(_:comparedWith:)",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.adoptArchivedSession(_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
     "archive:SessionArchive.retrieve"
    ],
    "writes": [
-    "mem:MorningResultsViewModel.reanalyzedSession"
+    "mem:MorningResultsViewModel.archiveUpdateGeneration",
+    "mem:MorningResultsViewModel.reanalyzedSession",
+    "mem:MorningResultsViewModel.healthKitSleep",
+    "mem:MorningResultsViewModel.recoveryVitals"
    ],
    "branches": [
     {
-     "at": "+8",
-     "cond": "guard self alive AND stored non-nil",
-     "effect": "deallocated, retrieve threw (try? → nil) or not archived → return silently"
-    },
-    {
      "at": "+11",
-     "cond": "reportsSame(stored, displaySession)",
-     "effect": "same → return; different → adopt"
+     "cond": "guard self alive AND a changed copy came back AND this request is still the latest generation",
+     "effect": "otherwise returns (unchanged, unreadable, gone, or superseded by a later bump)"
     },
     {
      "at": "+13",
@@ -1138,58 +1185,70 @@
      "effect": "log text only"
     }
    ],
-   "flags": [
-    {
-     "kind": "race",
-     "sev": "low",
-     "text": "Each archive-signal bump starts an independent Task awaiting its own detached retrieve; nothing orders their completions, so an earlier retrieve resuming after a later one adopts the older copy as reanalyzedSession until the next bump.",
-     "evidence": [
-      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:531",
-      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:532",
-      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:537"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.adoptArchivedSession(_:)": "dad680e4c7fc5d48",
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.reportsSame(_:_:)": "85ced5c22ca97e9d",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.changedArchivedCopy(_:comparedWith:)": "9e7ae7f6e7af61ee",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "eccc568f4bbb99c3"
    }
   },
   {
-   "key": "func MorningResultsViewModel.reportsSame(_:_:)",
-   "hash": "be52f593b15eb5db",
-   "does": "Equality on the six fields: recoveryScore, frozenReadiness, breakdown composite, sleepSnapshot night minutes, trainingSnapshot TSB, vitalsSnapshot respiratoryRate.",
+   "key": "func MorningResultsViewModel.changedArchivedCopy(_:comparedWith:)",
+   "hash": "57f977ed68523798",
+   "does": "Nonisolated: retrieves the session via retrieveOrLog and returns it when reportsSame says it differs from the shown copy; nil when unchanged, missing or unreadable (logged).",
    "entry": null,
-   "calls": [],
-   "reads": [],
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.reportsSame(_:_:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieve"
+   ],
    "writes": [],
-   "branches": [],
-   "flags": [
+   "branches": [
     {
-     "kind": "fragile",
-     "sev": "med",
-     "text": "Archive updates that change only other displayed fields are dropped: morningFeeling (badge, MorningResultsView.swift:258), tags, perceivedReadiness, analysisResult when the score is unchanged or still nil, SpO2/temperature vitals, other sleep fields, so the open report keeps showing the old values.",
-     "evidence": [
-      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:543",
-      "Emuqu/Sources/Views/MorningResultsView.swift:258"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+1",
+     "cond": "retrieve returned nil",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+2",
+     "cond": "reportsSame",
+     "effect": "nil when identical; the stored copy otherwise"
     }
    ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "245c2d41dcd0a692"
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "f0a309cc2b24de13",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.reportsSame(_:_:)": "8ed11a9a40891a08"
+   }
+  },
+  {
+   "key": "func MorningResultsViewModel.reportsSame(_:_:)",
+   "hash": "a003819a1736e569",
+   "does": "Nonisolated: true when the two sessions' JSON encodings (sorted keys) are byte-identical, so a change to any stored field the report shows (morningFeeling, tags, perceivedReadiness, analysisResult, every sleep/vitals/training snapshot field, scores) counts as different; an encoding failure (logged by attempt) counts as different.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "ext:JSONEncoder.encode"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "either copy fails to encode",
+     "effect": "returns false (treated as changed)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
    }
   },
   {

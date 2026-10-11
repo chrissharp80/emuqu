@@ -145,7 +145,10 @@ public enum TrajectoryVerdict: String, CaseIterable, Sendable {
 
     /// CTL trend in CTL points per week: an ordinary-least-squares slope of
     /// the daily CTL values (oldest first) over the trailing
-    /// `rampTrendWindowDays`, ×7. 0 below 8 days. Every surface that feeds
+    /// `rampTrendWindowDays`, ×7. 0 below 8 days. `dailyCTL` must hold one
+    /// value per consecutive calendar day (x is the index): every caller
+    /// passes `TrainingMetricsCache`'s daily series, which has a sample for
+    /// rest days too. Every surface that feeds
     /// `Inputs.rampRate` must use this: a 2-point `CTL_yesterday −
     /// CTL_8-days-ago` delta oscillates day to day for intermittent training
     /// (the lone anchor lands on a workout or a rest day) and flips the
@@ -278,26 +281,13 @@ public enum RampBand: String, CaseIterable, Sendable {
     case rapidIncrease // >8 TSS/d/wk
 
     // Bands branch on SIGN, not magnitude. A negative ramp
-    // is detraining/decline, never "building gradually". Boundaries are
-    // aligned with TrajectoryVerdict.compute (delta < -1.5 → detraining,
-    // delta > 1.5 → building) so the ramp card can't contradict the header.
+    // is detraining/decline, never "building gradually". Every boundary is
+    // TrajectoryVerdict.compute's, inclusive the same way (delta < -1.5 →
+    // detraining, delta > 1.5 → building, ramp > 8 → rapid increase), so the
+    // ramp card can't contradict the header at an exact boundary value.
     public init(tssPerDayPerWeek: Double) {
-        // "Easing down" boundary kept in lockstep with
-        // TrajectoryVerdict's detraining deadband so the ramp card word and the
-        // verdict chip can never contradict each other on screen.
         let easingThreshold = -1.5
-        if tssPerDayPerWeek < easingThreshold { self = .detraining } else if tssPerDayPerWeek < 1.5 { self = .holdingSteady } else if tssPerDayPerWeek < 3 { self = .conservative } else if tssPerDayPerWeek < 8 { self = .standard } else { self = .rapidIncrease }
-    }
-
-    /// English, for the assistant facts; views use `localizedWord`.
-    public var word: String {
-        switch self {
-        case .detraining:    "Easing down"
-        case .holdingSteady: "Holding steady"
-        case .conservative:  "Conservative"
-        case .standard:      "Standard"
-        case .rapidIncrease: "Rapid increase"
-        }
+        if tssPerDayPerWeek < easingThreshold { self = .detraining } else if tssPerDayPerWeek <= 1.5 { self = .holdingSteady } else if tssPerDayPerWeek < 3 { self = .conservative } else if tssPerDayPerWeek <= 8 { self = .standard } else { self = .rapidIncrease }
     }
 
     public var localizedWord: String {

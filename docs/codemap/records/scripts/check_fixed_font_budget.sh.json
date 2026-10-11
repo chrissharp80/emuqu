@@ -1,7 +1,7 @@
 {
  "file": "scripts/check_fixed_font_budget.sh",
- "hash": "876fc44dc8b3bd46",
- "role": "CI gate: counts `.font(.system(size: <numeric literal>))` in the app target and in the watch target and fails above .ci/fixed_font_budget.txt (13) / .ci/fixed_font_watch_budget.txt (0).",
+ "hash": "7eadd5854bb496c1",
+ "role": "CI gate: counts `Font.system(size: <numeric literal>)` calls (with or without the Font prefix, inside .font() or not) in the app target and in the watch target and fails above .ci/fixed_font_budget.txt / .ci/fixed_font_watch_budget.txt.",
  "types": [],
  "state": [
   "file:.ci/fixed_font_budget.txt",
@@ -10,24 +10,13 @@
   "env:FIXED_FONT_WATCH_BUDGET_FILE",
   "env:GITHUB_STEP_SUMMARY"
  ],
- "toplevel": "set -euo pipefail; no cd. BUDGET_FILE env or .ci/fixed_font_budget.txt; missing -> 66; non-integer -> 65. SOURCE_ROOT=$1 or Emuqu; WATCH_ROOT=$2 or 'EmuquWatch Watch App'. count=measure(app), watch_count=measure(watch). Watch budget missing -> 66, non-integer -> 65. Fails if either exceeds; prints below-budget hints; on success appends app count (not watch) to GITHUB_STEP_SUMMARY. Wired: gates.yml, ci.yml, Makefile.",
- "flags": [
-  {
-   "kind": "silent-failure",
-   "sev": "low",
-   "text": "No cd to repo root and os.walk on a missing directory yields nothing. Run from any other directory, both counts are 0 and the gate passes (the budget-file check fails first only if .ci/ is also missing relative to cwd).",
-   "evidence": [
-    "scripts/check_fixed_font_budget.sh:34",
-    "scripts/check_fixed_font_budget.sh:86"
-   ],
-   "found": "second read"
-  }
- ],
+ "toplevel": "set -euo pipefail; cd to repo root. BUDGET_FILE env or .ci/fixed_font_budget.txt; missing -> 66; non-integer -> 65. SOURCE_ROOT=$1 or Emuqu; WATCH_ROOT=$2 or 'EmuquWatch Watch App'. count/watch_count = measure(...) || exit $? (missing root or no Swift files -> 66). Watch budget missing -> 66, non-integer -> 65. Fails if either exceeds; prints below-budget hints; on success appends app count (not watch) to GITHUB_STEP_SUMMARY. Wired: gates.yml, ci.yml, Makefile.",
+ "flags": [],
  "units": [
   {
    "key": "fn measure",
-   "hash": "c2532af1e9b1e303",
-   "does": "Runs embedded Python over root $1: walks *.swift files, skips lines starting with //, and counts `.font(.system(size: X` occurrences whose first argument is a numeric literal; prints the count.",
+   "hash": "02169a68f9b5fa7f",
+   "does": "Python over $1: exits 66 if the root is not a directory or holds no .swift files; counts, on non-// lines, every `(Font).system(size: X` whose first argument X is a numeric literal; prints the count.",
    "entry": null,
    "calls": [],
    "reads": [
@@ -35,22 +24,33 @@
     "dir:EmuquWatch Watch App"
    ],
    "writes": [],
-   "branches": [],
-   "flags": [
+   "branches": [
     {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Only the `.font(.system(size:` spelling is counted; `Font.system(size: 14)` passed through a variable or `.font(Font.system(size:))` is not.",
-     "evidence": [
-      "scripts/check_fixed_font_budget.sh:83"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+11",
+     "cond": "root is not a directory",
+     "effect": "stderr, exit 66"
+    },
+    {
+     "at": "+32",
+     "cond": "line starts with //",
+     "effect": "skipped"
+    },
+    {
+     "at": "+35",
+     "cond": "argument is a numeric literal",
+     "effect": "count += 1"
+    },
+    {
+     "at": "+37",
+     "cond": "no Swift files walked",
+     "effect": "stderr, exit 66"
     }
    ],
+   "flags": [],
    "deps": {}
   }
  ],
  "deps": {
-  "scripts/check_fixed_font_budget.sh::fn measure": "4d1a1fa1b937bd36"
+  "scripts/check_fixed_font_budget.sh::fn measure": "0c6f5a6c6ace8632"
  }
 }

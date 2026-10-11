@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift",
- "hash": "00e527dc1ef0ffc0",
+ "hash": "6ff465564c1bad54",
  "role": "Extension of AssistantViewModel for what the model is given: dropped-turn summarisation, per-provider token-budget truncation, background auto-fact extraction, announce-without-call / live-data heuristics used by GrokQuirkPolicy, provider-agnostic prompt-audit encoders; plus the round-local StreamTextBuffer that throttles streamed text to the live turn, scrubs it through CoachVoiceGuard sentence by sentence, and manages the voice speakable cursor.",
  "types": [
   "AssistantViewModel: extension — summarisation, truncation, fact extraction, heuristics, audit encoders",
@@ -12,7 +12,7 @@
   "static AssistantViewModel.summarizationInstruction (fixed prompt tail)",
   "static AssistantViewModel.questionPrefixes / appStateMarkers (auto-extract filter lists)",
   "static AssistantViewModel.strongAnnounceTriggers / weakAnnounceTriggers (announce-without-call lists)",
-  "static AssistantViewModel.liveDataSignals (live-data request phrases)",
+  "static AssistantViewModel.liveDataPhrases (multi-word live-data phrases, substring match) / liveDataWords (single metric words, whole-word match)",
   "StreamTextBuffer.owner, turnID, roundStartTextLen, pendingChunks, lastPublishAt, publishIntervalMs=33",
   "uses ud:assistant.priorSummary via AssistantViewModel.summaryKey (declared AssistantViewModel.swift:104)"
  ],
@@ -21,8 +21,8 @@
  "units": [
   {
    "key": "func AssistantViewModel.updateSummaryWith(droppedTurns:provider:model:contextRendered:)",
-   "hash": "f3f3af84550973db",
-   "does": "Sends a summarisation prompt for the newly dropped turns (merged with priorSummary) to the turn's provider with summarizerSystem, collects text with a 5 s timeout, and on non-empty output stores it as priorSummary, persists it to UserDefaults and marks summarizedThroughTurnID = last dropped turn id. The contextRendered argument is ignored.",
+   "hash": "340ef5502c1165ae",
+   "does": "Sends a summarisation prompt for the newly dropped turns (merged with priorSummary) to the turn's provider with summarizerSystem and collects text with a 5 s timeout. If the dispatched task was cancelled meanwhile (Stop, Clear conversation, Delete All My Data) it writes nothing. Otherwise it marks summarizedThroughTurnID = last dropped turn id (even when the summary failed or came back empty, so the next send does not stall on the same turns again) and hands the text to storeSummary. The contextRendered argument is ignored.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.summarizationPrompt(_:)",
@@ -30,65 +30,56 @@
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func AIProvider.send(messages:model:contextRendered:systemPrompt:)",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)",
     "dyn:AIProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:) → Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift:91|Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::func DeepSeekProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/GrokProvider.swift::func GrokProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift::func OpenAIProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
-    "ext:UserDefaults.set"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.storeSummary(_:droppedCount:)",
+    "ext:Task.isCancelled"
    ],
    "reads": [
     "mem:AssistantViewModel.priorSummary"
    ],
    "writes": [
-    "mem:AssistantViewModel.priorSummary",
     "mem:AssistantViewModel.summarizedThroughTurnID",
-    "ud:assistant.priorSummary",
     "net:routed provider (summarisation request)"
    ],
    "branches": [
     {
-     "at": "+13",
-     "cond": "collect returned nil (timeout >5 s, stream error)",
-     "effect": "return without updating summary (silently); else continue"
-    },
-    {
-     "at": "+15",
-     "cond": "trimmed summary is empty",
-     "effect": "return without updating; else store summary and marker"
+     "at": "+14",
+     "cond": "task cancelled while collecting",
+     "effect": "return without touching the marker or the summary (a partial summary of a stopped or wiped conversation is discarded)."
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "A failed or timed-out summary (collect nil or empty) returns before summarizedThroughTurnID is set, so the next send re-summarises the same (and newly added) dropped turns and again holds the turn up to 5 s before the provider stream starts; nothing is logged.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:30",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:32",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:33",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:513",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:514",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:515"
-     ],
-     "found": "second read"
-    },
-    {
-     "kind": "race",
-     "sev": "low",
-     "text": "Stop during summarisation cancels the dispatched task; both collect children then finish at once (drainTextDeltas returns the text received so far when the stream iterator ends on cancellation, the sleep throws). group.next() returns whichever finishes first, so a partial summary can win, replace priorSummary and be persisted to UserDefaults.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:228",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:234",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:242",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:33",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:34",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:35",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:572"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func AIProvider.send(messages:model:contextRendered:systemPrompt:)": "7f15c82710f7136b",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "6c805df1b6141cac",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.collect(_:timeoutSec:)": "687b403943a0f068",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.collect(_:timeoutSec:)": "02e5cf1ddc8ad4ec",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.storeSummary(_:droppedCount:)": "03a954cef4fe3a08",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.summarizationPrompt(_:)": "73ef5abc02f722d9"
+   }
+  },
+  {
+   "key": "func AssistantViewModel.storeSummary(_:droppedCount:)",
+   "hash": "a1cf63f33ebbacc6",
+   "does": "Trims the collected summary; when non-empty stores it as priorSummary and persists it to UserDefaults (assistant.priorSummary); when nil or empty logs a warning naming how many dropped turns were left out and keeps the previous summary.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:UserDefaults.set"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:AssistantViewModel.priorSummary",
+    "ud:assistant.priorSummary"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "collected nil or blank",
+     "effect": "log warning and return; else store and persist."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
@@ -271,7 +262,7 @@
     },
     {
      "at": "+15",
-     "cond": "collect nil OR parse nil",
+     "cond": "collect nil (failure/timeout, logged by collect) OR parse nil",
      "effect": "return silently (no facts stored); else store facts"
     }
    ],
@@ -291,7 +282,7 @@
     "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "b36a2b8ea48a5e61",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func AIProvider.send(messages:model:contextRendered:systemPrompt:)": "7f15c82710f7136b",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "6c805df1b6141cac",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.collect(_:timeoutSec:)": "687b403943a0f068",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.collect(_:timeoutSec:)": "02e5cf1ddc8ad4ec",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.extractionPrompt(userText:assistantText:)": "21216e695f84e750",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.parseExtractedFacts(_:)": "5d887ee175f1d1af",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.store(extractedFacts:)": "7b61f24ad830fc87",
@@ -353,31 +344,29 @@
   },
   {
    "key": "func AssistantViewModel.collect(_:timeoutSec:)",
-   "hash": "8ce2efbd2e12bb09",
-   "does": "Races draining the stream's text deltas against a sleep of timeoutSec; returns the drained text if the drain wins, nil if the timer (throws .cancelled) wins or the stream throws (try? swallows).",
+   "hash": "fd5b79bdc5d991b0",
+   "does": "Races draining the stream's text deltas against a sleep of timeoutSec in a throwing task group; returns the drained text if the drain wins. A provider error or the timeout (the sleep child throws .cancelled) is caught, logged as a warning with the error description, and returns nil.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.drainTextDeltas(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "ext:Task.sleep",
     "ext:withThrowingTaskGroup"
    ],
    "reads": [],
    "writes": [],
-   "branches": [],
-   "flags": [
+   "branches": [
     {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "Every provider error and timeout collapses to nil via try?, with no log; summarisation and fact extraction failures are invisible in diagnostics.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:228"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+15",
+     "cond": "group threw (stream error or timeout)",
+     "effect": "log warning, return nil."
     }
    ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.drainTextDeltas(_:)": "b54597a397aff75b",
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.cancelAll()": "be8542994382987c",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
     "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
    }
   },
@@ -513,27 +502,25 @@
   },
   {
    "key": "func AssistantViewModel.lastUserAskedForLiveData(_:)",
-   "hash": "49f9b00967f2f06b",
-   "does": "True when the lowercased user text contains any liveDataSignals phrase (e.g. 'current', ' hr', 'pace', 'right now').",
+   "hash": "e8136eee5f7bec5d",
+   "does": "Lowercases the user text (folding the typographic apostrophe U+2019); true when it contains a multi-word liveDataPhrases phrase (\"what's my\", \"right now\", \"heart rate\", \"training load\"...) or any whole word from liveDataWords (current, currently, live, hr, tsb, atl, ctl, rmssd, pace), so \"battle\", \"space\" or \"concurrent\" no longer count.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
-   "branches": [],
-   "flags": [
+   "branches": [
     {
-     "kind": "hack",
-     "sev": "low",
-     "text": "Plain substring matching: \"atl\", \"ctl\", \" hr\", \"pace\" and \"current\" also match unrelated words (\"battle\", \"space\", \"concurrent\", \" hrs\"), widening the gate that lets the Grok announce-retry inject a forced-tool nudge.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:372",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:377",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:378",
-      "Emuqu/Sources/Assistant/ViewModel/GrokQuirkPolicy.swift:70"
-     ],
-     "found": "second read"
+     "at": "+2",
+     "cond": "a live-data phrase is a substring",
+     "effect": "true."
+    },
+    {
+     "at": "+4",
+     "cond": "a live-data word is one of the text's words",
+     "effect": "true; else false."
     }
    ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -648,7 +635,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func StreamTextBuffer.flush(force:thisRoundIsEmpty:)": "317c7090aca885a5"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func StreamTextBuffer.flush(force:thisRoundIsEmpty:)": "d08461b5890797a2"
    }
   },
   {
@@ -695,40 +682,7 @@
      "effect": "set speakableTextCursor[turnID] = full text length; else leave cursor"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "The voice speakable cursor is advanced mid-stream on every published sentence while no tool_use has arrived yet, but AssistantViewModel.speakableTextCursor is documented to advance ONLY at round boundaries after the tool decision. If the model streams text and then emits tool_use in the same round, voice may already have been cleared to speak text that rewindToRoundStart then removes (\"thinking aloud\" is spoken).",
-     "evidence": [
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:535",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:536",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:72",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:73",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift:352",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift:355"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "Voice speaks text the model then discards and skips the start of the real answer: while text streams before a tool_use, thisRoundIsEmpty is true so the cursor advances on every published sentence; the voice controller speaks up to it and sets spokenCharCursor. At round end the tool round is rewound (text shortened) but neither cursor is pulled back, so the next round's first (old cursor - round start) characters are never spoken. Contradicts the Tools comment \"Voice hasn't spoken it yet (the cursor wasn't advanced)\".",
-     "evidence": [
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:535",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:536",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift:343",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift:355",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:599",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:600",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:666",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:667",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:668",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:672"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "a412e3b0848259de",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func StreamTextBuffer.takePublishableText(force:)": "27894c8b2c499766",
@@ -828,8 +782,8 @@
   },
   {
    "key": "func StreamTextBuffer.rewindToRoundStart()",
-   "hash": "0c97e2cd29189cce",
-   "does": "Truncates the live turn's text back to roundStartTextLen and saves, when it grew this round; no-op if the turn is gone.",
+   "hash": "8c7dcd73d31781e1",
+   "does": "Pulls speakableTextCursor[turnID] back to roundStartTextLen when it points past it (a sentence published before this round's tool_use, or the round-end advance on the Grok announce-retry path), then truncates the live turn's text back to roundStartTextLen and saves when it grew this round; no-op if the turn is gone. The voice controller re-syncs its spoken position to the lowered cursor (VoiceAudioPipeline.speakUpToCursor).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)"
@@ -839,6 +793,7 @@
    ],
    "writes": [
     "mem:AssistantViewModel.turns",
+    "mem:AssistantViewModel.speakableTextCursor",
     "file:conversation.json (ConversationStore, App Group)"
    ],
    "branches": [
@@ -848,25 +803,17 @@
      "effect": "return"
     },
     {
-     "at": "+4",
+     "at": "+3",
+     "cond": "cursor past the round start",
+     "effect": "cursor = round start."
+    },
+    {
+     "at": "+7",
      "cond": "text longer than round-start length",
      "effect": "truncate and save; else nothing"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "med",
-     "text": "Rewind cuts the text but never pulls speakableTextCursor back. On the Grok announce-retry path the round-end policy has already advanced the cursor to the full announced text (Tools:352-353) before GrokQuirkPolicy rewinds it (GrokQuirkPolicy:76), so the cursor points past the rewound text; the next round's fresh text up to that length counts as speakable immediately, before that round's tool decision.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:599",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:600",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift:353",
-      "Emuqu/Sources/Assistant/ViewModel/GrokQuirkPolicy.swift:76"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "a412e3b0848259de",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::var StreamTextBuffer.currentIndex": "baa14f905dcfb177"

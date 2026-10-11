@@ -1,29 +1,30 @@
 {
  "file": "Emuqu/Sources/Views/WorkoutKeyStatsCard.swift",
- "hash": "7cfab3c99340b338",
+ "hash": "b4ba810a54e75241",
  "role": "'AT A GLANCE' 3-column tile grid of caller-supplied workout stats on the post-workout summary.",
  "types": [
   "WorkoutKeyStatsCard: struct View — tile grid",
-  "WorkoutKeyStatsCard.Stat: struct Identifiable — label/value/sub/icon/tint with fresh UUID id",
+  "WorkoutKeyStatsCard.Stat: struct Identifiable — label/value/sub/icon/tint, id = label",
   "WorkoutKeyStatsCard.TileChrome: private struct ViewModifier — tile background and hairline border"
  ],
  "state": [
   "static tileColumns: 3 flexible GridItems"
  ],
  "toplevel": "Stat.id = UUID() initialiser gives every Stat a new identity each time keyStatTiles is rebuilt (FitnessPostSummaryView+Feeling.swift:396).",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Doc says six fixed tiles (peak HR, elevation, TRIMP, hrTSS, best split, avg HR) in a 3x2 grid, but the card renders whatever stats array the caller builds via conditional append* helpers.",
-   "evidence": [
-    "Emuqu/Sources/Views/WorkoutKeyStatsCard.swift:4",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:396"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
+  {
+   "key": "var WorkoutKeyStatsCard.Stat.id",
+   "hash": "39d6188bb73fbbe2",
+   "does": "The tile's label, a stable identity across rebuilt stats arrays.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
   {
    "key": "var WorkoutKeyStatsCard.tileGrid",
    "hash": "815d5ef3c61d9a05",
@@ -35,28 +36,38 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Stat.id is a fresh UUID() and keyStatTiles rebuilds every Stat on each body evaluation, so ForEach sees all-new identities every render (tiles are recreated, no stable diffing).",
-     "evidence": [
-      "Emuqu/Sources/Views/WorkoutKeyStatsCard.swift:17",
-      "Emuqu/Sources/Views/WorkoutKeyStatsCard.swift:35",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:396"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/WorkoutKeyStatsCard.swift::func WorkoutKeyStatsCard.tile(_:)": "1ab13f33fd8e4cdb"
    }
   },
   {
    "key": "var WorkoutKeyStatsCard.body",
-   "hash": "ee9fee1637c3d822",
-   "does": "Card with 'AT A GLANCE' header over tileGrid.",
+   "hash": "3b382b270507b3c9",
+   "does": "Renders card when stats is non-empty, nothing otherwise.",
    "entry": "SwiftUI body; built by FitnessPostSummaryView+Feeling.swift:390.",
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutKeyStatsCard.swift::var WorkoutKeyStatsCard.card"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "stats empty",
+     "effect": "render nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutKeyStatsCard.swift::var WorkoutKeyStatsCard.card": "7c8fcd684eae2837"
+   }
+  },
+  {
+   "key": "var WorkoutKeyStatsCard.card",
+   "hash": "35f1f32ca5c043e2",
+   "does": "Card with 'AT A GLANCE' header over tileGrid.",
+   "entry": null,
    "calls": [
     "Emuqu/Sources/Views/WorkoutKeyStatsCard.swift::var WorkoutKeyStatsCard.tileGrid",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary",
@@ -66,24 +77,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "When no tile metric exists (no HR, elevation >2 m, load or splits) keyStatTiles is empty and the card still renders an 'AT A GLANCE' header over an empty grid; neither the card nor its caller hides it.",
-     "evidence": [
-      "Emuqu/Sources/Views/WorkoutKeyStatsCard.swift:43",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:396",
-      "Emuqu/Sources/Views/FitnessPostSummaryView.swift:190"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
-    "Emuqu/Sources/Views/WorkoutKeyStatsCard.swift::var WorkoutKeyStatsCard.tileGrid": "e7d9a059dacd7b5c"
+    "Emuqu/Sources/Views/WorkoutKeyStatsCard.swift::var WorkoutKeyStatsCard.tileGrid": "606a1361b805c577"
    }
   },
   {

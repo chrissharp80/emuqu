@@ -214,9 +214,9 @@
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.launchCoordinator": "2257379aa8cbc059",
-    "Emuqu/Sources/Views/LaunchCoordinator.swift::func LaunchCoordinator.acquireSlot()": "0d3b365ca4b90035",
+    "Emuqu/Sources/Views/LaunchCoordinator.swift::func LaunchCoordinator.acquireSlot()": "98e19428a98b2a29",
     "Emuqu/Sources/Views/LaunchCoordinator.swift::func LaunchCoordinator.awaitHousekeepingOpen()": "391a52a7510b3d58",
-    "Emuqu/Sources/Views/LaunchCoordinator.swift::func LaunchCoordinator.releaseSlot()": "60c31dd33dfeaa9d"
+    "Emuqu/Sources/Views/LaunchCoordinator.swift::func LaunchCoordinator.releaseSlot()": "a0ad561523658813"
    }
   },
   {
@@ -248,8 +248,8 @@
   },
   {
    "key": "func LaunchCoordinator.acquireSlot()",
-   "hash": "9b2d33d89003c020",
-   "does": "Loops parking on a continuation while inFlight >= 2, then increments inFlight.",
+   "hash": "464bc81e87aedb7e",
+   "does": "Takes a free slot at once (inFlight += 1) when inFlight < 2; otherwise parks once on a continuation appended to slotWaiters and returns when releaseSlot hands it the finishing job's slot (inFlight unchanged), so parked jobs start in arrival order.",
    "entry": null,
    "calls": [],
    "reads": [
@@ -262,28 +262,17 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "inFlight >= maxConcurrent (2)",
-     "effect": "true: append continuation and wait, re-check after resume; false: take the slot (inFlight += 1)"
+     "cond": "inFlight < maxConcurrent (2)",
+     "effect": "true: inFlight += 1 and return; false: append continuation to slotWaiters and wait to be handed a slot"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "releaseSlot resumes the oldest waiter without reserving the slot for it; a job arriving between the resume and the waiter's re-check takes the slot, and the woken waiter re-parks at the tail, so ordering is not FIFO and a waiter can be passed over repeatedly.",
-     "evidence": [
-      "Emuqu/Sources/Views/LaunchCoordinator.swift:124",
-      "Emuqu/Sources/Views/LaunchCoordinator.swift:135"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
    "key": "func LaunchCoordinator.releaseSlot()",
-   "hash": "1f13bf64bddbb21d",
-   "does": "Decrements inFlight and resumes the first slot waiter, if any.",
+   "hash": "07430ee96a945663",
+   "does": "Hands the finishing job's slot straight to the oldest waiter (removes and resumes it, inFlight unchanged); with no waiter, frees the slot (inFlight -= 1).",
    "entry": null,
    "calls": [],
    "reads": [
@@ -295,9 +284,9 @@
    ],
    "branches": [
     {
-     "at": "+2",
-     "cond": "slotWaiters non-empty",
-     "effect": "resume and remove the first; empty: nothing"
+     "at": "+1",
+     "cond": "slotWaiters empty",
+     "effect": "true: inFlight -= 1; false: remove and resume the first waiter, which now owns the slot"
     }
    ],
    "flags": [],

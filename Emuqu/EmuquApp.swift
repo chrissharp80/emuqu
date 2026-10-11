@@ -400,6 +400,9 @@ struct EmuquApp: App {
             .onChange(of: storeKitManager.isPurchased) { _, purchased in
                 handlePurchaseChange(purchased)
             }
+            .onChange(of: activeModal) { oldModal, newModal in
+                handleLaunchModalChange(from: oldModal, to: newModal)
+            }
             .onChange(of: scenePhase) { oldPhase, newPhase in
                 handleScenePhaseChange(from: oldPhase, to: newPhase)
             }
@@ -434,6 +437,14 @@ struct EmuquApp: App {
         }
     }
 
+    /// The launch gate stops at the paywall or the trial reminder before it
+    /// checks for an interrupted recording, so that check runs once the gate
+    /// closes instead: when either modal is dismissed with nothing after it.
+    private func handleLaunchModalChange(from oldModal: LaunchModal?, to newModal: LaunchModal?) {
+        guard newModal == nil, oldModal == .paywall || oldModal == .trialReminder else { return }
+        checkForInterruptedSession()
+    }
+
     /// Everything the app does on a foreground/background transition.
     ///
     /// Each step is its own method below; they are unrelated to one another and
@@ -441,7 +452,7 @@ struct EmuquApp: App {
     private func handleScenePhaseChange(from oldPhase: ScenePhase, to newPhase: ScenePhase) {
         if newPhase == .background {
             autoArchivePendingSession()
-            AmbientLocationService.shared.stop()
+            AppDependencies.current.location.ambientLocationService.stop()
         }
         if newPhase == .active && oldPhase == .background {
             resumeSyncOnForeground()
@@ -470,7 +481,11 @@ struct EmuquApp: App {
     }
 
     private var isRecordingInProgress: Bool {
-        if collector.isCollecting { return true }
+        collector.isCollecting || isWorkoutInProgress
+    }
+
+    /// A workout is recording or still being saved on the phone.
+    private var isWorkoutInProgress: Bool {
         switch AppDependencies.current.app.recorderBox.recorder?.phase {
         case .recording?, .finalizing?: return true
         default: return false
@@ -501,14 +516,19 @@ struct EmuquApp: App {
         let settings = settingsManager.settings
         guard settings.hasCompletedOnboarding,
               settings.enableAIAssistant else { return }
-        AmbientLocationService.shared.startIfAuthorized()
+        AppDependencies.current.location.ambientLocationService.startIfAuthorized()
     }
 
     /// Auto-archive a pending session when the app goes to the background, so
-    /// the recording is not lost if the user forgets to accept it.
+    /// the recording is not lost if the user forgets to accept it. Acceptance
+    /// runs HealthKit reads, analysis and archive writes after the app has left
+    /// the screen, so it holds a background-task assertion until it finishes;
+    /// running out of budget suspends the app instead of getting it killed.
     private func autoArchivePendingSession() {
         guard collector.needsAcceptance else { return }
+        let backgroundTask = BackgroundTaskAssertion(name: "EmuquApp.autoArchivePendingSession")
         Task {
+            defer { backgroundTask.end() }
             do {
                 try await collector.acceptSession()
                 debugLog("[App] Auto-archived pending session on background")
@@ -525,7 +545,7 @@ struct EmuquApp: App {
     /// burn battery for housekeeping the user can trigger manually if they
     /// care.
     private func resumeSyncOnForeground() {
-        guard !PowerStatePolicy.shared.shouldSkipPeriodicRefresh else { return }
+        guard !AppDependencies.current.services.powerStatePolicy.shouldSkipPeriodicRefresh else { return }
         Task { await syncManager.performFullSyncIfNeeded(minInterval: 10 * 60) }
     }
 
@@ -537,7 +557,7 @@ struct EmuquApp: App {
     /// to run on every foreground transition.
     private func rescheduleMorningNotification() {
         Task { @MainActor in
-            await MorningNotificationScheduler.shared.rescheduleIfNeeded()
+            await AppDependencies.current.services.morningNotificationScheduler.rescheduleIfNeeded()
         }
     }
 
@@ -649,11 +669,11 @@ struct EmuquApp: App {
             // Fitness tab in the current app session — Watch gestures
             // before that point landed in NotificationCenter with no one
             // listening. Lifted to app-level here so they're always on,
-            // and `RecorderBox.shared` is pre-bound at launch (next
+            // and the shared `RecorderBox` is pre-bound at launch (next
             // Task) so the Watch's first Start gesture has a recorder
-            // ready to go. FitnessTabView keeps its own copies as a
-            // belt-and-braces fallback; the canStart guards make the
-            // double-listener case a silent no-op.
+            // ready to go. These are the only start/stop/pause/resume
+            // handlers; FitnessTabView listens only to the
+            // acknowledge-finished notification, to clear its summary.
             .task { await runWatchAndSyncWiring() }
     }
 
@@ -692,8 +712,9 @@ struct EmuquApp: App {
     private func installGlobalKeyboardDismissal() {
         Task { @MainActor in
             try? await Task.sleep(nanoseconds: 600_000_000)
-            GlobalKeyboardDismissal.shared.install()
-            GlobalKeyboardDismissal.shared.prewarmKeyboard()
+            let keyboardDismissal = AppDependencies.current.app.globalKeyboardDismissal
+            keyboardDismissal.install()
+            keyboardDismissal.prewarmKeyboard()
         }
     }
 
@@ -766,7 +787,9 @@ struct EmuquApp: App {
     /// The return value is the refusal the Watch words in its own language
     /// (nil = success). A user the paywall would stop on the phone gets
     /// `.needsUnlock`, which the Watch shows as a prompt to open Emuqu on the
-    /// iPhone. Otherwise nil is returned once the Sport string parses: the
+    /// iPhone; a workout already recording or saving on the phone gets
+    /// `.strapBusy`, since the listener would ignore the start. Otherwise nil
+    /// is returned once the Sport string parses: the
     /// start itself runs asynchronously and any throw there is logged on the
     /// phone, not reported back to the Watch.
     private func wireWatchWorkoutStartTrigger() {
@@ -786,16 +809,19 @@ struct EmuquApp: App {
     /// Why a Watch Start can't go ahead, answered before the start runs so
     /// the Watch shows the reason. The Watch starts with the strap as its
     /// source, and the start refuses a strap that is mid-recording
-    /// (`WorkoutHRSourceResolver`).
+    /// (`WorkoutHRSourceResolver`) or already feeding a workout on the phone
+    /// (`startWorkoutFromWatch` ignores a start while one is recording or
+    /// finalizing).
     private func watchStartRefusal(sportRaw: String) -> WatchControlRefusal? {
         guard Sport(rawValue: sportRaw) != nil else { return .unknownSport }
         if let refusal = watchAccessRefusal() { return refusal }
-        guard !collector.polarManager.isRecordingOnDevice else { return .strapBusy }
+        guard !collector.polarManager.isRecordingOnDevice, !isWorkoutInProgress else { return .strapBusy }
         return nil
     }
 
-    /// Stop, pause, resume and acknowledge-finished all forward straight to
-    /// the notification the Fitness tab listens on.
+    /// Stop, pause, resume and acknowledge-finished each post the notification
+    /// the app-level listeners (`runAppLevelWatchWorkoutListeners`) act on;
+    /// FitnessTabView also hears acknowledge-finished, to clear its summary.
     private func wireWatchWorkoutTransportTriggers() {
         watchBridge.onStopWorkoutFromWatch = { postWatchTransport(.watchRequestedWorkoutStop) }
         watchBridge.onPauseWorkoutFromWatch = { postWatchTransport(.watchRequestedWorkoutPause) }
@@ -803,7 +829,7 @@ struct EmuquApp: App {
         watchBridge.onAcknowledgeFinishedFromWatch = { postWatchTransport(.watchAcknowledgedFinished) }
     }
 
-    /// Forward one Watch transport gesture to the Fitness tab.
+    /// Forward one Watch transport gesture to the app-level listeners.
     ///
     /// The `WatchControlRefusal?` return is the refusal shown back on the Watch.
     /// Posting a notification cannot fail, so it is always nil — the four
@@ -836,7 +862,7 @@ struct EmuquApp: App {
     /// launch frame means the Watch's first Start gesture is instant.
     private func prebindWorkoutRecorder() {
         Task { @MainActor in
-            RecorderBox.shared.bind(core: collector, conversation: voiceChat)
+            AppDependencies.current.app.recorderBox.bind(core: collector, conversation: voiceChat)
         }
     }
 
@@ -856,7 +882,7 @@ struct EmuquApp: App {
     private func pushSettingsToCloudAfterLaunch() {
         Task { @MainActor in
             try? await Task.sleep(nanoseconds: 5_000_000_000)
-            await CloudKitSettingsSync.shared.pushImmediately()
+            await AppDependencies.current.storage.cloudKitSettingsSync.pushImmediately()
         }
     }
 }

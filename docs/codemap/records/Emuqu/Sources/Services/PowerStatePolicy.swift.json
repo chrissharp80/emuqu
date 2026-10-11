@@ -13,18 +13,6 @@
  "toplevel": "static let shared; observers token bag (ObservationIgnored).",
  "flags": [
   {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Doc says the launch housekeeping 'reads launchDelayMultiplier to stretch its delays'; the multiplier only stretches the road-context and haptics prewarm sleeps — migrations, backfill, rescore and sync never use it (LaunchCoordinator has no delay parameter).",
-   "evidence": [
-    "Emuqu/Sources/Services/PowerStatePolicy.swift:22",
-    "Emuqu/Sources/Services/AppLaunchTasks.swift:297",
-    "Emuqu/Sources/Services/AppLaunchTasks.swift:376",
-    "Emuqu/Sources/Views/LaunchCoordinator.swift:94"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
    "kind": "untested",
    "sev": "low",
    "text": "No test references PowerStatePolicy.",

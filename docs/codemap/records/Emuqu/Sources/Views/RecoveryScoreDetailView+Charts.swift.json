@@ -126,12 +126,12 @@
   },
   {
    "key": "func RecoveryScoreCharts.hrvChartContent(_:)",
-   "hash": "a5719987447a90e9",
+   "hash": "9783d751131d8444",
    "does": "Lays out the HRV chart canvas with the point nearest the hover date selected, followed by the inline Pick Window slot.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.hrvChartCanvas(_:selected:)",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.nearestRMSSDPoint(to:in:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.nearestPoint(to:in:at:)",
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.hrvPickWindowSlot"
    ],
    "reads": [],
@@ -140,7 +140,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.hrvChartCanvas(_:selected:)": "e8142f944a830e35",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.nearestRMSSDPoint(to:in:)": "e5069344c665edba",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.nearestPoint(to:in:at:)": "c8150da3461053d3",
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.hrvPickWindowSlot": "92bcd09c2a6034a5"
    }
   },
@@ -399,7 +399,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.pickWindowReadout(startMs:currentMs:)": "c34bea1e0084025f",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.pickWindowButtons": "c409964a9396a622",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.pickWindowButtons": "969ea0f361d10be7",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "6c53c4c95f5cb401",
     "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
    }
@@ -426,8 +426,8 @@
   },
   {
    "key": "var RecoveryScoreCharts.pickWindowButtons",
-   "hash": "0948d1585303c378",
-   "does": "Cancel and 'Analyze here' buttons. Cancel clears the preview, sets restoringSegment so the onChange skips re-analysis, and restores the pre-pick segment; Analyze runs runInlineReanalysis (disabled while reanalyzing).",
+   "hash": "577a74be4f63c570",
+   "does": "Cancel and Analyze here buttons. Cancel clears the preview, sets restoringSegment so the onChange skips re-analysis, and restores segmentBeforePick (the segment left for Pick Window); Analyze runs runInlineReanalysis (disabled while reanalyzing).",
    "entry": "SwiftUI Button actions (user taps Cancel / Analyze here)",
    "calls": [
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.runInlineReanalysis()"
@@ -438,37 +438,20 @@
     "mem:RecoveryScoreDetailView.restoringSegment",
     "mem:RecoveryScoreDetailView.selectedWindowSegment"
    ],
-   "branches": [
-    {
-     "at": "+7",
-     "cond": "segmentBeforePick == .pickWindow",
-     "effect": "true: restores .bestRecovery; false: restores segmentBeforePick. The true branch cannot be reached: segmentBeforePick is only assigned the OLD segment when the new one is .pickWindow (Panels.swift:41) and starts as .bestRecovery"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "The `segmentBeforePick == .pickWindow ? .bestRecovery` fallback can never fire because segmentBeforePick is only ever set to the segment being left for Pick Window.",
-     "evidence": [
-      "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift:277",
-      "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift:41",
-      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:66"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "branches": [],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.runInlineReanalysis()": "604b37bbd7124183"
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.runInlineReanalysis()": "5fe0851a4de16e9d"
    }
   },
   {
    "key": "func RecoveryScoreCharts.runInlineReanalysis()",
-   "hash": "3de71bfdc5570770",
-   "does": "Commits the slider position: marks windowChangedHere, then in a Task sets isReanalyzing, awaits onReanalyzeAt(previewWindowMs), clears the preview and isReanalyzing.",
+   "hash": "d13db5087117706a",
+   "does": "Commits the slider position (previewWindowMs, or the recording midpoint the untouched slider shows): marks windowChangedHere, then in a Task sets isReanalyzing, awaits onReanalyzeAt(target), clears the preview and isReanalyzing.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.pickWindowMidpointMs",
     "closure:onReanalyzeAt — set by MainTabView.recoveryScoreDetail to rescoreReportAt (collector.reanalyzeAtPosition + applyManualAnalysis, writes selectedReportSession)"
    ],
    "reads": [],
@@ -479,31 +462,20 @@
    ],
    "branches": [
     {
-     "at": "+1",
-     "cond": "onReanalyzeAt is non-nil and previewWindowMs is non-nil",
-     "effect": "true: reanalysis task runs; false: returns silently. After one Analyze, previewWindowMs is nil while the slider still shows the midpoint, so pressing Analyze again without dragging does nothing"
+     "at": "+3",
+     "cond": "onReanalyzeAt non-nil and a target (preview or midpoint)",
+     "effect": "false: returns; true: reanalysis task runs"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "After an Analyze, previewWindowMs is reset to nil but the Pick Window slider stays on screen showing the midpoint; tapping 'Analyze here' again without moving the slider hits the guard and does nothing, with no feedback. The onReanalyzeAt closure returns Void, so a failed manual analysis is also invisible while windowChangedHere already relabels the Window method row.",
-     "evidence": [
-      "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift:293",
-      "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift:298",
-      "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift:242",
-      "Emuqu/Sources/Views/MainTabView.swift:287"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.pickWindowMidpointMs": "d3cb2df31e4e49f9"
+   }
   },
   {
-   "key": "func RecoveryScoreCharts.nearestRMSSDPoint(to:in:)",
-   "hash": "a2880f09b9209c58",
-   "does": "Returns the RMSSD point whose time is closest to the hover date.",
+   "key": "var RecoveryScoreCharts.pickWindowMidpointMs",
+   "hash": "aaff174786fdb862",
+   "does": "Middle of the recording (start + (end - start)/2) where the Pick Window slider sits until moved; nil without start/end or when end <= start.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -511,28 +483,17 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "date is nil or series empty",
-     "effect": "nil returned (no selection); otherwise min by |Δt| over the whole series (linear scan per render)"
+     "cond": "start/end known and end > start",
+     "effect": "false: nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "nearestRMSSDPoint and nearestHRPoint are the same nearest-by-time scan over two point types.",
-     "evidence": [
-      "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift:305",
-      "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift:310"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
-   "key": "func RecoveryScoreCharts.nearestHRPoint(to:in:)",
-   "hash": "4c4b6ff379ec2e73",
-   "does": "Returns the HR point whose time is closest to the hover date.",
+   "key": "func RecoveryScoreCharts.nearestPoint(to:in:at:)",
+   "hash": "584d6209923df680",
+   "does": "Generic over either chart point type: the element whose time (key path) is closest to the hover date; nil with no hover date or an empty series.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -540,8 +501,8 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "date is nil or series empty",
-     "effect": "nil; otherwise linear min by |Δt|"
+     "cond": "date nil or series empty",
+     "effect": "nil"
     }
    ],
    "flags": [],
@@ -633,15 +594,16 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.windowRMSSD(points:flags:lo:hi:)": "d15e4bbaa1220e1c"
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.windowRMSSD(points:flags:lo:hi:)": "da43a88bf5cc8eb6"
    }
   },
   {
    "key": "func RecoveryScoreCharts.windowRMSSD(points:flags:lo:hi:)",
-   "hash": "32b6f74deb80049f",
-   "does": "Static: RMSSD for points[lo..<hi] using TimeDomainAnalyzer.rmssd with an artifact-flag validity predicate; nil unless ≥30 beats and ≥20 artifact-free successive pairs not split by a recording break.",
+   "hash": "1ae4594e085ed93b",
+   "does": "Static: RMSSD for points[lo..<hi] using TimeDomainAnalyzer.rmssd; a beat counts when it is not artifact-flagged and its RR is in HRVConstants.RRInterval range (the peak scan per-beat gate); nil unless >=30 beats and >=20 clean successive pairs not split by a recording break.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Utilities/Constants.swift::func HRVConstants.RRInterval.isValid(_:)",
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.beatsAfterRecordingBreak(in:range:)",
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(points:range:isValid:)"
    ],
@@ -654,41 +616,26 @@
      "effect": "nil (too few beats)"
     },
     {
-     "at": "+3",
-     "cond": "flags is nil",
-     "effect": "every beat treated valid"
+     "at": "+4",
+     "cond": "flags nil or index beyond flags",
+     "effect": "not artifact"
     },
     {
      "at": "+5",
-     "cond": "absolute index >= flags.count",
-     "effect": "beat treated valid (flags array shorter than points)"
+     "cond": "RR outside physiological range",
+     "effect": "beat invalid"
     },
     {
-     "at": "+10",
+     "at": "+9",
      "cond": "validPairs < 20",
-     "effect": "nil; otherwise the shared estimator's RMSSD (which may itself be nil)"
+     "effect": "nil; otherwise the shared estimator RMSSD"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "The comment says this chart and the peak scan use the same artifact-skipping arithmetic, but TimeDomainAnalyzer.peakScanRMSSD (used by OvernightChartsView's rolling trace) also drops beats outside HRVConstants.RRInterval.isValid and requires 30 clean beats; windowRMSSD gates only artifact flags and raw beat count, so unflagged out-of-range RR intervals enter this screen's trace and not the other.",
-     "evidence": [
-      "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift:403",
-      "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift:412",
-      "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift:411",
-      "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift:97",
-      "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift:102",
-      "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift:105",
-      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:451"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.beatsAfterRecordingBreak(in:range:)": "705ef065c9683ac6",
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(points:range:isValid:)": "23d4a3e47ba4d2c5"
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(points:range:isValid:)": "23d4a3e47ba4d2c5",
+    "Emuqu/Sources/Utilities/Constants.swift::func HRVConstants.RRInterval.isValid(_:)": "330523605d6eeba2"
    }
   },
   {
@@ -826,11 +773,11 @@
   },
   {
    "key": "func RecoveryScoreCharts.hrChartCanvas(_:)",
-   "hash": "891e489998bd55ab",
+   "hash": "bf8edf0c887e0e6c",
    "does": "HR chart: line + selection marks, y domain max(0,min-5)...max+5, leading y axis, shared OvernightTimeAxis, chartXSelection bound to hrHoverDate, hover pill overlay and audio-graph descriptor.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.nearestHRPoint(to:in:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.nearestPoint(to:in:at:)",
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func hrLineMarks(_:)",
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func hrSelectionMarks(_:)",
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.sessionXScaleDomain()",
@@ -858,7 +805,7 @@
    "deps": {
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func OvernightTimeAxis.body(content:)": "a0133d8b77dae2f5",
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.hrHoverPill(proxy:selected:)": "44492077fbba7a7b",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.nearestHRPoint(to:in:)": "ba28b2fc3a42a443",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.nearestPoint(to:in:at:)": "c8150da3461053d3",
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.sessionXScaleDomain()": "b00ca4edb9a5f540",
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func hrAudioDescriptor(_:)": "d1d50799e128e30f",
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func hrLineMarks(_:)": "c3bb515cabd03a85",

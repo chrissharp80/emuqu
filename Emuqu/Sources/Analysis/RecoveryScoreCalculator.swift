@@ -4,7 +4,7 @@ import Foundation
 /// Research-informed, calibrated recovery score calculator using ln(RMSSD) z-scores against
 /// a personal baseline
 ///
-/// Three-tier scoring based on available data (v3.oct2026 architecture):
+/// Three-tier scoring based on available data (the algorithm `ScoringVersion.current` names):
 /// - Tier 1 (HRV-only): ln(RMSSD) z-score → SWC band score (z = 0 → 72) + RHR, DFA α1, CV and ANS-balance adjustments
 /// - Tier 2 (HRV + Sleep): Weighted composite (HRV 70 / Sleep 30) with double-penalty dampening
 /// - Tier 3 (HRV + Sleep + Vitals): Weighted composite HRV 60 / Sleep 25 / Vitals 15
@@ -234,7 +234,9 @@ enum RecoveryScoreCalculator {
     /// referenced is `defaultScoringParameters`.
     struct ScoringParameters: Equatable {
         /// Stable identifier for the parameter snapshot. Bump when bands
-        /// change so analytics / breakdown serializations can disambiguate.
+        /// change. It is not stored on a score: a stored breakdown carries
+        /// `ScoringVersion.current`, which names the band table it was scored
+        /// with, so re-binding `defaultScoringParameters` bumps that too.
         let version: String
         /// Piecewise-linear breakpoints for `zToRecoveryScore`. Must be
         /// monotonically increasing in `z` and produce a valid 0–100 range
@@ -254,8 +256,10 @@ enum RecoveryScoreCalculator {
         /// not just documenting: a non-monotonic table makes
         /// `zToRecoveryScore`'s interpolation factor negative or unbounded, and
         /// the function relies on its caller to clamp. Asserted by
-        /// `RecoveryScoreCalculatorTests.testShippedScoringParametersAreMonotonic`
-        /// for every parameter set the app can bind to.
+        /// `ScoringCharacterizationTests.testShippedScoringParametersAreMonotonicAndInRange`
+        /// for every parameter set the app can bind to. A test-side check by
+        /// design: the band tables are compile-time constants, so the test
+        /// run is where a bad table is caught, before it ships.
         var isMonotonicInZ: Bool {
             zip(zScoreBands, zScoreBands.dropFirst()).allSatisfy { $0.z < $1.z }
         }
@@ -484,13 +488,20 @@ enum RecoveryScoreCalculator {
         referenceDate: Date = Date()
     ) -> ScoreBreakdown {
         _ = trainingContext // see doc comment above
+        // The baseline stands in only when there is one. With none, the
+        // recording is all there is and is scored as it stands; the blend
+        // below, whose note says the baseline was used, is then skipped.
+        let standIn = useBaselineHRV ? inputs.baselineStats : nil
         let effective = FiniteHRVInputs(
             readiness: inputs.hrvReadiness, rmssd: inputs.rmssd, meanHR: inputs.meanHR, dfaAlpha1: inputs.dfaAlpha1
-        ).substitutingBaseline(useBaselineHRV ? inputs.baselineStats : nil)
+        ).substitutingBaseline(standIn)
+        // ANS balance was computed from the same unusable recording, so it is
+        // dropped with the recording's other session-specific modifiers.
         let breakdown = computeBreakdown(
-            inputs.substitutingHRV(effective), config: config, ansBalance: ansBalance, referenceDate: referenceDate
+            inputs.substitutingHRV(effective), config: config,
+            ansBalance: standIn == nil ? ansBalance : nil, referenceDate: referenceDate
         )
-        guard useBaselineHRV, let perceived = perceivedReadiness else { return breakdown }
+        guard standIn != nil, let perceived = perceivedReadiness else { return breakdown }
         return blendingPerceivedReadiness(
             perceived, vitals: inputs.vitals,
             missingSleep: missingSleepPenaltyApplies(inputs, tier: breakdown.tier, config: config),
@@ -531,8 +542,10 @@ enum RecoveryScoreCalculator {
 
         /// When the recording itself was unusable (pre-sleep, insufficient
         /// overlap), stand in the baseline and drop the session-specific
-        /// modifiers — the HRV factor lands near the at-baseline band score
-        /// (72), less any variability or staleness deduction.
+        /// modifiers (readiness and DFA here; the caller drops ANS balance) —
+        /// the HRV factor lands near the at-baseline band score (72), less any
+        /// variability or staleness deduction. Nil `stats` returns the
+        /// readings unchanged.
         func substitutingBaseline(_ stats: BaselineTracker.RecoveryBaselineStats?) -> FiniteHRVInputs {
             guard let stats else { return self }
             return FiniteHRVInputs(
@@ -583,20 +596,22 @@ enum RecoveryScoreCalculator {
     }
 
     /// The factor list with the HRV factor re-scored as 70% baseline / 30%
-    /// subjective. `perceived` is clamped to its documented 0...1 domain first —
-    /// see `subjectiveScore(from:)`.
+    /// subjective, and its impact re-banded from the blended score.
+    /// `perceived` is clamped to its documented 0...1 domain first — see
+    /// `subjectiveScore(from:)`.
     private static func blendedFactors(_ perceived: Double, in breakdown: ScoreBreakdown) -> [ScoreFactor] {
         let subjective = subjectiveScore(from: perceived)
         return breakdown.factors.map { factor -> ScoreFactor in
             guard factor.label == "HRV" else { return factor }
             let note = ScoreFactorFacts.Note.hrvWithAssessment
+            let blended = factor.score * ScoringWeights.PerceivedReadiness.baseline
+                + subjective * ScoringWeights.PerceivedReadiness.subjective
             return ScoreFactor(
                 label: factor.label,
                 detail: note.text,
-                score: factor.score * ScoringWeights.PerceivedReadiness.baseline
-                    + subjective * ScoringWeights.PerceivedReadiness.subjective,
+                score: blended,
                 weight: factor.weight,
-                impact: factor.impact,
+                impact: ScoreDetailBuilder.hrvImpact(blended),
                 facts: ScoreFactorFacts(note: note)
             )
         }

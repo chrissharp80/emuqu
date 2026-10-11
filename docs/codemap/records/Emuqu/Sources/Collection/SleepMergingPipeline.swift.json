@@ -171,8 +171,8 @@
   },
   {
    "key": "func SleepMergingPipeline.splitByGaps(_:gap:startOf:endOf:)",
-   "hash": "3d439dec9a8272aa",
-   "does": "Sorts items by start and groups them, starting a new group when an item's start is >= gap seconds after the previous item's end.",
+   "hash": "92300686113ae40e",
+   "does": "Sorts items by start and groups them, starting a new group when an item's start is >= gap seconds after the latest end seen in the current group (so an item nested inside a longer overlapping one does not open a false gap).",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -184,43 +184,17 @@
      "effect": "returns []"
     },
     {
-     "at": "+11",
+     "at": "+12",
      "cond": "loop over remaining sorted items",
      "effect": "each item either joins or starts a group"
     },
     {
-     "at": "+12",
-     "cond": "current group has no last element",
-     "effect": "current = [item] and continue; never true because current always starts non-empty"
-    },
-    {
-     "at": "+16",
-     "cond": "gap from previous item's END to this item's start >= gap",
-     "effect": "close current group, start a new one; otherwise append"
+     "at": "+13",
+     "cond": "gap from the group's latest end to this item's start >= gap",
+     "effect": "close current group, start a new one (latest end reset); otherwise append and extend the latest end"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "`guard let previous = current.last else` can never fail: current is initialised with `first` and only ever replaced by `[item]`.",
-     "evidence": [
-      "Emuqu/Sources/Collection/SleepMergingPipeline.swift:132",
-      "Emuqu/Sources/Collection/SleepMergingPipeline.swift:135",
-      "Emuqu/Sources/Collection/SleepMergingPipeline.swift:141"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "The gap is measured from the end of the last item in start order, not the latest end seen, so a short interval nested inside a long overlapping one can create a false gap and split a night that has no physical gap (only matters when stage intervals overlap).",
-     "evidence": [
-      "Emuqu/Sources/Collection/SleepMergingPipeline.swift:139"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -236,13 +210,13 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.splitByGaps(_:gap:startOf:endOf:)": "235fae4df305c05b"
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.splitByGaps(_:gap:startOf:endOf:)": "45c78b18f06a4ade"
    }
   },
   {
    "key": "func SleepMergingPipeline.buildSegmentFromIntervals(_:)",
-   "hash": "2dfe517536a50e03",
-   "does": "Builds a SleepSegment from first.start to last.end with accumulated stage minutes; deep/rem/core are nil unless the segment has any deep or REM.",
+   "hash": "da6ba829116964f2",
+   "does": "Builds a SleepSegment from the earliest interval start to the latest interval end (whatever their order or overlap) with accumulated stage minutes; deep/rem/core are nil unless the segment has any deep or REM.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.accumulateStageMinutes(_:)",
@@ -273,18 +247,7 @@
      "effect": "core minutes; otherwise nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Boundaries come from the first and last element of the array as given (not min start / max end); callers pass groups produced from start-sorted input, so a group whose last interval ends before an earlier long interval reports a too-early sleepEnd.",
-     "evidence": [
-      "Emuqu/Sources/Collection/SleepMergingPipeline.swift:165",
-      "Emuqu/Sources/Collection/SleepMergingPipeline.swift:169"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.accumulateStageMinutes(_:)": "4f07e52bbfe7eb09",
     "Emuqu/Sources/Collection/SleepMergingPipeline.swift::var StageMinutes.hasDetailed": "58d2883748188e25",

@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/SessionHRVDetailView.swift",
- "hash": "93a1fdabcc2f4f8f",
+ "hash": "32d4427ba9532bb5",
  "role": "Single-session HRV detail screen (pushed from the morning results HRV card) showing RMSSD hero, HR stats, peak capacity, HR chart, tachogram, Poincaré plot, frequency bands and LF/HF row; also declares LFHFRatioRow.",
  "types": [
   "SessionHRVDetailView: struct (View) — session HRV drill-in screen; inputs session, result, recentSessions (default [])",
@@ -10,21 +10,11 @@
   "SessionHRVDetailView.session: let HRVSession",
   "SessionHRVDetailView.result: let HRVAnalysisResult",
   "SessionHRVDetailView.recentSessions: var [HRVSession] = []",
+  "SessionHRVDetailView.baselineStats: var BaselineTracker.RecoveryBaselineStats? (nil unless the caller passes it)",
   "LFHFRatioRow.fd: let FrequencyDomainMetrics"
  ],
  "toplevel": "Stored-property defaults only (recentSessions = []). Memberwise init used by MorningResultsView.hrvDetailLink (MorningResultsView.swift:302) and RemainingScreenSnapshotTests.testSessionHRVDetailRenders.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Doc comment says the view drills in 'from HRV card on Dashboard and Recovery Report', but the only production constructor is MorningResultsView.hrvDetailLink; no Dashboard or Recovery Report code constructs it.",
-   "evidence": [
-    "Emuqu/Sources/Views/SessionHRVDetailView.swift:4",
-    "Emuqu/Sources/Views/MorningResultsView.swift:302"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "var SessionHRVDetailView.body",
@@ -100,7 +90,7 @@
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakCapacity(from:)": "7f3278f31052cc1b",
     "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.trendSection": "0ac239358656f90b",
-    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.heartRateChartSection": "16110b2e844390f4",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.heartRateChartSection": "352bdca0a57c8196",
     "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.hrStatsRow": "ac9871964160a803",
     "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.hrvHeroSection": "408e4a4d04814404"
    }
@@ -148,20 +138,33 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.heroHRVLabel": "275ab564c953a6e5",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.heroHRVLabel": "1dbd8fcfce30e95c",
     "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.heroRMSSDCaption": "8b891540e28ed3ed",
-    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.heroRMSSDValue": "2fba72692a6b2370",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.heroRMSSDValue": "392927b9900fe67d",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e"
    }
   },
   {
+   "key": "var SessionHRVDetailView.hrvBaseline",
+   "hash": "b7c7b2088d21e32e",
+   "does": "The RMSSD baseline exp(lnRmssdMean) from baselineStats, or nil when none was passed.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
    "key": "var SessionHRVDetailView.heroRMSSDValue",
-   "hash": "441c07aa2f2be8ab",
-   "does": "Large RMSSD %.0f (scaled 56pt bold) coloured by AppTheme.hrvTextColor with 'ms' suffix.",
+   "hash": "759ee269aa7c3a6a",
+   "does": "Large RMSSD %.0f (scaled 56pt bold) coloured by AppTheme.hrvTextColor against hrvBaseline (absolute cut-offs when nil) with 'ms' suffix.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
-    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvTextColor(_:baseline:)"
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvTextColor(_:baseline:)",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.hrvBaseline"
    ],
    "reads": [
     "mem:LanguageManager.shared.bundle",
@@ -174,6 +177,7 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
     "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.hrvBaseline": "8abb9f4ca10fe916",
     "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvTextColor(_:baseline:)": "e01f4a9836c9dbad",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
    }
@@ -197,13 +201,14 @@
   },
   {
    "key": "var SessionHRVDetailView.heroHRVLabel",
-   "hash": "0a08b21baa44adf3",
-   "does": "Pill showing AppTheme.hrvLabel(rmssd) with hrvTextColor text over hrvColor 15% background (absolute thresholds, no baseline passed).",
+   "hash": "403e79a6380fa534",
+   "does": "Pill showing AppTheme.hrvLabel(rmssd, baseline: hrvBaseline) with hrvTextColor text over hrvColor 15% background; rates against the scoring baseline when baselineStats was passed, absolute thresholds otherwise.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvLabel(_:baseline:)",
     "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvTextColor(_:baseline:)",
-    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvColor(_:baseline:)"
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvColor(_:baseline:)",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.hrvBaseline"
    ],
    "reads": [],
    "writes": [],
@@ -212,7 +217,7 @@
     {
      "kind": "broken",
      "sev": "med",
-     "text": "Detail hero rates RMSSD with absolute thresholds (hrvLabel/hrvColor/hrvTextColor without baseline), while the morning HRV card that is the NavigationLink label into this screen rates the same RMSSD baseline-relative (baseline: exp(lnRmssdMean)). Tapping a card that says e.g. 'Reduced' opens a detail page saying 'Excellent' for the same night.",
+     "text": "Detail hero rates RMSSD against baselineStats when given, but its only production constructor (MorningResultsView.hrvDetailLink) does not pass it, so it still uses absolute thresholds while the morning HRV card that opens it rates the same RMSSD baseline-relative (baseline: exp(lnRmssdMean)). Tapping a card that says e.g. 'Reduced' can open a detail page saying 'Excellent' for the same night.",
      "evidence": [
       "Emuqu/Sources/Views/SessionHRVDetailView.swift:90",
       "Emuqu/Sources/Views/SessionHRVDetailView.swift:105",
@@ -227,6 +232,7 @@
     }
    ],
    "deps": {
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.hrvBaseline": "8abb9f4ca10fe916",
     "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvColor(_:baseline:)": "9902e2d11d133ee2",
     "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvLabel(_:baseline:)": "fddd02dc7436d16d",
     "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvTextColor(_:baseline:)": "e01f4a9836c9dbad"
@@ -276,38 +282,53 @@
   },
   {
    "key": "var SessionHRVDetailView.heartRateChartSection",
-   "hash": "152cb651c857c050",
-   "does": "Card 'Heart Rate Over Time' with Int-truncated min-max bpm label and a 150pt HeartRateChartView with accessibility summary.",
+   "hash": "6d01364c19a07d51",
+   "does": "Card 'Heart Rate Over Time' with a rounded min-max bpm label (minHRRounded / maxHRRounded, matching the %.0f stat tiles) and a 150pt HeartRateChartView whose accessibility value uses the same rounded range and rounded mean.",
    "entry": null,
    "calls": [
     "dyn:View.body → Emuqu/Sources/Views/MorningResultsCharts.swift:348",
-    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()"
+    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.minHRRounded",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.maxHRRounded"
    ],
    "reads": [
     "mem:LanguageManager.shared.bundle"
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "HR range header and accessibility value use Int() truncation of minHR/maxHR/meanHR while the metrics grid 'HR Range' and stat tiles use %.0f rounding, so the same screen can show e.g. 54-80 here and 55-81 in the grid.",
-     "evidence": [
-      "Emuqu/Sources/Views/SessionHRVDetailView.swift:154",
-      "Emuqu/Sources/Views/SessionHRVDetailView.swift:164",
-      "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift:44",
-      "Emuqu/Sources/Views/SessionHRVDetailView.swift:131"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.maxHRRounded": "ffa37ad35a026935",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.minHRRounded": "f2696b46254ed7e5",
     "Emuqu/Sources/Views/Theme.swift::func View.zenCard()": "d0ad0fd7fe9ef4fb",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.terracottaText": "6a18b5025ee3e850",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
    }
+  },
+  {
+   "key": "var SessionHRVDetailView.minHRRounded",
+   "hash": "384ad7158b5a3df0",
+   "does": "result.timeDomain.minHR rounded to the nearest whole bpm.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var SessionHRVDetailView.maxHRRounded",
+   "hash": "883dd7b307f75a74",
+   "does": "result.timeDomain.maxHR rounded to the nearest whole bpm.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "var SessionHRVDetailView.tachogramSection",

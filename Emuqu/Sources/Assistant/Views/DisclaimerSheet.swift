@@ -27,6 +27,11 @@ struct DisclaimerSheet: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 
+    /// The accept button carries an accessibility identifier
+    /// because this sheet is the first thing the Flo tab presents: a test that
+    /// cannot dismiss it cannot reach the tab at all, and because the sheet
+    /// leaves the tab bar in the hierarchy underneath, it also cannot switch
+    /// away.
     private var disclaimerStack: some View {
         VStack(alignment: .leading, spacing: 18) {
             header
@@ -41,11 +46,7 @@ struct DisclaimerSheet: View {
         .padding(.vertical, 24)
     }
 
-    /// The accept button carries an accessibility identifier
-    /// because this sheet is the first thing the Flo tab presents: a test that
-    /// cannot dismiss it cannot reach the tab at all, and because the sheet
-    /// leaves the tab bar in the hierarchy underneath, it also cannot switch
-    /// away.
+    /// What Flo sends where, then what it is responsible for.
     @ViewBuilder
     private var disclaimerPoints: some View {
         privacyPoints

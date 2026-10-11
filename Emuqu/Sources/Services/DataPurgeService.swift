@@ -32,9 +32,11 @@ enum DataPurgeService {
         let crashLogsCleared: Bool
         let unitsPreferenceReset: Bool
         let breadcrumbsCleared: Bool
-        /// How many files/directories the container sweep removed on top of the
-        /// named steps. Zero is the healthy steady state; a non-zero number
-        /// means a store exists that no named step owns.
+        /// How many top-level files/directories the container sweep removed.
+        /// The sweep runs before the named steps, so this counts their stores
+        /// too (the archive, raw backups, breadcrumbs, the debug log …) and is
+        /// non-zero for anyone with data; it is not a count of stores that no
+        /// named step owns.
         let residualFilesRemoved: Int
         /// The same figure for `UserDefaults` keys. The container sweep covers
         /// only files; preferences are a separate storage class and were the
@@ -197,15 +199,44 @@ enum DataPurgeService {
         let sweptDefaults = sweepAllDefaults(errors: &errors)
         let directories = purgeDirectories(settingsManager: settingsManager, cloudSync: cloudSync, errors: &errors)
         let fallible = purgeFallibleStores(errors: &errors)
+        let left = readBackClearedStores(settingsManager: settingsManager, cloudSync: cloudSync)
         return Report(
             remoteDeleted: remoteDeleted, archiveDeleted: directories.archive,
-            backupsDeleted: directories.backups, cloudSyncStateReset: true,
-            keychainCleared: directories.keychainCleared, conversationsCleared: true, userFactsCleared: true,
-            disclaimerReset: true, assistantDisclaimerReset: true,
+            backupsDeleted: directories.backups, cloudSyncStateReset: left.cloudSyncStateReset,
+            keychainCleared: directories.keychainCleared, conversationsCleared: left.conversationsCleared,
+            userFactsCleared: left.userFactsCleared, disclaimerReset: left.disclaimerReset, assistantDisclaimerReset: left.assistantDisclaimerReset,
             debugLogCleared: fallible.debugLogCleared, crashLogsCleared: fallible.crashLogsCleared,
-            unitsPreferenceReset: true,
-            breadcrumbsCleared: true, residualFilesRemoved: sweptFiles,
-            residualDefaultsRemoved: sweptDefaults, errors: errors
+            unitsPreferenceReset: left.unitsPreferenceReset, breadcrumbsCleared: left.breadcrumbsCleared,
+            residualFilesRemoved: sweptFiles, residualDefaultsRemoved: sweptDefaults, errors: errors
+        )
+    }
+
+    /// The steps whose store calls report no failure of their own, each read
+    /// back from the store after every step ran, so the page shows "ERROR"
+    /// for a store that still holds data instead of assuming success.
+    private struct ReadBack {
+        let cloudSyncStateReset: Bool
+        let conversationsCleared: Bool
+        let userFactsCleared: Bool
+        let disclaimerReset: Bool
+        let assistantDisclaimerReset: Bool
+        let unitsPreferenceReset: Bool
+        let breadcrumbsCleared: Bool
+    }
+
+    /// The breadcrumb checks are queued behind the store's pending clear and
+    /// erase, so they see their result.
+    private static func readBackClearedStores(settingsManager: SettingsManager, cloudSync: CloudKitSyncManager) -> ReadBack {
+        let assistant = AppDependencies.current.assistant
+        let breadcrumbs = AppDependencies.current.location.breadcrumbStore
+        return ReadBack(
+            cloudSyncStateReset: cloudSync.lastSyncDate == nil && !cloudSync.zoneCreated,
+            conversationsCleared: assistant.conversationStore.load().isEmpty,
+            userFactsCleared: assistant.userFactsStore.facts.isEmpty,
+            disclaimerReset: !settingsManager.hasAcceptedDisclaimer,
+            assistantDisclaimerReset: !assistant.assistantViewModel.hasAcceptedDisclaimer,
+            unitsPreferenceReset: UnitsPreferenceStore.current == .auto,
+            breadcrumbsCleared: !breadcrumbs.hasActiveTrail() && !breadcrumbs.hasArchiveFile()
         )
     }
 
@@ -330,14 +361,6 @@ enum DataPurgeService {
         "storekit.lastKnownTestFlight"
     ]
 
-    /// Prefixes covering the migration bookkeeping described above. Both
-    /// spellings are in use — `FlowRecovery.migration.*` in `Archive+Migrations`
-    /// and `didRun…_v1` in the four `RRCollector+*Migration` files.
-    private static let defaultsKeepPrefixes = [
-        "FlowRecovery.migration.",
-        "didRun"
-    ]
-
     /// Prefixes iOS itself writes into an app's persistent domain.
     ///
     /// Deleting one is mostly harmless — the frameworks rewrite them — but
@@ -350,11 +373,25 @@ enum DataPurgeService {
         "CarCapabilities", "ADPrivacy", "METAL", "GEO", "TVRemote", "SU"
     ]
 
+    /// The migration bookkeeping described above is kept by its two
+    /// spellings — `FlowRecovery.migration.*` in `Archive+Migrations` and
+    /// `didRun…_v<n>` in the `RRCollector+*Migration` files. A `didRun` key
+    /// is kept only when it also carries a `_v` version marker, so an
+    /// ordinary key that merely starts with "didRun" is still swept.
     private static func isPurgeable(defaultsKey key: String) -> Bool {
         if defaultsKeepList.contains(key) { return false }
-        if defaultsKeepPrefixes.contains(where: key.hasPrefix) { return false }
-        if systemOwnedPrefixes.contains(where: key.hasPrefix) { return false }
-        return true
+        if key.hasPrefix("FlowRecovery.migration.") { return false }
+        if key.hasPrefix("didRun"), key.contains("_v") { return false }
+        return !systemOwnedPrefixes.contains { isSystemKey(key, prefix: $0) }
+    }
+
+    /// Apple's keys continue a prefix with a capital, digit or underscore
+    /// ("NSLanguages", "SUEnableAutomaticChecks"); a key that continues it
+    /// with a lowercase letter ("SUmmary…") is not the system's and is swept.
+    private static func isSystemKey(_ key: String, prefix: String) -> Bool {
+        guard key.hasPrefix(prefix) else { return false }
+        guard !prefix.hasSuffix("."), let next = key.dropFirst(prefix.count).first else { return true }
+        return next.isUppercase || next.isNumber || next == "_"
     }
 
     /// Suites the app persists preferences into: its own domain and the App
@@ -378,7 +415,9 @@ enum DataPurgeService {
     }
 
     /// Remove every non-kept key from every suite. Returns the count so the
-    /// report can say what the named steps had missed.
+    /// report can say what the named steps had missed. This also removes the
+    /// legacy `widget.*` keys an earlier build wrote into the App Group suite
+    /// (health-derived scores for a widget that never shipped): none is kept.
     private static func sweepAllDefaults(errors: inout [String]) -> Int {
         var removed = 0
         for domain in defaultsDomains(errors: &errors) {
@@ -413,42 +452,45 @@ enum DataPurgeService {
         return Set(global.keys).union(arguments.keys).union(registration.keys)
     }
 
-    /// Roots a full wipe is responsible for.
-    private static func purgeRoots() -> [URL] {
+    /// Roots a full wipe is responsible for, each with the entries it keeps.
+    /// The App Group container also keeps its `Library/`: iOS keeps the group
+    /// suite's preferences plist (swept key by key by `sweepAllDefaults`,
+    /// while `UserDefaults` still holds it in memory) and its own caches
+    /// there, and the app writes nothing into it.
+    private static func purgeRoots() -> [(url: URL, kept: Set<String>)] {
         let fileManager = FileManager.default
-        var roots: [URL] = []
+        var roots: [(url: URL, kept: Set<String>)] = []
         if let group = fileManager.containerURL(forSecurityApplicationGroupIdentifier: AppConfig.appGroupIdentifier) {
-            roots.append(group)
+            roots.append((group, keepList.union(["Library"])))
         }
         for directory in [FileManager.SearchPathDirectory.applicationSupportDirectory, .documentDirectory, .cachesDirectory] {
             if let url = fileManager.urls(for: directory, in: .userDomainMask).first {
-                roots.append(url)
+                roots.append((url, keepList))
             }
         }
         // Exports are written here before the share sheet: chat transcripts,
         // GPX/TCX/CSV with precise GPS, PDF reports, the debug log.
-        roots.append(fileManager.temporaryDirectory)
+        roots.append((fileManager.temporaryDirectory, keepList))
         return roots
     }
 
     /// Delete every file and directory in every root that is not kept.
-    /// Returns how many entries were removed, so the report can say whether the
-    /// sweep found anything the named steps had missed.
+    /// Returns how many entries were removed (see `Report.residualFilesRemoved`).
     private static func sweepAllContainers(errors: inout [String]) -> Int {
         var removed = 0
         for root in purgeRoots() {
-            removed += sweep(root: root, errors: &errors)
+            removed += sweep(root: root.url, keeping: root.kept, errors: &errors)
         }
         return removed
     }
 
-    private static func sweep(root: URL, errors: inout [String]) -> Int {
+    private static func sweep(root: URL, keeping kept: Set<String>, errors: inout [String]) -> Int {
         let fileManager = FileManager.default
         guard let entries = try? fileManager.contentsOfDirectory(
             at: root, includingPropertiesForKeys: nil, options: []
         ) else { return 0 }
         var removed = 0
-        for entry in entries where !keepList.contains(entry.lastPathComponent) {
+        for entry in entries where !kept.contains(entry.lastPathComponent) {
             do {
                 try fileManager.removeItem(at: entry)
                 removed += 1
@@ -489,7 +531,9 @@ enum DataPurgeService {
     private static func purgeFallibleStores(errors: inout [String]) -> FallibleSteps {
         let debugLogCleared = purgeDebugLog(errors: &errors)
         let crashLogsCleared = purgeCrashLogs(errors: &errors)
-        purgeLegacySharedState()
+        // The archive and raw backups are gone, so any pending re-encryption
+        // entries point at files that no longer exist.
+        PendingEncryptionLedger.clearAll()
         return FallibleSteps(debugLogCleared: debugLogCleared, crashLogsCleared: crashLogsCleared)
     }
 
@@ -565,7 +609,7 @@ enum DataPurgeService {
         // request.
         settingsManager.resetToDefaults()
         settingsManager.settings.iCloudSyncEnabled = false
-        UserDefaults.standard.removeObject(forKey: "assistant.disclaimerAccepted")
+        UserDefaults.standard.removeObject(forKey: AssistantViewModel.disclaimerKey)
         UnitsPreferenceStore.current = .auto
         AppDependencies.current.location.breadcrumbStore.clear()
         AppDependencies.current.location.breadcrumbStore.eraseArchive()
@@ -585,9 +629,11 @@ enum DataPurgeService {
     /// to-dos, the Get Me Back trail, the prefetched facts (last HRV, sleep,
     /// workout, location) and the cached location stayed in memory, readable
     /// by the assistant and written back to disk by the next add, rename or
-    /// fix.
+    /// fix. The engaged turn-by-turn route (destination name and coordinate)
+    /// is memory-only and is dropped too, so the voice coach stops using it.
     private static func forgetInMemoryStores() {
         let location = AppDependencies.current.location
+        location.activeRouteSession.disengage()
         location.savedRouteStore.forgetAfterPurge()
         location.breadcrumbRecorder.forgetAfterPurge()
         location.ambientLocationService.forgetAfterPurge()
@@ -607,17 +653,18 @@ enum DataPurgeService {
         AppDependencies.current.assistant.assistantViewModel.hasAcceptedDisclaimer = false
     }
 
-    /// `AppDependencies.current.app.debugLogger.clear()` resets the in-memory ring buffer; we ALSO
-    /// unlink the on-disk file so a user who expected "full wipe" doesn't
-    /// discover the log still sitting in the App Group container with
-    /// yesterday's RMSSD values.
+    /// `AppDependencies.current.app.debugLogger.clear()` empties the logger's
+    /// memory and queues removal of its file. The container sweep already
+    /// removed the file that existed before the purge, but the logger keeps
+    /// writing while the purge runs, and neither the sweep's count nor the
+    /// logger's own removal says whether that re-created log is gone. This
+    /// synchronous removal of whatever is left at the logger's path
+    /// (`AppConfig.sharedContainerURL()`) is what the "Debug log" line
+    /// reports.
     private static func purgeDebugLog(errors: inout [String]) -> Bool {
         AppDependencies.current.app.debugLogger.clear()
         let fm = FileManager.default
-        guard let container = fm.containerURL(forSecurityApplicationGroupIdentifier: AppConfig.appGroupIdentifier) else {
-            return true
-        }
-        let path = container.appendingPathComponent("debug_log.txt")
+        let path = AppConfig.sharedContainerURL().appendingPathComponent("debug_log.txt")
         guard fm.fileExists(atPath: path.path) else { return true }
         do {
             try fm.removeItem(at: path)
@@ -636,38 +683,6 @@ enum DataPurgeService {
         } catch {
             errors.append(String(localized: "Crash logs: \(error.localizedDescription)", bundle: LanguageManager.appBundle))
             return false
-        }
-    }
-
-    /// Erase the legacy home-screen-widget keys from the App Group store.
-    ///
-    /// They hold health-derived values (scores, verdicts, session counts), and
-    /// GDPR / CCPA erasure requires them to go.
-    ///
-    /// Nothing writes these keys: an earlier build's `WidgetDataPublisher`
-    /// published them for a widget target that does not exist in this project
-    /// — health-derived values written into a shared container nothing could
-    /// read. This erase path deliberately stays, because a user who ran that
-    /// build still has those values on disk and removing the writer does not
-    /// remove their data. The key list lives here for the same reason — it
-    /// describes what must be cleaned up, not what is being produced.
-    ///
-    /// Remove this only once no supported upgrade path can still carry them.
-    private static let legacyWidgetKeys = [
-        "widget.todayScore", "widget.todayVerdict", "widget.todayDate",
-        "widget.last3Days", "widget.totalSessions"
-    ]
-
-    /// Not a step of its own in the report: the app has no widget, so the
-    /// user is never shown one. Without an App Group suite there is nowhere
-    /// the legacy keys could be, so there is nothing to remove.
-    private static func purgeLegacySharedState() {
-        // The archive and raw backups are gone, so any pending re-encryption
-        // entries point at files that no longer exist.
-        PendingEncryptionLedger.clearAll()
-        guard let sharedStore = UserDefaults(suiteName: AppConfig.appGroupIdentifier) else { return }
-        for key in legacyWidgetKeys {
-            sharedStore.removeObject(forKey: key)
         }
     }
 

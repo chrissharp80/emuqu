@@ -32,7 +32,7 @@ extension FitnessRecordingView {
     private var elapsedTile: some View {
         TimelineView(.periodic(from: .now, by: 0.5)) { context in
             let elapsed = elapsedInterval(at: context.date)
-            metricTile(icon: "timer", label: labels.elapsed, value: formatDuration(elapsed))
+            metricTile(icon: "timer", label: labels.elapsed, value: CoachReportGenerator.formatDuration(elapsed))
         }
     }
 
@@ -52,7 +52,7 @@ extension FitnessRecordingView {
             icon: usesGPS ? "location.fill" : "figure.walk",
             label: labels.distance,
             value: distanceLabel,
-            caption: paceCaption
+            caption: nil
         )
         metricTile(
             icon: "speedometer",
@@ -109,12 +109,6 @@ extension FitnessRecordingView {
     /// they do not show "—" all session.
     @ViewBuilder
     private var liveTrendTiles: some View {
-        // Live trend tiles (round-2/4 metrics visible on the
-        // recording screen too, not just to the
-        // AI). HR drift = how much HR has crept up vs the first
-        // quartile; decoupling = first-half vs second-half
-        // pace/HR efficiency. Both stay hidden until enough
-        // samples accumulate so they don't show "—" all session.
         if let drift = WorkoutLiveTrends.hrDriftPercent(samples: recorder.samplesView) {
             metricTile(
                 icon: "waveform.path.ecg",
@@ -227,42 +221,58 @@ extension FitnessRecordingView {
 
     /// Live α1 indicator: horizontal bar with a moving dot
     /// showing the current zone (Hard → Threshold → Easy, left to right).
-    /// Educational element. Domain: 0.0 → 1.5, with the dot riding to the
-    /// user's current value. The gradient runs through the Rogers/Gronwald
-    /// 2021 regions:
-    ///   Hard (0.0–0.5)         — above the second threshold
-    ///   Threshold (0.5–0.75)   — between the thresholds
-    ///   Aerobic (0.75–1.0)     — below the aerobic threshold
-    ///   Easy (1.0–1.5)         — recovery
-    /// The labels under it name three of those; the badge and caption use the
-    /// same 0.75 / 0.50 cuts (`LiveDFAAnalyzer.Band.display(alpha1:)`).
-    /// Colour runs caution → optimal as the value climbs into easy.
+    /// Educational element. Domain: 0.0 → 1.5 (`alpha1BarMax`), with the dot
+    /// riding to the user's current value. The colour bands and the labels
+    /// under them sit on the cuts the badge and caption use
+    /// (`LiveDFAAnalyzer.Band.display(alpha1:)`, Rogers/Gronwald 2021):
+    ///   Hard (0.0–0.50)        — above the second threshold
+    ///   Threshold (0.50–0.75)  — between the thresholds
+    ///   Easy (0.75–1.5)        — below the aerobic threshold, shading
+    ///                             toward recovery as the value climbs
+    /// Each label is centred under its band, so the dot always sits over the
+    /// label the badge shows.
     @ViewBuilder
     var alpha1IndicatorBar: some View {
         GeometryReader { geo in
             alpha1BarLayers(width: geo.size.width)
         }
         .frame(height: 14)
-        // Zone labels under the bar ("Easy → Threshold → Hard")
         .overlay(alignment: .bottom) {
-            HStack {
-                Text(String(localized: "Hard", bundle: LanguageManager.appBundle))
-                Spacer()
-                Text(String(localized: "Threshold", bundle: LanguageManager.appBundle))
-                Spacer()
-                Text(String(localized: "Easy", bundle: LanguageManager.appBundle))
+            GeometryReader { geo in
+                alpha1BandLabels(width: geo.size.width)
             }
-            .scaledFont(size: 9)
-            .foregroundStyle(AppTheme.textTertiary)
             .offset(y: 14)
-            .padding(.horizontal, 2)
         }
         .padding(.bottom, 14) // make room for the labels
     }
 
+    /// Right edge of the bar on the α1 axis.
+    static let alpha1BarMax = 1.5
+    /// Where the Hard/Threshold and Threshold/Easy cuts fall along the bar (0–1).
+    static let alpha1HardCut = CGFloat(HRVConstants.DFA.alpha1AnaerobicThreshold / alpha1BarMax)
+    static let alpha1EasyCut = CGFloat(HRVConstants.DFA.alpha1AerobicThreshold / alpha1BarMax)
+
+    /// "Hard / Threshold / Easy", each centred under its band.
+    private func alpha1BandLabels(width: CGFloat) -> some View {
+        HStack(spacing: 0) {
+            alpha1BandLabel(String(localized: "Hard", bundle: LanguageManager.appBundle), width: width * Self.alpha1HardCut)
+            alpha1BandLabel(String(localized: "Threshold", bundle: LanguageManager.appBundle), width: width * (Self.alpha1EasyCut - Self.alpha1HardCut))
+            alpha1BandLabel(String(localized: "Easy", bundle: LanguageManager.appBundle), width: width * (1 - Self.alpha1EasyCut))
+        }
+        .scaledFont(size: 9)
+        .foregroundStyle(AppTheme.textTertiary)
+    }
+
+    private func alpha1BandLabel(_ text: String, width: CGFloat) -> some View {
+        Text(text)
+            .lineLimit(1)
+            .minimumScaleFactor(0.6)
+            .frame(width: max(0, width))
+    }
+
     private func alpha1BarLayers(width total: CGFloat) -> some View {
-        let value = recorder.dfa.currentAlpha1.map { min(1.5, max(0, $0)) }
-        let dotX: CGFloat? = value.map { CGFloat($0 / 1.5) * total }
+        let value = recorder.dfa.currentAlpha1.map { min(Self.alpha1BarMax, max(0, $0)) }
+        let dotX: CGFloat? = value.map { CGFloat($0 / Self.alpha1BarMax) * total }
         return ZStack(alignment: .leading) {
             alpha1BandGradient
             alpha1Dot(dotX: dotX, total: total)
@@ -270,13 +280,17 @@ extension FitnessRecordingView {
         .frame(maxWidth: .infinity)
     }
 
+    /// Solid Hard and Threshold bands with hard edges at the band cuts; the
+    /// Easy band shades from aerobic to recovery.
     private var alpha1BandGradient: some View {
         LinearGradient(
-            colors: [
-                AppTheme.wongAttention.opacity(0.7), // Hard
-                AppTheme.wongCaution.opacity(0.7),   // Threshold
-                AppTheme.wongGood.opacity(0.7),      // Aerobic
-                AppTheme.wongOptimal.opacity(0.7)   // Easy
+            stops: [
+                .init(color: AppTheme.wongAttention.opacity(0.7), location: 0),
+                .init(color: AppTheme.wongAttention.opacity(0.7), location: Self.alpha1HardCut),
+                .init(color: AppTheme.wongCaution.opacity(0.7), location: Self.alpha1HardCut),
+                .init(color: AppTheme.wongCaution.opacity(0.7), location: Self.alpha1EasyCut),
+                .init(color: AppTheme.wongGood.opacity(0.7), location: Self.alpha1EasyCut),
+                .init(color: AppTheme.wongOptimal.opacity(0.7), location: 1)
             ],
             startPoint: .leading,
             endPoint: .trailing
@@ -309,9 +323,11 @@ extension FitnessRecordingView {
     // shifting the whole time between having a map and showing something
     // else" + elevated battery drain. One Map, three *overlay* states,
     // stable camera position — no recreate, no recenter.
+    /// Hands the track array itself to the card (no per-tick copy into
+    /// coordinates); the card maps it only when it draws.
     var mapCard: some View {
         StableMapCard(
-            coordinates: recorder.liveTrack.map(\.coordinate),
+            track: recorder.liveTrack,
             accuracy: recorder.locationManager.lastHorizontalAccuracy
         )
     }
@@ -324,10 +340,6 @@ extension FitnessRecordingView {
 
     var elevationLabel: String {
         units.formatElevation(meters: recorder.elevationGainMeters)
-    }
-
-    var paceCaption: String? {
-        units.formatPace(elapsedSec: recorder.elapsedSeconds, distanceMeters: recorder.distanceMeters)
     }
 
     var cadenceCaption: String? {
@@ -396,9 +408,6 @@ extension FitnessRecordingView {
         if recorder.activeHRSource != .strap {
             return String(localized: "Connect a chest strap to enable α1", bundle: LanguageManager.appBundle)
         }
-        // Route by the analyzer's own status so the caption never silently
-        // says "warming up" after 10 min of a silent strap — the user (and
-        // the AI coach) can see WHY the number isn't there.
         switch recorder.dfa.status {
         case .warmup(let fraction):
             let pct = Int(fraction * 100)
@@ -428,17 +437,6 @@ extension FitnessRecordingView {
         case .aboveVT2: return String(localized: "very hard intensity", bundle: LanguageManager.appBundle)
         case .unknown: return nil
         }
-    }
-
-    func formatDuration(_ seconds: TimeInterval) -> String {
-        let total = Int(seconds)
-        let h = total / 3600
-        let m = (total % 3600) / 60
-        let s = total % 60
-        if h > 0 {
-            return String(format: "%d:%02d:%02d", h, m, s)
-        }
-        return String(format: "%d:%02d", m, s)
     }
 
     // MARK: - Bottom controls
@@ -476,16 +474,26 @@ extension FitnessRecordingView {
         .contentShape(Rectangle())
     }
 
+    /// The press is tracked with `@GestureState`, which SwiftUI resets when
+    /// the gesture ends OR is cancelled (a system interruption mid-press), so
+    /// every way a press stops cancels the hold; leaving the screen cancels it
+    /// too. A press while finalizing reaches `startHolding`, which answers it
+    /// with a warning haptic once per press.
     private func withHoldGesture(_ content: some View) -> some View {
-        content
+        withStopAccessibility(content
             .gesture(
                 DragGesture(minimumDistance: 0)
-                    .onChanged { _ in
-                        guard !isFinalizing else { return }
-                        startHolding()
-                    }
-                    .onEnded { _ in cancelHolding() }
+                    .updating($stopPressActive) { _, active, _ in active = true }
             )
+            .onChange(of: stopPressActive) { _, pressing in
+                if pressing { startHolding() } else { cancelHolding() }
+            }
+            .onDisappear { cancelHolding() }
+        )
+    }
+
+    private func withStopAccessibility(_ content: some View) -> some View {
+        content
             .accessibilityLabel(isFinalizing
                 ? String(localized: "Saving workout", bundle: LanguageManager.appBundle)
                 : String(localized: "End workout", bundle: LanguageManager.appBundle))
@@ -756,7 +764,7 @@ extension FitnessRecordingView {
 // footprint never changes size — users mid-workout shouldn't see layout
 // jumps.
 private struct StableMapCard: View {
-    let coordinates: [CLLocationCoordinate2D]
+    let track: [CLLocation]
     let accuracy: CLLocationAccuracy?
 
     @State private var position: MapCameraPosition = .automatic
@@ -768,7 +776,7 @@ private struct StableMapCard: View {
     var body: some View {
         ZStack {
             mapBackdrop
-            if coordinates.isEmpty {
+            if track.isEmpty {
                 waitingForFixPlaceholder
             } else {
                 liveRouteMap
@@ -777,7 +785,11 @@ private struct StableMapCard: View {
         .frame(height: 180)
         .overlay(alignment: .topTrailing) { gpsAccuracyBadge }
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .onChange(of: coordinates.count) { _, newCount in reframe(to: newCount) }
+        // Keyed on the newest fix, not the count: a seed fix replaced by the
+        // first accurate one keeps the count at 1 but must still reframe.
+        // `.onAppear` frames a track that is already there when the card mounts.
+        .onChange(of: track.last?.timestamp) { _, _ in reframe() }
+        .onAppear { reframe() }
     }
 
     /// Always present so the card height never shifts while GPS is still
@@ -808,7 +820,8 @@ private struct StableMapCard: View {
     }
 
     private var liveRouteMap: some View {
-        Map(position: $position) {
+        let coordinates = track.map(\.coordinate)
+        return Map(position: $position) {
             if coordinates.count >= 2 {
                 MapPolyline(coordinates: coordinates)
                     .stroke(AppTheme.fitnessAccent, style: StrokeStyle(lineWidth: 4, lineCap: .round))
@@ -839,24 +852,27 @@ private struct StableMapCard: View {
 
     /// Reframe only when the track has grown meaningfully (first fix, then
     /// every +10 points) so the camera does not jitter with every 1-Hz GPS
-    /// sample. The user can still pan manually — position is only reset on
+    /// sample. A single-point track reframes on every new fix (the seed is
+    /// replaced by a real one), and a track that shrank (replaced) frames
+    /// afresh. The user can still pan manually — position is only reset on
     /// these bulk updates.
-    private func reframe(to newCount: Int) {
-        guard newCount > 0 else { return }
-        let shouldFrame = lastFramedCount == 0
-            || (newCount - lastFramedCount) >= 10
-            || newCount == 1
-        guard shouldFrame else { return }
+    private func reframe() {
+        let newCount = track.count
+        guard newCount > 0, Self.shouldReframe(count: newCount, lastFramed: lastFramedCount) else { return }
         lastFramedCount = newCount
         if newCount >= 2 {
-            position = .region(Self.regionForTrack(coordinates))
-        } else if let last = coordinates.last {
+            position = .region(Self.regionForTrack(track.map(\.coordinate)))
+        } else if let last = track.last?.coordinate {
             position = .region(MKCoordinateRegion(
                 center: last,
                 latitudinalMeters: 200,
                 longitudinalMeters: 200
             ))
         }
+    }
+
+    private static func shouldReframe(count: Int, lastFramed: Int) -> Bool {
+        lastFramed == 0 || count == 1 || count < lastFramed || count - lastFramed >= 10
     }
 
     private static func regionForTrack(_ coordinates: [CLLocationCoordinate2D]) -> MKCoordinateRegion {

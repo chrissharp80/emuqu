@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Services/AmbientLocationService.swift",
- "hash": "4702003cf81a73c0",
+ "hash": "d62b3a4c30e8908e",
  "role": "Singleton low-power (100 m / 50 m filter) foreground CLLocationManager that keeps a lock-guarded cache of the latest fix (own or forwarded from workout/breadcrumb recorders) and the latest resolved road context for the assistant's location tools.",
  "types": [
   "AmbientLocationService: final class NSObject @unchecked Sendable — location cache keeper",
@@ -10,25 +10,10 @@
   "AmbientLocationService.shared singleton",
   "mem:AmbientLocationService._latestLocation",
   "mem:AmbientLocationService._latestRoadContext",
-  "AmbientLocationService._isRunning/_startRequested",
-  "AmbientLocationService.oneShotContinuations"
+  "AmbientLocationService._isRunning/_startRequested"
  ],
  "toplevel": "Manager configured in init: kCLLocationAccuracyHundredMeters, distanceFilter 50, activityType .other, pausesLocationUpdatesAutomatically true.",
- "flags": [
-  {
-   "kind": "race",
-   "sev": "med",
-   "text": "locationManagerDidChangeAuthorization fires once when the manager is created (comment at :72) and, for any non-authorized status including .notDetermined, calls stop(), which clears _startRequested. When the singleton is first touched by start() on a fresh install (GetMeBackView.swift:318), start() sets _startRequested and prompts, then the creation-time .notDetermined callback clears it, so the grant does not begin updates and the ambient cache stays empty until the next foreground startIfAuthorized.",
-   "evidence": [
-    "Emuqu/Sources/Services/AmbientLocationService.swift:112",
-    "Emuqu/Sources/Services/AmbientLocationService.swift:154",
-    "Emuqu/Sources/Services/AmbientLocationService.swift:333",
-    "Emuqu/Sources/Services/AmbientLocationService.swift:334",
-    "Emuqu/Sources/Services/AmbientLocationService.swift:177"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "init AmbientLocationService()",
@@ -348,86 +333,9 @@
    "deps": {}
   },
   {
-   "key": "func AmbientLocationService.currentCoordinate(timeout:)",
-   "hash": "8c1aa970fb94a927",
-   "does": "Returns a cached coordinate up to 6 h old; otherwise, if authorized, starts updates and waits for the next own fix or a timeout (default 6 s) resolving with whatever is cached; nil when unauthorized.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedLocation(maxAgeSec:)",
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.start()",
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.resolveOneShots(with:)"
-   ],
-   "reads": [
-    "mem:AmbientLocationService._latestLocation"
-   ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "cached fix <= 6 h old",
-     "effect": "return it immediately"
-    },
-    {
-     "at": "+3",
-     "cond": "authorized",
-     "effect": "start and wait; otherwise nil"
-    },
-    {
-     "at": "+13",
-     "cond": "this waiter is the first pending",
-     "effect": "schedule the timeout; otherwise rely on the existing one"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No callers anywhere in the repo (grep 'currentCoordinate(' finds only the definition and comments), including tests.",
-     "evidence": [
-      "Emuqu/Sources/Services/AmbientLocationService.swift:289"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Would return a fix up to 6 hours old as the 'current' coordinate, and leaves continuous updates running after the one-shot.",
-     "evidence": [
-      "Emuqu/Sources/Services/AmbientLocationService.swift:290",
-      "Emuqu/Sources/Services/AmbientLocationService.swift:296"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d",
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedLocation(maxAgeSec:)": "888694eec42b438e",
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.resolveOneShots(with:)": "9731642b9afe2556",
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.start()": "69d594849389a52c"
-   }
-  },
-  {
-   "key": "func AmbientLocationService.resolveOneShots(with:)",
-   "hash": "8384fdcb6c44b485",
-   "does": "Removes all pending one-shot continuations under the lock and resumes each with the coordinate (possibly nil).",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+5",
-     "cond": "for each pending waiter",
-     "effect": "resume it exactly once with coord"
-    }
-   ],
-   "flags": [],
-   "deps": {}
-  },
-  {
    "key": "func AmbientLocationService.locationManagerDidChangeAuthorization(_:)",
-   "hash": "b97c0a9bb798d2a0",
-   "does": "On authorization change: if authorized and a start was requested, begins updates; on any other status (including .notDetermined) calls stop(), which clears the request.",
+   "hash": "b05d2e09d7547e45",
+   "does": "On authorization change: if authorized and a start was requested, begins updates; on .notDetermined (reported at manager creation, possibly while start() waits on the prompt) does nothing, keeping the request; on denied/restricted/unknown calls stop(), which clears the request.",
    "entry": "CLLocationManagerDelegate callback (at manager creation and on each authorization change).",
    "calls": [
     "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.beginUpdates()",
@@ -437,29 +345,27 @@
    "writes": [],
    "branches": [
     {
-     "at": "+6",
+     "at": "+9",
      "cond": "authorizedWhenInUse/Always",
-     "effect": "check request; else stop() (clears _startRequested)"
+     "effect": "read the pending request"
     },
     {
-     "at": "+10",
+     "at": "+13",
      "cond": "a start was requested",
-     "effect": "begin updates; otherwise do nothing"
-    }
-   ],
-   "flags": [
+     "effect": "begin updates; otherwise nothing"
+    },
     {
-     "kind": "race",
-     "sev": "med",
-     "text": "stop() on .notDetermined resets _startRequested, so the creation-time callback can cancel a pending start() before the user answers the prompt.",
-     "evidence": [
-      "Emuqu/Sources/Services/AmbientLocationService.swift:333",
-      "Emuqu/Sources/Services/AmbientLocationService.swift:334",
-      "Emuqu/Sources/Services/AmbientLocationService.swift:177"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+14",
+     "cond": ".notDetermined",
+     "effect": "return, request kept"
+    },
+    {
+     "at": "+16",
+     "cond": "any other status",
+     "effect": "stop() (clears _startRequested)"
     }
    ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.beginUpdates()": "2b0a1060c404b782",
     "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.stop()": "c484c284ad06ca32"
@@ -467,12 +373,11 @@
   },
   {
    "key": "func AmbientLocationService.locationManager(_:didUpdateLocations:)",
-   "hash": "e21b7cab62095054",
-   "does": "On new fixes: takes the last, drops it if accuracy <=0 or >=500 m, caches it, resolves one-shot waiters, and triggers a road-name refresh when it was newer.",
+   "hash": "b474509a32858c20",
+   "does": "On new fixes: takes the last, drops it if accuracy <=0 or >=500 m, caches it, and triggers a road-name refresh when it was newer.",
    "entry": "CLLocationManagerDelegate didUpdateLocations.",
    "calls": [
     "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.store(_:)",
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.resolveOneShots(with:)",
     "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.refreshRoadContext(for:)"
    ],
    "reads": [],
@@ -491,7 +396,7 @@
      "effect": "continue; otherwise drop"
     },
     {
-     "at": "+9",
+     "at": "+7",
      "cond": "fix was newer than cache",
      "effect": "refresh road context; otherwise skip"
     }
@@ -499,29 +404,20 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.refreshRoadContext(for:)": "d306e313a123f5dd",
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.resolveOneShots(with:)": "9731642b9afe2556",
     "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.store(_:)": "496561a72d96140e"
    }
   },
   {
    "key": "func AmbientLocationService.locationManager(_:didFailWithError:)",
-   "hash": "a35c15ccc10a3240",
-   "does": "On location error, resolves pending one-shot waiters with the cached coordinate (<=6 h) or nil.",
+   "hash": "82eda86bb3eccefd",
+   "does": "Ignores location errors (common during a poor-fix interlude); the stream keeps running and readers fall back on the cache.",
    "entry": "CLLocationManagerDelegate didFailWithError.",
-   "calls": [
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.resolveOneShots(with:)",
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedLocation(maxAgeSec:)"
-   ],
-   "reads": [
-    "mem:AmbientLocationService._latestLocation"
-   ],
+   "calls": [],
+   "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
-   "deps": {
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedLocation(maxAgeSec:)": "888694eec42b438e",
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.resolveOneShots(with:)": "9731642b9afe2556"
-   }
+   "deps": {}
   }
  ],
  "deps": {}

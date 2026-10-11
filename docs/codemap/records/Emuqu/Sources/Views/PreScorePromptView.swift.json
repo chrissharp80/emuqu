@@ -1,16 +1,14 @@
 {
  "file": "Emuqu/Sources/Views/PreScorePromptView.swift",
- "hash": "9aa028d5b4e986cd",
- "role": "Full-screen three-question subjective check (feeling, soreness, motivation) shown before the morning score reveal; reports answers and a skipped flag to its caller and counts shown/completed/skipped in PreScorePromptTelemetry.",
+ "hash": "51c81af033dc3c9e",
+ "role": "Full-screen subjective check before the morning score reveal: the 1–5 'How are you feeling?' question (the only answer the caller stores, as morningFeeling); reports the answer and a skipped flag to its caller and counts shown/completed/skipped in PreScorePromptTelemetry.",
  "types": [
-  "PreScorePromptView: struct — the questionnaire view",
-  "PreScorePromptView.Answers: struct — three optional answers",
-  "PreScorePromptView.Feeling: enum — terrible…great",
-  "PreScorePromptView.Soreness: enum — aLot/some/none",
-  "PreScorePromptView.Motivation: enum — high/normal/low"
+  "PreScorePromptView: struct — the prompt view",
+  "PreScorePromptView.Answers: struct — the optional feeling answer",
+  "PreScorePromptView.Feeling: enum — terrible…great"
  ],
  "state": [
-  "@State step (0..3+), answers",
+  "@State step (0 = question, 1 = answered), answers",
   "ud:preScorePrompt.telemetry.* (written via PreScorePromptTelemetry)"
  ],
  "toplevel": "",
@@ -97,126 +95,6 @@
    }
   },
   {
-   "key": "var PreScorePromptView.Soreness.emoji",
-   "hash": "bb535713ce0b119b",
-   "does": "Soreness emoji for each case.",
-   "entry": "SwiftUI view-body evaluation",
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "case .aLot",
-     "effect": "returns 😣"
-    },
-    {
-     "at": "+3",
-     "cond": "case .some",
-     "effect": "returns 😬"
-    },
-    {
-     "at": "+4",
-     "cond": "case .none",
-     "effect": "returns 😌"
-    }
-   ],
-   "flags": [],
-   "deps": {}
-  },
-  {
-   "key": "var PreScorePromptView.Soreness.label",
-   "hash": "afcde88114fcb146",
-   "does": "Soreness localized label for each case.",
-   "entry": "SwiftUI view-body evaluation",
-   "calls": [
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "case .aLot",
-     "effect": "returns A lot"
-    },
-    {
-     "at": "+3",
-     "cond": "case .some",
-     "effect": "returns Some"
-    },
-    {
-     "at": "+4",
-     "cond": "case .none",
-     "effect": "returns None"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
-   }
-  },
-  {
-   "key": "var PreScorePromptView.Motivation.emoji",
-   "hash": "b62547ef49fdbce2",
-   "does": "Motivation emoji for each case.",
-   "entry": "SwiftUI view-body evaluation",
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "case .high",
-     "effect": "returns 🔥"
-    },
-    {
-     "at": "+3",
-     "cond": "case .normal",
-     "effect": "returns 😐"
-    },
-    {
-     "at": "+4",
-     "cond": "case .low",
-     "effect": "returns 😴"
-    }
-   ],
-   "flags": [],
-   "deps": {}
-  },
-  {
-   "key": "var PreScorePromptView.Motivation.label",
-   "hash": "7178a2263026018f",
-   "does": "Motivation localized label for each case.",
-   "entry": "SwiftUI view-body evaluation",
-   "calls": [
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "case .high",
-     "effect": "returns High"
-    },
-    {
-     "at": "+3",
-     "cond": "case .normal",
-     "effect": "returns Normal"
-    },
-    {
-     "at": "+4",
-     "cond": "case .low",
-     "effect": "returns Low"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
-   }
-  },
-  {
    "key": "var PreScorePromptView.body",
    "hash": "25bded6b633bb88c",
    "does": "Dark full-screen body with the scrolling prompt content, swipe-dismiss disabled; .task records a 'shown' telemetry count.",
@@ -254,57 +132,34 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.bottomActions": "c09b38162965816f",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.currentQuestion": "e66ceb96d7462055",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.topPills": "45eb811e3cd72bc3"
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.currentQuestion": "22cb13c5e45999f2",
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.topPills": "78fe4db349b5dbad"
    }
   },
   {
    "key": "var PreScorePromptView.topPills",
-   "hash": "7e86da1291aced20",
-   "does": "Answer pills so far, in an HStack, or VStack at accessibility text sizes.",
+   "hash": "eb30f214bf13cf6c",
+   "does": "The feeling pill once answered.",
    "entry": "SwiftUI view-body evaluation",
    "calls": [
     "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.pill(_:)",
     "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Feeling.emoji",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Feeling.label",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Soreness.emoji",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Soreness.label",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Motivation.emoji",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Motivation.label"
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Feeling.label"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+1",
-     "cond": "dynamicTypeSize.isAccessibilitySize",
-     "effect": "vertical stack; else horizontal row"
-    },
-    {
-     "at": "+5",
+     "at": "+2",
      "cond": "feeling answered",
-     "effect": "feeling pill"
-    },
-    {
-     "at": "+6",
-     "cond": "soreness answered",
-     "effect": "soreness pill"
-    },
-    {
-     "at": "+7",
-     "cond": "motivation answered",
-     "effect": "motivation pill"
+     "effect": "pill; else empty row"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.pill(_:)": "e2be35c7f2d9cd15",
     "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Feeling.emoji": "07442697bc53ca6a",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Feeling.label": "be52fba6a65c238c",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Motivation.emoji": "d2e32b46953deed3",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Motivation.label": "cabb45cd1c5cf54a",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Soreness.emoji": "a48633e949884c5b",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Soreness.label": "800c3545ce1fecd8"
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Feeling.label": "be52fba6a65c238c"
    }
   },
   {
@@ -326,45 +181,26 @@
   },
   {
    "key": "var PreScorePromptView.currentQuestion",
-   "hash": "a7f6d1a5381f3447",
-   "does": "Shows the question for the current step.",
+   "hash": "1cd6de05c8976940",
+   "does": "The feeling question at step 0; the 'Logged.' confirmation once answered.",
    "entry": "SwiftUI view-body evaluation",
    "calls": [
     "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.feelingQuestion",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.sorenessQuestion",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.motivationQuestion",
     "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.loggedConfirmation"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+3",
-     "cond": "step 0",
-     "effect": "feeling question"
-    },
-    {
-     "at": "+4",
-     "cond": "step 1",
-     "effect": "soreness question"
-    },
-    {
-     "at": "+5",
-     "cond": "step 2",
-     "effect": "motivation question"
-    },
-    {
-     "at": "+6",
-     "cond": "step >= 3 (default)",
-     "effect": "'Logged.' confirmation"
+     "at": "+1",
+     "cond": "step == 0",
+     "effect": "feeling question; else confirmation"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.feelingQuestion": "ae9cf5c8a7892c5c",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.loggedConfirmation": "389b0178354b21c5",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.motivationQuestion": "9f5a1f2199abbc74",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.sorenessQuestion": "6fdb561602504ac0"
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.loggedConfirmation": "389b0178354b21c5"
    }
   },
   {
@@ -388,46 +224,6 @@
    }
   },
   {
-   "key": "var PreScorePromptView.sorenessQuestion",
-   "hash": "8ce5a66d0c59690d",
-   "does": "'Any soreness?' with the three soreness options.",
-   "entry": "SwiftUI view-body evaluation",
-   "calls": [
-    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.questionScreen(heading:subheading:content:)",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.sorenessOptions",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.questionScreen(heading:subheading:content:)": "db4b6d04dda7ef11",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.sorenessOptions": "850a080ffbdd93f9"
-   }
-  },
-  {
-   "key": "var PreScorePromptView.motivationQuestion",
-   "hash": "3e4263ab5db5ec1b",
-   "does": "'Motivation today?' with the three motivation options.",
-   "entry": "SwiftUI view-body evaluation",
-   "calls": [
-    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.questionScreen(heading:subheading:content:)",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.motivationOptions",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.questionScreen(heading:subheading:content:)": "db4b6d04dda7ef11",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.motivationOptions": "17681f0dbeb2fab4"
-   }
-  },
-  {
    "key": "var PreScorePromptView.feelingOptions",
    "hash": "5c4b04b6683584d3",
    "does": "Grid of five feeling buttons.",
@@ -441,7 +237,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.feelingButton(_:)": "8f823fd7fcabcd44",
+    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.feelingButton(_:)": "b0e7b0a294c78583",
     "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.optionGrid(_:spacing:cell:)": "d64fdc3d3e6c9b3e"
    }
   },
@@ -465,136 +261,26 @@
   },
   {
    "key": "func PreScorePromptView.feelingButton(_:)",
-   "hash": "57ee0a268f7bb336",
-   "does": "Emoji button that stores the feeling, light haptic, advances step.",
+   "hash": "a7e33133684393fe",
+   "does": "Emoji button that stores the feeling, medium haptic (the final answer), advances to the confirmation step.",
    "entry": "Button tap",
    "calls": [
     "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.emojiButton(emoji:label:action:)",
     "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Feeling.emoji",
     "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Feeling.label",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.hapticLight()",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.advance()"
+    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.advance()",
+    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.hapticMedium()"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
-   "deps": {
-    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.advance()": "73984112d26b0973",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.emojiButton(emoji:label:action:)": "4ff26d068ae2a31e",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.hapticLight()": "6a94e1365a7c4e08",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Feeling.emoji": "07442697bc53ca6a",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Feeling.label": "be52fba6a65c238c"
-   }
-  },
-  {
-   "key": "var PreScorePromptView.sorenessOptions",
-   "hash": "b4b933151e45c5a8",
-   "does": "Grid of three soreness buttons.",
-   "entry": "SwiftUI view-body evaluation",
-   "calls": [
-    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.optionGrid(_:spacing:cell:)",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.sorenessButton(_:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.optionGrid(_:spacing:cell:)": "d64fdc3d3e6c9b3e",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.sorenessButton(_:)": "817c8035fe200389"
-   }
-  },
-  {
-   "key": "func PreScorePromptView.sorenessButton(_:)",
-   "hash": "4ad1208c4ad97dc6",
-   "does": "Emoji button that stores soreness, light haptic, advances step.",
-   "entry": "Button tap",
-   "calls": [
-    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.emojiButton(emoji:label:action:)",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Soreness.emoji",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Soreness.label",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.hapticLight()",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.advance()"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "The soreness answer is stored in `answers` and handed to the caller, but RecordView only persists `answers.feeling` as morningFeeling; soreness is discarded (comment there: 'Soreness and motivation are not read anywhere'). Users answer a question whose answer is thrown away; docs describe the prompt as the 1–5 feeling only.",
-     "evidence": [
-      "Emuqu/Sources/Views/PreScorePromptView.swift:219",
-      "Emuqu/Sources/Views/RecordView+Results.swift:95",
-      "Emuqu/Sources/Views/RecordView+Results.swift:101",
-      "docs/USERS_MANUAL.md:112",
-      "docs/FEATURES.md:21"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.advance()": "73984112d26b0973",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.emojiButton(emoji:label:action:)": "4ff26d068ae2a31e",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.hapticLight()": "6a94e1365a7c4e08",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Soreness.emoji": "a48633e949884c5b",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Soreness.label": "800c3545ce1fecd8"
-   }
-  },
-  {
-   "key": "var PreScorePromptView.motivationOptions",
-   "hash": "128fa8222479339c",
-   "does": "Grid of three motivation buttons.",
-   "entry": "SwiftUI view-body evaluation",
-   "calls": [
-    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.optionGrid(_:spacing:cell:)",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.motivationButton(_:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.motivationButton(_:)": "961ece4725a03844",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.optionGrid(_:spacing:cell:)": "d64fdc3d3e6c9b3e"
-   }
-  },
-  {
-   "key": "func PreScorePromptView.motivationButton(_:)",
-   "hash": "0b7adb179c81c1b2",
-   "does": "Emoji button that stores motivation, medium haptic, advances step.",
-   "entry": "Button tap",
-   "calls": [
-    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.emojiButton(emoji:label:action:)",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Motivation.emoji",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Motivation.label",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.hapticMedium()",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.advance()"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "The motivation answer is stored in `answers` but RecordView persists only `answers.feeling`; motivation is discarded, so the third question collects nothing.",
-     "evidence": [
-      "Emuqu/Sources/Views/PreScorePromptView.swift:231",
-      "Emuqu/Sources/Views/RecordView+Results.swift:95",
-      "Emuqu/Sources/Views/RecordView+Results.swift:101"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.advance()": "73984112d26b0973",
     "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.emojiButton(emoji:label:action:)": "4ff26d068ae2a31e",
     "Emuqu/Sources/Views/PreScorePromptView.swift::func PreScorePromptView.hapticMedium()": "71cd21c463f81df3",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Motivation.emoji": "d2e32b46953deed3",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Motivation.label": "cabb45cd1c5cf54a"
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Feeling.emoji": "07442697bc53ca6a",
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Feeling.label": "be52fba6a65c238c"
    }
   },
   {
@@ -666,6 +352,8 @@
    "branches": [],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Feeling.emoji": "07442697bc53ca6a",
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Feeling.label": "be52fba6a65c238c",
     "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059"
    }
   },
@@ -683,14 +371,14 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.showMyScoreSection": "f35609d16f91a578",
-    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.skipThisTimeSection": "2913b1ed2333ffc6"
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.showMyScoreSection": "f7c6cf8fa4fcd4a1",
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.skipThisTimeSection": "8df9947da5e3797a"
    }
   },
   {
    "key": "var PreScorePromptView.showMyScoreSection",
-   "hash": "fd5ffcc74b825197",
-   "does": "After all three answers, 'Show my score' button: records completed telemetry and calls onComplete(answers, false).",
+   "hash": "1afef6bb24c8b0da",
+   "does": "Once the feeling is answered, 'Show my score' button: records completed telemetry and calls onComplete(answers, false).",
    "entry": "SwiftUI view-body evaluation; Button tap",
    "calls": [
     "Emuqu/Sources/Services/PreScorePromptTelemetry.swift::func PreScorePromptTelemetry.recordCompleted()",
@@ -704,25 +392,50 @@
    ],
    "branches": [
     {
-     "at": "+2",
-     "cond": "step >= 3",
+     "at": "+1",
+     "cond": "step >= 1",
      "effect": "shows button; else nothing"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/PreScorePromptTelemetry.swift::func PreScorePromptTelemetry.recordCompleted()": "3db0f10e5d63e1a7",
+    "Emuqu/Sources/Services/PreScorePromptTelemetry.swift::func PreScorePromptTelemetry.recordCompleted()": "5dca8987b7d7563f",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a",
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Feeling.label": "be52fba6a65c238c",
     "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
     "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
    }
   },
   {
    "key": "var PreScorePromptView.skipThisTimeSection",
-   "hash": "524d3169c9713915",
-   "does": "'Skip this time' link: records skipped telemetry and calls onComplete(answers, true) with whatever was answered so far.",
+   "hash": "98ac7028dcd74fff",
+   "does": "The skip link (skipThisTimeButton) only while the question is unanswered; after the answer 'Show my score' is the way on.",
    "entry": "Button tap",
+   "calls": [
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.skipThisTimeButton"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:preScorePrompt.telemetry.skippedCount"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "step == 0",
+     "effect": "link; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.skipThisTimeButton": "02fe134c22356677"
+   }
+  },
+  {
+   "key": "var PreScorePromptView.skipThisTimeButton",
+   "hash": "a37796ad88f8e4ea",
+   "does": "'Skip this time' link: records skipped telemetry and calls onComplete(answers, true) (no answer given).",
+   "entry": null,
    "calls": [
     "Emuqu/Sources/Services/PreScorePromptTelemetry.swift::func PreScorePromptTelemetry.recordSkipped()",
     "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
@@ -730,29 +443,14 @@
     "closure:onComplete → RecordView.preScoreCover"
    ],
    "reads": [],
-   "writes": [
-    "ud:preScorePrompt.telemetry.skippedCount"
-   ],
+   "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Skip stays visible after all three questions are answered (step>=3); tapping it then records a skip in telemetry for a fully answered prompt (completion rate understated), while RecordView ignores the skipped flag and applies the answers exactly as for 'Show my score'.",
-     "evidence": [
-      "Emuqu/Sources/Views/PreScorePromptView.swift:298",
-      "Emuqu/Sources/Views/PreScorePromptView.swift:304",
-      "Emuqu/Sources/Views/PreScorePromptView.swift:326",
-      "Emuqu/Sources/Views/PreScorePromptView.swift:327",
-      "Emuqu/Sources/Views/RecordView.swift:168"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/PreScorePromptTelemetry.swift::func PreScorePromptTelemetry.recordSkipped()": "9e54468cb18e178f",
+    "Emuqu/Sources/Services/PreScorePromptTelemetry.swift::func PreScorePromptTelemetry.recordSkipped()": "85de83b376a89ef9",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a",
+    "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.Feeling.label": "be52fba6a65c238c",
     "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059"
    }
   },
@@ -762,20 +460,6 @@
    "does": "Animates step += 1 (ease-out 0.25 s).",
    "entry": null,
    "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [],
-   "deps": {}
-  },
-  {
-   "key": "func PreScorePromptView.hapticLight()",
-   "hash": "615e952ea69f6680",
-   "does": "Fires a light UIImpactFeedbackGenerator.",
-   "entry": null,
-   "calls": [
-    "ext:UIImpactFeedbackGenerator"
-   ],
    "reads": [],
    "writes": [],
    "branches": [],

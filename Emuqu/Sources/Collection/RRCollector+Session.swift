@@ -4,13 +4,20 @@ import Foundation
 // device-refinement notice, and the archive-changed forwarder.
 
 extension RRCollector {
-    /// Reset current session state for new recording
+    /// Reset current session state for new recording. The last error goes
+    /// too: the Record screen raises its alert when the error changes, so a
+    /// dismissed error left in place hid the same error the next time.
     func resetSession() {
         currentSession = nil
         collectedPoints = []
         verificationResult = nil
         recoveryWindow = nil
         needsAcceptance = false
+        lastError = nil
+        isCollecting = false
+        isStreamingMode = false
+        sessionStartTime = nil
+        sessionState.reviewArchivedSessionId = nil
         recordingPhase = .idle
         baselineDeviation = nil
         isPaused = false

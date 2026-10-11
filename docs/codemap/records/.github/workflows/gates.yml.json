@@ -6,24 +6,8 @@
  "state": [
   "permissions contents: read"
  ],
- "toplevel": "Triggers: push to main, pull_request (all), workflow_dispatch. One job script-gates. Explicitly excluded (by header comment): lint, lint-budget, verify-gates (SwiftLint), check_privacy_manifest_vocabulary (plutil), test-coverage and thread-sanitizer (Xcode). Also absent without being listed: coremotion-isolation-guard, hr-feed-link-guard, release-build. The gate list is a hand-copied subset of Makefile `ci`; check_gates_wired.sh does not audit it.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "med",
-   "text": "gates.yml (the only automatically triggered workflow) claims to run every `make ci` gate that is plain bash/python, listing what it omits and why, but its target lists omit `coremotion-isolation-guard` and `hr-feed-link-guard`, both plain bash scripts with no Xcode/SwiftLint/plutil need. These guard a SIGTRAP crash that lost a recorded walk and an HR-subscribe hang that lost a night; they now run only on manual ci.yml or local `make ci` — the exact gap Makefile:48 says was fixed. gates.yml duplicates the Makefile `ci` list by hand, and check_gates_wired.sh audits only ci.yml, so nothing detects the omission.",
-   "evidence": [
-    ".github/workflows/gates.yml:7-20",
-    ".github/workflows/gates.yml:60",
-    "Makefile:48-53",
-    "Makefile:272",
-    ".github/workflows/ci.yml:273-280",
-    "scripts/check_gates_wired.sh:17",
-    "scripts/check_coremotion_handler_isolation.sh:36-37"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "Triggers: push to main, pull_request (all), workflow_dispatch. One job script-gates. Explicitly excluded (by header comment): lint, lint-budget, verify-gates (SwiftLint), check_privacy_manifest_vocabulary (plutil), test-coverage and thread-sanitizer (Xcode). Also absent without being listed: release-build. The gate list is a hand-copied subset of Makefile `ci`; the header says to add a new plain-bash gate here by hand. Budget ratchet baseline: PR target, else the tip before the push (github.event.before), else HEAD~1, always with BUDGET_REQUIRE_BASELINE=1.",
+ "flags": [],
  "units": [
   {
    "key": "job script-gates",
@@ -183,13 +167,15 @@
   },
   {
    "key": "step script-gates/Source hygiene guards",
-   "hash": "f1bb9f40cb20203c",
-   "does": "`make` of 19 source-hygiene targets (sendable-guard, no-unowned-guard, logger-self-reference-guard, license-header-guard, dated-comment-budget, shared-root-guard, snapshot-refs-guard, empty-range-guard, leaked-mutations-guard, eager-prompt-guard, date-ms-guard, log-redaction-guard, uitest-reset-guard, skip-budget, fixed-font-budget, orphan-swift-guard, aggregate-type-size, comment-citations, strict-concurrency-enabled). Does not include coremotion-isolation-guard or hr-feed-link-guard.",
+   "hash": "52112625deabbfed",
+   "does": "`make` of 21 source-hygiene targets (sendable-guard, no-unowned-guard, logger-self-reference-guard, coremotion-isolation-guard, hr-feed-link-guard, license-header-guard, dated-comment-budget, shared-root-guard, snapshot-refs-guard, empty-range-guard, leaked-mutations-guard, eager-prompt-guard, date-ms-guard, log-redaction-guard, uitest-reset-guard, skip-budget, fixed-font-budget, orphan-swift-guard, aggregate-type-size, comment-citations, strict-concurrency-enabled).",
    "entry": "GitHub Actions step in gates.yml job script-gates (on push to main, every pull_request, and manual dispatch); a failing step fails the job and skips later steps",
    "calls": [
     "Makefile::target sendable-guard",
     "Makefile::target no-unowned-guard",
     "Makefile::target logger-self-reference-guard",
+    "Makefile::target coremotion-isolation-guard",
+    "Makefile::target hr-feed-link-guard",
     "Makefile::target license-header-guard",
     "Makefile::target dated-comment-budget",
     "Makefile::target shared-root-guard",
@@ -210,31 +196,17 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "gates.yml (the only automatically triggered workflow) claims to run every `make ci` gate that is plain bash/python, listing what it omits and why, but its target lists omit `coremotion-isolation-guard` and `hr-feed-link-guard`, both plain bash scripts with no Xcode/SwiftLint/plutil need. These guard a SIGTRAP crash that lost a recorded walk and an HR-subscribe hang that lost a night; they now run only on manual ci.yml or local `make ci` — the exact gap Makefile:48 says was fixed. gates.yml duplicates the Makefile `ci` list by hand, and check_gates_wired.sh audits only ci.yml, so nothing detects the omission.",
-     "evidence": [
-      ".github/workflows/gates.yml:7-20",
-      ".github/workflows/gates.yml:60",
-      "Makefile:48-53",
-      "Makefile:272",
-      ".github/workflows/ci.yml:273-280",
-      "scripts/check_gates_wired.sh:17",
-      "scripts/check_coremotion_handler_isolation.sh:36-37"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Makefile::target aggregate-type-size": "c6dd8f45d377a846",
     "Makefile::target comment-citations": "5d99132a7ed35a3d",
+    "Makefile::target coremotion-isolation-guard": "40fcf69e652a20c7",
     "Makefile::target date-ms-guard": "5d1483cc14f91acf",
     "Makefile::target dated-comment-budget": "4d060a7644646ab1",
     "Makefile::target eager-prompt-guard": "50d14b391de121e4",
     "Makefile::target empty-range-guard": "0ed3afe7ec2b0df1",
     "Makefile::target fixed-font-budget": "f95cc4fa94a7efcb",
+    "Makefile::target hr-feed-link-guard": "870a10aaace9cd4e",
     "Makefile::target leaked-mutations-guard": "4944d2f5b2b6a744",
     "Makefile::target license-header-guard": "5a874a7a5519c7ff",
     "Makefile::target log-redaction-guard": "a395242dcaec5ca7",
@@ -373,62 +345,56 @@
   },
   {
    "key": "step script-gates/Debt budgets ratchet down only",
-   "hash": "7fcf1758e9d4b01a",
-   "does": "Budget ratchet: on a pull_request compares against origin/$GITHUB_BASE_REF (no require flag); otherwise against HEAD~1 with BUDGET_REQUIRE_BASELINE=1; on a root commit prints a message and passes.",
+   "hash": "0e2ce7a25cb5ff6b",
+   "does": "Budget ratchet, always with BUDGET_REQUIRE_BASELINE=1 so a baseline that does not resolve fails the step. On a pull_request compares against origin/$GITHUB_BASE_REF. On a push compares against the tip before the push (github.event.before, passed as PUSH_BEFORE) when it is set, not the null SHA, and resolves to a commit in the checkout, so every commit of a multi-commit push is inside the compared range and the budget-raise-ok trailer scan. Otherwise (dispatch, or a created/forced push whose before-commit is absent) compares against HEAD~1, printing a note when a push's before-commit was unusable; on a root commit prints a message and passes.",
    "entry": "GitHub Actions step in gates.yml job script-gates (on push to main, every pull_request, and manual dispatch); a failing step fails the job and skips later steps",
    "calls": [
     "ext:script scripts/check_budget_monotonicity.sh",
     "scripts/check_budget_monotonicity.sh::fn no_baseline",
     "scripts/check_budget_monotonicity.sh::fn is_allowed",
     "scripts/check_budget_monotonicity.sh::fn is_floor",
-    "scripts/check_budget_monotonicity.sh::fn read_int"
+    "scripts/check_budget_monotonicity.sh::fn read_number",
+    "scripts/check_budget_monotonicity.sh::fn loosens",
+    "scripts/check_budget_monotonicity.sh::fn report_loosened",
+    "scripts/check_budget_monotonicity.sh::fn budget_files"
    ],
    "reads": [
-    "file:.ci/*.txt"
+    "file:.ci/*.txt",
+    "env:github.event.before"
    ],
    "writes": [],
    "branches": [
     {
-     "at": "+3",
-     "cond": "GITHUB_BASE_REF non-empty (pull_request event)",
-     "effect": "compare against origin/<base>; BUDGET_REQUIRE_BASELINE unset, so an unresolvable base makes the script print \"skipping\" and exit 0"
-    },
-    {
      "at": "+5",
-     "cond": "HEAD~1 resolves (push / dispatch)",
-     "effect": "compare against the parent commit with a baseline required; else (root commit) echo and pass without comparing"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "med",
-     "text": "The budget ratchet compares only against the parent commit (HEAD~1). gates.yml runs once per push, so in a push of several commits a budget raised in any commit but the last is never compared; ci.yml is manual-only, so raises in commits between manual runs are never compared either. The `budget-raise-ok` trailer scan (git log BASE..HEAD) has the same one-commit window.",
-     "evidence": [
-      ".github/workflows/gates.yml:81-82",
-      ".github/workflows/ci.yml:124-126",
-      "scripts/check_budget_monotonicity.sh:113"
-     ],
-     "found": "first read, upheld on second"
+     "cond": "GITHUB_BASE_REF non-empty (pull_request event)",
+     "effect": "compare against origin/<base> with a baseline required; an unresolvable base fails"
     },
     {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "On pull_request the script is called without BUDGET_REQUIRE_BASELINE, so if origin/<base> does not resolve the ratchet prints \"skipping\" and exits 0 — the green tick the script's own header says a gate must not give when it could not compare.",
-     "evidence": [
-      ".github/workflows/gates.yml:79-80",
-      "scripts/check_budget_monotonicity.sh:72-83",
-      "scripts/check_budget_monotonicity.sh:108-110"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+7",
+     "cond": "PUSH_BEFORE set, not 40 zeros, and resolves to a commit",
+     "effect": "compare against the tip before the push with a baseline required"
+    },
+    {
+     "at": "+10",
+     "cond": "HEAD~1 resolves (dispatch, or a push whose before-commit is null or absent)",
+     "effect": "compare against the parent commit with a baseline required; prints a note first when PUSH_BEFORE was set (+11)"
+    },
+    {
+     "at": "+15",
+     "cond": "none of the above (root commit)",
+     "effect": "echo and pass without comparing"
     }
    ],
+   "flags": [],
    "deps": {
     "scripts/check_budget_monotonicity.sh::": "23f1134fee90b433",
+    "scripts/check_budget_monotonicity.sh::fn budget_files": "e9f79b449cb7a7c9",
     "scripts/check_budget_monotonicity.sh::fn is_allowed": "a002d0e35987ee73",
     "scripts/check_budget_monotonicity.sh::fn is_floor": "313191d94c7788a1",
+    "scripts/check_budget_monotonicity.sh::fn loosens": "e9f79b449cb7a7c9",
     "scripts/check_budget_monotonicity.sh::fn no_baseline": "4d98f6bae9009dcc",
-    "scripts/check_budget_monotonicity.sh::fn read_int": "f177c3dac57c9863"
+    "scripts/check_budget_monotonicity.sh::fn read_number": "e9f79b449cb7a7c9",
+    "scripts/check_budget_monotonicity.sh::fn report_loosened": "e9f79b449cb7a7c9"
    }
   }
  ],

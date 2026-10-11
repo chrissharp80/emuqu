@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift",
- "hash": "bfe48e16c3b9ee7d",
+ "hash": "86ca976d5682e276",
  "role": "VoiceConversationController TTS side: speak() with output scrub, hallucination guard, 'Flo here. <Model>.' preamble and TTS normalization; permission requests; the voice-coach system prompt; the AVSpeechSynthesizerDelegate that restores state/re-arms listening after speech; barge-in detection and echo wrappers; ConversationVoicePicker for the TTS voice; file-private perimeterScrubbed.",
  "types": [
   "VoiceConversationController: extension — TTS, permissions, system prompt, barge-in",
@@ -19,8 +19,8 @@
  "units": [
   {
    "key": "func VoiceConversationController.speak(_:voice:scripted:)",
-   "hash": "8c5a52e98547f6cd",
-   "does": "Speaks a chunk: picks the override or best voice, runs CoachVoiceGuard scrub then the hallucination guard, adds the one-time 'Flo here. <Model>.' preamble unless scripted or in .triggerSpeaking, normalizes for TTS (English expansions only for English voices) and enqueues via FRSafeSpeak, logging (and dropping) on failure.",
+   "hash": "1c3b8ab0cbe1524e",
+   "does": "Speaks a chunk: picks the override or best voice, runs CoachVoiceGuard scrub then the hallucination guard, adds the one-time 'Flo here. <Model>.' preamble unless scripted or in .triggerSpeaking, normalizes for TTS (English expansions only when the voice that will speak is English: the chosen voice's language, or the device's current language when no voice is chosen and the system default speaks) and enqueues via FRSafeSpeak. On failure it logs, drops the chunk and settles a scripted trigger line that will never get a didFinish (settleUnspokenTriggerLine).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func perimeterScrubbed(_:)",
@@ -29,7 +29,9 @@
     "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.normalize(_:english:)",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.makeUtterance(_:voice:)",
     "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeSpeak",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.settleUnspokenTriggerLine()",
+    "ext:AVSpeechSynthesisVoice.currentLanguageCode"
    ],
    "reads": [
     "mem:VoiceConversationController.bestVoice",
@@ -47,7 +49,7 @@
     {
      "at": "+2",
      "cond": "chosenVoice nil ??",
-     "effect": "english=true (treat as English)"
+     "effect": "the device's current language code decides whether English expansions apply"
     },
     {
      "at": "+7",
@@ -56,8 +58,8 @@
     },
     {
      "at": "+10",
-     "cond": "FRSafeSpeak failed",
-     "effect": "log warning, chunk silently skipped (no didFinish will come for it)"
+     "cond": "FRSafeSpeak succeeded",
+     "effect": "return; else log warning, chunk skipped, settleUnspokenTriggerLine()"
     },
     {
      "at": "+11",
@@ -65,45 +67,47 @@
      "effect": "'?'"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "med",
-     "text": "When FRSafeSpeak fails for a scripted trigger line (playSpokenTriggerNow), no didStart/didFinish delegate call ever comes and the silence timer has already been invalidated. State stays .triggerSpeaking with preemptedState set and the mic not listening. toggle() ignores .triggerSpeaking taps, so the talk button does nothing until stop() or another trigger arrives.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift:55",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift:57",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift:433",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift:437",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift:438",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift:24",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift:406"
-     ],
-     "found": "second read"
-    },
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "english defaults to true when no voice is chosen (bestVoice nil until the detached lookup lands). The system default voice therefore gets English spoken-form expansions ('zone one', 'per minute') applied to non-English text for the first chunks of a session.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift:46",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift:47",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift:52",
-      "Emuqu/Sources/Assistant/VoiceConversationController.swift:495"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.normalize(_:english:)": "6d0bc9e51bb0b30f",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.bestVoice(for:)": "85014ab958e8c3aa",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.announced(_:)": "ce20410284e62cc7",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.applyHallucinationGuard(to:)": "cec472cd370263df",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.makeUtterance(_:voice:)": "5c1172247f2a4d40",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.settleUnspokenTriggerLine()": "7767f600da05c81b",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func perimeterScrubbed(_:)": "888659b798b8a97a",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::let VoiceConversationController.synthesizer": "a2b4f383513d2c85",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.state": "1a896ccc8ae2dce3",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
     "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeSpeak": "7d8b80467768d419"
+   }
+  },
+  {
+   "key": "func VoiceConversationController.settleUnspokenTriggerLine()",
+   "hash": "8692c80415c7426d",
+   "does": "After speak failed to queue a line: if the state is .triggerSpeaking, no interjection llmTask is running and the synthesizer is silent (so no didFinish is coming), calls finishTriggerSpeech to play the next queued trigger or restore the pre-trigger state; otherwise does nothing (an interjection is settled by finishInterjection, a reply chunk by the reply's own finish).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.finishTriggerSpeech()"
+   ],
+   "reads": [
+    "mem:VoiceConversationController.state",
+    "mem:VoiceConversationController.llmTask",
+    "mem:VoiceConversationController.synthesizer"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "not .triggerSpeaking, llmTask set, or synthesizer still speaking",
+     "effect": "return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.finishTriggerSpeech()": "94eb1c412099ec29",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::let VoiceConversationController.synthesizer": "a2b4f383513d2c85",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.state": "1a896ccc8ae2dce3"
    }
   },
   {
@@ -168,6 +172,7 @@
    "branches": [],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::let VoiceConversationController.synthesizer": "a2b4f383513d2c85",
     "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeStopSpeaking": "962b6642341b1aa4"
    }
   },
@@ -424,6 +429,7 @@
     "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.reset()": "a226667027d63c39",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.scheduleListeningRestartAfterStop()": "e79fe179f2345d53",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.cancelAssistantObservers()": "e52ce7610c1a76ac",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::let VoiceConversationController.synthesizer": "a2b4f383513d2c85",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.state": "1a896ccc8ae2dce3",
     "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeStopSpeaking": "962b6642341b1aa4"
    }
@@ -783,14 +789,15 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.finishResponseSpeech()": "a38ffc2b914175af",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.finishTriggerSpeech()": "43bb5e173a49033e",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.finishTriggerSpeech()": "94eb1c412099ec29",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::let VoiceConversationController.synthesizer": "a2b4f383513d2c85",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.state": "1a896ccc8ae2dce3"
    }
   },
   {
    "key": "func VoiceConversationController.finishTriggerSpeech()",
-   "hash": "c739cd59e42bce0c",
-   "does": "After a trigger line: drains the next pending trigger if any; otherwise restores the pre-trigger state — re-listen after audio drain if it was listening/speaking, else .idle.",
+   "hash": "a9f0858b61ffa18d",
+   "does": "After a trigger line: drains the next pending trigger if any; otherwise restores the pre-trigger state — re-listen after audio drain if it was listening, speaking, or another trigger's line that was about to hand back to listening (.triggerSpeaking), else .idle.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.drainPendingTriggersIfIdle()",
@@ -817,7 +824,7 @@
     },
     {
      "at": "+8",
-     "cond": "prior listening/speaking",
+     "cond": "prior listening/speaking/triggerSpeaking",
      "effect": "scheduleListenAfterAudioDrain; else state=.idle (a prior .starting also lands in .idle)"
     }
    ],
@@ -919,6 +926,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.beginUserTurn()": "8c08834f652e4360",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::let VoiceConversationController.synthesizer": "a2b4f383513d2c85",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.state": "1a896ccc8ae2dce3"
    }
   },
@@ -979,6 +987,7 @@
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.interrupt()": "cf7cc8dcfee07493",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.isLikelyEchoOfCurrentResponse(_:)": "3cb41c65f70415dc",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.wordCount(_:)": "b77fc07e1bc6624d",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::let VoiceConversationController.synthesizer": "a2b4f383513d2c85",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.state": "1a896ccc8ae2dce3",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
@@ -1014,7 +1023,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isEchoOfInFlightResponse(candidate:streamedSoFar:)": "569fcd25ef98ac93"
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isEchoOfInFlightResponse(candidate:streamedSoFar:)": "bbee34932109b719"
    }
   },
   {
@@ -1039,7 +1048,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.assistantViewModel": "0b0ba54c8303a4e2",
-    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.looksLikeEcho(transcript:ofLastAssistantTurn:)": "06713db8abf01b3c"
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.looksLikeEcho(transcript:ofLastAssistantTurn:)": "e0dd4d7d1810a74c"
    }
   },
   {
@@ -1060,23 +1069,25 @@
   },
   {
    "key": "func ConversationVoicePicker.preferredLanguage()",
-   "hash": "85aeb48c9b8a7be1",
-   "does": "Returns 'en-US' when forceAIEnglish is set, else Locale.current's maximal language identifier.",
+   "hash": "e46dcff2d1e93011",
+   "does": "Returns 'en-US' when forceAIEnglish is set, else the app language's (LanguageManager.appLocale) maximal identifier — the language the recognizer listens in and the AI replies in.",
    "entry": null,
    "calls": [],
    "reads": [
-    "mem:SettingsManager.settings.forceAIEnglish"
+    "mem:SettingsManager.settings.forceAIEnglish",
+    "mem:LanguageManager.appLocale"
    ],
    "writes": [],
    "branches": [
     {
      "at": "+3",
      "cond": "forceEnglish ?:",
-     "effect": "'en-US'; else device locale maximalIdentifier (not the in-app language)"
+     "effect": "'en-US'; else app locale maximalIdentifier"
     }
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
    }
@@ -1121,9 +1132,9 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.bestInstalledVoice(matching:)": "8d71e407667420c8",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.bestInstalledVoice(matching:)": "19269390918186d9",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.logged(_:)": "949fbe62262f8989",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.preferredLanguage()": "ea6835feabb52174"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.preferredLanguage()": "fe566c7c1ee67a2b"
    }
   },
   {
@@ -1152,45 +1163,83 @@
   },
   {
    "key": "func ConversationVoicePicker.bestInstalledVoice(matching:)",
-   "hash": "3c8921ee0f0030a4",
-   "does": "Filters installed voices by language prefix, excluding novelty and personal voices, and returns the highest quality one preferring non-'.compact.' identifiers.",
+   "hash": "1fb5a8d0555aa704",
+   "does": "Keeps installed voices of the same language (language code after expanding both tags), excluding novelty and personal voices, and returns the one ranked highest by rank(_:for:): script match, then region match, then quality, then non-'.compact.'.",
    "entry": null,
    "calls": [
     "ext:AVSpeechSynthesisVoice.speechVoices",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::init ConversationVoicePicker.VoiceLanguage(_:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.rank(_:for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "voice language differs, novelty or personal voice",
+     "effect": "excluded"
+    },
+    {
+     "at": "+7",
+     "cond": "no candidates",
+     "effect": "max returns nil; ties keep the first candidate"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.preferredLanguage()": "fe566c7c1ee67a2b",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.rank(_:for:)": "3e1e04583dbb1796",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::init ConversationVoicePicker.VoiceLanguage(_:)": "fb2dabf08ef36fba"
+   }
+  },
+  {
+   "key": "func ConversationVoicePicker.rank(_:for:)",
+   "hash": "142047db2940b348",
+   "does": "Sort key for a candidate voice against the wanted language: (same script, same region, quality rank, not compact), each larger-is-better, compared as a tuple.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::init ConversationVoicePicker.VoiceLanguage(_:)",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.qualityRank(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+1",
-     "cond": "no '-' prefix ??",
-     "effect": "'en'"
+     "at": "+3",
+     "cond": "script equal ?:",
+     "effect": "1 else 0"
     },
     {
-     "at": "+10",
-     "cond": "quality differs",
-     "effect": "higher rank first; else non-compact first"
-    }
-   ],
-   "flags": [
+     "at": "+4",
+     "cond": "region equal ?:",
+     "effect": "1 else 0"
+    },
     {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Candidates match on the language prefix only and are ranked by quality, ignoring region and script. For a zh-Hans-CN (Mandarin) device a higher-quality zh-HK (Cantonese) or zh-TW voice can be picked, and for en-US an en-GB/en-AU premium voice beats an en-US enhanced one.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift:635",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift:637",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift:641",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift:644"
-     ],
-     "found": "second read"
+     "at": "+6",
+     "cond": "identifier contains '.compact.' ?:",
+     "effect": "0 else 1"
     }
    ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.preferredLanguage()": "ea6835feabb52174",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.qualityRank(_:)": "43011858c7bdfb2b"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.qualityRank(_:)": "43011858c7bdfb2b",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::init ConversationVoicePicker.VoiceLanguage(_:)": "fb2dabf08ef36fba"
    }
+  },
+  {
+   "key": "init ConversationVoicePicker.VoiceLanguage(_:)",
+   "hash": "1ebbd9ed4b04cdd7",
+   "does": "Expands a BCP-47 tag to its maximal form (likely script and region added, e.g. zh-HK → zh-Hant-HK, en → en-Latn-US) and stores its language code, script and region identifiers.",
+   "entry": null,
+   "calls": [
+    "ext:Locale.Language.init(identifier:)",
+    "ext:Locale.Language.maximalIdentifier"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "func ConversationVoicePicker.qualityRank(_:)",

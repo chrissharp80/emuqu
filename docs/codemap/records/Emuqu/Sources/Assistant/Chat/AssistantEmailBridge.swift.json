@@ -14,29 +14,6 @@
  "flags": [],
  "units": [
   {
-   "key": "var AssistantEmailDraft.recipient",
-   "hash": "0a60a89d8b0d6227",
-   "does": "Returns recipients.first.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "`recipient` computed property has no reader (grep 'draft.recipient' none; EmuquApp.swift:383 uses draft.recipients).",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Chat/AssistantEmailBridge.swift:40",
-      "Emuqu/EmuquApp.swift:383"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
-  },
-  {
    "key": "init AssistantEmailDraft(subject:body:recipients:ccRecipients:attachmentURL:)",
    "hash": "5ad75d397ca18c8f",
    "does": "Memberwise init with recipients array, cc default [], attachment default nil.",

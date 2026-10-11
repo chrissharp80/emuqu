@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Collection/WorkoutLocationManager.swift",
- "hash": "207abc2c3d215df8",
+ "hash": "659e7eaf0c14ec5a",
  "role": "CoreLocation + CMAltimeter wrapper for workout GPS: requests When-In-Use auth, streams fixes with accuracy/jitter gates into a track and GPS distance, tracks pause steps, buffers barometric altitude samples and keeps a live elevation gain/loss estimate; forwards newest fix to AmbientLocationService.",
  "types": [
   "WorkoutLocationManager: class (@Observable, @MainActor, NSObject) — workout GPS/barometer state",
@@ -20,34 +20,11 @@
   "mem:WorkoutLocationManager.lastHorizontalAccuracy",
   "mem:WorkoutLocationManager.barometerAvailable",
   "mem:WorkoutLocationManager.barometricSamples",
-  "private: manager (CLLocationManager), altimeter (CMAltimeter), liveAltitudeReference, lastJitterLogAt, barometricStartOffset, lastRawBarometricAltitude, pausedAltitudeShift, trackSeededByRejectedFix",
-  "constants: accuracyThresholdMeters 65, minimumMovementMeters 3.5, accuracyNoiseMultiplier 1.5, minimumElevationChangeMeters 1.0 (unused), liveSustainedClimbThresholdMeters 3.0"
+  "private: manager (CLLocationManager), altimeter (CMAltimeter), liveAltitudeReference, lastJitterLogAt, lastRawBarometricAltitude, pausedAltitudeShift, trackSeededByRejectedFix",
+  "constants: accuracyThresholdMeters 65, minimumMovementMeters 3.5, accuracyNoiseMultiplier 1.5, liveSustainedClimbThresholdMeters 3.0"
  ],
- "toplevel": "Header comment (lines 8-21) says the manager uses While-Using only with \"no backgrounding trickery\" and does not attempt background execution, but configureManagerForBackgroundTracking sets allowsBackgroundLocationUpdates=true (line 213). minimumElevationChangeMeters (line 89) is declared and never used; barometricStartOffset is written (lines 287, 315) and never read anywhere in the repo. Created lazily by WorkoutRecorder.location (WorkoutRecorder.swift:156).",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "File header says While-Using only, no background execution beyond the natural while-using lifetime, while startTracking enables allowsBackgroundLocationUpdates and the background indicator.",
-   "evidence": [
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift:8",
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift:20",
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift:213"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "minimumElevationChangeMeters (1.0) is never referenced and barometricStartOffset is written but never read (grep across repo), so their doc comments describe behaviour that does not exist.",
-   "evidence": [
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift:89",
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift:119",
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift:287"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "Header comment describes While-Using authorization plus the location background mode (startTracking turns on allowsBackgroundLocationUpdates and the indicator) and that updates end when tracking stops. Created lazily by WorkoutRecorder.location (WorkoutRecorder.swift:156).",
+ "flags": [],
  "units": [
   {
    "key": "var WorkoutLocationManager.isPaused",
@@ -117,7 +94,7 @@
   {
    "key": "func WorkoutLocationManager.startTracking()",
    "hash": "802d84139d56b4ce",
-   "does": "If authorized: clears startsWhenAuthorized, wipes all state (resetState, which also clears isPaused), sets isTracking, configures background location, startUpdatingLocation and starts barometric updates, with step debug logs. If not authorized: sets startsWhenAuthorized only when status is .notDetermined, requests auth and returns (denied/restricted silently records no GPS). Called deferred from WorkoutSessionLifecycle.deferLocationTrackingStart (WorkoutRecorder+Start.swift:501) and from startIfAuthorizedWhileWaiting.",
+   "does": "If authorized: clears startsWhenAuthorized, wipes all state (resetState, which also clears isPaused), sets isTracking, configures background location, startUpdatingLocation and starts barometric updates, with step debug logs. If not authorized: sets startsWhenAuthorized only when status is .notDetermined, requests auth and returns (denied/restricted silently records no GPS). Called deferred from WorkoutSessionLifecycle.deferLocationTrackingStart, which skips it once the workout stopped and re-applies a pause taken meanwhile, and from startIfAuthorizedWhileWaiting, which also restores the pause.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
@@ -145,25 +122,12 @@
      "effect": "records whether to start after the prompt (only if notDetermined), requests auth, returns without tracking; otherwise proceeds to reset and start"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "startTracking runs from a deferred Task after the phase is already .recording and unconditionally resetState() (isPaused=false). A pause issued between workout start and the deferred task running leaves the location manager unpaused while the lifecycle is paused, so fixes in that window count as workout distance.",
-     "evidence": [
-      "Emuqu/Sources/Collection/WorkoutLocationManager.swift:187",
-      "Emuqu/Sources/Collection/WorkoutLocationManager.swift:311",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:499",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:735"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.configureManagerForBackgroundTracking()": "1744863de5d3a812",
     "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.isAuthorized(_:)": "2129e3a1af5eca36",
     "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.requestAuthorization()": "441b0d2dd6e7fb60",
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.resetState()": "970a6946678b3ead",
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.resetState()": "a5016e6af12b062e",
     "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.startBarometricAltitudeUpdates()": "7c3078fdcc672c8d",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
@@ -264,14 +228,14 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.advanceLiveAltitudeRun(current:)": "81ae6e3895f4342b",
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.advanceLiveAltitudeRun(current:)": "445eda5c86d1d880",
     "Emuqu/Sources/Collection/WorkoutLocationManager.swift::var WorkoutLocationManager.isPaused": "a04085e73532b1d4"
    }
   },
   {
    "key": "func WorkoutLocationManager.advanceLiveAltitudeRun(current:)",
-   "hash": "130ebda93d3e9887",
-   "does": "Deadband accumulator: first sample seeds liveAltitudeReference (and barometricStartOffset); later, once |current-reference| >= 3 m, the whole move is added to elevationGainMeters or elevationLossMeters and reference moves to current.",
+   "hash": "552566fb5fdbf202",
+   "does": "Deadband accumulator: first sample seeds liveAltitudeReference; later, once |current-reference| >= 3 m, the whole move is added to elevationGainMeters or elevationLossMeters and reference moves to current.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -283,15 +247,15 @@
     {
      "at": "+1",
      "cond": "no reference yet",
-     "effect": "seeds reference/start offset and returns"
+     "effect": "seeds the reference and returns"
     },
     {
-     "at": "+8",
+     "at": "+7",
      "cond": "|move| < 3 m",
      "effect": "returns without banking"
     },
     {
-     "at": "+9",
+     "at": "+8",
      "cond": "move > 0",
      "effect": "adds to gain; else adds -move to loss"
     }
@@ -315,13 +279,13 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.resetState()": "970a6946678b3ead"
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.resetState()": "a5016e6af12b062e"
    }
   },
   {
    "key": "func WorkoutLocationManager.resetState()",
-   "hash": "4a9528fdaf919ba6",
-   "does": "Clears currentLocation, distance, pause flag (didSet may insert a gap into the old trackPauses first), trackPauses, elevation gain/loss, barometric references/shift/buffer, jitter log time, track and the seeded flag.",
+   "hash": "323d303041edaf12",
+   "does": "Clears currentLocation, distance, pause flag (didSet may insert a gap into the old trackPauses first), trackPauses, elevation gain/loss, live altitude reference, raw barometric reading/paused shift/buffer, jitter log time, track and the seeded flag.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -343,8 +307,8 @@
   },
   {
    "key": "func WorkoutLocationManager.ingest(location:)",
-   "hash": "cce847da8b16f29e",
-   "does": "Per-fix ingest: records lastHorizontalAccuracy; unusable fixes only seed an empty track; the first usable fix after a rejected seed replaces the track; otherwise credits movement from the previous fix (or appends the first fix); finally sets currentLocation (even when movement was rejected as jitter).",
+   "hash": "fe1e0838d0cb3667",
+   "does": "Per-fix ingest, only while tracking (a batch hopped to the main actor after stopTracking is dropped): records lastHorizontalAccuracy; unusable fixes only seed an empty track; the first usable fix after a rejected seed replaces the track; otherwise credits movement from the previous fix (or appends the first fix); finally sets currentLocation (even when movement was rejected as jitter).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.isUsableFix(_:threshold:)",
@@ -352,6 +316,7 @@
     "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.creditMovement(from:to:)"
    ],
    "reads": [
+    "mem:WorkoutLocationManager.isTracking",
     "mem:WorkoutLocationManager.track"
    ],
    "writes": [
@@ -361,35 +326,27 @@
    ],
    "branches": [
     {
-     "at": "+2",
+     "at": "+1",
+     "cond": "not tracking",
+     "effect": "returns, fix ignored"
+    },
+    {
+     "at": "+3",
      "cond": "fix fails accuracy gate",
      "effect": "seedTrackIfEmpty and return"
     },
     {
-     "at": "+6",
+     "at": "+7",
      "cond": "track holds only a rejected seed fix",
      "effect": "track = [location], clears seed flag (no distance credited)"
     },
     {
-     "at": "+10",
+     "at": "+11",
      "cond": "track has a previous fix",
      "effect": "creditMovement from it; else (empty track) appends the fix"
     }
    ],
-   "flags": [
-    {
-     "kind": "race",
-     "sev": "low",
-     "text": "ingest has no isTracking check and fixes arrive via an unstructured MainActor Task per delegate callback (line 444); a batch delivered just before stopTracking() is ingested after it, appending to track/distanceMeters after the workout's stop (finalize reads location.track/distance after stopTracking, WorkoutRecorder+Stop.swift:129) or after reset(), leaving a stale currentLocation/track.",
-     "evidence": [
-      "Emuqu/Sources/Collection/WorkoutLocationManager.swift:325",
-      "Emuqu/Sources/Collection/WorkoutLocationManager.swift:444",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift:129",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift:233"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.creditMovement(from:to:)": "8b5f2a552ecd28fc",
     "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.isUsableFix(_:threshold:)": "9d9733b8dcd228c8",
@@ -575,7 +532,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.ingest(location:)": "95b30dc7cd7e0bec",
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.ingest(location:)": "10688290e98762e7",
     "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.record(_:)": "b4d57ad4cd3b8570",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
    }
@@ -630,7 +587,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.isAuthorized(_:)": "2129e3a1af5eca36",
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.startTracking()": "e11eaf31eee2adf6",
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.startTracking()": "fe48bf543867c029",
     "Emuqu/Sources/Collection/WorkoutLocationManager.swift::var WorkoutLocationManager.isPaused": "a04085e73532b1d4"
    }
   },
@@ -648,25 +605,26 @@
   },
   {
    "key": "func WorkoutLocationManager.locationManager(_:didFailWithError:)",
-   "hash": "21135142a1fa08ea",
-   "does": "CLLocationManagerDelegate didFailWithError: ignores every error (including kCLErrorDenied), so GPS distance just stops advancing with no user signal.",
+   "hash": "bd1189c296559c29",
+   "does": "CLLocationManagerDelegate didFailWithError: ignores the transient .locationUnknown; logs any other error (denied permission, failed service) at warning level. GPS distance simply stops advancing either way.",
    "entry": "CoreLocation delegate callback didFailWithError",
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
    "reads": [],
    "writes": [],
-   "branches": [],
-   "flags": [
+   "branches": [
     {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "All location errors are discarded with no log, so a revoked permission or persistent failure mid-workout leaves no trace in diagnostics.",
-     "evidence": [
-      "Emuqu/Sources/Collection/WorkoutLocationManager.swift:485"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+1",
+     "cond": "error is CLError.locationUnknown",
+     "effect": "return silently; else log"
     }
    ],
-   "deps": {}
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
   }
  ],
  "deps": {}

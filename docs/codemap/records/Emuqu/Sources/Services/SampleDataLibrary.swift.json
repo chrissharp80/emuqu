@@ -87,8 +87,8 @@
   },
   {
    "key": "func SampleDataLibrary.load(nights:progress:)",
-   "hash": "868d9dd49298388a",
-   "does": "Seeds sample nights: refuses when busy, records the prior settings baseline once, runs DemoSessionSeeder.seed with nightPlans(now), the app pipeline and finalize; throws noOpenNights when none written, else appends ids to ledger, notifies archive change and returns count. Any error rebuilds the baseline and rethrows.",
+   "hash": "7ff8fa4b72624016",
+   "does": "Seeds sample nights: refuses when busy, records the prior settings baseline once, runs DemoSessionSeeder.seed with nightPlans(now), the app pipeline and finalize; throws noOpenNights when none written, else appends ids to ledger, notifies archive change and returns count. Any error runs undoFailedSeed (baseline rebuilt, settings baseline restored, empty ledger dropped) and rethrows.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.recordPriorBaselineIfNeeded()",
@@ -98,7 +98,7 @@
     "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.finalize(_:)",
     "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.appendToLedger(_:)",
     "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()",
-    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.rebuildBaseline()"
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.undoFailedSeed()"
    ],
    "reads": [
     "mem:SampleDataLibrary.isBusy",
@@ -120,41 +120,57 @@
     {
      "at": "+13",
      "cond": "seed returned no ids",
-     "effect": "throw .noOpenNights (caught at 77 → baseline rebuilt, rethrown)"
+     "effect": "throw .noOpenNights (caught → undoFailedSeed, rethrown)"
     },
     {
      "at": "+17",
      "cond": "any error from seed or noOpenNights",
-     "effect": "catch: rebuildBaseline from archive then rethrow to SampleDataModel"
+     "effect": "catch: undoFailedSeed then rethrow to SampleDataModel"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "If seeding fails after finalize ran (writeAll throws and rolls back), finalize's BaselineTracker.update calls have already pushed sample-derived baselineRMSSD/HR into settings via onBaselineUpdated. The catch only rebuilds the tracker; with <3 real nights the rebuild never notifies, and restoreSettingsBaselineIfNeeded is only called from remove(). No sample entries or ledger ids remain, so isPresent is false and remove is never offered: the settings baseline (used as the ANS fallback) keeps synthetic values.",
-     "evidence": [
-      "Emuqu/Sources/Services/SampleDataLibrary.swift:77",
-      "Emuqu/Sources/Services/SampleDataLibrary.swift:78",
-      "Emuqu/Sources/Services/SampleDataLibrary.swift:126",
-      "Emuqu/Sources/Services/SampleDataLibrary.swift:153",
-      "Emuqu/Sources/Services/DemoSessionSeeder.swift:231",
-      "Emuqu/Sources/Analysis/BaselineTracker.swift:469",
-      "Emuqu/Sources/Collection/RRCollector.swift:647",
-      "Emuqu/Sources/Collection/RRCollector.swift:486"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "1c38f37d10093863",
     "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.nightPlans(count:now:calendar:)": "415ae79c57f4d3b9",
-    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.seed(_:into:pipeline:finalize:progress:)": "89d778009ae4ee09",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.seed(_:into:pipeline:finalize:progress:)": "6289abf541e92267",
     "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.appendToLedger(_:)": "8078e3e5f74e2bd0",
     "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.finalize(_:)": "6abef58bcb1949a0",
-    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.rebuildBaseline()": "ef07f3c23fba93ba",
     "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.recordPriorBaselineIfNeeded()": "a8448850006885d8",
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.undoFailedSeed()": "292424e75b25c07d",
     "Emuqu/Sources/Services/SampleDataLibrary.swift::var SampleDataLibrary.pipeline": "c6fdbcd680c543f2"
+   }
+  },
+  {
+   "key": "func SampleDataLibrary.undoFailedSeed()",
+   "hash": "01c04d887312e7d0",
+   "does": "After a failed seed: rebuilds the baseline tracker from the archive, restores the settings baseline recorded before the first load when the tracker has no valid baseline (restoreSettingsBaselineIfNeeded), and removes the ledger when it lists no sample nights so the next load records the prior baseline again.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.rebuildBaseline()",
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.restoreSettingsBaselineIfNeeded()",
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.loadLedger()"
+   ],
+   "reads": [
+    "ud:sampleData.ledger.v1"
+   ],
+   "writes": [
+    "ud:sampleData.ledger.v1",
+    "mem:BaselineTracker baseline points",
+    "mem:UserSettings.baselineRMSSD/baselineHR"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "ledger lists sample nights",
+     "effect": "keep it; else remove it"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.loadLedger()": "6c7b21808d1824df",
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.rebuildBaseline()": "ef07f3c23fba93ba",
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.restoreSettingsBaselineIfNeeded()": "dc72d244a9783b94",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.sessionIds(indexedSince:)": "9881e57fec097721"
    }
   },
   {
@@ -228,15 +244,14 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)": "3d630ccb9de1838f",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)": "39b522c63ba99f84",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
     "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.computeRecoveryScore(for:from:)": "b6f0ec9cba482ce9",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.scoringBaselineStats(for:)": "f465e8f605f0556c",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)": "7aa853f03a8994f8",
     "Emuqu/Sources/Services/SampleDataLibrary.swift::var SampleDataLibrary.sampleNote": "d8c4dbbbffd9d72e",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)": "a16adf8d0bc63625",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "245c2d41dcd0a692"
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)": "ef2cf4065b8aca0b"
    }
   },
   {

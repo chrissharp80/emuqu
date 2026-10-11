@@ -164,7 +164,7 @@
     "Emuqu/Sources/Views/Record/MorningProcessingCard.swift::func MorningProcessingCard.deviceRowIcon(for:)": "1ac9ab9e2c7d6802",
     "Emuqu/Sources/Views/Record/MorningProcessingCard.swift::func MorningProcessingCard.deviceRowValue(for:)": "af9b1efce113f852",
     "Emuqu/Sources/Views/Record/MorningProcessingCard.swift::func MorningProcessingCard.formattedStreamedValue(for:)": "0b2a32d251bd4dfa",
-    "Emuqu/Sources/Views/Record/MorningProcessingCard.swift::func MorningProcessingCard.sourceLabel(for:)": "aba5ceb1eb716975"
+    "Emuqu/Sources/Views/Record/MorningProcessingCard.swift::func MorningProcessingCard.sourceLabel(for:)": "4fd632cc603bfb5d"
    }
   },
   {
@@ -544,11 +544,11 @@
   },
   {
    "key": "func MorningProcessingCard.sourceLabel(for:)",
-   "hash": "0391c6edaf559afb",
-   "does": "Maps the raw data-source tag of analyzing/complete to a localized label; unknown tags give nil so no untranslated row is shown.",
+   "hash": "1ca9bebbc31cf113",
+   "does": "For analyzing/complete, the shared AppTheme.dataSourceLabel wording ('Streamed + Strap' / 'Strap' / 'Streamed') for the three known raw tags; unknown tags and the other states give nil so no untranslated row is shown.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.dataSourceLabel(_:)"
    ],
    "reads": [],
    "writes": [],
@@ -559,38 +559,17 @@
      "effect": "nil"
     },
     {
-     "at": "+3",
-     "cond": ".analyzing/.complete",
-     "effect": "switches on source string"
-    },
-    {
-     "at": "+5",
-     "cond": "source == \"composite\"",
-     "effect": "'Streamed + Strap'"
-    },
-    {
-     "at": "+6",
-     "cond": "source == \"internal\"",
-     "effect": "'Strap'"
-    },
-    {
      "at": "+7",
-     "cond": "source == \"streaming\"",
-     "effect": "'Streamed'"
-    },
-    {
-     "at": "+10",
-     "cond": "default",
-     "effect": "nil (row omitted)"
+     "cond": "source is composite/internal/streaming",
+     "effect": "shared label; else nil"
     }
    ],
    "flags": [
     {
      "kind": "duplicate",
      "sev": "low",
-     "text": "Third mapping of the raw data-source tag to display text, with different wording from the others: here 'Streamed + Strap'/'Strap'/'Streamed', RecoveryScoreDetailView 'Merged'/'Strap recording'/'Streaming', SessionMetadata.DataSourceSummary.description a sentence per tag. The same night's source is named differently on the processing card and the score detail screen.",
+     "text": "The processing card now uses the shared AppTheme.dataSourceLabel wording (as the morning report's data-source card does), but RecoveryScoreDetailView+Panels.sourceLabel ('Merged'/'Strap recording'/'Streaming') and SessionMetadata.DataSourceSummary.description still name the same tag differently. Handoff b23: RecoveryScoreDetailView+Panels to call AppTheme.dataSourceLabel.",
      "evidence": [
-      "Emuqu/Sources/Views/Record/MorningProcessingCard.swift:246",
       "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift:252",
       "Emuqu/Sources/Models/SessionMetadata.swift:348"
      ],
@@ -598,7 +577,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.dataSourceLabel(_:)": "77f71fa6e29ea673"
    }
   },
   {

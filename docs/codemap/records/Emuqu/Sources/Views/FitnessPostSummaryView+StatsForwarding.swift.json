@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift",
  "hash": "911d1ecb6ba1fdf6",
- "role": "Forwarders from FitnessPostSummaryView to WorkoutStatsCards (charts, elevation, HRR banner/card, best split) built per access from the current session, settings and track.",
+ "role": "Forwarders from FitnessPostSummaryView to WorkoutStatsCards (charts, elevation, HRR banner/card) built per access from the current session, settings and track, plus the best-split headline computed from the resolved splits.",
  "types": [
   "FitnessPostSummaryView: extension — WorkoutStatsCards forwarders"
  ],
@@ -29,46 +29,37 @@
   },
   {
    "key": "var FitnessPostSummaryView.bestSplitDisplay",
-   "hash": "53d0ffe543758282",
-   "does": "Forwards to WorkoutStatsCards.bestSplitDisplay.",
+   "hash": "d5b07fabd37e5fbe",
+   "does": "Fastest full split of cachedSplits (the unit-resolved splits the splits card shows): needs ≥2 splits; splits under 90% of the bucket (1 609.344 m or 1 000 m) or without a positive pace are skipped; pace formatted in the user's units and captioned '<mi|km> <index>' (unit from the resolved series) plus ' · N bpm'.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.stats",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.bestSplitDisplay"
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.units",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::func LocalizedUnit.symbol(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.stats": "18abec93c15cf4e2",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.bestSplitDisplay": "e184b4d598eec7fa"
-   }
-  },
-  {
-   "key": "func FitnessPostSummaryView.hrrNarrative(drop:)",
-   "hash": "6535051fc07dcf2d",
-   "does": "Forwards to static WorkoutStatsCards.hrrNarrative(drop:).",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrNarrative(drop:)"
+   "reads": [
+    "mem:FitnessPostSummaryView.cachedSplits"
    ],
-   "reads": [],
    "writes": [],
-   "branches": [],
-   "flags": [
+   "branches": [
     {
-     "kind": "dead",
-     "sev": "low",
-     "text": "FitnessPostSummaryView.hrrNarrative forwarder has no caller in app or tests; WorkoutStatsCards calls its own static (Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:674) directly.",
-     "evidence": [
-      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:674"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+1",
+     "cond": "no resolved splits or fewer than 2",
+     "effect": "nil"
+    },
+    {
+     "at": "+6",
+     "cond": "no full split with a pace, or pace not formattable",
+     "effect": "nil"
     }
    ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrNarrative(drop:)": "2b5f9b943f7dc12b"
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)": "2df0cb439cc6c8c6",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.units": "88eb8ae49d3ff5bb",
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::func LocalizedUnit.symbol(_:)": "9122e07d73744f47"
    }
   },
   {
@@ -195,59 +186,6 @@
    "deps": {
     "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.stats": "18abec93c15cf4e2",
     "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.hrrCard": "8f98b64544303007"
-   }
-  },
-  {
-   "key": "func FitnessPostSummaryView.elevationSeries(_:)",
-   "hash": "c72eb40b920086db",
-   "does": "Forwards to static WorkoutStatsCards.elevationSeries.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.elevationSeries(_:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "FitnessPostSummaryView.elevationSeries forwarder has no caller in app or tests; WorkoutStatsCards calls its own static (Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:432) directly.",
-     "evidence": [
-      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:432"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.track": "c1dc8df0f9c68727",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.elevationSeries(_:)": "62c14c26260f8d24"
-   }
-  },
-  {
-   "key": "func FitnessPostSummaryView.hrrProvenanceLabel(_:)",
-   "hash": "1267621956324702",
-   "does": "Forwards to static WorkoutStatsCards.hrrProvenanceLabel.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrProvenanceLabel(_:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "FitnessPostSummaryView.hrrProvenanceLabel forwarder has no caller in app or tests; WorkoutStatsCards calls its own static (Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:779) directly.",
-     "evidence": [
-      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:779"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrProvenanceLabel(_:)": "0efc498f4a7ec53f"
    }
   }
  ],

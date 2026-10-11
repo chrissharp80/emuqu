@@ -3,8 +3,9 @@
 <!--
   The `com.chrissharp.flowrecovery` suffix on the App Group and iCloud container
   is deliberate and frozen. It predates the rename to Emuqu, and both identifiers
-  address live user data: the App Group holds the shared archive the widget and
-  the app both read, and the CloudKit container holds every synced session.
+  address live user data: the App Group container holds the app's session
+  archive, raw RR backups and saved routes, and the CloudKit container holds
+  every synced session.
   Renaming either one does not migrate that data — it points the app at a new,
   empty container and orphans the old one. Leave them alone.
 -->

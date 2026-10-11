@@ -14,8 +14,10 @@ import Foundation
 struct WorkoutLiveCoachingNamespace: FactNamespaceResolver {
     let namespace = "workout"
 
+    // The broker is a lock-guarded Sendable class, so this reads it from
+    // whatever context the resolve runs on; no main-actor assumption.
     func snapshot() -> AssistantContext.LiveWorkoutSnapshot? {
-        MainActor.assumeIsolated { AppDependencies.current.assistant.liveWorkoutBroker.currentSnapshot() }
+        AppDependencies.current.assistant.liveWorkoutBroker.currentSnapshot()
     }
 
     /// Privacy: the `location.*` action family
@@ -30,7 +32,11 @@ struct WorkoutLiveCoachingNamespace: FactNamespaceResolver {
     /// `notRecorded` instead of coordinates, so the assistant can say
     /// "I only have your location during a workout" rather than leaking
     /// a fix. The on-device `workout.live.location.*` reads already gate
-    /// on the same snapshot.
+    /// on the same snapshot. The breadcrumb.* facts, directions.* and
+    /// location.journey are not behind this gate: the consent sheet lists
+    /// them separately (the Get Me Back trail while it runs, the start
+    /// points of recent trails and GPS workouts, and the position used
+    /// when the user asks for directions).
     func workoutActive() -> Bool {
         snapshot() != nil
     }
@@ -207,7 +213,8 @@ struct WorkoutLiveCoachingNamespace: FactNamespaceResolver {
     [ACTION] Get the user's current location bundle in ONE call. Returns: road / locality / \
     sub_locality (Apple's neighborhood field, often nil in suburban areas) / administrative_area (state) / country / country_code / postal_code \
     / area_of_interest (named landmark like 'Lakeside Park' when applicable) / nearest_cross_street / nearest_intersection ('Maple Ave & Oak St' style) / compact_address / lat / lon / lat_lon_string / apple_maps_url \
-    / google_maps_url / age_seconds. PRIVACY: precise location is only released while a workout is actively recording. When no workout is running this returns notRecorded \
+    / google_maps_url / age_seconds. lat / lon are where that address was resolved, up to 5 min ago (age_seconds says how long), not a fresh fix: \
+    use location.current_detailed for the live coordinates, heading and speed. PRIVACY: precise location is only released while a workout is actively recording. When no workout is running this returns notRecorded \
     — tell the user you can only share location during a workout, don't guess coordinates. No permission probing, no GPS spin-up, no waiting; during a workout, if there's a cached fix it returns instantly.
     """
 

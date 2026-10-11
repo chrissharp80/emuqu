@@ -39,7 +39,10 @@ struct BreathingMandalaView: View {
         Color(hue: 0.85, saturation: 0.35, brightness: 0.90) // Pink-lavender
     ]
 
-    private let timer = Timer.publish(every: 0.016, on: .main, in: .common).autoconnect()
+    /// Held in `@State` so it is created once per view identity: a plain stored
+    /// `let` built a new autoconnected publisher on every parent re-render, and
+    /// `onReceive` resubscribed each time.
+    @State private var timer = Timer.publish(every: 0.016, on: .main, in: .common).autoconnect()
 
     var body: some View {
         GeometryReader { geometry in
@@ -131,8 +134,9 @@ struct BreathingMandalaView: View {
             if lastTickAt != nil { lastTickAt = nil }
             return
         }
-        updateBreathPhase()
-        if !reduceMotion { updateRotation() }
+        let elapsed = elapsedSinceLastTick()
+        updateBreathPhase(by: elapsed)
+        if !reduceMotion { updateRotation(by: elapsed) }
     }
 
     // MARK: - Computed Properties
@@ -141,7 +145,9 @@ struct BreathingMandalaView: View {
         if reduceMotion { return 0.85 }
         // Smooth sine wave for natural breathing motion
         // Maps breathPhase (0-1) to scale (0.7-1.0)
-        // Shifted by 0.25 so text leads animation (hear "breathe in", then watch expand)
+        // Shifted by 0.25 so the petals are smallest at phase 0 and largest at
+        // 0.5: expansion starts as the text turns to "Breathe in" and
+        // contraction as it turns to "Breathe out", in step with the text.
         let sineValue = sin((breathPhase - 0.25) * .pi * 2)
         return 0.85 + 0.15 * sineValue
     }
@@ -154,26 +160,31 @@ struct BreathingMandalaView: View {
 
     // MARK: - Animation Updates
 
-    /// Advance by the real time since the last tick, capped at
-    /// `maxTickGap` so a long stall (the app in the background) resumes the
-    /// cycle where it was instead of jumping.
-    private func updateBreathPhase() {
+    /// The real time since the last tick, capped at `maxTickGap` so a long
+    /// stall (the app in the background) resumes where it was instead of
+    /// jumping; 0 on the first tick.
+    private func elapsedSinceLastTick() -> TimeInterval {
         let now = Date()
         let elapsed = lastTickAt.map { min(now.timeIntervalSince($0), Self.maxTickGap) } ?? 0
         lastTickAt = now
-        breathPhase = (breathPhase + elapsed / cycleDuration).truncatingRemainder(dividingBy: 1.0)
-        onPhaseUpdate?(breathPhase)
+        return elapsed
     }
 
     private static let maxTickGap: TimeInterval = 1.0
 
-    private func updateRotation() {
-        // Very slow rotation for subtle movement
-        rotation += 0.02
-        if rotation >= 360 {
-            rotation = 0
-        }
+    private func updateBreathPhase(by elapsed: TimeInterval) {
+        breathPhase = (breathPhase + elapsed / cycleDuration).truncatingRemainder(dividingBy: 1.0)
+        onPhaseUpdate?(breathPhase)
     }
+
+    /// Very slow rotation for subtle movement, advanced by real time like the
+    /// phase so dropped frames do not slow it.
+    private func updateRotation(by elapsed: TimeInterval) {
+        rotation = (rotation + Self.rotationDegreesPerSecond * elapsed).truncatingRemainder(dividingBy: 360)
+    }
+
+    /// 0.02° per 16 ms tick, the pace the rotation had at a full frame rate.
+    private static let rotationDegreesPerSecond = 1.25
 }
 
 // MARK: - Petal Layer

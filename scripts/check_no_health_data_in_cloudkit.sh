@@ -35,24 +35,65 @@ if ! ls Emuqu/Sources/Storage/CloudKit*.swift >/dev/null 2>&1; then
     echo "check_no_health_data_in_cloudkit: no CloudKit sources found under Emuqu/Sources/Storage." >&2
     exit 2
 fi
-hits="$(grep -rnE "record\[\"($HEALTH_FIELDS)\"\][[:space:]]*=" Emuqu/Sources/Storage/CloudKit*.swift 2>/dev/null \
-    | sed 's|^Emuqu/Sources/Storage/||' \
-    | sed 's|$| — plaintext health field written to a CKRecord|' || true)"
-if [[ -n "$hits" ]]; then
-    while IFS= read -r hit; do
-        echo "ERROR: $hit" >&2
-        bad=$((bad + 1))
-    done <<< "$hits"
-fi
 
-# The settings record's plaintext fields — `settingsJSON` held birthday, sex,
-# weight, heart-rate thresholds and baselines, and `deviceName` often the
-# owner's name — may only ever be cleared. Records from older builds still
-# carry them, which is why the names cannot simply disappear from the source.
-hits="$(grep -rnE "record\[[^]]*(settingsJSON|legacyJSONField|deviceName|legacyDeviceNameField)[^]]*\][[:space:]]*=" Emuqu/Sources/Storage/CloudKit*.swift 2>/dev/null \
-    | grep -vE "=[[:space:]]*nil[[:space:]]*$" \
-    | sed 's|^Emuqu/Sources/Storage/||' \
-    | sed 's|$| — legacy plaintext settings field written with a value|' || true)"
+# Field writes. Every Swift file in the app and watch targets that names
+# `CKRecord` is read, not only `Storage/CloudKit*.swift`: the health scrub, the
+# trash restore and the settings sync all touch records from elsewhere. A key
+# is recognised as a string literal (`record["rmssd"] = ...`), through a
+# string constant declared in the scanned files (`record[payloadField] = ...`
+# where `payloadField = "settingsJSON"`), or through `setValue(_:forKey:)` /
+# `setObject(_:forKey:)`.
+#
+#   * A health scalar may never be written.
+#   * The settings record's plaintext fields — `settingsJSON` held birthday,
+#     sex, weight, heart-rate thresholds and baselines, and `deviceName` often
+#     the owner's name — may only ever be cleared (`= nil`). Records from older
+#     builds still carry them, which is why the names cannot simply disappear
+#     from the source.
+hits="$(python3 - "$HEALTH_FIELDS" Emuqu "EmuquWatch Watch App" <<'PY'
+import pathlib
+import re
+import sys
+
+health = re.compile(rf"^(?:{sys.argv[1]})$")
+legacy = re.compile(r"^(?:settingsJSON|deviceName)$")
+files = [p for root in sys.argv[2:] for p in sorted(pathlib.Path(root).rglob("*.swift"))
+         if "CKRecord" in p.read_text(encoding="utf-8", errors="ignore")]
+if not files:
+    sys.stderr.write("check_no_health_data_in_cloudkit: no Swift file names CKRecord.\n")
+    sys.exit(2)
+
+CONSTANT = re.compile(r"\blet\s+(\w+)\s*(?::\s*String\s*)?=\s*\"([^\"]+)\"")
+SUBSCRIPT = re.compile(r"\b\w*[rR]ecord\s*\[\s*(?:\"([^\"]+)\"|([A-Za-z_][\w.]*))\s*\]\s*=(?!=)\s*(.*)$")
+SETTER = re.compile(r"\.set(?:Value|Object)\s*\((.*),\s*forKey:\s*(?:\"([^\"]+)\"|([A-Za-z_][\w.]*))\s*\)")
+
+texts = {p: p.read_text(encoding="utf-8", errors="ignore") for p in files}
+# A constant name may be declared in more than one file with different
+# values, so a name resolves to every value it is given anywhere.
+constants = {}
+for text in texts.values():
+    for name, value in CONSTANT.findall(text):
+        constants.setdefault(name, set()).add(value)
+
+
+def keys_of(literal, name):
+    if literal:
+        return {literal}
+    return constants.get((name or "").split(".")[-1], set())
+
+
+for path, text in texts.items():
+    for n, line in enumerate(text.split("\n"), 1):
+        code = line.split("//")[0]
+        writes = [(k, m.group(3)) for m in SUBSCRIPT.finditer(code) for k in keys_of(m.group(1), m.group(2))]
+        writes += [(k, m.group(1)) for m in SETTER.finditer(code) for k in keys_of(m.group(2), m.group(3))]
+        for key, value in writes:
+            if health.match(key):
+                print(f"{path}:{n}: {line.strip()} — plaintext health field written to a CKRecord")
+            elif legacy.match(key) and value.strip() != "nil":
+                print(f"{path}:{n}: {line.strip()} — legacy plaintext settings field written with a value")
+PY
+)" || exit 2
 if [[ -n "$hits" ]]; then
     while IFS= read -r hit; do
         echo "ERROR: $hit" >&2
@@ -63,8 +104,12 @@ fi
 # Every function that builds bytes for a CKAsset or the settings record must
 # encrypt them.
 for fn in compressedPayload compressedPoints encryptedSettingsPayload; do
-    file="$(grep -rln "func $fn" Emuqu/Sources/Storage/CloudKit*.swift 2>/dev/null | head -1)"
-    [[ -z "$file" ]] && continue
+    file="$(grep -rlnE "func $fn\b" Emuqu/Sources/Storage 2>/dev/null | head -1)"
+    # A writer that was renamed or moved is not a writer that passed: say so.
+    if [[ -z "$file" ]]; then
+        echo "check_no_health_data_in_cloudkit: writer $fn not found under Emuqu/Sources/Storage — re-point this gate at it." >&2
+        exit 2
+    fi
     body="$(awk "/func $fn/,/^    \}/" "$file")"
     # The encryption may be inline or one call away in a helper, so accept
     # either — but the function must name something that encrypts, and the file
@@ -97,11 +142,23 @@ done
 # decompresses without decrypting makes the backup unreadable the
 # same day, on the same device, and it surfaces as "no backup" rather than an
 # error.
-for reader in liveBackupSummary decodeSessionPayload; do
-    file="$(grep -rln "func $reader" Emuqu/Sources/Storage/CloudKit*.swift 2>/dev/null | head -1)"
-    [[ -z "$file" ]] && continue
+# The readers are the functions that actually decompress: `decodePoints`
+# (live backups, called by `liveBackupSummary`) and `decodeSessionAsset`
+# (CloudPullCoordinator; every session payload, for the pull and for the
+# health scrub). A reader that is not found, or no longer decompresses in its
+# own body, is a config error rather than a pass.
+for reader in decodePoints decodeSessionAsset; do
+    file="$(grep -rlnE "func $reader\b" Emuqu/Sources/Storage 2>/dev/null | head -1)"
+    if [[ -z "$file" ]]; then
+        echo "check_no_health_data_in_cloudkit: reader $reader not found under Emuqu/Sources/Storage — re-point this gate at it." >&2
+        exit 2
+    fi
     body="$(awk "/func $reader/,/^    \}/" "$file")"
-    if grep -q "DataCompression.decompress" <<<"$body" && ! grep -q "CloudPayloadCodec.decode" <<<"$body"; then
+    if ! grep -q "DataCompression.decompress" <<<"$body"; then
+        echo "check_no_health_data_in_cloudkit: $reader no longer decompresses in its own body — re-point this gate at the function that does." >&2
+        exit 2
+    fi
+    if ! grep -q "CloudPayloadCodec.decode" <<<"$body"; then
         echo "ERROR: ${file#Emuqu/Sources/Storage/}: $reader decompresses without decoding the envelope" >&2
         bad=$((bad + 1))
     fi

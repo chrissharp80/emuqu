@@ -8,19 +8,7 @@
  ],
  "state": [],
  "toplevel": "File-scope @MainActor private helpers continueRecoveryHeader/Title/ScoreLine (lines 827-869) used by continueRecoveryCard.",
- "flags": [
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "RecordPanels.applyRecoveryKeepAwake and the device-recovery keep-awake bracket duplicate RecordView.applyKeepAwake and the same bracket in stopInternalRecording/performRetryFetch.",
-   "evidence": [
-    "Emuqu/Sources/Views/RecordView+Panels.swift:605",
-    "Emuqu/Sources/Views/RecordView+Actions.swift:161",
-    "Emuqu/Sources/Views/RecordView+Actions.swift:119"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "var RecordPanels.overnightRecordingSection",
@@ -56,7 +44,7 @@
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.overnightActionButtons": "ae470068c7528841",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.overnightHeader": "de0446855833337f",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.overnightHintText": "9d540e56efe015ac",
-    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.overnightStreamingStatus": "5892075378055ee0"
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.overnightStreamingStatus": "fba840f412042ad7"
    }
   },
   {
@@ -158,14 +146,15 @@
   },
   {
    "key": "var RecordPanels.overnightStreamingStatus",
-   "hash": "8a1fc88831bd85f7",
-   "does": "OvernightStreamingStatus (lifecycle, PolarManager, strap backup state) while overnight streaming.",
+   "hash": "c9b371c7db97a650",
+   "does": "OvernightStreamingStatus (lifecycle, PolarManager, strap backup state, collector.sessionStartTime for wall-clock elapsed) while overnight streaming.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.strapBackupState"
    ],
    "reads": [
-    "mem:StreamingLifecycle.isOvernightStreaming"
+    "mem:StreamingLifecycle.isOvernightStreaming",
+    "mem:RRCollector.sessionStartTime"
    ],
    "writes": [],
    "branches": [
@@ -1164,89 +1153,65 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecordView+Panels.swift::func RecordPanels.performDeviceRecovery()": "cb1ca22cb44b4695"
+    "Emuqu/Sources/Views/RecordView+Panels.swift::func RecordPanels.performDeviceRecovery()": "244e419caf80d94a"
    }
   },
   {
    "key": "func RecordPanels.performDeviceRecovery()",
-   "hash": "b30cb9985c8e4b39",
-   "does": "Optionally disables the idle timer (only if keep-screen-on is enabled), calls collector.recoverFromDevice, and on error sets fetchFailed=true (shows RetryFetchCard); restores the idle timer afterwards.",
+   "hash": "2a1c4328531afc4c",
+   "does": "Inside RecordingKeepAwake.during (screen kept on when opted in), calls collector.recoverFromDevice; on error hands it to surfaceRecoveryError so the error alert shows, and leaves fetchFailed alone so the Recover card (shown with no session type selected) stays available to try again.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.shouldKeepScreenOnDuringRecording",
-    "Emuqu/Sources/Views/RecordView+Panels.swift::func RecordPanels.applyRecoveryKeepAwake(_:disabled:)",
-    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverFromDevice()"
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordingKeepAwake.during(_:)",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverFromDevice()",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::func RecordPanels.surfaceRecoveryError(_:)"
    ],
    "reads": [
-    "file:user_settings.json (keepScreenOnDuringRecording)"
+    "ud:UserSettings.keepScreenOnDuringRecording (via RecordingKeepAwake)"
    ],
    "writes": [
     "ble:H10 stored exercise download",
     "archive:recovered session",
-    "mem:RecordView.fetchFailed (binding)",
+    "mem:SessionState.lastError",
     "mem:UIApplication.isIdleTimerDisabled"
    ],
    "branches": [
     {
-     "at": "+6",
+     "at": "+5",
      "cond": "catch on recoverFromDevice",
-     "effect": "error discarded here; fetchFailed=true, RetryFetchCard shows lastError if the collector set one"
+     "effect": "surfaceRecoveryError(error); the Recover card stays"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "med",
-     "text": "A failed Recover sets fetchFailed=true, which hides RecoverableDataCard (!fetchFailed) while the RetryFetchCard lives inside activeSessionSection, shown only when selectedSessionType != nil. The recoverable-data card shows regardless of type, and type is nil after Change, Save, Discard or a finished quick reading, so a failed recovery from that state leaves no Recover or Retry control on screen until the user picks a session type.",
-     "evidence": [
-      "Emuqu/Sources/Views/RecordView+Panels.swift:600",
-      "Emuqu/Sources/Views/RecordView+Sections.swift:108",
-      "Emuqu/Sources/Views/RecordView+Sections.swift:121",
-      "Emuqu/Sources/Views/RecordView+Sections.swift:139",
-      "Emuqu/Sources/Views/RecordView+Sections.swift:454",
-      "Emuqu/Sources/Views/RecordView+Results.swift:142"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverFromDevice()": "004ea007882e33c0",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.shouldKeepScreenOnDuringRecording": "7adf5536ceedbcb9",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Views/RecordView+Panels.swift::func RecordPanels.applyRecoveryKeepAwake(_:disabled:)": "e8e7e706da7b51f8"
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordingKeepAwake.during(_:)": "dca166090c784a3a",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::func RecordPanels.surfaceRecoveryError(_:)": "e0f1526fee7b90cb"
    }
   },
   {
-   "key": "func RecordPanels.applyRecoveryKeepAwake(_:disabled:)",
-   "hash": "39cc66196c9d05e7",
-   "does": "Sets UIApplication.isIdleTimerDisabled only when keepAwake is true.",
+   "key": "func RecordPanels.surfaceRecoveryError(_:)",
+   "hash": "b2fd4592dda667a5",
+   "does": "Sets sessionState.lastError to the Recover error unless the collector already recorded one (refusal or failed download); a recording too short to assemble only throws, so this raises its alert.",
    "entry": null,
    "calls": [],
-   "reads": [],
+   "reads": [
+    "mem:SessionState.lastError"
+   ],
    "writes": [
-    "mem:UIApplication.isIdleTimerDisabled"
+    "mem:SessionState.lastError"
    ],
    "branches": [
     {
      "at": "+2",
-     "cond": "keepAwake",
-     "effect": "false: no-op; true: set idle timer flag"
+     "cond": "lastError == nil",
+     "effect": "false: keep the recorded reason; true: lastError = error"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Identical to RecordView.applyKeepAwake.",
-     "evidence": [
-      "Emuqu/Sources/Views/RecordView+Panels.swift:605",
-      "Emuqu/Sources/Views/RecordView+Actions.swift:161"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204"
+   }
   },
   {
    "key": "func RecordPanels.discardAndStartFresh()",
@@ -1331,7 +1296,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.stopStreaming()": "79daecd031f8caa7"
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.stopStreaming()": "9c2e17d028614164"
    }
   },
   {

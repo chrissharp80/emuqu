@@ -52,7 +52,7 @@ final class PatternCauseDetector: CauseDetectionStrategy {
         // against noise.
         let validDays = dayAverages.filter { $0.value.count >= 2 }
         guard validDays.count >= 3 else { return nil }
-        let today = calendar.component(.weekday, from: context.session.startDate)
+        let today = Self.morningWeekday(of: context.session, calendar: calendar)
         guard let todayReadings = dayAverages[today], todayReadings.count >= 2 else { return nil }
         let allValues = validDays.values.flatMap { $0 }
         let overallAvg = allValues.reduce(0, +) / Double(allValues.count)
@@ -61,12 +61,20 @@ final class PatternCauseDetector: CauseDetectionStrategy {
         return DayOfWeekImpact(weekday: today, impact: abs(impact), isLowDay: impact > 0)
     }
 
-    /// Every recorded RMSSD grouped by the weekday it was recorded on.
+    /// The weekday of the morning a night ends on: the start shifted 12 h
+    /// forward, so a recording begun at 23:30 Sunday and one begun at 00:30
+    /// Monday both file under Monday, the morning the reading is read on.
+    private static func morningWeekday(of session: HRVSession, calendar: Calendar) -> Int {
+        calendar.component(.weekday, from: session.startDate.addingTimeInterval(12 * 3_600))
+    }
+
+    /// Every recorded RMSSD grouped by the weekday of the morning it was
+    /// recorded for.
     private func rmssdByWeekday(_ recentSessions: [HRVSession], calendar: Calendar) -> [Int: [Double]] {
         var dayAverages: [Int: [Double]] = [:]
         for session in recentSessions {
             guard let rmssd = session.rmssd else { continue }
-            let day = calendar.component(.weekday, from: session.startDate)
+            let day = Self.morningWeekday(of: session, calendar: calendar)
             dayAverages[day, default: []].append(rmssd)
         }
         return dayAverages

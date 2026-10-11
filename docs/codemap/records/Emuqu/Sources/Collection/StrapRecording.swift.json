@@ -16,11 +16,11 @@
  "units": [
   {
    "key": "var StrapRecording.endedAt",
-   "hash": "cb1d757fc70199f8",
-   "does": "startedAt plus the summed beat duration; nil without a start.",
+   "hash": "d276dc13c5b0a98c",
+   "does": "startedAt plus the end offset of the last beat (endOffsetMs: its wallClockMs, else t_ms, plus its interval), so an optical recording's rejected intervals count as elapsed time; nil without a start.",
    "entry": "Read by tests (StrapTransferTests.swift:154).",
    "calls": [
-    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.durationSeconds(of:)"
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapRecording.endOffsetMs(of:)"
    ],
    "reads": [],
    "writes": [],
@@ -38,7 +38,33 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.durationSeconds(of:)": "23569ddb0336cdc7",
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapRecording.endOffsetMs(of:)": "f49d3350d830fbd5",
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapRecording.points(onClockOf:fallbackStart:)": "124778dc78766fbb"
+   }
+  },
+  {
+   "key": "func StrapRecording.endOffsetMs(of:)",
+   "hash": "8f55f019642d9882",
+   "does": "Milliseconds from the recording start to the end of its last beat: the last point's wallClockMs (real time, carried by optical recordings) or else t_ms, plus its rr_ms; 0 for no points. For an H10 recording (no wall clock, no gaps) this equals the summed beat duration.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "points empty",
+     "effect": "returns 0"
+    },
+    {
+     "at": "+2",
+     "cond": "last.wallClockMs nil (??)",
+     "effect": "uses t_ms"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0",
     "Emuqu/Sources/Collection/StrapRecording.swift::func StrapRecording.points(onClockOf:fallbackStart:)": "124778dc78766fbb"
    }
   },

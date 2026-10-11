@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Services/DirectionsService.swift",
- "hash": "0cbcab0e811c21de",
+ "hash": "b4599c6d7e32b47b",
  "role": "Backend for the AI directions.routeTo tool: resolves a destination (breadcrumb origin, POI search, address) to a coordinate, asks MapKit for a route, engages it as the active route session, and returns a compact RouteResult.",
  "types": [
   "DirectionsService: enum — static route resolution",
@@ -9,7 +9,9 @@
   "DirectionsService.RouteResult: struct — label, coords, distance, duration, mode, first 3 steps",
   "DirectionsError: enum — noBreadcrumbOrigin, noPOIMatch, geocoderFailed, noRoute"
  ],
- "state": [],
+ "state": [
+  "mem:DirectionsService.poiRadiusMeters = 25_000 (static)"
+ ],
  "toplevel": "No top-level code beyond type declarations.",
  "flags": [
   {
@@ -43,8 +45,8 @@
   },
   {
    "key": "func DirectionsService.resolveRoute(from:to:mode:)",
-   "hash": "204dfa0d9e882241",
-   "does": "Resolves the destination label+coordinate, computes a MapKit route from origin, engages it on ActiveRouteSession (replacing any active one), and returns distance/duration/mode and up to 3 non-empty step instructions.",
+   "hash": "092a8dfc97b745af",
+   "does": "Resolves the destination label+coordinate, computes a MapKit route from origin, throws CancellationError if its task was cancelled meanwhile (the assistant caller cancels the lookup when its 4 s timeout wins), otherwise engages it on ActiveRouteSession (replacing any active one) and returns distance/duration/mode and up to 3 non-empty step instructions.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/DirectionsService.swift::func DirectionsService.resolveDestination(_:near:)",
@@ -52,7 +54,8 @@
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.activeRouteSession",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.engage(route:destinationLabel:destinationCoord:)"
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.engage(route:destinationLabel:destinationCoord:)",
+    "ext:Task.checkCancellation"
    ],
    "reads": [],
    "writes": [
@@ -60,24 +63,17 @@
    ],
    "branches": [
     {
-     "at": "+20",
+     "at": "+9",
+     "cond": "task cancelled",
+     "effect": "throw CancellationError, nothing engaged"
+    },
+    {
+     "at": "+21",
      "cond": "mode == .walking",
      "effect": "true: \"walking\"; false: \"driving\""
     }
    ],
-   "flags": [
-    {
-     "kind": "race",
-     "sev": "med",
-     "text": "The only caller wraps this in FactResolveTimeout.withTimeout(4 s), which does not cancel the operation; when routing takes >4 s the AI reports the route unavailable, but this function keeps running and still engages ActiveRouteSession, so turn-by-turn guidance silently starts for a route the user was told failed.",
-     "evidence": [
-      "Emuqu/Sources/Services/DirectionsService.swift:76",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift:550-552",
-      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:641-662"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.engage(route:destinationLabel:destinationCoord:)": "8c8881cd432f81ff",
     "Emuqu/Sources/Services/DirectionsService.swift::func DirectionsService.mapKitRoute(from:to:mode:)": "ffd69659ae12ac8b",
@@ -147,7 +143,7 @@
    "deps": {
     "Emuqu/Sources/Services/DirectionsService.swift::func DirectionsService.breadcrumbOrigin()": "8689afc5a3bff5cb",
     "Emuqu/Sources/Services/DirectionsService.swift::func DirectionsService.geocodedAddress(_:)": "b6be388533e4f310",
-    "Emuqu/Sources/Services/DirectionsService.swift::func DirectionsService.nearestPOI(matching:near:)": "11adf08d3e8cad29"
+    "Emuqu/Sources/Services/DirectionsService.swift::func DirectionsService.nearestPOI(matching:near:)": "986988871fb79bf9"
    }
   },
   {
@@ -181,7 +177,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.load()": "b54fe126660d8722",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.load()": "ec7d3168e9a8ca29",
     "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.coordinate": "8a89764e663efe14",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
@@ -191,8 +187,8 @@
   },
   {
    "key": "func DirectionsService.nearestPOI(matching:near:)",
-   "hash": "53979043bd55d40a",
-   "does": "MKLocalSearch for the natural-language query in a 0.25°×0.25° region around origin (POIs and addresses), picks the result nearest to origin; label = name ?? thoroughfare ?? query.",
+   "hash": "3447f55915a5f85d",
+   "does": "MKLocalSearch for the natural-language query in a region 50 km across centred on origin (POIs and addresses), drops results farther than poiRadiusMeters (25 km), picks the nearest remaining one; label = name ?? thoroughfare ?? query.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/DirectionsService.swift::func DirectionsService.distance(from:to:)",
@@ -204,28 +200,22 @@
    "writes": [],
    "branches": [
     {
-     "at": "+13",
-     "cond": "any map item returned",
-     "effect": "false: throw noPOIMatch; true: continue"
+     "at": "+12",
+     "cond": "result farther than 25 km",
+     "effect": "dropped"
     },
     {
      "at": "+14",
+     "cond": "no result within 25 km",
+     "effect": "throw noPOIMatch"
+    },
+    {
+     "at": "+15",
      "cond": "nearest.name ?? placemark.thoroughfare ?? query",
      "effect": "label fallback chain"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "The comment promises a 25 km box that keeps a city 'parking' query from suggesting a lot 60 km away, but request.region is only a search hint to MKLocalSearch and the code applies no distance cap to response.mapItems before picking the nearest, so a far result is still returned and routed to when nothing closer matches. The 0.25 deg latitude span is also ~27.8 km, not 25 km.",
-     "evidence": [
-      "Emuqu/Sources/Services/DirectionsService.swift:134-137",
-      "Emuqu/Sources/Services/DirectionsService.swift:143-151"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/DirectionsService.swift::func DirectionsService.distance(from:to:)": "46745a2eb22a4be7"
    }

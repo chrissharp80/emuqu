@@ -1,13 +1,13 @@
 {
  "file": "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift",
- "hash": "efcf99f50893922c",
- "role": "The five-point 'How do you feel this morning?' prompt with optional Body/Mind tag chips for low feelings, a private wrapping FlowLayout for chips, the shared MorningFeelingDisplay emoji/label/colour lookup, and the compact MorningFeelingBadge.",
+ "hash": "abb8c142bd2be916",
+ "role": "The five-point 'How do you feel this morning?' prompt opened from the Dashboard feeling chip (not the pre-score prompt, which is PreScorePromptView), with optional Body/Mind tag chips for low feelings, a private wrapping FlowLayout for chips, the MorningFeelingDisplay emoji/label/colour lookup, and the compact display-only MorningFeelingBadge.",
  "types": [
   "MorningFeelingPrompt: struct (View) — feeling picker; 3-5 auto-commit after 1 s, 1-2 reveal tags and require Done",
   "MorningFeelingPrompt.TagChipChrome: struct (ViewModifier, private) — selected/unselected chip background and border",
   "FlowLayout: struct (Layout, private) — wraps chips onto new rows",
   "MorningFeelingDisplay: enum — feeling → emoji/label/colour lookup used by prompt, badge and WorkoutFeelingPrompt",
-  "MorningFeelingBadge: struct (View) — emoji + 'Felt <label>' badge, optional tap to edit"
+  "MorningFeelingBadge: struct (View) — display-only emoji + 'Felt <label>' badge"
  ],
  "state": [
   "mem:MorningFeelingPrompt.selected (@State Int?)",
@@ -19,23 +19,12 @@
   {
    "kind": "duplicate",
    "sev": "low",
-   "text": "MorningFeelingDisplay is documented as the single source of truth for feeling emoji/labels, but DashboardMorningFeelingChip keeps its own 1-5 emoji/label table (with 'Felt good' for 4 where MorningFeelingDisplay says 'Good'), so the dashboard chip and the prompt/badge can drift.",
+   "text": "MorningFeelingDisplay is the prompt's and badge's mapping, but DashboardMorningFeelingChip keeps its own 1-5 emoji/label table (with 'Felt good' for 4 where MorningFeelingDisplay says 'Good'), so the dashboard chip and the prompt/badge can drift (handoff from fix batch b22).",
    "evidence": [
     "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift:308",
     "Emuqu/Sources/Views/DashboardMorningFeelingChip.swift:21"
    ],
    "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Type doc says this is the pre-score prompt 'shown before the recovery score is revealed', but its only construction site is the Dashboard chip sheet (after the score is shown); the actual pre-score prompt is PreScorePromptView.",
-   "evidence": [
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift:3",
-    "Emuqu/Sources/Views/DashboardMorningFeelingChip.swift:42",
-    "Emuqu/Sources/Views/RecordView+Results.swift:80"
-   ],
-   "found": "second read"
   },
   {
    "kind": "duplicate",
@@ -89,9 +78,9 @@
   },
   {
    "key": "var MorningFeelingPrompt.body",
-   "hash": "72ea21485f92334e",
-   "does": "Card with a title (new vs edit wording), the feeling scale, tag picker and Skip/Done actions; on appear preselects the existing feeling and tags.",
-   "entry": "SwiftUI View.body evaluation; .onAppear closure run by SwiftUI",
+   "hash": "606735d510003aa4",
+   "does": "Card with a title (new vs edit wording), the feeling scale, tag picker and Skip/Done actions; on appear preselects the existing feeling and tags; on disappear (including a swipe-down of the sheet) cancels any pending 1 s auto-commit so a dismissed prompt saves nothing.",
+   "entry": "SwiftUI View.body evaluation; .onAppear/.onDisappear closures run by SwiftUI",
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
     "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.feelingScale",
@@ -101,7 +90,8 @@
    "reads": [],
    "writes": [
     "mem:MorningFeelingPrompt.selected",
-    "mem:MorningFeelingPrompt.selectedTags"
+    "mem:MorningFeelingPrompt.selectedTags",
+    "mem:MorningFeelingPrompt.pendingCommit"
    ],
    "branches": [
     {
@@ -118,6 +108,11 @@
      "at": "+17",
      "cond": "existingTags non-empty (onAppear)",
      "effect": "selectedTags seeded; else empty set kept"
+    },
+    {
+     "at": "+21",
+     "cond": "view disappears",
+     "effect": "pending auto-commit cancelled (no-op when none)"
     }
    ],
    "flags": [],
@@ -170,7 +165,7 @@
    "deps": {
     "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.label(for:)": "21ab48fc46aced6a",
     "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.feelingLabel(_:)": "8b4707ece7ca7fc8",
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.tapFeeling(_:)": "a520c73e368feefc"
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.tapFeeling(_:)": "aeed680de005e329"
    }
   },
   {
@@ -318,7 +313,7 @@
     "Emuqu/Sources/Models/MorningFeelingTag.swift::var MorningFeelingTag.cluster": "84f5f488ff069969",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.chipRow(title:tags:)": "321e3cbfe14adcd9",
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.body": "d14acdcecf147514",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.body": "790dbd7a2f9ee9cb",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
    }
   },
@@ -459,7 +454,7 @@
   {
    "key": "func MorningFeelingPrompt.tapFeeling(_:)",
    "hash": "0f51e9153d3b5f62",
-   "does": "Selects the tapped feeling (clearing tags for 3-5), cancels any pending commit, and for 3-5 schedules onSelect(value, []) on the main queue after 1 s via a cancellable DispatchWorkItem; 1-2 wait for Done.",
+   "does": "Selects the tapped feeling (clearing tags for 3-5), cancels any pending commit, and for 3-5 schedules onSelect(value, []) on the main queue after 1 s via a cancellable DispatchWorkItem (cancelled by re-tap, Skip/Cancel, Done, or the prompt disappearing); 1-2 wait for Done.",
    "entry": null,
    "calls": [
     "closure:onSelect set by DashboardMorningFeelingChip (persists feeling + tags, closes sheet)"
@@ -482,19 +477,7 @@
      "effect": "schedule 1 s auto-commit with no tags; 1-2 → no commit, tag section shown"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "The 1 s auto-commit DispatchWorkItem is cancelled only by re-tap, Skip/Cancel or Done; swiping the medium-detent sheet away within the second does not cancel it, so the tapped feeling is still saved after the user dismissed the prompt (overwriting an existing answer in edit mode).",
-     "evidence": [
-      "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift:244",
-      "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift:248",
-      "Emuqu/Sources/Views/DashboardMorningFeelingChip.swift:38"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d"
    }
@@ -731,44 +714,13 @@
   },
   {
    "key": "var MorningFeelingBadge.body",
-   "hash": "bc1cbacfb8908de8",
-   "does": "Plain button wrapping badgeLabel that calls onTap, disabled when onTap is nil.",
-   "entry": "SwiftUI View.body evaluation; button tap",
-   "calls": [
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingBadge.badgeLabel",
-    "closure:onTap — no caller in the repo passes one"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No construction site passes onTap (MorningResultsView.swift:259 and ComponentSnapshotTests.swift:20 use MorningFeelingBadge(feeling:)), so the badge button is always disabled and the edit pencil never renders, contrary to the type doc 'Tappable — calls onTap'.",
-     "evidence": [
-      "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift:349",
-      "Emuqu/Sources/Views/MorningResultsView.swift:259",
-      "EmuquTests/ComponentSnapshotTests.swift:20"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.label(for:)": "21ab48fc46aced6a",
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingBadge.badgeLabel": "f7d9a15f55d7aa93"
-   }
-  },
-  {
-   "key": "var MorningFeelingBadge.badgeLabel",
-   "hash": "2536d876740c74a9",
-   "does": "Emoji + localized 'Felt <label lowercased>' + optional pencil.",
-   "entry": null,
+   "hash": "cea1c6d1ee4031d5",
+   "does": "Display-only HStack: the feeling's emoji and 'Felt <label>' in caption sizes.",
+   "entry": "SwiftUI View.body evaluation",
    "calls": [
     "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.emoji(for:)",
     "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.label(for:)",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingBadge.editPencil"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
    "writes": [],
@@ -778,28 +730,7 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.emoji(for:)": "18b4003425849fee",
     "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.label(for:)": "21ab48fc46aced6a",
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingBadge.editPencil": "ddac72a177a3a7d2",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
-   }
-  },
-  {
-   "key": "var MorningFeelingBadge.editPencil",
-   "hash": "5723b40dddb58f4e",
-   "does": "Pencil icon shown only when onTap is set.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "onTap != nil",
-     "effect": "pencil shown; nil (every current caller) → nothing"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
    }
   }
  ],

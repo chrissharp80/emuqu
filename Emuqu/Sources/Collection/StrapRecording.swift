@@ -15,9 +15,17 @@ struct StrapRecording: Sendable, Equatable {
     /// recording this app did not file.
     let startedAt: Date?
 
-    /// When the recording ended: its start plus the beats' own duration.
+    /// When the recording ended: its start plus the end of its last beat, on
+    /// the real clock (`wallClockMs`) where the beats carry one — an optical
+    /// recording's rejected intervals take time but leave no beat — else on
+    /// the beat timeline (an H10's, which has no gaps).
     var endedAt: Date? {
-        startedAt.map { $0.addingTimeInterval(StrapExerciseDecoder.durationSeconds(of: points)) }
+        startedAt.map { $0.addingTimeInterval(TimeInterval(Self.endOffsetMs(of: points)) / 1000) }
+    }
+
+    private static func endOffsetMs(of points: [RRPoint]) -> Int64 {
+        guard let last = points.last else { return 0 }
+        return (last.wallClockMs ?? last.t_ms) + Int64(last.rr_ms)
     }
 
     /// The beats on the clock of a session that started at `sessionStart`.

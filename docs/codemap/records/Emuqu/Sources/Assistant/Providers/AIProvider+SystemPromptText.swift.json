@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPromptText.swift",
- "hash": "c4f45ee6bdfe207d",
+ "hash": "c05a352672538b79",
  "role": "Verbatim prompt prose for the AI coach: base persona + hard rules + medical boundary, non-tool overlay, tool-use overlay (envelope, grounding rules, location/workout/live/mutation/web-search rules), voice overlay, and condensed Apple base/tool/no-tool/voice overlays.",
  "types": [
   "AssistantSystemPrompt: extension — static prompt strings"
@@ -15,45 +15,8 @@
   "static let appleNoToolsOverlay",
   "static let appleVoiceOverlay"
  ],
- "toplevel": "Only static string constants; no functions. Consumed by AIProvider+SystemPrompt.swift (stableSections, toolModeSections, appleInstructions; appleInstructions also detects tool/voice turns by substring-matching toolOverlay/voiceOverlay in the composed prompt). States a tool budget of 8 matching AssistantViewModel+Tools.swift:30 maxToolCallsPerTurn = 8 and recovery weights 60/25/15, 70/30, Comeback 80/20/0 consistent with ScoreDetailBuilder.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "toolOverlay grounding rule 5 tells the model to confirm each number 'appears verbatim in a <data> block', while base BREVITY forbids emitting `<data>...</data>` blocks; the model is told to audit against a construct it is told never to produce.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPromptText.swift:28",
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPromptText.swift:482"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "broken",
-   "sev": "med",
-   "text": "voiceOverlay instructs spoken-form numbers ('one-sixty', 'four miles') and base rule 1 gives 'Your HR is 150' / 'TSB is -8.8' as the format, none of which the MetricsVerifier live or training-load patterns can match (they need digits plus 'bpm', and 'TSB <number>' with nothing between), so the prompt steers the model away from the formats the hallucination guard checks.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPromptText.swift:65",
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPromptText.swift:687",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift:88",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift:219"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "toolOverlay describes static-context content no recipient of it receives: a '📍 LOCATION:' line, a LIVE WORKOUT block with snapshot_age_sec and a 14-session preview. Cloud tool-mode providers get contextRendered = '' and Apple has toolOverlay replaced by appleToolOverlay, and the same overlay says 'There is NO data pre-loaded'.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPromptText.swift:369",
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPromptText.swift:517",
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPromptText.swift:553",
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPromptText.swift:575",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:511",
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift:178"
-   ],
-   "found": "second read"
-  }
- ],
+ "toplevel": "Only static string constants; no functions. Consumed by AIProvider+SystemPrompt.swift (stableSections, toolModeSections, appleInstructions; appleInstructions also detects tool/voice turns by substring-matching toolOverlay/voiceOverlay in the composed prompt). States a tool budget of 8 matching AssistantViewModel+Tools.swift:30 maxToolCallsPerTurn = 8 and recovery weights 60/25/15, 70/30, Comeback 80/20/0 consistent with ScoreDetailBuilder. toolOverlay names the only pre-loaded data — the per-send '# Dashboard cache' / '# Today' block and the <live_state> block (recovery/HRV lines and, during a workout, the 📍 LOCATION line) — as valid number sources beside this turn's tool results; its claim audit checks against those, and its staleness rule reads get_workout_live's snapshot_at.",
+ "flags": [],
  "units": [],
  "deps": {}
 }

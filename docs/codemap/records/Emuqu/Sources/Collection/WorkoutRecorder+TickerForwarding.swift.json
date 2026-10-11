@@ -78,35 +78,6 @@
    }
   },
   {
-   "key": "func WorkoutRecorder.incrementalBackupTick()",
-   "hash": "beabc4307289b010",
-   "does": "Forwards to WorkoutTicker.incrementalBackupTick.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.incrementalBackupTick()",
-    "Emuqu/Sources/Collection/WorkoutRecorder+TickerForwarding.swift::var WorkoutRecorder.ticker"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No Swift caller of WorkoutRecorder.incrementalBackupTick() exists (grep finds only comments/docs); the tick calls WorkoutTicker.incrementalBackupTick directly from runTick.",
-     "evidence": [
-      "Emuqu/Sources/Collection/WorkoutRecorder+TickerForwarding.swift:18",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:70"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.incrementalBackupTick()": "fef56bc072a39722",
-    "Emuqu/Sources/Collection/WorkoutRecorder+TickerForwarding.swift::var WorkoutRecorder.ticker": "4b8a170fc1628084"
-   }
-  },
-  {
    "key": "func WorkoutRecorder.strapSilentSeconds()",
    "hash": "4e59f564622aa36e",
    "does": "Forwards to WorkoutTicker.strapSilentSeconds.",

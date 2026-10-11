@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift",
- "hash": "887b0760f3833c28",
+ "hash": "810b76e5cb34bbd3",
  "role": "Extension defining the injury Concept (first-person injury reports in English, European, Nordic, Russian latin-script patterns plus ja/zh/ko/ar substrings) and the refuseAsInjury group used by MedicalQueryGuard.",
  "types": [
   "MedicalTermLexicon: extension — injury concept and its locale pattern lists"
@@ -15,17 +15,18 @@
   "mem:MedicalTermLexicon.nordicInjury",
   "mem:MedicalTermLexicon.refuseAsInjury"
  ],
- "toplevel": "All static lets: injury Concept assembled from englishInjury + europeanInjury + nordicInjury + Russian literals, unbounded CJK/Arabic substrings; idiom lookaheads exclude 'fell asleep/behind/...', 'cut myself slack', 'bleeding edge', French/Spanish 'racked my brain' forms. refuseAsInjury = [injury].",
+ "toplevel": "All static lets: injury Concept assembled from englishInjury + europeanInjury + nordicInjury + Russian literals, unbounded CJK/Arabic substrings; idiom lookaheads exclude 'fell asleep/behind/...', 'cut myself slack', 'bleeding edge', French/Spanish 'racked my brain' forms. The English injury nouns count only in a report shape: 'sprained', 'concussed', 'I (think I) have/got/had / it's / might/may/could be (a) sprain|concussion', '<is/are/it's/keeps/won't stop/started> bleeding', 'bleeding badly/heavily/a lot', 'call/need/get/send (me) (an) ambulance'. Several non-English bare nouns remain (entorse, esguince, distorsione, verstaucht, forstuvet, stukat, hjernerystelse, 捻挫, 骨折, 염좌, 골절, ...). refuseAsInjury = [injury].",
  "flags": [
   {
    "kind": "spec-mismatch",
    "sev": "med",
-   "text": "The header says the patterns describe an injury happening to the speaker, but bare alternatives \"sprain(?:ed)?\", \"concussion\", \"ambulance\", \"bleeding\" (and entorse, esguince, verstaucht, forstuvet, 捻挫, 骨折 etc.) match any mention, so ordinary questions like \"how long does a sprain take to heal?\" or \"what is concussion protocol?\" are refused with the injury reply and never reach the model.",
+   "text": "The header says the patterns describe an injury happening to the speaker. The English bare nouns now need a report shape, but many non-English alternatives are still bare nouns or participles that match any mention (entorse, esguince, distorsione, verstaucht, gehirnerschütterung, forstuvet, hjernerystelse, stukat, hjärnskakning, aivotärähdys, растяжение связок, сотрясение мозга, 捻挫, 骨折, 扭伤, 염좌, 골절, ...), so a general question naming one in those languages (\"combien de temps dure une entorse ?\") is still refused with the injury reply. Narrowing them needs per-language report shapes reviewed by native speakers; a miss here sends an injured user to the model.",
    "evidence": [
-    "Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift:11",
-    "Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift:49",
-    "Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift:72",
-    "Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift:30"
+    "Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift:81",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift:82",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift:95",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift:106",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift:33"
    ],
    "found": "first read, upheld on second"
   }

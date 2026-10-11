@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/LoadTrajectoryView.swift",
- "hash": "c6fbd49f41e03969",
+ "hash": "606d4bf92cd53946",
  "role": "Stateless (apart from a pending-confirmation @State) SwiftUI screen 'Load & Trajectory': verdict header, CTL/ATL/TSB chart with long-press day picker, LOAD/CTL/ATL/TSB stat cards, ramp-rate row, Foster monotony card, recent workouts list and the three Mode cards (Comeback / Peaking / Intentional overreach) with on-confirmation dialogs.",
  "types": [
   "LoadTrajectoryView: struct — View rendering the training-load trajectory",
@@ -13,7 +13,7 @@
   "mem:LoadTrajectoryView.pendingMode (@State)",
   "@ScaledMetric dt10…dt22 Dynamic Type sizes"
  ],
- "toplevel": "Constructed in production only by LoadTrajectoryLoader.trajectoryView (LoadTrajectoryLoader.swift:58) and in EmuquTests/ChartScreenSnapshotTests.swift:75,100. Stored inputs: samples, weeklyTrimp, weeklyTrimpDelta, rampRate, mode flags, monotonyFlagged, recentWorkouts, three toggle closures, optional onWorkoutTap/onChartLongPress, peakingDetectionEnabled (default true).",
+ "toplevel": "Constructed in production only by LoadTrajectoryLoader.trajectoryView (LoadTrajectoryLoader.swift:58) and in EmuquTests/ChartScreenSnapshotTests.swift:75,100. Stored inputs: samples, weeklyTrimp, weeklyTrimpDelta, rampRate, mode flags, monotonyFlagged, recentWorkouts, three toggle closures, optional onChartLongPress, peakingDetectionEnabled (default true). Recent-workout rows are display only.",
  "flags": [],
  "units": [
   {
@@ -68,10 +68,9 @@
     {
      "kind": "spec-mismatch",
      "sev": "low",
-     "text": "Comment says the dashboard chip and this screen 'can never disagree', but the chip feeds currentCTL = yesterday's CTL and ctlOneWeekAgo = series[count−9] while this screen feeds today's live CTL and samples[count−8]. They agree only because rampRate is non-zero in practice; when ctlSlopePerWeek returns exactly 0 the fallback delta uses different endpoints on the two surfaces.",
+     "text": "The dashboard chip and this screen agree on the verdict only while ctlSlopePerWeek is non-zero: when it returns exactly 0 the week-ago fallback compares today's live CTL with samples[count−8] here but yesterday's CTL with series[count−9] on the chip, so the two can differ (the doc comment now says so; aligning the endpoints needs DashboardV2View+Chips).",
      "evidence": [
-      "Emuqu/Sources/Views/LoadTrajectoryView.swift:103",
-      "Emuqu/Sources/Views/LoadTrajectoryView.swift:115",
+      "Emuqu/Sources/Views/LoadTrajectoryView.swift:114",
       "Emuqu/Sources/Views/DashboardV2View+Chips.swift:226",
       "Emuqu/Sources/Views/DashboardV2View+Chips.swift:257"
      ],
@@ -105,18 +104,29 @@
   },
   {
    "key": "var LoadTrajectoryView.rampBand",
-   "hash": "4060450465bfda6f",
-   "does": "RampBand for the passed-in rampRate.",
+   "hash": "ac2c19475ce89dc4",
+   "does": "RampBand for the passed-in rampRate as the active modes allow it to be worded: with Intentional overreach on, .rapidIncrease is shown as .standard; with a taper detected, .detraining is shown as .holdingSteady (the footers' promised suppression). Feeds the CTL card subline and the ramp sentence; the ramp number itself is untouched.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init RampBand(tssPerDayPerWeek:)"
    ],
    "reads": [],
    "writes": [],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overreach on and band is rapid increase",
+     "effect": "worded as .standard"
+    },
+    {
+     "at": "+3",
+     "cond": "taper detected and band is detraining",
+     "effect": "worded as .holdingSteady"
+    }
+   ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init RampBand(tssPerDayPerWeek:)": "74140b75347b9801"
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init RampBand(tssPerDayPerWeek:)": "446715fe460056c1"
    }
   },
   {
@@ -247,7 +257,7 @@
     "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.monotonyCard": "7099ec5fc0932b32",
     "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.rampRow": "aa526d808e3c071a",
     "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.recentWorkoutsSection": "df968569051fda6e",
-    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.statRow": "ea6dda99eaae02e2",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.statRow": "028aa9d794489674",
     "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.verdictHeader": "fa6ec1df02638bc2"
    }
   },
@@ -270,7 +280,7 @@
     "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var TrajectoryVerdict.localizedAccessibilityLabel": "93152eabbe94cb38",
     "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var TrajectoryVerdict.localizedChipLabel": "ea430bb87835689d",
     "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var TrajectoryVerdict.localizedNarrative": "e8cb5b70455ae7fe",
-    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.verdict": "7dfb2488400d57e2",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.verdict": "f489fd2da4e8800f",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
    }
@@ -327,7 +337,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.longPressCapture(_:)": "3a2cef93504715cd",
-    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.currentValueChips": "01b9ebe83459f415",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.currentValueChips": "95facef597b7e806",
     "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.trajectoryChart": "bcd0892196f1852b",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
     "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
@@ -404,8 +414,8 @@
   },
   {
    "key": "var LoadTrajectoryView.currentValueChips",
-   "hash": "f7f6c5ac0907692d",
-   "does": "Overlay chips with the latest CTL and ATL values.",
+   "hash": "d0dee54734cac18d",
+   "does": "Overlay chips with the latest CTL and ATL values, inset 12 pt from the chart card's top-trailing corner (the card's own padding; the legend sits above the card).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.valueChip(label:value:color:)"
@@ -419,19 +429,7 @@
      "effect": "true: CTL/ATL chips; false: nothing"
     }
    ],
-   "flags": [
-    {
-     "kind": "hack",
-     "sev": "low",
-     "text": "Chips are pushed down 24 pt to 'clear the legend row', but the overlay is attached to loadChart, which does not contain the legend (chartLegend is a sibling above it in fitnessChart), so the offset clears nothing and just moves the chips into the plot area.",
-     "evidence": [
-      "Emuqu/Sources/Views/LoadTrajectoryView.swift:319",
-      "Emuqu/Sources/Views/LoadTrajectoryView.swift:217",
-      "Emuqu/Sources/Views/LoadTrajectoryView.swift:245"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.valueChip(label:value:color:)": "612eb41cd99b5c3c",
     "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
@@ -620,24 +618,7 @@
      "effect": "no samples: subline '—'"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "With Intentional overreach on, the CTL card subline still reads RampBand 'Rapid increase' and the ramp row says 'Load is jumping fast — easy days help you absorb it.', although the overreach card footer says it suppresses 'rapid increase' messaging and the confirmation says those warnings are hidden until turned off. Likewise with peaking detected the CTL subline/ramp row still say 'Easing down … fitness will drift lower' while the Peaking footer claims it suppresses 'detraining' messaging. Only the verdict header honours the modes (TrajectoryVerdict.compute); rampBand ignores them.",
-     "evidence": [
-      "Emuqu/Sources/Views/LoadTrajectoryView.swift:433",
-      "Emuqu/Sources/Views/LoadTrajectoryView.swift:536",
-      "Emuqu/Sources/Views/LoadTrajectoryView.swift:688",
-      "Emuqu/Sources/Views/LoadTrajectoryView.swift:733",
-      "Emuqu/Sources/Views/LoadTrajectoryView.swift:698",
-      "Emuqu/Sources/Analysis/TrajectoryVerdict.swift:310",
-      "Emuqu/Sources/Analysis/TrajectoryVerdict.swift:321",
-      "Emuqu/Sources/Analysis/TrajectoryVerdict.swift:198"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var FormDescriptor.localizedWord": "23eb719065d9f72a",
     "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var RampBand.localizedWord": "98bb747d0912f1e2",
@@ -647,7 +628,7 @@
     "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.current": "f7e859ce24c77ce1",
     "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.form": "47af1bc1286cc2bb",
     "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.loadStatCard": "0d6123725210821f",
-    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.rampBand": "ee1c33c1914ed6c7",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.rampBand": "d460b35438e3afc2",
     "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
    }
   },
@@ -792,7 +773,7 @@
     "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var RampBand.localizedSentence": "91ff42c9e3ef5b2f",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.rampBand": "ee1c33c1914ed6c7"
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.rampBand": "d460b35438e3afc2"
    }
   },
   {
@@ -843,35 +824,23 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.recentWorkoutRow(_:)": "fe819f47202e49df"
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.recentWorkoutRow(_:)": "86aeb9c0f2a1d48c"
    }
   },
   {
    "key": "func LoadTrajectoryView.recentWorkoutRow(_:)",
-   "hash": "59076169e90602d7",
-   "does": "Row Button calling onWorkoutTap(id); disabled when onWorkoutTap is nil.",
+   "hash": "19a6c240fa98d476",
+   "does": "Display-only row: sport badge, caption (sport + date), metrics (duration, load) on a card background.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.sportBadge(_:)",
     "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.workoutRowCaption(_:)",
-    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.workoutRowMetrics(_:)",
-    "closure:onWorkoutTap — never set in production (LoadTrajectoryLoader passes nil)"
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.workoutRowMetrics(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "The Button action is unreachable in the app: the only production caller passes onWorkoutTap: nil, so .disabled(true) always applies.",
-     "evidence": [
-      "Emuqu/Sources/Views/LoadTrajectoryView.swift:604",
-      "Emuqu/Sources/Views/LoadTrajectoryLoader.swift:72"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.sportBadge(_:)": "ca288a0e43615a27",
     "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.workoutRowCaption(_:)": "ed59051821eca213",

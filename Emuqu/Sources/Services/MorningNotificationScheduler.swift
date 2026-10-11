@@ -15,8 +15,8 @@ import UserNotifications
 ///     score." In Smart delivery it is the fallback behind the wake push.
 ///   • Wake-triggered one-shot push (Smart delivery only) delivered the
 ///     moment Apple Watch reports a fresh sleep-end via `HKObserverQuery`. Wired through
-///     `deliverWakeTriggeredPushIfAppropriate(sleepEnd:)`, called from
-///     `HealthKitManager+Sleep` observer's update handler. Fires only
+///     `deliverWakeTriggeredPushIfAppropriate(sleepEnd:)`, called from the
+///     sleep observer's update handler in `HealthKitManager+SleepTrends`. Fires only
 ///     once per day, only for a wake inside the schedule's morning window,
 ///     and skipped if the user has notifications disabled or hasn't
 ///     granted authorization. It carries this morning's score when one
@@ -142,7 +142,7 @@ final class MorningNotificationScheduler {
     /// has already received the morning notification.
     private static let wakeTriggeredFiredDateKey = "MorningNotificationScheduler.wakeFiredDate.v1"
 
-    /// Called from `HealthKitManager+Sleep`'s sleep observer when a fresh
+    /// Called from the sleep observer in `HealthKitManager+SleepTrends` when a fresh
     /// sleep-end sample arrives. Delivers a one-shot morning push within
     /// seconds of detected wake — far closer to the user's actual wake
     /// time than the fixed-time fallback. Idempotent: subsequent observer
@@ -265,11 +265,17 @@ final class MorningNotificationScheduler {
     /// reads as a bug. Gated on the session's wake time
     /// (endDate) falling in today; nil means the caller falls back to a
     /// number-free nudge until this morning's reading exists.
+    ///
+    /// The same choice the dashboard hero makes
+    /// (`DashboardSessionPolicy.latestOvernightComplete`): only readings
+    /// reliable for HRV aggregates (not `.insufficient` / `.preSleep`), and
+    /// the longest of the night's sessions first, so the push and the
+    /// dashboard show the same number.
     private static func todaysScore(in archive: SessionArchive) -> Int? {
         let calendar = Calendar.current
         let entries = archive.entries
-            .filter { $0.sessionType == .overnight && calendar.isDateInToday($0.endDate ?? $0.date) }
-            .sorted { ($0.endDate ?? $0.date) > ($1.endDate ?? $1.date) }
+            .filter { $0.sessionType == .overnight && $0.isReliableForHRVAggregates && calendar.isDateInToday($0.endDate ?? $0.date) }
+            .sorted { recordedSeconds($0) > recordedSeconds($1) }
             .prefix(7)
         for entry in entries {
             if let session = archive.retrieveLightweightOrLog(entry.sessionId),
@@ -278,6 +284,10 @@ final class MorningNotificationScheduler {
             }
         }
         return nil
+    }
+
+    private static func recordedSeconds(_ entry: SessionArchiveEntry) -> TimeInterval {
+        (entry.endDate ?? entry.date).timeIntervalSince(entry.date)
     }
 
     // MARK: - Payload builder

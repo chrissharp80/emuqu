@@ -1,30 +1,18 @@
 {
  "file": "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift",
- "hash": "2fa663dd6bdd10d4",
+ "hash": "1aba8d4171b3f27e",
  "role": "Plain value types carrying last night's sleep and multi-night sleep trend into AnalysisSummaryGenerator; built by MorningResultsViewModel from SleepData / SleepTrendStats.",
  "types": [
   "AnalysisSleepInput: struct — one night's sleep minutes/stages/efficiency plus short/good/fragmented gates against HRVThresholds",
   "AnalysisSleepTrendInput: struct — averaged sleep trend over N nights",
-  "AnalysisSleepTrendInput.SleepTrend: enum — improving/declining/stable/insufficient"
+  "AnalysisSleepTrendInput.SleepTrend: typealias of SleepTrendStats.SleepTrend (improving/declining/stable/insufficient; rawValue of insufficient is \"insufficient data\", which no reader of this type uses)"
  ],
  "state": [
   "mem:AnalysisSleepInput.empty (static let, all zero/nil)",
   "mem:AnalysisSleepTrendInput.empty (static let, trend .insufficient, 0 nights)"
  ],
  "toplevel": "Two static `empty` instances built via the memberwise inits (AnalysisSleepInputs.swift:36-40, 76-79).",
- "flags": [
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "AnalysisSleepTrendInput.SleepTrend re-declares the four cases of the SleepTrendStats.SleepTrend enum and init(from:) maps them 1:1, a second copy that must be kept in sync by hand.",
-   "evidence": [
-    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift:72",
-    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift:98",
-    "Emuqu/Sources/Collection/SleepTrendStats.swift:11"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "var AnalysisSleepInput.isShortSleep",
@@ -125,8 +113,8 @@
   },
   {
    "key": "init AnalysisSleepTrendInput(from:)",
-   "hash": "0260eef84f329a8a",
-   "does": "Builds the trend input from HealthKitManager.SleepTrendStats (averages, nightsAnalyzed) and maps its trend enum case-for-case. Called from MorningResultsViewModel.swift:313.",
+   "hash": "23c274a440b7637f",
+   "does": "Builds the trend input from HealthKitManager.SleepTrendStats (averages, nightsAnalyzed) and copies its trend directly (SleepTrend is the same enum). Called from MorningResultsViewModel.swift:313.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -136,26 +124,6 @@
      "at": "+1",
      "cond": "SleepTrendStats is nil",
      "effect": "true: self = .empty (0 avg, trend .insufficient, 0 nights); false: copy fields"
-    },
-    {
-     "at": "+10",
-     "cond": "hk.trend == .improving",
-     "effect": "trend = .improving"
-    },
-    {
-     "at": "+11",
-     "cond": "hk.trend == .declining",
-     "effect": "trend = .declining"
-    },
-    {
-     "at": "+12",
-     "cond": "hk.trend == .stable",
-     "effect": "trend = .stable"
-    },
-    {
-     "at": "+13",
-     "cond": "hk.trend == .insufficient",
-     "effect": "trend = .insufficient"
     }
    ],
    "flags": [],

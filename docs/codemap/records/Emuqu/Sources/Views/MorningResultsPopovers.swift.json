@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/MorningResultsPopovers.swift",
- "hash": "bbcb3ffa016a34a3",
+ "hash": "91a3f228279d60a1",
  "role": "Metric glossary popover (MetricExplanationPopover) shown when an HRVMetricCell is tapped, plus the static English-keyed explanation tables reused by MetricInfoSheets.entry(for:) as a fallback.",
  "types": [
   "MetricExplanationPopover: struct View — title/description/interpretation popover for a metric label; static glossary tables"
@@ -13,20 +13,8 @@
   "MetricExplanationPopover.ansInfo static let",
   "MetricExplanationPopover.dataQualityInfo static let"
  ],
- "toplevel": "Static dictionaries of @MainActor factories returning localized (fullName, description, interpretation) tuples for: Mean RR, SDNN, RMSSD, pNN50, SDSD, HR Range, Mean HR, SD HR, HRV TI; VLF, LF, HF, Total Power, LF n.u., HF n.u., LF/HF; SD1, SD2, SD1/SD2, DFA α1, DFA α2, α1 R², SampEn, ApEn; Stress Index, PNS Index, SNS Index, Resp Rate, Readiness; Clean Beats, Artifacts. Aliases map 'Window Beats'/'Window beats'→Clean Beats, 'Window HR'/'HR range'→HR Range, 'Resp rate', 'PNS', 'SNS', 'Stress', 'Total power'.",
+ "toplevel": "Static dictionaries of @MainActor factories returning localized (fullName, description, interpretation) tuples for: Mean RR, SDNN, RMSSD, pNN50, SDSD, HR Range, Mean HR, SD HR, HRV TI; VLF, LF, HF, Total Power, LF n.u., HF n.u., LF/HF; SD1, SD2, SD1/SD2, DFA α1, DFA α2, α1 R², SampEn, ApEn; Stress Index, PNS Index, SNS Index, Resp Rate, Readiness; Clean Beats, Artifacts. Aliases map 'Window Beats'/'Window beats'→Clean Beats, 'HR range'→HR Range, 'Resp rate', 'PNS', 'SNS', 'Stress', 'Total power'.",
  "flags": [
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "Alias 'Window HR' → 'HR Range' is never used (no glossary caller passes 'Window HR'), and if it were it would describe a mean-HR figure as max−min range.",
-   "evidence": [
-    "Emuqu/Sources/Views/MorningResultsPopovers.swift:75",
-    "Emuqu/Sources/Views/MorningResultsPopovers.swift:125",
-    "Emuqu/Sources/Views/PeakCapacityCard.swift:111",
-    "Emuqu/Sources/Views/HRVDetailV2View.swift:563"
-   ],
-   "found": "second read"
-  },
   {
    "kind": "spec-mismatch",
    "sev": "low",

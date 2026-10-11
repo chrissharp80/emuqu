@@ -77,7 +77,8 @@ extension WorkoutPDFRenderer {
             (Double(report.userMaxHR) * 0.60, Double(report.userMaxHR) * 0.70, UIColor(red: 0.55, green: 0.85, blue: 0.45, alpha: 0.12)),
             (Double(report.userMaxHR) * 0.70, Double(report.userMaxHR) * 0.80, UIColor(red: 0.95, green: 0.80, blue: 0.30, alpha: 0.14)),
             (Double(report.userMaxHR) * 0.80, Double(report.userMaxHR) * 0.90, UIColor(red: 0.95, green: 0.55, blue: 0.25, alpha: 0.16)),
-            (Double(report.userMaxHR) * 0.90, Double(report.userMaxHR) + 10, UIColor(red: 0.90, green: 0.35, blue: 0.35, alpha: 0.18))
+            // Z5 is open-ended, as the zone table and the zone seconds count it.
+            (Double(report.userMaxHR) * 0.90, .greatestFiniteMagnitude, UIColor(red: 0.90, green: 0.35, blue: 0.35, alpha: 0.18))
         ]
         for z in zones where z.hi > minY && z.lo < maxY {
             let yLo = py(max(minY, z.lo))
@@ -176,21 +177,23 @@ extension WorkoutPDFRenderer {
     }
     /// The AT1 and AT2 dashed reference lines, with their labels.
     func drawAlpha1Thresholds(ctx: CGContext, plot: CGRect, py: (Double) -> CGFloat) {
+        let at1 = HRVConstants.DFA.alpha1AerobicThreshold
+        let at2 = HRVConstants.DFA.alpha1AnaerobicThreshold
         // AT1 line
         ctx.setStrokeColor(report.config.sage.cgColor)
         ctx.setLineWidth(1.5)
         ctx.setLineDash(phase: 0, lengths: [4, 3])
-        ctx.move(to: CGPoint(x: plot.minX, y: py(0.75)))
-        ctx.addLine(to: CGPoint(x: plot.maxX, y: py(0.75)))
+        ctx.move(to: CGPoint(x: plot.minX, y: py(at1)))
+        ctx.addLine(to: CGPoint(x: plot.maxX, y: py(at1)))
         ctx.strokePath()
-        drawText(String(localized: "AT1 · aerobic threshold", bundle: LanguageManager.appBundle), at: CGPoint(x: plot.minX + 4, y: py(0.75) - 12), font: report.config.captionFont, color: report.config.sage)
+        drawText(String(localized: "AT1 · aerobic threshold", bundle: LanguageManager.appBundle), at: CGPoint(x: plot.minX + 4, y: py(at1) - 12), font: report.config.captionFont, color: report.config.sage)
 
         // AT2 line
         ctx.setStrokeColor(UIColor.orange.cgColor)
-        ctx.move(to: CGPoint(x: plot.minX, y: py(0.5)))
-        ctx.addLine(to: CGPoint(x: plot.maxX, y: py(0.5)))
+        ctx.move(to: CGPoint(x: plot.minX, y: py(at2)))
+        ctx.addLine(to: CGPoint(x: plot.maxX, y: py(at2)))
         ctx.strokePath()
-        drawText(String(localized: "AT2 · anaerobic threshold", bundle: LanguageManager.appBundle), at: CGPoint(x: plot.minX + 4, y: py(0.5) - 12), font: report.config.captionFont, color: .orange)
+        drawText(String(localized: "AT2 · anaerobic threshold", bundle: LanguageManager.appBundle), at: CGPoint(x: plot.minX + 4, y: py(at2) - 12), font: report.config.captionFont, color: .orange)
         ctx.setLineDash(phase: 0, lengths: [])
     }
     func strokeAlpha1Curve(ctx: CGContext, points: [(Double, Double)], px: (Double) -> CGFloat, py: (Double) -> CGFloat) {
@@ -259,10 +262,12 @@ extension WorkoutPDFRenderer {
         return nearest
     }
 
-    /// ≥0.75 aerobic (sage), ≥0.50 threshold (yellow), below that anaerobic.
+    /// At or above the aerobic threshold (sage), at or above the anaerobic
+    /// threshold (yellow), below that anaerobic — the `HRVConstants.DFA`
+    /// edges `alpha1Stats` bands by.
     private static func bandColor(_ alpha1: Double, sage: UIColor) -> UIColor {
-        if alpha1 >= 0.75 { return sage }
-        if alpha1 >= 0.50 { return .systemYellow }
+        if alpha1 >= HRVConstants.DFA.alpha1AerobicThreshold { return sage }
+        if alpha1 >= HRVConstants.DFA.alpha1AnaerobicThreshold { return .systemYellow }
         return .orange
     }
     /// Render an MKMapSnapshot for the report.track area. Returns nil when there's
@@ -280,10 +285,18 @@ extension WorkoutPDFRenderer {
         let coords = report.track.map(\.coordinate)
         let snapshotter = MKMapSnapshotter(options: options)
         return await withCheckedContinuation { cont in
-            snapshotter.start { snapshot, _ in
+            snapshotter.start { snapshot, error in
+                Self.logSnapshotFailure(error)
                 cont.resume(returning: Self.routeMap(from: snapshot, track: coords))
             }
         }
+    }
+
+    /// A failed snapshot drops the Effort & Terrain page; the warning puts it
+    /// under Troubleshooting > Recent Problems rather than nowhere.
+    private static func logSnapshotFailure(_ error: Error?) {
+        guard let error else { return }
+        debugLog("[WorkoutPDF] Map snapshot failed, Effort & Terrain page omitted: \(error.localizedDescription)", level: .warning)
     }
 
     /// The snapshot's image with every track coordinate projected by it; nil

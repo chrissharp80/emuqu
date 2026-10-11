@@ -119,27 +119,29 @@ final class WhisperKitSTTBridge {
     /// model isn't loaded yet — while it downloads, the controller keeps
     /// transcribing with Apple's recognizer (it checks `modelReady`), and
     /// later turns use WhisperKit.
+    ///
+    /// The buffer must be one the caller owns, not the tap's pooled buffer:
+    /// the only caller, `VoiceAudioPipeline.consumeMicBuffer`, receives a
+    /// copy `deepCopyPCMBuffer` made on the tap thread and only reads it
+    /// afterwards, so it is kept as is rather than copied a second time.
     func appendAudio(_ buffer: AVAudioPCMBuffer) {
         guard modelReady, pipeline != nil else { return }
-        // AVAudioPCMBuffer can't be safely held across actor hops
-        // unless we copy it — the underlying audio data lives in a
-        // memory pool the engine can recycle.
-        if let copy = buffer.deepCopy() {
-            pendingBuffers.append(copy)
-            capPendingBuffers()
-        }
+        pendingBuffers.append(buffer)
+        capPendingBuffers()
     }
 
-    /// Bound accumulated audio to ~60s. End-of-turn VAD normally drains
-    /// `pendingBuffers` well before this, but if VAD never fires (sustained
-    /// wind/noise — the exact condition WhisperKit targets) the buffer would
-    /// grow without limit at ~192 KB/s and jetsam-kill the app mid-turn. The
-    /// Apple path bounds this with `maxTurnDurationSec`; this mirrors it.
+    /// Bound accumulated audio to 60 s at whatever rate the tap delivers.
+    /// End-of-turn VAD normally drains `pendingBuffers` well before this,
+    /// but if VAD never fires (sustained wind/noise — the exact condition
+    /// WhisperKit targets) the buffer would grow without limit (~192 KB/s at
+    /// 48 kHz) and jetsam-kill the app mid-turn. The Apple path bounds this
+    /// with `maxTurnDurationSec`; this mirrors it.
     private func capPendingBuffers() {
-        let maxFrames: AVAudioFrameCount = 48_000 * 60
-        var total = pendingBuffers.reduce(AVAudioFrameCount(0)) { $0 + $1.frameLength }
-        while total > maxFrames, pendingBuffers.count > 1 {
-            total -= pendingBuffers.removeFirst().frameLength
+        let maxSeconds = 60.0
+        let seconds = { (buffer: AVAudioPCMBuffer) in Double(buffer.frameLength) / max(buffer.format.sampleRate, 1) }
+        var total = pendingBuffers.reduce(0.0) { $0 + seconds($1) }
+        while total > maxSeconds, pendingBuffers.count > 1 {
+            total -= seconds(pendingBuffers.removeFirst())
         }
     }
 
@@ -187,27 +189,41 @@ final class WhisperKitSTTBridge {
     /// a boundary must not force-unwrap it. Throw a
     /// typed error instead so the bridge degrades to the Apple
     /// recognizer fallback rather than crashing the process.
+    ///
+    /// The empty-input guard is this function's own precondition (its caller
+    /// returns "" before calling it with nothing). A file that was created
+    /// and then failed to fill is removed before the error propagates, since
+    /// the caller's cleanup is set only once this returns a URL.
     private static func writeMonoWav(at16k buffers: [AVAudioPCMBuffer]) throws -> URL {
-        guard let firstFormat = buffers.first?.format else { throw STTBridgeError.emptyAudio }
+        guard !buffers.isEmpty else { throw STTBridgeError.emptyAudio }
         guard let targetFormat = AVAudioFormat(
             commonFormat: .pcmFormatFloat32, sampleRate: 16_000, channels: 1, interleaved: false
         ) else { throw STTBridgeError.converterUnavailable }
-        guard let converter = AVAudioConverter(from: firstFormat, to: targetFormat) else {
-            throw STTBridgeError.converterUnavailable
-        }
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("whisperkit-utterance-\(Int(Date().timeIntervalSince1970)).wav")
-        let file = try AVAudioFile(
-            forWriting: url,
-            settings: targetFormat.settings,
-            commonFormat: .pcmFormatFloat32,
-            interleaved: false
-        )
-        for input in buffers {
-            guard let output = try convert(input, with: converter, to: targetFormat) else { continue }
-            if output.frameLength > 0 { try file.write(from: output) }
+        do {
+            let file = try AVAudioFile(forWriting: url, settings: targetFormat.settings, commonFormat: .pcmFormatFloat32, interleaved: false)
+            try writeConverted(buffers, to: file, format: targetFormat)
+        } catch {
+            _ = attempt("WhisperKitSTTBridge.removePartial") { try FileManager.default.removeItem(at: url) }
+            throw error
         }
         return url
+    }
+
+    /// One converter per input format: a route change mid-turn that changes
+    /// the tap's format starts a fresh converter instead of feeding the old
+    /// one buffers in a format it was not built for.
+    private static func writeConverted(_ buffers: [AVAudioPCMBuffer], to file: AVAudioFile, format targetFormat: AVAudioFormat) throws {
+        var converter: AVAudioConverter?
+        for input in buffers {
+            if converter?.inputFormat != input.format {
+                converter = AVAudioConverter(from: input.format, to: targetFormat)
+            }
+            guard let active = converter else { throw STTBridgeError.converterUnavailable }
+            guard let output = try convert(input, with: active, to: targetFormat) else { continue }
+            if output.frameLength > 0 { try file.write(from: output) }
+        }
     }
 
     /// Convert one captured buffer to the Whisper format. The output buffer is
@@ -284,33 +300,5 @@ enum STTBridgeError: LocalizedError {
         case .converterUnavailable: return String(localized: "Couldn't create the 16 kHz mono converter.", bundle: LanguageManager.appBundle)
         case .conversionFailed: return String(localized: "Audio conversion to 16 kHz failed.", bundle: LanguageManager.appBundle)
         }
-    }
-}
-
-// MARK: - AVAudioPCMBuffer deep copy
-//
-// AVAudioEngine taps reuse a buffer pool — holding the pointer past
-// the closure's return is undefined behavior. `deepCopy()` allocates
-// a fresh buffer of the same format and copies the floats over so
-// we can safely accumulate across the spoken turn.
-
-private extension AVAudioPCMBuffer {
-    func deepCopy() -> AVAudioPCMBuffer? {
-        guard let copy = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCapacity) else {
-            return nil
-        }
-        copy.frameLength = frameLength
-        let channelCount = Int(format.channelCount)
-        let frames = Int(frameLength)
-        if let src = floatChannelData, let dst = copy.floatChannelData {
-            for ch in 0 ..< channelCount {
-                memcpy(dst[ch], src[ch], frames * MemoryLayout<Float>.size)
-            }
-        } else if let src = int16ChannelData, let dst = copy.int16ChannelData {
-            for ch in 0 ..< channelCount {
-                memcpy(dst[ch], src[ch], frames * MemoryLayout<Int16>.size)
-            }
-        }
-        return copy
     }
 }

@@ -108,22 +108,61 @@
      "effect": "emit the pair; otherwise drop the window"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Each step window yields exactly one cadence point at its midpoint; ImportedWorkoutBuilder.perSecondSamples only fills a second from a sample within ±5 s (nearestValue within 5), so a multi-minute HealthKit step batch shows cadence on ~11 seconds and nil elsewhere, whereas pace/METs in the rebuild are spread across their whole window by bySecond.",
-     "evidence": [
-      "Emuqu/Sources/Import/HealthWorkoutImporter.swift:130",
-      "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift:172",
-      "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift:230",
-      "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift:276"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Import/HealthSampleWindow.swift::var HealthSampleWindow.duration": "eb1d4f3b8568285b"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImporter.cadenceSamples(from:coveringFrom:to:)",
+   "hash": "1163d687beb7176a",
+   "does": "Spreads each step window's steps-per-minute (computed by cadenceSamples(from:), so zero-length, negative and non-finite windows are dropped) across every whole second the window covers inside [start,end], one (Date, rate) pair per second; windows are taken in finestLast order so where they overlap the finest one comes last and wins in the builder's latest-wins per-second map.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.finestLast(_:)",
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.cadenceSamples(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "cadenceSamples(from: [window]) yields a rate",
+     "effect": "continue; otherwise the window contributes nothing"
+    },
+    {
+     "at": "+7",
+     "cond": "the window's overlap with [start,end] is non-negative",
+     "effect": "emit one pair per second from the overlap start through its whole-second length; otherwise nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.cadenceSamples(from:)": "04fab9aaa269e97f",
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.finestLast(_:)": "4f3257d471dc1475"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImporter.finestLast(_:)",
+   "hash": "885cc861d340b8fe",
+   "does": "Sorts windows longest first (ties by earlier start), so in a latest-wins fill the shortest (finest) window of any overlap is applied last, independent of HealthKit's result order.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/HealthSampleWindow.swift::var HealthSampleWindow.duration"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "durations differ",
+     "effect": "longer first; otherwise earlier start first"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/HealthSampleWindow.swift::var HealthSampleWindow.duration": "eb1d4f3b8568285b",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.windows(_:unit:)": "9fd4c54cd4d3feeb"
    }
   }
  ],

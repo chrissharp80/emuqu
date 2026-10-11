@@ -407,11 +407,14 @@ final class WorkoutTrackBackup: @unchecked Sendable {
     /// The bytes may still read even though the handle would not open: rewrite
     /// them with the new slice rather than setting them aside. Only a file that
     /// won't read either is moved aside and started fresh.
+    /// When the file can be neither read nor moved aside, nothing is written:
+    /// a fresh write would replace the rows it still holds. The cursor stays
+    /// put and the next tick tries again.
     private func rewriteUnopenable(_ url: URL, adding blob: Data, sessionId: UUID, streamName: String) -> Bool {
         if let existing = attempt("WorkoutTrackBackup.readForRewrite", { try Data(contentsOf: url) }) {
             return write(existing + blob, to: url, sessionId: sessionId, streamName: streamName, label: "rewrite fallback")
         }
-        preserveCorruptedFile(at: url)
+        guard preserveCorruptedFile(at: url) else { return false }
         return write(blob, to: url, sessionId: sessionId, streamName: streamName, label: "fresh-write fallback")
     }
 
@@ -425,10 +428,16 @@ final class WorkoutTrackBackup: @unchecked Sendable {
     /// The throwing `FileHandle` calls: `seekToEndOfFile()` / `write(_:)`
     /// raise an Objective-C exception on a full disk, which Swift cannot
     /// catch, so a full disk mid-workout crashed the app.
+    ///
+    /// A row torn by a kill mid-write (no trailing newline) is cut off first:
+    /// the launch count only counts complete rows, so that row is written again
+    /// now, and appended after the fragment it would fuse with it into one line
+    /// that decodes as neither.
     private func appendToExisting(_ blob: Data, at url: URL) -> AppendOutcome {
-        guard let handle = try? FileHandle(forWritingTo: url) else { return .couldNotOpen }
+        guard let handle = try? FileHandle(forUpdating: url) else { return .couldNotOpen }
         defer { _ = attempt("WorkoutTrackBackup.close") { try handle.close() } }
         do {
+            try dropTornTail(handle)
             try handle.seekToEnd()
             try handle.write(contentsOf: blob)
             return .appended
@@ -438,12 +447,31 @@ final class WorkoutTrackBackup: @unchecked Sendable {
         }
     }
 
+    /// Truncates the file after its last newline when it does not end with
+    /// one. The usual case reads one byte; only a torn file reads its tail
+    /// (a row is far shorter than 64 KB).
+    private func dropTornTail(_ handle: FileHandle) throws {
+        let end = try handle.seekToEnd()
+        guard end > 0 else { return }
+        try handle.seek(toOffset: end - 1)
+        guard try handle.read(upToCount: 1)?.first != 0x0A else { return }
+        let tailStart = end > 65_536 ? end - 65_536 : 0
+        try handle.seek(toOffset: tailStart)
+        let tail = try handle.readToEnd() ?? Data()
+        guard let lastNewline = tail.lastIndex(of: 0x0A) else {
+            if tailStart == 0 { try handle.truncate(atOffset: 0) }
+            return
+        }
+        try handle.truncate(atOffset: tailStart + UInt64(lastNewline - tail.startIndex + 1))
+    }
+
     /// Keep whatever was already on disk under a `.corrupted` name rather than
-    /// overwriting it, so a partially-recoverable stream isn't lost.
-    private func preserveCorruptedFile(at url: URL) {
+    /// overwriting it, so a partially-recoverable stream isn't lost. False when
+    /// the move failed and the file is still in place.
+    private func preserveCorruptedFile(at url: URL) -> Bool {
         let preserved = url.deletingLastPathComponent()
             .appendingPathComponent(url.lastPathComponent + ".corrupted_\(Int(Date().timeIntervalSince1970))")
-        _ = attempt("WorkoutTrackBackup.move") { try fileManager.moveItem(at: url, to: preserved) }
+        return attempt("WorkoutTrackBackup.move") { try fileManager.moveItem(at: url, to: preserved) } != nil
     }
 
     /// Encode each item on its own line. An item that fails to encode is
@@ -487,20 +515,6 @@ final class WorkoutTrackBackup: @unchecked Sendable {
         })
     }
 
-    /// All sessions with a header on disk. Used at app launch to find
-    /// crash-orphaned workouts.
-    func allSessionIds() -> [UUID] {
-        guard let entries = try? fileManager.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil) else {
-            return []
-        }
-        return entries.compactMap { url -> UUID? in
-            let name = url.lastPathComponent
-            guard name.hasSuffix("_workout_header.json") else { return nil }
-            let prefix = String(name.dropLast("_workout_header.json".count))
-            return UUID(uuidString: prefix)
-        }
-    }
-
     /// Read the persisted streams for a session. Missing streams come
     /// back empty rather than throwing — recovery should still attempt
     /// with whatever's available (e.g. indoor sessions have no track,
@@ -511,11 +525,15 @@ final class WorkoutTrackBackup: @unchecked Sendable {
         appendQueue.sync { retrieveSerialized(sessionId) }
     }
 
+    /// No header (its write failed) or an unreadable one means no recovery,
+    /// since the sport and start live only there; when streams exist anyway
+    /// that is logged rather than passed over in silence.
     private func retrieveSerialized(_ sessionId: UUID) -> Recovered? {
         let headerPath = headerURL(sessionId)
         guard fileManager.fileExists(atPath: headerPath.path),
               let headerData = try? Data(contentsOf: headerPath),
               let header = try? decoder.decode(Header.self, from: headerData) else {
+            logHeaderlessStreams(sessionId)
             return nil
         }
 
@@ -531,6 +549,12 @@ final class WorkoutTrackBackup: @unchecked Sendable {
             healthKitHROffsets: healthKitHROffsets,
             barometricSamples: baro
         )
+    }
+
+    private func logHeaderlessStreams(_ sessionId: UUID) {
+        let streams = [trackURL(sessionId), samplesURL(sessionId), baroURL(sessionId), healthKitHRURL(sessionId)]
+        guard streams.contains(where: { fileManager.fileExists(atPath: $0.path) }) else { return }
+        debugLog("[WorkoutTrackBackup] \(sessionId.uuidString.prefix(8)) has backup streams but no readable header; not recoverable", level: .warning)
     }
 
     /// The live stream plus any `.corrupted_*` file an earlier append set
@@ -568,7 +592,14 @@ final class WorkoutTrackBackup: @unchecked Sendable {
     /// Remove every file for a session. Called once the recorder has
     /// successfully archived the finalized session — the backup has done
     /// its job and the archive is the source of truth.
+    ///
+    /// On `appendQueue`, so an append in flight cannot recreate a stream or
+    /// its cursor after the files are gone.
     func discard(_ sessionId: UUID) {
+        appendQueue.sync { discardSerialized(sessionId) }
+    }
+
+    private func discardSerialized(_ sessionId: UUID) {
         let streams = [trackURL(sessionId), samplesURL(sessionId), baroURL(sessionId), healthKitHRURL(sessionId)]
         for url in [headerURL(sessionId)] + streams + streams.flatMap(setAsideFiles(for:)) {
             _ = attempt("WorkoutTrackBackup.remove") { try fileManager.removeItem(at: url) }

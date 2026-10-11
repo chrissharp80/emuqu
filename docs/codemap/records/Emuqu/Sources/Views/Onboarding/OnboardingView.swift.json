@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/Onboarding/OnboardingView.swift",
- "hash": "5b54e69a0573e825",
+ "hash": "7e0af7a4cdbfe752",
  "role": "Root onboarding container: a 7-page paged TabView (Welcome, ValueProp, Profile, Sensor, Apple Health, Backup, Done) shown by EmuquApp's launch modal (.onboarding) before onboarding is complete; the Done page writes the onboarding-complete settings flags and kicks a CloudKit full sync. Also declares OnboardingFillingScroll, a fill-or-scroll page wrapper used by the Welcome, ValueProp, Backup and Done pages and by TrialReminderView and PreScorePromptView.",
  "types": [
   "OnboardingView: struct — paged onboarding container; owns currentPage and completion",
@@ -8,6 +8,7 @@
  ],
  "state": [
   "@State currentPage (Int, 0) — selected page tag",
+  "@State healthPageAnswered (Bool, false) — set when the Health page itself advanced (Skip or Continue), so that move is not read as a swipe-past",
   "pageCount = 7 (private let)",
   "onTakeReading closure (set by EmuquApp.swift:348 to `requestedTab = .record`)"
  ],
@@ -42,7 +43,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.noteHealthPageSwipedPast(from:to:)": "6a21fbee5ef404ff",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.noteHealthPageSwipedPast(from:to:)": "073d103d0d0d74a2",
     "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingView.pages": "3451ed6421973672",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
    }
@@ -62,19 +63,20 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.advanceFromHealthPage()": "11e8437b4dcd9c95",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.advanceFromHealthPage()": "1625397bf055d44c",
     "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.advanceToNext()": "31fe52370fc21417",
     "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingView.donePage": "db9af5b399a13afe"
    }
   },
   {
    "key": "func OnboardingView.noteHealthPageSwipedPast(from:to:)",
-   "hash": "db4fe4e62d601abe",
-   "does": "When the page changes from the Apple Health page (4) to a later page and HealthKitManager.authorizationRequested is false in this process, sets UserDefaults healthAccessSkippedInOnboarding = true (treats a swipe-past as \"Skip for now\").",
+   "hash": "b9f2bc3917c50656",
+   "does": "When the page changes from the Apple Health page (4) to a later page by a swipe — the page's own Skip/Continue did not answer it (healthPageAnswered false) — and HealthKitManager.authorizationRequested is false in this process, sets UserDefaults healthAccessSkippedInOnboarding = true (treats a swipe-past as \"Skip for now\").",
    "entry": ".onChange(of: currentPage) in body (line 44).",
    "calls": [],
    "reads": [
-    "mem:HealthKitManager.authorizationRequested"
+    "mem:HealthKitManager.authorizationRequested",
+    "mem:OnboardingView.healthPageAnswered"
    ],
    "writes": [
     "ud:healthAccessSkippedInOnboarding (UserDefaultsKeys.healthAccessSkipped, standard suite)"
@@ -82,15 +84,15 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "old == 4 && new > 4 && !collector.healthKit.authorizationRequested",
-     "effect": "true: writes healthAccessSkipped=true. false (left a different page, moved backward, or authorization already requested in this process): returns without writing."
+     "cond": "old == 4 && new > 4 && !healthPageAnswered && !authorizationRequested",
+     "effect": "writes healthAccessSkipped=true; else returns without writing"
     }
    ],
    "flags": [
     {
      "kind": "fragile",
      "sev": "med",
-     "text": "The skip decision is keyed on HealthKitManager.authorizationRequested, an in-memory per-process flag that is only set after HKHealthStore.requestAuthorization succeeds. (a) If the user tapped Connect and requestAuthorization threw, the page shows Continue (didAttempt=true); tapping it moves 4→5 and this writes healthAccessSkipped=true, recording a skip the user did not make — which then suppresses the launch-time Health request and ensureWriteAuthorizationFresh. (b) If the app was relaunched mid-onboarding after a successful Connect, the flag is false in the new process, so swiping past the Health page marks access skipped.",
+     "text": "The swipe-past skip is still keyed partly on HealthKitManager.authorizationRequested, an in-memory per-process flag set only after a successful request. Case (a) — Continue after a Connect whose request threw — is fixed (healthPageAnswered). Remaining (b): if the app was relaunched mid-onboarding after a successful Connect, the flag is false in the new process, so swiping past the Health page marks access skipped and suppresses the launch-time Health request. Handoff b23: HealthKitManager to expose whether authorization was ever requested (HKHealthStore.statusForAuthorizationRequest → .unnecessary).",
      "evidence": [
       "Emuqu/Sources/Views/Onboarding/OnboardingView.swift:72",
       "Emuqu/Sources/Collection/HealthKitManager.swift:54",
@@ -108,26 +110,18 @@
   },
   {
    "key": "func OnboardingView.advanceFromHealthPage()",
-   "hash": "d3e03ad4738eb731",
-   "does": "Advance handler for the Health page: just calls advanceToNext (named hook with no extra logic).",
+   "hash": "e8d7f31356f1ff54",
+   "does": "Advance handler for the Health page (Skip, or Continue after Connect): marks healthPageAnswered, then advanceToNext, so the page-change observer does not record this advance as a swipe-past skip.",
    "entry": "closure passed to OnboardingHealthPage(advance:) at line 60; invoked by that page's Continue / Skip for now buttons.",
    "calls": [
     "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.advanceToNext()"
    ],
    "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "hack",
-     "sev": "low",
-     "text": "Wrapper that only forwards to advanceToNext, kept \"in case future logic needs to gate the advance\"; adds an indirection with no behaviour.",
-     "evidence": [
-      "Emuqu/Sources/Views/Onboarding/OnboardingView.swift:82-87"
-     ],
-     "found": "first read, upheld on second"
-    }
+   "writes": [
+    "mem:OnboardingView.healthPageAnswered"
    ],
+   "branches": [],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.advanceToNext()": "31fe52370fc21417"
    }

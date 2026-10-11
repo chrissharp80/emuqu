@@ -29,6 +29,17 @@ struct ImportedWorkoutTrack {
     let heartRateSamples: [(Date, Int)]
     let cadenceSamples: [(Date, Double)]
     let sport: Sport
+
+    /// The same track with its points in time order. A GPX file or a route
+    /// query can hand points over out of order, and the builder sums distance
+    /// and sweeps altitude in array order.
+    func timeOrdered() -> ImportedWorkoutTrack {
+        ImportedWorkoutTrack(
+            startDate: startDate, endDate: endDate,
+            track: track.sorted { $0.timestamp < $1.timestamp },
+            heartRateSamples: heartRateSamples, cadenceSamples: cadenceSamples, sport: sport
+        )
+    }
 }
 
 @MainActor
@@ -100,13 +111,21 @@ enum ImportedWorkoutBuilder {
         source: Source,
         replacing existingID: UUID? = nil
     ) -> HRVSession {
-        // Clamp the session length. A single bogus <time> (e.g. an epoch-1970
-        // trackpoint in an otherwise-2026 file, which the parser accepts) would
-        // otherwise make `duration` ~1.7 billion → an effectively infinite loop
-        // allocating billions of samples → OOM crash. Cap 48 h.
-        let duration = min(max(0, Int(track.endDate.timeIntervalSince(track.startDate))), 48 * 3_600)
-        let samples = perSecondSamples(from: track, duration: duration)
-        return session(from: track, samples: samples, source: source, replacing: existingID)
+        let ordered = track.timeOrdered()
+        let duration = clampedDurationSeconds(from: ordered.startDate, to: ordered.endDate)
+        let samples = perSecondSamples(from: ordered, duration: duration)
+        return session(from: ordered, samples: samples, source: source, replacing: existingID)
+    }
+
+    /// The length, in whole seconds, an import builds for a workout from
+    /// `start` to `end`: never negative, and capped at 48 h. A single bogus
+    /// <time> (e.g. an epoch-1970 trackpoint in an otherwise-2026 file, which
+    /// the parser accepts) would otherwise make the length ~1.7 billion
+    /// seconds → an effectively infinite loop allocating billions of samples
+    /// → OOM crash. Anything that reports an import's length uses this, so it
+    /// states the length the session was built with.
+    static func clampedDurationSeconds(from start: Date, to end: Date) -> Int {
+        min(max(0, Int(end.timeIntervalSince(start))), 48 * 3_600)
     }
 
     /// Collapse HR/cadence samples onto per-second keys.
@@ -130,8 +149,8 @@ enum ImportedWorkoutBuilder {
         return (hrMap, cadMap)
     }
 
-    /// Per-point elapsed seconds and cumulative distance along the
-    /// (time-ordered) track, precomputed ONCE.
+    /// Per-point elapsed seconds and cumulative distance along the track,
+    /// precomputed ONCE. `buildSession` puts the track in time order first.
     ///
     /// The previous implementation rescanned the whole track for the nearest
     /// point AND recomputed the full prefix distance for every single second —

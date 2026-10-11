@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift",
- "hash": "f46eb3c8f64eb4b2",
+ "hash": "f3df39b5173da3d5",
  "role": "iOS-side WCSessionDelegate for the Watch link: activation/reachability, inbound message routing (HR samples, strap samples, workout controls, voice chat, state requests), queued-intent staleness filtering, reply construction, voice-chat state push, and plist round-tripping of payloads to the main actor.",
  "types": [
   "WatchConnectivityBridge: extension — WCSessionDelegate conformance and message handling",
@@ -9,49 +9,43 @@
  ],
  "state": [
   "mem:WatchConnectivityBridge.maxQueuedIntentAge = 120 s",
-  "mem:WatchConnectivityBridge.maxStrapSampleAge = 5 s"
+  "mem:WatchConnectivityBridge.maxStrapSampleAge = 5 s",
+  "mem:WatchConnectivityBridge.plainControls (static [MessageType]: stop/pause/resume/acknowledge)"
  ],
- "toplevel": "Two static constants. The extension mutates bridge state declared in WatchConnectivityBridge.swift: mem:WatchConnectivityBridge.isReachable, latestWatchHR, latestWatchStrapHR, latestWatchStrapRRMillis, pendingWatchStrapRR (capped at 1000), latestWatchStrapAt, lastProcessedContextTimestamp.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "lastProcessedContextTimestamp is documented as deduping applicationContext against the live didReceiveMessage path, but only the queued paths read or write it; a message handled via didReceiveMessage never records its ts. The Watch currently sends either live or queued (WatchSessionManager.swift:482/498), so no double-fire is observed today.",
-   "evidence": [
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift:252",
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift:125",
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift:52"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "Two static constants plus plainControls (the four plain workout controls). The extension mutates bridge state declared in WatchConnectivityBridge.swift: latestWatchHR, latestWatchStrapHR, pendingWatchStrapRR (capped at 1000), latestWatchStrapAt, lastProcessedContextTimestamp (queued channels only).",
+ "flags": [],
  "units": [
   {
    "key": "func WatchConnectivityBridge.session(_:activationDidCompleteWith:error:)",
-   "hash": "1ecb966eda321598",
-   "does": "WC activation callback: publishes isReachable on the main actor; when activated, invokes onWCSessionActivated (wired to push current strap state).",
+   "hash": "76508a2e44e8f4e1",
+   "does": "WC activation callback: when activated, sends the dual-channel commands held from before activation (sendHeldDualChannelMessages) and invokes onWCSessionActivated (wired to push current strap state).",
    "entry": "WCSessionDelegate session(_:activationDidCompleteWith:error:) — called by WatchConnectivity after WCSession.activate().",
    "calls": [
-    "closure:onWCSessionActivated = onRequestStrapStateFromWatch set in WatchConnectivityBridge.swift:524 (pushes strap state to the Watch)"
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.sendHeldDualChannelMessages()",
+    "closure:onWCSessionActivated = onRequestStrapStateFromWatch set in WatchConnectivityBridge.swift (pushes strap state to the Watch)"
    ],
    "reads": [],
    "writes": [
-    "mem:WatchConnectivityBridge.isReachable"
+    "mem:WatchConnectivityBridge.heldUntilActivation",
+    "wc:sendMessage",
+    "wc:transferUserInfo"
    ],
    "branches": [
     {
-     "at": "+6",
+     "at": "+1",
      "cond": "activationState != .activated",
-     "effect": "returns after updating reachability; no strap push"
+     "effect": "returns; nothing sent, no strap push"
     }
    ],
    "flags": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.sendHeldDualChannelMessages()": "cce6879260334721"
+   }
   },
   {
    "key": "func WatchConnectivityBridge.sessionReachabilityDidChange(_:)",
-   "hash": "0445808e2a43cd67",
-   "does": "Reachability change: resets the send-timeout circuit breaker when reachable; publishes isReachable and clears latestWatchHR when unreachable.",
+   "hash": "951630265a9eb8f0",
+   "does": "Reachability change: resets the send-timeout circuit breaker when reachable; clears latestWatchHR on the main actor when unreachable.",
    "entry": "WCSessionDelegate sessionReachabilityDidChange(_:).",
    "calls": [
     "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.resetTimeoutCount()",
@@ -60,17 +54,16 @@
    "reads": [],
    "writes": [
     "mem:WatchConnectivityBridge.timeoutCounter",
-    "mem:WatchConnectivityBridge.isReachable",
     "mem:WatchConnectivityBridge.latestWatchHR"
    ],
    "branches": [
     {
-     "at": "+6",
+     "at": "+7",
      "cond": "session reachable",
-     "effect": "resets timeout counter"
+     "effect": "resets timeout counter, returns"
     },
     {
-     "at": "+14",
+     "at": "+10",
      "cond": "not reachable",
      "effect": "latestWatchHR = nil (and its timestamp)"
     }
@@ -138,7 +131,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WCReplyBox.send(_:)": "a0ebf85643006137",
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.handleIncomingWithReply(_:)": "8cbbd57155da7a2d",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.handleIncomingWithReply(_:)": "8dae1f37d6c5a7e6",
     "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.plistData(_:)": "941f31e547b69278",
     "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.plistDictionary(_:)": "277b961ab8085e6e",
     "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::init WCReplyBox(_:)": "123a51b3dfd05e9b",
@@ -446,8 +439,8 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/WatchPayloadBounds.swift::func WatchPayloadBounds.plausibleHeartRate(_:)": "e1aa99799e5669d5",
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.handleIncomingWithReply(_:)": "8cbbd57155da7a2d",
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.handleWatchStrapSample(_:)": "c9d66a788fe7fdc8",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.handleIncomingWithReply(_:)": "8dae1f37d6c5a7e6",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.handleWatchStrapSample(_:)": "1763b13c1f964929",
     "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.replayCachedLiveState()": "03b80c199f14720b",
     "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.startVoiceChatReply()": "27a30ef24a5e8e8c",
     "Emuqu/Sources/Services/WatchConnectivityBridge.swift::var WatchConnectivityBridge.latestWatchHR": "31bb4052344f7ae3",
@@ -479,13 +472,13 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.cachedLiveState()": "ac0c6b7ae1d4cb2f",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.transportLiveStatePayload(_:)": "de79ccfefaa01c73"
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.transportLiveStatePayload(_:)": "bde2b789827c6a66"
    }
   },
   {
    "key": "func WatchConnectivityBridge.handleWatchStrapSample(_:)",
-   "hash": "7347c6b70bd5cf7a",
-   "does": "Strap sample relayed by the Watch: drops it if >5 s old; stores plausible HR, sets latest RR batch and appends to the pending RR queue (lock-protected, capped to the last 1000), and stamps latestWatchStrapAt.",
+   "hash": "1684e86112750ffc",
+   "does": "Strap sample relayed by the Watch: drops it if >5 s old; sets latestWatchStrapHR to this sample's plausible HR (nil when missing or implausible), appends its RR to the pending RR queue (lock-protected, capped to the last 1000), and stamps latestWatchStrapAt.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.isStaleStrapSample(_:)",
@@ -499,7 +492,6 @@
    ],
    "writes": [
     "mem:WatchConnectivityBridge.latestWatchStrapHR",
-    "mem:WatchConnectivityBridge.latestWatchStrapRRMillis",
     "mem:WatchConnectivityBridge.pendingWatchStrapRR",
     "mem:WatchConnectivityBridge.latestWatchStrapAt"
    ],
@@ -511,33 +503,21 @@
     },
     {
      "at": "+2",
-     "cond": "hr plausible",
-     "effect": "latestWatchStrapHR updated; else keeps the previous value"
+     "cond": "hr missing or implausible",
+     "effect": "latestWatchStrapHR = nil; else the plausible value"
     },
     {
-     "at": "+6",
+     "at": "+4",
      "cond": "batch has plausible RR",
-     "effect": "stores and enqueues; else nothing"
+     "effect": "enqueues; else nothing"
     },
     {
-     "at": "+13",
+     "at": "+10",
      "cond": "queue > 1000",
      "effect": "drops the oldest beyond 1000"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "An implausible or missing hr leaves latestWatchStrapHR at its previous value while latestWatchStrapAt is refreshed, so applyWatchRoutedHR (WorkoutRecorder+Ticker.swift:418) shows the old heart rate as current when this batch brings RR beats.",
-     "evidence": [
-      "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift:222",
-      "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift:238",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:418"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/WatchPayloadBounds.swift::func WatchPayloadBounds.plausibleHeartRate(_:)": "e1aa99799e5669d5",
     "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.isStaleStrapSample(_:)": "b0e8e702057c890e",
@@ -659,8 +639,8 @@
   },
   {
    "key": "func WatchConnectivityBridge.handleIncomingWithReply(_:)",
-   "hash": "e6c389a7f1716cbc",
-   "does": "Reply-producing router: unknownMessage refusal for missing/unknown type; stop/pause/resume/acknowledge → controlReply of the matching callback; start → startWorkoutReply; startVoiceChat → startVoiceChatReply; requestCurrentState → currentStateReply; other types run handleIncoming and reply {ok:true}.",
+   "hash": "7847ac8928979ac1",
+   "does": "Reply-producing router: unknownMessage refusal for missing/unknown type; stop/pause/resume/acknowledge (plainControls) → controlReply of the matching callback, which replies phoneNotReady when it is not wired yet; start → startWorkoutReply; startVoiceChat → startVoiceChatReply; requestCurrentState → currentStateReply; other types run handleIncoming and reply {ok:true}. The plain controls never reach handleIncoming from here, so the two cannot recurse.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.refusalReply(_:sport:)",
@@ -689,8 +669,8 @@
     },
     {
      "at": "+4",
-     "cond": "type is one of the four transport controls",
-     "effect": "controlReply(handler)"
+     "cond": "type is one of the four plain controls",
+     "effect": "controlReply(callback or nil → phoneNotReady)"
     },
     {
      "at": "+9",
@@ -715,7 +695,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.controlHandler(for:)": "2b7ba894afd3798d",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.controlHandler(for:)": "73f369410f63daaf",
     "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.controlReply(_:sport:)": "0c9cc31fb9e0f7e1",
     "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.currentStateReply()": "83cbc9b969562e38",
     "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.handleIncoming(_:)": "fbbbe0613c33ff78",
@@ -728,7 +708,7 @@
   {
    "key": "func WatchConnectivityBridge.controlHandler(for:)",
    "hash": "639e201a473129cc",
-   "does": "Maps stop/pause/resume/acknowledge MessageType to its callback; nil otherwise (also nil when that callback is unwired, making the router fall to its default branch).",
+   "does": "Maps stop/pause/resume/acknowledge MessageType to its callback; nil otherwise, and nil when that callback is unwired (the router then replies phoneNotReady).",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -760,21 +740,7 @@
      "effect": "nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "med",
-     "text": "When a stop/pause/resume/acknowledge callback is nil, controlHandler returns nil, handleIncomingWithReply falls to its default branch and calls handleIncoming, whose case for these types calls handleIncomingWithReply again: unbounded mutual recursion (stack overflow crash) instead of the phoneNotReady refusal controlReply was written to give. It is avoided today only because EmuquApp wires all four callbacks (EmuquApp.swift:678,799-803) in the same main-actor turn as watchBridge.boot(), before any queued delegate Task runs.",
-     "evidence": [
-      "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift:297",
-      "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift:310",
-      "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift:196",
-      "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift:262",
-      "Emuqu/EmuquApp.swift:678"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -867,8 +833,8 @@
   },
   {
    "key": "func WatchConnectivityBridge.pushVoiceChatState(_:)",
-   "hash": "f277f0ac0d5af322",
-   "does": "Pushes the voice-chat state label to the Watch: when WC is supported and activated, sends it by sendMessage if reachable (errors ignored) and always also via transferUserInfo.",
+   "hash": "81ef76d970ee25d1",
+   "does": "Pushes the voice-chat state label (with ts) to the Watch once: when WC is supported and activated, by sendMessage if reachable, falling back to transferUserInfo when the send fails; by transferUserInfo alone when unreachable.",
    "entry": null,
    "calls": [
     "ext:WCSession.sendMessage",
@@ -891,22 +857,11 @@
     },
     {
      "at": "+10",
-     "cond": "Watch reachable",
-     "effect": "sendMessage then also transferUserInfo; unreachable: transferUserInfo only"
+     "cond": "Watch not reachable",
+     "effect": "transferUserInfo, return; else sendMessage whose error handler queues transferUserInfo"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Doc says transferUserInfo is the fallback \"when the Watch is briefly unreachable\", but it is sent on every call, so each voice state change is delivered twice when reachable and queued transfers pile up while the Watch app is not running; the Watch drops older ts (WatchSessionManager.swift:610) so ordering stays correct.",
-     "evidence": [
-      "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift:384",
-      "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift:407"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {

@@ -154,7 +154,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.displayPenalty(_:)": "dc48db705e4d2fae"
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.displayPenalty(_:)": "a885486a54084f3d"
    }
   },
   {
@@ -254,46 +254,24 @@
    "key": "var RecoveryScoreCalculator.ScoringParameters.isMonotonicInZ",
    "hash": "9e6e776d71447ba7",
    "does": "True when band z values strictly increase.",
-   "entry": null,
+   "entry": "XCTest: ScoringCharacterizationTests.testShippedScoringParametersAreMonotonicAndInRange (a test-side invariant check by design)",
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Invariant check used only by EmuquTests/ScoringCharacterizationTests.swift:594; nothing in production validates the band table.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:259",
-      "EmuquTests/ScoringCharacterizationTests.swift:594"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
    "key": "var RecoveryScoreCalculator.ScoringParameters.hasScoresInRange",
    "hash": "eede26cbd36b6917",
    "does": "True when every band score is within 0...100.",
-   "entry": null,
+   "entry": "XCTest: ScoringCharacterizationTests.testShippedScoringParametersAreMonotonicAndInRange (a test-side invariant check by design)",
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Only EmuquTests/ScoringCharacterizationTests.swift:598 reads hasScoresInRange.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:265",
-      "EmuquTests/ScoringCharacterizationTests.swift:598"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -428,6 +406,16 @@
       "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift:80"
      ],
      "found": "first read, upheld on second"
+    },
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No production code calls the trainingMetrics overload any more; only EmuquTests/ScoringCharacterizationTests.swift:278 does. Every app caller uses the trainingContext overload.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:457",
+      "EmuquTests/ScoringCharacterizationTests.swift:278"
+     ],
+     "found": "fix pass b03"
     }
    ],
    "deps": {
@@ -436,8 +424,8 @@
   },
   {
    "key": "func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)",
-   "hash": "022b8dc33f6294af",
-   "does": "Entry point taking TrainingContext (ignored): sanitises HRV inputs, substitutes baseline HRV when useBaselineHRV and stats exist, computes the breakdown, and when useBaselineHRV and perceivedReadiness are both set blends 70/30 baseline/subjective into the HRV factor and recomposes.",
+   "hash": "6cd27e80992c066b",
+   "does": "Entry point taking TrainingContext (ignored): sanitises HRV inputs; when useBaselineHRV and baselineStats exist, stands the baseline in for the HRV readings (readiness and DFA dropped) and drops ansBalance too, since it came from the same unusable recording; computes the breakdown; and only when the baseline actually stood in and perceivedReadiness is set, blends 70/30 baseline/subjective into the HRV factor and recomposes. With useBaselineHRV but no baseline the recording is scored as it stands, with its ansBalance and no blend.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.FiniteHRVInputs(readiness:rmssd:meanHR:dfaAlpha1:)",
@@ -451,56 +439,33 @@
    "writes": [],
    "branches": [
     {
-     "at": "+12",
-     "cond": "useBaselineHRV ? baselineStats : nil",
-     "effect": "true: substitutingBaseline(stats) (no-op if stats nil); false: inputs kept (only finite-sanitised)"
+     "at": "+13",
+     "cond": "useBaselineHRV and baselineStats non-nil (standIn)",
+     "effect": "true: substitutingBaseline(stats); false: readings kept (only finite-sanitised)"
     },
     {
-     "at": "+16",
-     "cond": "useBaselineHRV and perceivedReadiness non-nil",
+     "at": "+21",
+     "cond": "standIn == nil",
+     "effect": "true: ansBalance passed to computeBreakdown; false (baseline stood in): ansBalance nil"
+    },
+    {
+     "at": "+23",
+     "cond": "standIn non-nil and perceivedReadiness non-nil",
      "effect": "false: returns computed breakdown; true: returns blendingPerceivedReadiness(...)"
     }
    ],
    "flags": [
     {
-     "kind": "broken",
-     "sev": "med",
-     "text": "When useBaselineHRV is true but baselineStats is nil (SessionAcceptanceService flags a pre-sleep recording without checking for a baseline), substitutingBaseline returns the unusable raw readings unchanged, yet if perceivedReadiness is set the HRV factor is blended and labelled 'Baseline HRV + your assessment (recording was unusable)' although no baseline was used — the score is 70% from the rejected recording.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:489",
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:537",
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:493",
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:592",
-      "Emuqu/Sources/Services/SessionAcceptanceService.swift:77",
-      "Emuqu/Sources/Services/SessionAcceptanceService.swift:320"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
      "kind": "fragile",
      "sev": "low",
-     "text": "referenceDate defaults to Date(); RecoveryScoreDetailView.liveBreakdown and MorningResultsViewModel.liveBreakdown omit it, so their staleness term uses today rather than the night scored.",
+     "text": "referenceDate defaults to Date(); RecoveryScoreDetailView.liveBreakdown, MorningProcessingService+Merging and RRCollector+Analysis still omit it, so their staleness term uses today rather than the night scored.",
      "evidence": [
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:484",
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:488",
       "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:183",
-      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:221"
+      "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:412",
+      "Emuqu/Sources/Collection/RRCollector+Analysis.swift:27"
      ],
      "found": "first read, upheld on second"
-    },
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "On the useBaselineHRV path the HRV readings of the unusable recording are replaced by the baseline and DFA/readiness are dropped, but ansBalance (PNS-SNS computed from that same unusable recording by SessionAcceptanceService and MorningResultsViewModel) is still passed to computeBreakdown and applied by calculateTier1 (-6..+2 points), contradicting the substitutingBaseline comment that the session-specific modifiers are dropped and the factor lands near 72.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:483",
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:491",
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:533",
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift:60",
-      "Emuqu/Sources/Services/SessionAcceptanceService.swift:307",
-      "Emuqu/Sources/Services/SessionAcceptanceService.swift:322",
-      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:111"
-     ],
-     "found": "second read"
     }
    ],
    "deps": {
@@ -595,7 +560,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.blendedFactors(_:in:)": "77638f6b64ff36b7",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.blendedFactors(_:in:)": "b7f5bd297f5b23da",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.composeFinalScore(weightedSum:vitals:missingSleep:)": "e2b0f7314f854d76",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "6d045d2ab75f0630",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreFactor.contribution": "ae0a47f30691925e"
@@ -603,12 +568,13 @@
   },
   {
    "key": "func RecoveryScoreCalculator.blendedFactors(_:in:)",
-   "hash": "c7ef50ecc7c3868e",
-   "does": "Maps factors: HRV factor replaced by score*0.70 + subjectiveScore*0.30 with note hrvWithAssessment; others unchanged.",
+   "hash": "989df4f686c7a20c",
+   "does": "Maps factors: the HRV factor is replaced by score*0.70 + subjectiveScore*0.30 with note hrvWithAssessment, same weight, and its impact re-banded from the blended score (ScoreDetailBuilder.hrvImpact); others unchanged.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.subjectiveScore(from:)",
     "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::var ScoreFactorFacts.Note.text",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.hrvImpact(_:)",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)",
     "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::init ScoreFactorFacts(note:)"
    ],
@@ -618,26 +584,16 @@
     {
      "at": "+3",
      "cond": "factor.label == \"HRV\"",
-     "effect": "false: factor unchanged; true: rebuilt with blended score, same weight and impact"
+     "effect": "false: factor unchanged; true: rebuilt with blended score, same weight, impact from hrvImpact(blended)"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "impact is copied from the pre-blend factor, so a blended HRV score that drops below 60/40 still shows the old positive/neutral impact colour.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:599",
-      "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift:94"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.subjectiveScore(from:)": "4d2ec64f284e2b74",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)": "1f7485fa01851fa3",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.hrvImpact(_:)": "55f26a01bbe2237c",
     "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::init ScoreFactorFacts(note:)": "e75ae69725eec00b",
-    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::var ScoreFactorFacts.Note.text": "44c833ca98a11e63"
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::var ScoreFactorFacts.Note.text": "e1d316e2213c2af0"
    }
   },
   {
@@ -678,7 +634,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift::func RecoveryScoreCalculator.applyVitalsOverrides(score:vitals:)": "43c7b65751c41958",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::var ScoreBreakdownCopy.missingSleepPenalty": "ea5bd1b2b4098085"
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::var ScoreBreakdownCopy.missingSleepPenalty": "ba9e8171680faff8"
    }
   },
   {
@@ -755,9 +711,9 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateSleepScore(sleepData:typicalSleepHours:userAge:)": "7330a00595a0e155",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateSleepScore(sleepData:typicalSleepHours:userAge:)": "042f75023c6f6a31",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)": "89cf0881d7057b9f",
-    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.describeHRV(rmssd:baselineStats:meanHR:dfaAlpha1:hrvReadiness:ansBalance:referenceDate:)": "72e31dd9d03ba37e",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.describeHRV(rmssd:baselineStats:meanHR:dfaAlpha1:hrvReadiness:ansBalance:referenceDate:)": "4923fa3d00ee27f9",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive": "4a697d3be6c9e5eb"
    }
   },
@@ -786,7 +742,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::var ScoreBreakdownCopy.missingSleepPenalty": "ea5bd1b2b4098085"
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::var ScoreBreakdownCopy.missingSleepPenalty": "ba9e8171680faff8"
    }
   },
   {

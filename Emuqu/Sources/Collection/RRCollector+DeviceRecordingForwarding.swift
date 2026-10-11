@@ -6,8 +6,8 @@ import Foundation
 // These forwarders keep every existing call site working.
 
 extension RRCollector {
-    /// The device-internal capture subsystem. Lazy — a streaming night never
-    /// builds it.
+    /// The device-internal capture subsystem: a small value built on each
+    /// access around the collector, holding no state of its own.
     var deviceRecording: DeviceRecordingSession {
         DeviceRecordingSession(collector: self)
     }
@@ -20,21 +20,7 @@ extension RRCollector {
         try await deviceRecording.stopSession()
     }
 
-    func backupRawData(_ points: [RRPoint], sessionId: UUID, startDate: Date? = nil) {
-        deviceRecording.backupRawData(points, sessionId: sessionId, startDate: startDate)
-    }
-
     func fetchTrainingLoadIfEnabled() async {
         await deviceRecording.fetchTrainingLoadIfEnabled()
-    }
-
-    func runAnalysis(
-        session: HRVSession,
-        windowResult: WindowSelector.WindowSelectionResult?,
-        flags: [ArtifactFlags]
-    ) async -> HRVAnalysisResult? {
-        await deviceRecording.runAnalysis(
-            session: session, windowResult: windowResult, flags: flags
-        )
     }
 }

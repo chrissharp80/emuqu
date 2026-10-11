@@ -1,13 +1,14 @@
 {
  "file": "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift",
- "hash": "1e0b1c4f72259741",
+ "hash": "1e7c967778754c05",
  "role": "Onboarding page 3: Polar strap pairing driven by PolarManager.connectionState (known devices, scan, connect), a Bluetooth-denied banner refreshed from CBCentralManager.authorization, an Apple Health primer for the next page, and Skip/Next.",
  "types": [
   "OnboardingSensorPage: struct — sensor pairing page"
  ],
  "state": [
   "@State btAuthorization (CBManagerAuthorization) initialised from CBCentralManager.authorization",
-  "@Environment scenePhase"
+  "@Environment scenePhase",
+  "@State pairingAttempted (Bool) — a scan or connect was started from this page, so PolarManager.lastError belongs to it"
  ],
  "toplevel": "#Preview builds the page with a fresh RRCollector.",
  "flags": [],
@@ -68,7 +69,7 @@
     "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.bluetoothDeniedBanner": "30b1fdb8077bace1",
     "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.pinnedNavigationButtons": "db42d41b39108a24",
     "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.sensorPageHeader": "3115b047065634dc",
-    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.stateDrivenContent": "73287f9bbee85c0d"
+    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.stateDrivenContent": "9d1344dde457cf77"
    }
   },
   {
@@ -94,42 +95,26 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.bluetoothAccessDenied": "832ae81be7c4e785",
-    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.openIOSSettingsButton": "40068a4edab7b3e5",
+    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.openIOSSettingsButton": "65c551015bce1d78",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
    }
   },
   {
    "key": "var OnboardingSensorPage.openIOSSettingsButton",
-   "hash": "c63a6d44fa52a190",
-   "does": "Bordered \"Open Settings\" button opening UIApplication.openSettingsURLString.",
+   "hash": "eb5f233c0a627f51",
+   "does": "Bordered \"Open Settings\" button calling the shared openAppSettings() (OnboardingHealthPage.swift).",
    "entry": "SwiftUI Button action.",
    "calls": [
-    "ext:UIApplication.shared.open",
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::func openAppSettings()",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "URL(string:) non-nil (guard)",
-     "effect": "nil: return silently. else open the app Settings page."
-    }
-   ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same open-app-Settings guard+open as OnboardingHealthPage.openSettings.",
-     "evidence": [
-      "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift:69-70",
-      "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift:295-298"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "branches": [],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::func openAppSettings()": "2bc87244a367c4be"
    }
   },
   {
@@ -145,7 +130,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.navigationButtons": "11dc44b32ce75ddc",
+    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.navigationButtons": "211d90c7ae4098e3",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
    }
   },
@@ -204,51 +189,114 @@
      "effect": "connectedContent."
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "med",
-     "text": "No scan or connect failure is ever shown on this page: StrapDiscoveryCoordinator sets PolarManager.lastError and returns connectionState to .disconnected on a search error (sdkNotAvailable, nil strapAPI, thrown searchForDevice) or a thrown connectToDevice, and this page never reads lastError, so after tapping Pair or a device the user just sees the pair buttons again with no reason.",
-     "evidence": [
-      "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift:28",
-      "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift:41-44",
-      "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift:70-76",
-      "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift:92-95",
-      "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift:149-155",
-      "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift:109-117"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
     "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.connectedContent": "547bb3461e3afdce",
-    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.connectingContent": "826970bd3fc11b51",
-    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.disconnectedContent": "305f57fda949b262",
+    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.connectingContent": "50ede47cc39743e3",
+    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.disconnectedContent": "9004277f15dc11b3",
     "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.polar": "14def6c20c58b933",
     "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.scanningContent": "da529ba27769a59c"
    }
   },
   {
    "key": "var OnboardingSensorPage.disconnectedContent",
-   "hash": "28d16445f89235bc",
-   "does": "Known devices list, Pair H10, Pair Verity Sense and \"I'll do this later\".",
+   "hash": "d39b379ecfe19ab4",
+   "does": "pairingFailureNotice, then the known devices list, Pair H10 and Pair Verity Sense — the pairing controls disabled while Bluetooth access is denied/restricted (the banner above says what to do).",
    "entry": "SwiftUI view composition.",
    "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.pairingFailureNotice",
     "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.knownDevicesList",
     "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.pairPolarH10Button",
     "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.pairPolarVeritySenseButton",
-    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.illDoThisLaterButton"
+    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.bluetoothAccessDenied"
    ],
    "reads": [],
    "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "bluetoothAccessDenied",
+     "effect": "pairing controls disabled"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.bluetoothAccessDenied": "832ae81be7c4e785",
+    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.knownDevicesList": "0e8a8cd8c169a27f",
+    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.pairPolarH10Button": "cc2e94f54273b2a5",
+    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.pairPolarVeritySenseButton": "e4c25ad121290455",
+    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.pairingFailureNotice": "1b49f8f4eb2cbb8a"
+   }
+  },
+  {
+   "key": "var OnboardingSensorPage.pairingFailureNotice",
+   "hash": "2c222afad88821c4",
+   "does": "After a scan or connect started here (pairingAttempted) that left PolarManager.lastError set (search error, SDK unavailable, thrown connect), a caution card 'Connection failed' with the error's localizedDescription.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:PolarManager.lastError",
+    "mem:OnboardingSensorPage.pairingAttempted"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "pairingAttempted and polar.lastError set",
+     "effect": "card; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.polar": "14def6c20c58b933",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func OnboardingSensorPage.startPairingScan()",
+   "hash": "ad9c56441a610e26",
+   "does": "Clears polar.lastError, marks pairingAttempted and starts the Polar scan, so the failure notice only ever shows this attempt's error.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.startScanning()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:PolarManager.lastError",
+    "mem:OnboardingSensorPage.pairingAttempted"
+   ],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.illDoThisLaterButton": "f5eff45cc9043e3e",
-    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.knownDevicesList": "0e8a8cd8c169a27f",
-    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.pairPolarH10Button": "b1d25a327b6b492f",
-    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.pairPolarVeritySenseButton": "a5b2d78ace2aef34"
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.startScanning()": "2f18fc79106fa230",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
+    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.polar": "14def6c20c58b933"
+   }
+  },
+  {
+   "key": "func OnboardingSensorPage.startConnect(_:)",
+   "hash": "1d429122786f9799",
+   "does": "Clears polar.lastError, marks pairingAttempted and connects to the device id.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.connect(deviceId:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:PolarManager.lastError",
+    "mem:OnboardingSensorPage.pairingAttempted"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.connect(deviceId:)": "be8df2807ce1e37d",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
+    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.polar": "14def6c20c58b933"
    }
   },
   {
@@ -293,18 +341,18 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::func OnboardingSensorPage.knownDeviceButton(_:)": "317b92a163b527ee",
+    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::func OnboardingSensorPage.knownDeviceButton(_:)": "42ee4a2a12e0d1ae",
     "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.polar": "14def6c20c58b933",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
    }
   },
   {
    "key": "func OnboardingSensorPage.knownDeviceButton(_:)",
-   "hash": "c7db4d3e26318299",
-   "does": "Button calling polar.connect(deviceId: device.id).",
+   "hash": "0fa38997339c8e37",
+   "does": "Button calling startConnect(device.id).",
    "entry": "SwiftUI Button action.",
    "calls": [
-    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.connect(deviceId:)",
+    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::func OnboardingSensorPage.startConnect(_:)",
     "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::func OnboardingSensorPage.knownDeviceLabel(_:)"
    ],
    "reads": [],
@@ -314,9 +362,8 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.connect(deviceId:)": "be8df2807ce1e37d",
     "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::func OnboardingSensorPage.knownDeviceLabel(_:)": "a34e83f2e2decbe0",
-    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.polar": "14def6c20c58b933"
+    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::func OnboardingSensorPage.startConnect(_:)": "ea4cacc55b5e95fe"
    }
   },
   {
@@ -347,11 +394,11 @@
   },
   {
    "key": "var OnboardingSensorPage.pairPolarH10Button",
-   "hash": "c126615a0e2819c5",
-   "does": "\"Pair Polar H10\" button calling polar.startScanning() (generic Polar scan, no device-type filter).",
+   "hash": "cef4a121f999bd15",
+   "does": "\"Pair Polar H10\" button calling startPairingScan() (generic Polar scan, no device-type filter).",
    "entry": "SwiftUI Button action.",
    "calls": [
-    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.startScanning()",
+    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::func OnboardingSensorPage.startPairingScan()",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
@@ -359,26 +406,11 @@
     "ble:scan"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "The file comment says pairing buttons 'cannot work' with Bluetooth denied and that this was the bug being fixed, but the Pair H10 / Pair Verity Sense / known-device buttons stay shown and enabled when bluetoothAccessDenied is true; only a banner is added above them.",
-     "evidence": [
-      "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift:10-15",
-      "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift:47-49",
-      "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift:119-125",
-      "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift:182-192",
-      "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift:329-339"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.startScanning()": "2f18fc79106fa230",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.polar": "14def6c20c58b933",
-    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "be0e101d5d8a0f4b",
+    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::func OnboardingSensorPage.startPairingScan()": "2ff5b3b7414a86d4",
+    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "90992ed75b9feffe",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
    }
   },
@@ -442,19 +474,20 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::func OnboardingSensorPage.discoveredDeviceButton(_:)": "317b92a163b527ee",
+    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::func OnboardingSensorPage.discoveredDeviceButton(_:)": "f0de28be23b196f1",
     "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.polar": "14def6c20c58b933",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
    }
   },
   {
    "key": "func OnboardingSensorPage.discoveredDeviceButton(_:)",
-   "hash": "9d38475ebbf25ca0",
-   "does": "Button calling polar.connect(deviceId: device.id).",
+   "hash": "34c00af54959262f",
+   "does": "Button calling startConnect(device.id), disabled while Bluetooth access is denied.",
    "entry": "SwiftUI Button action.",
    "calls": [
-    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.connect(deviceId:)",
-    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::func OnboardingSensorPage.discoveredDeviceLabel(_:)"
+    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::func OnboardingSensorPage.startConnect(_:)",
+    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::func OnboardingSensorPage.discoveredDeviceLabel(_:)",
+    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.bluetoothAccessDenied"
    ],
    "reads": [],
    "writes": [
@@ -463,38 +496,28 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.connect(deviceId:)": "be8df2807ce1e37d",
     "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::func OnboardingSensorPage.discoveredDeviceLabel(_:)": "0368b0376d94fa92",
-    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.polar": "14def6c20c58b933"
+    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::func OnboardingSensorPage.startConnect(_:)": "ea4cacc55b5e95fe",
+    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.bluetoothAccessDenied": "832ae81be7c4e785"
    }
   },
   {
    "key": "var OnboardingSensorPage.connectingContent",
-   "hash": "e9edf820131e1d07",
-   "does": "Spinner and \"Connecting...\".",
+   "hash": "bde288d14d948a34",
+   "does": "Spinner, \"Connecting...\" and a Cancel button that ends the attempt (PolarManager.cancelConnection). Leaving the page does not cancel.",
    "entry": "SwiftUI view composition.",
    "calls": [
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.cancelConnection()",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "The .connecting state shows only a spinner and 'Connecting...' with no cancel control, although PolarManager.cancelConnection exists; if the strap never answers the content stays on Connecting until PolarManager's own callbacks change state, and leaving the page (line 321-325) does not cancel a connect attempt.",
-     "evidence": [
-      "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift:233-242",
-      "Emuqu/Sources/Collection/PolarManager+Discovery.swift:17",
-      "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift:188-200",
-      "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift:321-325"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.cancelConnection()": "1fcd3ad7af42afb8",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.polar": "14def6c20c58b933",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
    }
   },
@@ -582,8 +605,8 @@
   },
   {
    "key": "var OnboardingSensorPage.navigationButtons",
-   "hash": "13e241972f5db2a5",
-   "does": "HStack of skipButton and nextButton.",
+   "hash": "57cf75e31beef3d7",
+   "does": "One way on: nextButton (trailing) once polar is connected, else skipButton (leading).",
    "entry": "SwiftUI view composition.",
    "calls": [
     "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.skipButton",
@@ -591,10 +614,18 @@
    ],
    "reads": [],
    "writes": [],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "connectionState == .connected",
+     "effect": "Next; else Skip"
+    }
+   ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.nextButton": "88ff75d076f14cba",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
+    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.nextButton": "09e82ecb0587f690",
+    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.polar": "14def6c20c58b933",
     "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.skipButton": "cfa94c6016713a66"
    }
   },
@@ -627,19 +658,7 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Skip and Next on this page (and the in-content \"I'll do this later\" link) all just call advance(); three controls with identical behaviour.",
-     "evidence": [
-      "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift:306",
-      "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift:314",
-      "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift:345"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "be0e101d5d8a0f4b"
@@ -673,11 +692,11 @@
   },
   {
    "key": "var OnboardingSensorPage.pairPolarVeritySenseButton",
-   "hash": "f22ab92762c3280e",
-   "does": "\"Pair Polar Verity Sense\" button calling polar.startScanning() (same generic scan as the H10 button).",
+   "hash": "56cdbcdfb7e82d5f",
+   "does": "\"Pair Polar Verity Sense\" button calling startPairingScan() (generic Polar scan, no device-type filter).",
    "entry": "SwiftUI Button action.",
    "calls": [
-    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.startScanning()",
+    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::func OnboardingSensorPage.startPairingScan()",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
@@ -687,28 +706,9 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.startScanning()": "2f18fc79106fa230",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.polar": "14def6c20c58b933",
-    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "be0e101d5d8a0f4b"
-   }
-  },
-  {
-   "key": "var OnboardingSensorPage.illDoThisLaterButton",
-   "hash": "ee1273bfa3037bd4",
-   "does": "Tertiary \"I'll do this later\" button calling advance; identifier onboarding.pairLater.",
-   "entry": "SwiftUI Button action.",
-   "calls": [
-    "closure:advance — OnboardingView.advanceToNext",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::func OnboardingSensorPage.startPairingScan()": "2ff5b3b7414a86d4",
+    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "90992ed75b9feffe"
    }
   },
   {

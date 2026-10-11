@@ -46,10 +46,12 @@ enum ReadinessScoring {
     /// - Hynynen et al. (2006): parasympathetic reactivation slow phase 24-48h
     /// - Seiler et al. (2007): HRV recovery to baseline 24-48h post-exercise
     ///
-    /// This replaces the previous flat same-day penalty (todayTrimp × 0.35) which
-    /// created a cliff at midnight — full penalty all day, then zero the next morning.
     /// The exponential decay produces smooth recovery: ~61% at 12h, ~37% at 24h,
-    /// ~14% at 48h, ~5% at 72h.
+    /// ~14% at 48h, ~5% at 72h. It runs only when the caller passes per-workout
+    /// loads (`LiveReadiness` passes the workouts since its morning anchor).
+    /// Without them — every caller that passes nil, and `LiveReadiness` when no
+    /// workout falls after its anchor — the flat same-day term
+    /// `todayTrimp × 0.35` applies instead, which stays at full weight all day.
     ///
     /// ### 2. Capacity Ratio (primary signal)
     ///
@@ -148,19 +150,28 @@ enum ReadinessScoring {
 
     // MARK: - Readiness Helpers
 
-    /// Compute acute fatigue from recent workouts or today's TRIMP fallback.
+    /// Compute acute fatigue from recent workouts or today's TRIMP fallback:
+    /// the raw load from `rawAcuteFatigue` and its scaled share.
     private static func computeAcuteFatigue(
         todayTrimp: Double,
         recentWorkoutLoads: [WorkoutLoad]?
     ) -> (scaled: Double, raw: Double) {
+        let raw = rawAcuteFatigue(todayTrimp: todayTrimp, recentWorkoutLoads: recentWorkoutLoads)
         if let loads = recentWorkoutLoads, !loads.isEmpty {
-            let tauHours = RecoveryScoreConstants.Readiness.acuteFatigueTauHours
-            let raw = loads.reduce(0.0) { sum, load in
-                sum + load.trimp * exp(-load.hoursAgo / tauHours)
-            }
             return (raw * RecoveryScoreConstants.Readiness.acuteFatigueCoefficient, raw)
         }
-        return (todayTrimp * RecoveryScoreConstants.Readiness.acuteFatigueFallbackCoefficient, todayTrimp)
+        return (raw * RecoveryScoreConstants.Readiness.acuteFatigueFallbackCoefficient, raw)
+    }
+
+    /// The unscaled acute-fatigue load: the 24h-decayed TRIMP sum of
+    /// `recentWorkoutLoads`, or `todayTrimp` when there are none. The panel
+    /// shows it as the load still pulling on the user.
+    static func rawAcuteFatigue(todayTrimp: Double, recentWorkoutLoads: [WorkoutLoad]?) -> Double {
+        guard let loads = recentWorkoutLoads, !loads.isEmpty else { return todayTrimp }
+        let tauHours = RecoveryScoreConstants.Readiness.acuteFatigueTauHours
+        return loads.reduce(0.0) { sum, load in
+            sum + load.trimp * exp(-load.hoursAgo / tauHours)
+        }
     }
 
     /// Compute base readiness from capacity ratio (CTL >= threshold) or novel load model.
@@ -177,7 +188,10 @@ enum ReadinessScoring {
             )
         }
 
-        return mapCapacityRatioToReadiness(effectiveLoad / ctl)
+        let capacityRatio = effectiveLoad / ctl
+        // A NaN ratio (NaN load) stays NaN, so `calculateReadiness`'s finite
+        // guard degrades it to the midpoint; the map would read it as 100.
+        return capacityRatio.isNaN ? capacityRatio : mapCapacityRatioToReadiness(capacityRatio)
     }
 
     /// Piecewise linear mapping: capacity ratio -> readiness (0-100).
@@ -251,9 +265,11 @@ enum ReadinessScoring {
     /// Real tester case: CTL=16, ACWR=1.63 undampened produces
     /// a 21.5% raw penalty, dragging readiness to 3.6/10 "Fatigued"
     /// while the HRV-Readiness pill simultaneously shows 10.0/10 "Ready".
-    /// With the dampeners: confidence factor = 16/50 = 0.32,
-    /// recovery score 73 → autonomic cap engages, effective penalty
-    /// shrinks to ~0.07 (7% reduction instead of 21.5%).
+    /// With the dampeners: confidence factor = 16/50 = 0.32 shrinks the
+    /// penalty to ~0.07 (7% reduction instead of 21.5%). Recovery 73 is
+    /// past the rescue threshold, but 0.07 is already under the 0.10
+    /// rescue cap, so in this case the cap does not bind; it binds at
+    /// higher CTL, where the ramp leaves more of the penalty.
     private static func applyACWRModifier(
         _ readiness: Double,
         acuteChronicRatio: Double?,
@@ -321,7 +337,7 @@ enum ReadinessScoring {
 
     /// The readiness band as a stable English identifier ("Ready",
     /// "Moderate", "Fatigued", "Rest") that code switches on
-    /// (`PostExerciseCopy`). Screens show `displayReadinessLabel(for:)`.
+    /// (`PostExerciseCopy`). Screens show `displayReadinessLabel(for:load:)`.
     ///
     /// Expects 0-10 scale input, but "expects" is not enough of a contract:
     /// `calculateReadiness` returns 0-100, so a caller that forgets
@@ -350,11 +366,6 @@ enum ReadinessScoring {
         return "Moderate"
     }
 
-    /// `readinessLabel(for:)` in `NarrativeLanguage`.
-    static func displayReadinessLabel(for score: Double) -> String {
-        displayLabel(readinessLabel(for: score))
-    }
-
     /// `readinessLabel(for:load:)` in `NarrativeLanguage`.
     static func displayReadinessLabel(for score: Double, load: TrainingAdviceGate.Load?) -> String {
         displayLabel(readinessLabel(for: score, load: load))
@@ -377,7 +388,10 @@ enum ReadinessScoring {
     }
 
     /// Short coaching message based on readiness level (expects 0-10 scale
-    /// input), in `NarrativeLanguage`.
+    /// input), in `NarrativeLanguage`, with the whole load the training
+    /// advice gate reads: the ratio (trusted once the chronic load is
+    /// established), the form and the monotony. A load reason always
+    /// outranks the score's message.
     ///
     /// Does not surface the literal ACWR number in the
     /// coaching copy. ACWR is a sports-science term, not user-friendly,
@@ -385,13 +399,6 @@ enum ReadinessScoring {
     /// than the original Gabbett framing claimed. The function still
     /// consults the ratio to decide messaging; the display string
     /// describes the state rather than exposing the raw number.
-    static func readinessMessage(for rawReadiness: Double, acuteChronicRatio: Double? = nil) -> String {
-        readinessMessage(for: rawReadiness, load: acuteChronicRatio.map { TrainingAdviceGate.Load(acwr: $0) })
-    }
-
-    /// The message with the whole load the training advice gate reads: the
-    /// ratio (trusted once the chronic load is established), the form and
-    /// the monotony. A load reason always outranks the score's message.
     static func readinessMessage(for rawReadiness: Double, load: TrainingAdviceGate.Load?) -> String {
         if let loadMessage = recentLoadMessage(TrainingAdviceGate.assess(load), acwr: load?.acwr) { return loadMessage }
         // Same 0-10 domain as `readinessLabel`, clamped for the same reason.

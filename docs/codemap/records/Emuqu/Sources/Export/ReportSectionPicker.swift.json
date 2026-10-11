@@ -68,14 +68,14 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/ReportSectionPicker.swift::var ReportSectionPicker.generateButton": "0d99fc15ee71a522",
+    "Emuqu/Sources/Export/ReportSectionPicker.swift::var ReportSectionPicker.generateButton": "547eaf251fac7f2c",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },
   {
    "key": "var ReportSectionPicker.generateButton",
-   "hash": "5b16e4c58a84fcc7",
-   "does": "Generate button: dismisses the sheet then invokes onGenerate(style, sections); disabled when sections is empty.",
+   "hash": "2f7b4ca1ad80151d",
+   "does": "Generate button: dismisses the sheet then invokes onGenerate(style, sections). Always enabled: sections always holds hrvSummary.",
    "entry": "SwiftUI button tap",
    "calls": [
     "closure:onGenerate — set by MorningResultsView+Actions.swift:184 (emailReport) and :307 (exportPDF)",
@@ -86,20 +86,7 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "The .disabled(sections.rawValue == 0) guard can never be true: sections is seeded with hrvSummary, every preset keeps hrvSummary, and hrvSummary has no toggle in sectionLabels, so the set never empties.",
-     "evidence": [
-      "Emuqu/Sources/Export/ReportSectionPicker.swift:67",
-      "Emuqu/Sources/Export/ReportSectionPicker.swift:27",
-      "Emuqu/Sources/Export/ReportSectionPicker.swift:142",
-      "Emuqu/Sources/Export/PDFReportGenerator.swift:56"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
@@ -271,31 +258,50 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/ReportSectionPicker.swift::func ReportSectionPicker.presetCheckmark(_:presetStyle:)": "ebd397f41ce0e50f",
+    "Emuqu/Sources/Export/ReportSectionPicker.swift::func ReportSectionPicker.presetCheckmark(_:presetStyle:)": "5b00d601b556a61d",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
    }
   },
   {
    "key": "func ReportSectionPicker.presetCheckmark(_:presetStyle:)",
-   "hash": "34bae6f92ef9a4e3",
-   "does": "Shows a checkmark when the current sections and style equal the preset's.",
+   "hash": "f194ff3768f8c975",
+   "does": "Shows a checkmark only on the preset that matchedPreset returns, so at most one row is checked.",
    "entry": "SwiftUI @ViewBuilder",
    "calls": [
-    "Emuqu/Sources/Export/ReportSectionPicker.swift::func ReportSectionPicker.sectionsMatch(_:style:)"
+    "Emuqu/Sources/Export/ReportSectionPicker.swift::var ReportSectionPicker.matchedPreset"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+2",
-     "cond": "sectionsMatch(preset, style)",
+     "cond": "matchedPreset equals this preset and style",
      "effect": "true → checkmark image; false → empty view"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/ReportSectionPicker.swift::func ReportSectionPicker.sectionsMatch(_:style:)": "263d577c0314b99d",
+    "Emuqu/Sources/Export/ReportSectionPicker.swift::var ReportSectionPicker.matchedPreset": "0c39a0a7199725a1",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "var ReportSectionPicker.matchedPreset",
+   "hash": "5828e9f8cd54ab77",
+   "does": "The first preset in list order (Summary, Full Report, Sleep Report, each with its style) that sectionsMatch the current selection, or nil. When two presets reduce to the same sections (missing data), only the first is returned.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionPicker.swift::func ReportSectionPicker.sectionsMatch(_:style:)"
+   ],
+   "reads": [
+    "mem:ReportSectionPicker.sections",
+    "mem:ReportSectionPicker.style"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionPicker.swift::func ReportSectionPicker.sectionsMatch(_:style:)": "eb1724fda1cdc52f"
    }
   },
   {
@@ -316,20 +322,7 @@
      "effect": "adds hrvSummary to the comparison set; false → [] (unreachable for the three presets)"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Summary (summaryPreset, .summary) and Sleep Report (sleepPreset, .summary) reduce to the same set after intersecting availableSections whenever trainingLoad, vitals, scoreBreakdown and charts are all unavailable (e.g. an imported session without raw RR, training context, vitals or composite score), so both preset rows show a checkmark at once.",
-     "evidence": [
-      "Emuqu/Sources/Export/ReportSectionPicker.swift:72",
-      "Emuqu/Sources/Export/ReportSectionPicker.swift:74",
-      "Emuqu/Sources/Export/ReportSectionPicker.swift:166",
-      "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift:563"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {}
   }
  ],

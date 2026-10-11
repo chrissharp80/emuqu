@@ -17,8 +17,9 @@ struct TroubleshootingPage: View {
     var cacheTelemetry: LLMCacheTelemetry { dependencies.providers.llmCacheTelemetry }
     @AppStorage("debugModeEnabled") var debugModeEnabled = false
     @State var logCopiedConfirmation = false
-    @State var showingRepairAlert = false
-    @State var repairMessage = ""
+    /// Set when the crash report is cleared here: the file's existence is not
+    /// observable, so this is what hides the report's controls straight away.
+    @State var crashReportCleared = false
     @State var showingTrainingRepairAlert = false
     @State var showingTrainingRepairConfirm = false
     @State var trainingRepairMessage = ""
@@ -345,12 +346,17 @@ struct TroubleshootingPage: View {
 
     // MARK: Problems
 
+    /// A crash report is on file and has not been cleared from this page.
+    var hasCrashReport: Bool {
+        !crashReportCleared && dependencies.app.crashLogManager.hasPreviousCrash
+    }
+
     /// "No Problems Found" whenever the page lists nothing: no crash report,
     /// and no logged problems on show (they are listed only with Advanced
     /// Diagnostics on).
     @ViewBuilder
     private var problemsSection: some View {
-        if logger.errorCatalog.isEmpty || !debugModeEnabled, !dependencies.app.crashLogManager.hasPreviousCrash {
+        if logger.errorCatalog.isEmpty || !debugModeEnabled, !hasCrashReport {
             noProblemsSection
         }
     }
@@ -429,7 +435,7 @@ struct TroubleshootingPage: View {
 
     @ViewBuilder
     private var crashReportSection: some View {
-        if dependencies.app.crashLogManager.hasPreviousCrash {
+        if hasCrashReport {
             Section {
                 crashReportLink
             } header: {
@@ -492,21 +498,6 @@ struct TroubleshootingPage: View {
             return String(localized: "Reanalyzed \(result.updated) sessions. \(result.skipped) with manual windows preserved.", bundle: LanguageManager.appBundle)
         }
         return String(localized: "Reanalyzed \(result.updated) sessions with updated scoring.", bundle: LanguageManager.appBundle)
-    }
-
-    func repairArchive() {
-        // The synchronous file-scan repair must not run on the main thread
-        // inside the Button action (watchdog risk on a large archive).
-        // Mirror the sibling repair/reanalyze paths: do the work
-        // off-main, then hop back to set the message + show the alert.
-        let archive = collector.archive
-        Task {
-            let count = await Task.detached { archive.repairArchive() }.value
-            await MainActor.run {
-                repairMessage = String(localized: "Removed corrupted files and rebuilt the index.\nSessions recovered: \(count)", bundle: LanguageManager.appBundle)
-                showingRepairAlert = true
-            }
-        }
     }
 
     func repairTrainingSnapshots() {

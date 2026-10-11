@@ -1,30 +1,19 @@
 {
  "file": "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift",
- "hash": "00bab02704abca87",
+ "hash": "021bb3d03a132d45",
  "role": "Main-actor @Observable singleton holding the six provider instances, the persisted active provider/model selection, feature-flag gating per provider and cached availability bools for hot UI paths.",
  "types": [
   "ProviderRegistry: class (@Observable, @MainActor) — provider holder and selection state"
  ],
  "state": [
-  "mem:ProviderRegistry.shared (singleton; served by AppDependencies.providerRegistry unless overridden) ProviderRegistry.swift:13",
-  "mem:ProviderRegistry.retiredDisplayNames ProviderRegistry.swift:45",
-  "ud:assistant.activeProvider (standard) ProviderRegistry.swift:59",
-  "ud:assistant.activeModelID (standard) ProviderRegistry.swift:60",
-  "mem:ProviderRegistry.activeProvider / activeModel / activeProviderAvailable / appleAvailable ProviderRegistry.swift:62-80"
+  "mem:ProviderRegistry.shared (singleton; served by AppDependencies.providerRegistry unless overridden)",
+  "mem:ProviderRegistry.retiredDisplayNames",
+  "ud:assistant.activeProvider (standard)",
+  "ud:assistant.activeModelID (standard)",
+  "mem:ProviderRegistry.activeProvider / activeModel / activeProviderAvailable"
  ],
  "toplevel": "Stored lets apple/anthropic/openai/gemini/grok/deepseek are created once in init; retiredDisplayNames maps nine retired API ids to names.",
- "flags": [
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "appleAvailable is computed on every refreshAvailabilityCache (a FoundationModels availability hop the comment says is costly) but nothing in the repo reads it.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift:80",
-    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift:153"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "var ProviderRegistry.allProviders",
@@ -89,7 +78,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.refreshAvailabilityCache()": "87efb357eec9e723",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.refreshAvailabilityCache()": "a522a84243a7a3fb",
     "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.restoreSelection(from:fallback:)": "1adee3e309c0338b"
    }
   },
@@ -179,66 +168,31 @@
   },
   {
    "key": "func ProviderRegistry.refreshAvailabilityCache()",
-   "hash": "719fe2c247e786b3",
-   "does": "Recomputes activeProviderAvailable (active provider isAvailable, a Keychain read for cloud providers) and appleAvailable, assigning only on change to avoid Observation churn; emits a keyboard-perf signpost.",
+   "hash": "3186d54eb4f11617",
+   "does": "Recomputes activeProviderAvailable (active provider isAvailable, a Keychain read for cloud providers), assigning only on change to avoid Observation churn; emits a keyboard-perf signpost.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:)",
-    "dyn:AIProvider.isAvailable → Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift:37|Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::var AnthropicProvider.isAvailable|Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift::var OpenAIProvider.isAvailable|Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::var GeminiProvider.isAvailable|Emuqu/Sources/Assistant/Providers/GrokProvider.swift::var GrokProvider.isAvailable|Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::var DeepSeekProvider.isAvailable",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.isAvailable"
+    "dyn:AIProvider.isAvailable → Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift:37|Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::var AnthropicProvider.isAvailable|Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift::var OpenAIProvider.isAvailable|Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::var GeminiProvider.isAvailable|Emuqu/Sources/Assistant/Providers/GrokProvider.swift::var GrokProvider.isAvailable|Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::var DeepSeekProvider.isAvailable"
    ],
    "reads": [
     "kc:com.chrissharp.flowrecovery.assistant.apikey"
    ],
    "writes": [
-    "mem:ProviderRegistry.activeProviderAvailable",
-    "mem:ProviderRegistry.appleAvailable"
+    "mem:ProviderRegistry.activeProviderAvailable"
    ],
    "branches": [
     {
-     "at": "+4",
+     "at": "+3",
      "cond": "cached active availability differs",
-     "effect": "writes new value; otherwise untouched."
-    },
-    {
-     "at": "+5",
-     "cond": "cached Apple availability differs",
      "effect": "writes new value; otherwise untouched."
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.isAvailable": "d524ee87b19f78de",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:)": "17747315684bc090"
-   }
-  },
-  {
-   "key": "var ProviderRegistry.anyProviderAvailable",
-   "hash": "799f47f35124e440",
-   "does": "True when any provider reports isAvailable (ignores feature flags).",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::var ProviderRegistry.allProviders",
-    "dyn:AIProvider.isAvailable → Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift:37|Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::var AnthropicProvider.isAvailable|Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift::var OpenAIProvider.isAvailable|Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::var GeminiProvider.isAvailable|Emuqu/Sources/Assistant/Providers/GrokProvider.swift::var GrokProvider.isAvailable|Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::var DeepSeekProvider.isAvailable"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "anyProviderAvailable has no callers anywhere in the repo (app or tests); it also ignores the provider kill-switches that every other availability check applies.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift:161"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::var ProviderRegistry.allProviders": "ac9ddbe514f8e580"
    }
   },
   {
@@ -354,7 +308,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.persist()": "1ffdde36f05cb51b",
-    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.refreshAvailabilityCache()": "87efb357eec9e723"
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.refreshAvailabilityCache()": "a522a84243a7a3fb"
    }
   },
   {
@@ -384,7 +338,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.persist()": "1ffdde36f05cb51b",
-    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.refreshAvailabilityCache()": "87efb357eec9e723",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.refreshAvailabilityCache()": "a522a84243a7a3fb",
     "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::var ProviderRegistry.allProviders": "ac9ddbe514f8e580"
    }
   },
@@ -412,7 +366,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)": "4d1d71f3bef78e55",
-    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.refreshAvailabilityCache()": "87efb357eec9e723",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.refreshAvailabilityCache()": "a522a84243a7a3fb",
     "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.setActive(provider:model:)": "7017aa5ebcacdde3",
     "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::var ProviderRegistry.visibleProviders": "14b8c52d4b300460"
    }

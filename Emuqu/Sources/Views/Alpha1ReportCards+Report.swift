@@ -221,6 +221,11 @@ private var thresholdRules: some ChartContent {
     /// it was ectopic or a real sustained effort that wasn't given time
     /// to recover — it isn't labelled, leaving the chart neutral.
     ///
+    /// A short dip during which heart rate climbed is a real effort (a hill
+    /// surge, a 1–2 minute interval), not an artifact: one stray beat moves α1
+    /// but not the smoothed heart rate. Those dips are kept as physiology —
+    /// see `heartRateRose(into:in:)`.
+    ///
     /// Nonisolated and pure so every surface that reports α1 bands (this card,
     /// the stored workout snapshot, the PDF) can apply the same exclusion.
     nonisolated static func ectopicShadows(in samples: [WorkoutSample]) -> [EctopicShadow] {
@@ -234,8 +239,28 @@ private var thresholdRules: some ChartContent {
             }
             Self.extendDip(&dip, offsetSec: s.offsetSec, alpha1: a)
         }
-        return out
+        return out.filter { !Self.heartRateRose(into: $0, in: samples) }
     }
+
+    /// True when heart rate rose by at least `effortHeartRateRise` bpm between
+    /// the start of the shadow's approach window and the dip's deepest point:
+    /// the dip came with a real effort. Samples without heart rate are skipped,
+    /// so a dip with no heart rate to judge stays a shadow.
+    nonisolated private static func heartRateRose(into shadow: EctopicShadow, in samples: [WorkoutSample]) -> Bool {
+        var lowest: Int?
+        for s in samples where s.offsetSec >= shadow.startSec && s.offsetSec <= shadow.offsetSec {
+            guard let hr = s.heartRate else { continue }
+            let low = min(lowest ?? hr, hr)
+            lowest = low
+            if hr - low >= effortHeartRateRise { return true }
+        }
+        return false
+    }
+
+    /// The heart-rate climb (bpm) that marks a short α1 dip as effort rather
+    /// than a beat artifact. Well above the beat-to-beat wobble of the
+    /// smoothed heart rate, well below the climb of a surge or interval.
+    nonisolated static let effortHeartRateRise = 10
 
     /// α1 came back above threshold: record the shadow if the dip was short
     /// enough to be one, and clear the run either way.
@@ -432,18 +457,33 @@ private var thresholdRules: some ChartContent {
     nonisolated static func alpha1BandTotals(samples: [WorkoutSample], shadows: [EctopicShadow]) -> Alpha1Bands {
         var bands = Alpha1Bands()
         var cross = AT1CrossDetector()
+        for r in timedCleanAlpha1(samples: samples, shadows: shadows) {
+            bands.add(alpha1: r.alpha1, dt: r.dt)
+            if bands.firstCrossing == nil, r.sample.offsetSec >= cross.warmupSec {
+                bands.firstCrossing = cross.step(alpha1: r.alpha1, sample: r.sample, dt: r.dt)
+            }
+        }
+        return bands
+    }
+
+    /// Each α1 reading outside a beat-artifact dip, with the seconds it stands
+    /// for (`sampleSeconds`, timed against the previous α1 sample whether or
+    /// not that one was in a dip). The one walk behind the band totals, the
+    /// clean min / max / avg and every other surface that times α1.
+    nonisolated static func timedCleanAlpha1(
+        samples: [WorkoutSample],
+        shadows: [EctopicShadow]
+    ) -> [(sample: WorkoutSample, alpha1: Double, dt: Int)] {
+        var readings: [(sample: WorkoutSample, alpha1: Double, dt: Int)] = []
         var prevOffset: Int?
         for s in samples {
             guard let a = s.alpha1 else { continue }
             let dt = sampleSeconds(at: s.offsetSec, previous: prevOffset)
             prevOffset = s.offsetSec
-            if shadows.contains(where: { $0.contains(offsetSec: s.offsetSec) }) { continue }
-            bands.add(alpha1: a, dt: dt)
-            if bands.firstCrossing == nil, s.offsetSec >= cross.warmupSec {
-                bands.firstCrossing = cross.step(alpha1: a, sample: s, dt: dt)
-            }
+            guard !shadows.contains(where: { $0.contains(offsetSec: s.offsetSec) }) else { continue }
+            readings.append((sample: s, alpha1: a, dt: dt))
         }
-        return bands
+        return readings
     }
 
     /// The seconds one α1 sample stands for: the time since the previous α1
@@ -558,29 +598,40 @@ private var thresholdRules: some ChartContent {
         samples: [WorkoutSample],
         startDate: Date
     ) -> [Alpha1Segment] {
-        guard !track.isEmpty, !samples.isEmpty else { return [] }
-        // Sample lookup: map offsetSec to α1. Only samples that have α1.
-        let alphaByOffset: [Int: Double] = samples.reduce(into: [:]) { acc, s in
-            if let a = s.alpha1 { acc[s.offsetSec] = a }
-        }
-        guard !alphaByOffset.isEmpty else { return [] }
-        let sortedOffsets = alphaByOffset.keys.sorted()
+        guard !track.isEmpty else { return [] }
+        let readings = Self.cleanAlpha1Readings(samples)
+        guard !readings.isEmpty else { return [] }
         var builder = Alpha1SegmentBuilder()
         for fix in track {
             let offset = Int(fix.timestamp.timeIntervalSince(startDate).rounded())
-            let color = Self.bandColor(atOffset: offset, alphaByOffset: alphaByOffset, sortedOffsets: sortedOffsets)
-            builder.add(fix.coordinate, color: color)
+            builder.add(fix.coordinate, color: Self.bandColor(atOffset: offset, readings: readings))
         }
         return builder.finish()
     }
 
-    /// Band colour from the nearest-earlier α1 sample to this track offset.
-    private static func bandColor(atOffset offsetSec: Int, alphaByOffset: [Int: Double], sortedOffsets: [Int]) -> Color {
-        var nearest: Double?
-        for off in sortedOffsets {
-            if off <= offsetSec { nearest = alphaByOffset[off] } else { break }
+    /// α1 readings sorted by offset (the last sample wins at a repeated
+    /// offset), leaving out samples inside beat-artifact dips — the same
+    /// exclusion the band minutes and min / max on this screen apply.
+    private static func cleanAlpha1Readings(_ samples: [WorkoutSample]) -> [(offset: Int, alpha1: Double)] {
+        let shadows = ectopicShadows(in: samples)
+        let byOffset: [Int: Double] = samples.reduce(into: [:]) { acc, s in
+            guard let a = s.alpha1, !shadows.contains(where: { $0.contains(offsetSec: s.offsetSec) }) else { return }
+            acc[s.offsetSec] = a
         }
-        guard let a = nearest else { return AppTheme.textTertiary }
+        return byOffset.sorted { $0.key < $1.key }.map { (offset: $0.key, alpha1: $0.value) }
+    }
+
+    /// Band colour from the nearest-earlier clean α1 reading to this track
+    /// offset, found by binary search over the sorted readings.
+    private static func bandColor(atOffset offsetSec: Int, readings: [(offset: Int, alpha1: Double)]) -> Color {
+        var low = 0
+        var high = readings.count
+        while low < high {
+            let mid = (low + high) / 2
+            if readings[mid].offset <= offsetSec { low = mid + 1 } else { high = mid }
+        }
+        guard low > 0 else { return AppTheme.textTertiary }
+        let a = readings[low - 1].alpha1
         if a >= HRVConstants.DFA.alpha1AerobicThreshold { return AppTheme.sage }
         if a >= HRVConstants.DFA.alpha1AnaerobicThreshold { return .yellow }
         return .orange
@@ -651,15 +702,15 @@ private func alpha1StatsRow(stats: Alpha1ReportCards.Alpha1Stats, sampleCount: I
     HStack(spacing: 18) {
         alpha1StatBlock(
             label: String(localized: "avg", bundle: LanguageManager.appBundle),
-            value: stats.avgAlpha1.map { String(format: "%.2f", locale: .current, $0) } ?? "—"
+            value: stats.avgAlpha1.map { String(format: "%.2f", locale: LanguageManager.appLocale, $0) } ?? "—"
         )
         alpha1StatBlock(
             label: String(localized: "max", bundle: LanguageManager.appBundle),
-            value: stats.maxAlpha1.map { String(format: "%.2f", locale: .current, $0) } ?? "—"
+            value: stats.maxAlpha1.map { String(format: "%.2f", locale: LanguageManager.appLocale, $0) } ?? "—"
         )
         alpha1StatBlock(
             label: String(localized: "min", bundle: LanguageManager.appBundle),
-            value: stats.minAlpha1.map { String(format: "%.2f", locale: .current, $0) } ?? "—"
+            value: stats.minAlpha1.map { String(format: "%.2f", locale: LanguageManager.appLocale, $0) } ?? "—"
         )
         alpha1StatBlock(
             label: String(localized: "samples", bundle: LanguageManager.appBundle),
@@ -750,13 +801,7 @@ private func collectCleanAlpha1Values(
     samples: [WorkoutSample],
     shadows: [Alpha1ReportCards.EctopicShadow]
 ) -> [Double] {
-    samples.compactMap { s in
-        guard let a = s.alpha1 else { return nil }
-        if shadows.contains(where: { $0.contains(offsetSec: s.offsetSec) }) {
-            return nil
-        }
-        return a
-    }
+    Alpha1ReportCards.timedCleanAlpha1(samples: samples, shadows: shadows).map { $0.alpha1 }
 }
 
 /// MIN/MAX/AVG of the shadow-cleaned values. No further outlier pass: the

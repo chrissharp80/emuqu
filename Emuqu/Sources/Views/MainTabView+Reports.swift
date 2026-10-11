@@ -39,14 +39,24 @@ extension MainTabView {
     /// need the full ones, or every raw-RR section drops out. Called inside the
     /// detached task so the decrypt stays off the main actor. Falls back to the
     /// lightweight copy if a full read fails.
-    nonisolated static func withFullSessions(_ inputs: SendReportInputs) -> SendReportInputs {
+    ///
+    /// The baseline nights are re-read from the whole archive: up to 60
+    /// overnights strictly before the reported night (`ReportBaselineNights`),
+    /// as Reports → Browse builds them, not the reliable overnights of the
+    /// dashboard's 35-session slice, which included the reported night itself.
+    nonisolated static func withFullSessions(_ inputs: SendReportInputs, kind: SendReportKind) -> SendReportInputs {
         let archive = AppDependencies.current.storage.sessionArchive
         let full: (HRVSession) -> HRVSession = { archive.retrieveOrLog($0.id) ?? $0 }
+        let night: Date? = switch kind {
+        case .recovery: inputs.recovery?.startDate
+        case .daily: inputs.pair?.overnight.startDate
+        case .workout: nil
+        }
         return SendReportInputs(
             recovery: inputs.recovery.map(full),
             workout: inputs.workout.map(full),
             pair: inputs.pair.map { (workout: full($0.workout), overnight: full($0.overnight)) },
-            recentOvernight: inputs.recentOvernight,
+            recentOvernight: night.map { ReportBaselineNights.before($0, archive: archive) } ?? inputs.recentOvernight,
             baselineStats: inputs.baselineStats,
             maxHR: inputs.maxHR,
             restingHR: inputs.restingHR,
@@ -145,5 +155,21 @@ extension MainTabView {
     static func decodeTrack(for session: HRVSession) -> [CLLocation] {
         guard let polyline = session.workoutMetadata?.gpsPolyline else { return [] }
         return GPXExporter.decode(polyline: polyline, startDate: session.startDate, duration: session.duration ?? 0)
+    }
+}
+
+/// The overnights a report's baseline reaches back over: up to
+/// `DailyLoopAnalysis`'s 60 nights, strictly before the reported night,
+/// newest first, so a report is measured against the nights before it and
+/// never against itself. Read from the archive index and decoded lightweight.
+enum ReportBaselineNights {
+    static let count = 60
+
+    static func before(_ night: Date, archive: SessionArchive) -> [HRVSession] {
+        archive.entries
+            .filter { $0.sessionType == .overnight && $0.date < night }
+            .sorted { $0.date > $1.date }
+            .prefix(count)
+            .compactMap { archive.retrieveLightweightOrLog($0.sessionId) }
     }
 }

@@ -167,13 +167,13 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::var WebSearchNamespace.webAvailableEntry": "bfaeddb320db586b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::var WebSearchNamespace.webAvailableEntry": "08c13d66f0f81bef",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::var WebSearchNamespace.webSearchEntry": "faed76a789d895b0"
    }
   },
   {
    "key": "var WebSearchNamespace.webAvailableEntry",
-   "hash": "51e8da3c6d740556",
+   "hash": "66420cf293ce6ada",
    "does": "Declares always-available fixed fact web.available = enableWebSearch AND (Tavily key present in keychain OR active provider is Anthropic).",
    "entry": "Invoked by FactResolverRegistry when the assistant's tool-use loop (or CompactToolRouter) resolves this fact key; availability closure is evaluated during tool-schema build.",
    "calls": [
@@ -182,7 +182,7 @@
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot",
     "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasServiceKey(for:)",
     "ext:MainActor.assumeIsolated",
-    "ext:ProviderRegistry.activeProvider"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::func WebSearchNamespace.providerHasNativeSearch()"
    ],
    "reads": [
     "mem:UserSettings.enableWebSearch",
@@ -192,16 +192,6 @@
    "writes": [],
    "branches": [],
    "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "web.available reports true on an Anthropic provider with no Tavily key, but the explicit web.search action always goes through WebSearchService (Tavily) and fails with missingKey there; correctness depends on the model reading the description and not calling web.search in that state.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift:129",
-      "Emuqu/Sources/Services/WebSearchService.swift:146"
-     ],
-     "found": "first read, upheld on second"
-    },
     {
      "kind": "spec-mismatch",
      "sev": "low",
@@ -215,10 +205,31 @@
     }
    ],
    "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::func WebSearchNamespace.providerHasNativeSearch()": "cf4f26a3651d4d1a",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
     "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasServiceKey(for:)": "31dbad94c3cc4e39",
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "599269848673b93a",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc"
+   }
+  },
+  {
+   "key": "func WebSearchNamespace.providerHasNativeSearch()",
+   "hash": "33515bfbfda7e609",
+   "does": "MainActor: true when the active provider is Anthropic, whose server-side web_search tool (wired in AnthropicProvider) searches without a Tavily key.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "ext:ProviderRegistry.activeProvider"
+   ],
+   "reads": [
+    "mem:ProviderRegistry.activeProvider"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc"
    }
@@ -285,16 +296,16 @@
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.integer(_:)": "56674f46c6c5d9a6",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::var FactArgumentError.factValue": "e5a89b80263d0ea5",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::func WebSearchNamespace.racedSearch(query:intent:maxResults:)": "91e24aa1c6eecf03",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::func WebSearchNamespace.racedSearch(query:intent:maxResults:)": "2804d4a1ce65b078",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::func WebSearchNamespace.searchIntent(_:)": "e2a7fe307c1ca766",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::func WebSearchNamespace.searchOutcome(_:query:intent:elapsed:)": "25ca3c232c91fe58",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::func WebSearchNamespace.searchOutcome(_:query:intent:elapsed:)": "b391f42b42948955",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
    "key": "func WebSearchNamespace.searchOutcome(_:query:intent:elapsed:)",
-   "hash": "b72992e57cc276a3",
-   "does": "Dispatches a search Result: success → searchResults, failure → searchFailure.",
+   "hash": "b394e9cfb6b059d2",
+   "does": "MainActor: dispatches a search Result: success → searchResults, failure → searchFailure.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::func WebSearchNamespace.searchResults(_:query:intent:elapsed:)",
@@ -316,7 +327,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::func WebSearchNamespace.searchFailure(_:elapsed:)": "2740da91a2f8b68f",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::func WebSearchNamespace.searchFailure(_:elapsed:)": "f3a0cbbf52343331",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::func WebSearchNamespace.searchResults(_:query:intent:elapsed:)": "99bff234a872a5d7"
    }
   },
@@ -377,18 +388,7 @@
      "effect": "wraps as .failure(.network(localizedDescription))"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "The comment says a non-SearchError throw is unexpected because 'URLSession errors are wrapped by WebSearchService', but WebSearchService.search calls `try await URLSession.shared.data(for:)` without wrapping, so every transport failure (offline, TLS, 12 s URLSession timeout) arrives through this generic catch.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift:219",
-      "Emuqu/Sources/Services/WebSearchService.swift:152"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)": "ee8ecd721e21103a",
     "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.search(query:intent:maxResults:)": "038a17eb5d28f40f",
@@ -439,13 +439,16 @@
   },
   {
    "key": "func WebSearchNamespace.searchFailure(_:elapsed:)",
-   "hash": "2bc5092626db89d0",
-   "does": "Maps each SearchError to a logged warning and a .missing envelope with user-actionable detail.",
+   "hash": "7be4e55468306b5d",
+   "does": "MainActor: maps each SearchError to a logged warning and a .missing envelope with user-actionable detail; .missingKey goes to missingKeyAnswer.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::func WebSearchNamespace.missingKeyAnswer(elapsed:)"
    ],
-   "reads": [],
+   "reads": [
+    "mem:ProviderRegistry.activeProvider (via missingKeyAnswer)"
+   ],
    "writes": [],
    "branches": [
     {
@@ -456,26 +459,53 @@
     {
      "at": "+5",
      "cond": ".missingKey",
-     "effect": "missing(notRecorded, 'no Tavily API key configured')"
+     "effect": "returns missingKeyAnswer — points to native search on Anthropic, else 'no Tavily API key configured'"
     },
     {
-     "at": "+8",
+     "at": "+7",
      "cond": ".rateLimited",
      "effect": "missing(rateLimited, 'Tavily rate limit hit')"
     },
     {
-     "at": "+11",
+     "at": "+10",
      "cond": ".network(s)",
      "effect": "missing(internalError, 'Tavily network error: s')"
     },
     {
-     "at": "+14",
+     "at": "+13",
      "cond": ".decode(s)",
      "effect": "missing(internalError, 'Tavily response decode error: s')"
     }
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::func WebSearchNamespace.missingKeyAnswer(elapsed:)": "f442b53fd0d198bf",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func WebSearchNamespace.missingKeyAnswer(elapsed:)",
+   "hash": "955fbcae092fcab4",
+   "does": "MainActor: logs the .missingKey warning; on a provider with native search returns missing(notRecorded) telling the model web.search needs a Tavily key and to search directly in the conversation instead, otherwise missing(notRecorded, 'no Tavily API key configured in Settings → Flo').",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::func WebSearchNamespace.providerHasNativeSearch()"
+   ],
+   "reads": [
+    "mem:ProviderRegistry.activeProvider"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "active provider has no native search",
+     "effect": "missing(notRecorded, 'no Tavily API key configured in Settings → Flo'); otherwise missing(notRecorded) pointing to native in-conversation search"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::func WebSearchNamespace.providerHasNativeSearch()": "cf4f26a3651d4d1a",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   }

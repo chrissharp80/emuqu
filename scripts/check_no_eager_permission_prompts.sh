@@ -35,9 +35,18 @@
 # `PolarBleApiDefaultImpl.polarImplementation(...)`, which builds a
 # `CBCentralManager` inside.
 #
+# A method that builds one (or reads such a property) is followed too: an init
+# that calls `setUpBluetooth()` unconditionally, where that method builds the
+# central, prompts exactly as if the init had built it. Methods are followed
+# within the same file, transitively.
+#
 # `HKHealthStore()` is deliberately NOT covered: constructing one prompts
 # nothing, only `requestAuthorization` does.
 set -euo pipefail
+
+# The roots are relative; from any other directory they hold no files and the
+# gate would report clean having read nothing.
+cd "$(dirname "$0")/.."
 
 python3 - <<'PY'
 import pathlib
@@ -84,13 +93,61 @@ def builder_properties(lines):
     return names
 
 
-def unconditional_init_touch(text, names):
+FUNC_HEADER = re.compile(r"\s*(?:@\w+\s+)*(?:(?:public|internal|private|fileprivate|static|final|nonisolated|override|mutating|class)(?:\(\w+\))?\s+)*func\s+(\w+)")
+
+
+def function_bodies(lines):
+    """name -> the lines of each method body in the file (all overloads together)."""
+    bodies, current, start_depth, depth = {}, None, 0, 0
+    for line in lines:
+        header = FUNC_HEADER.match(line)
+        opened = depth
+        depth += line.count("{") - line.count("}")
+        if current is None and header and "{" in line:
+            current, start_depth = header.group(1), opened
+            bodies.setdefault(current, []).append(line.split("{", 1)[1])
+            if depth <= start_depth:
+                current = None
+            continue
+        if current is not None:
+            bodies[current].append(line)
+            if depth <= start_depth:
+                current = None
+    return bodies
+
+
+def builder_functions(lines, properties):
+    """Methods that build a prompting type when called: they construct one,
+    read a builder property, or call another such method."""
+    bodies = function_bodies(lines)
+    found = {name for name, body in bodies.items()
+             if any(PROMPTING.search(l) for l in body)
+             or unconditional_init_touch("\n".join(body), properties, strip_braces=False)}
+    changed = True
+    while changed:
+        changed = False
+        for name, body in bodies.items():
+            if name not in found and called(("\n".join(body)), found):
+                found.add(name)
+                changed = True
+    return found
+
+
+def called(text, functions):
+    """The first of `functions` that `text` calls (`name(` or `self.name(`), if any."""
+    for name in sorted(functions):
+        if re.search(rf"(?<![\w.])(?:self\s*\.\s*)?{name}\s*\(", text):
+            return name
+    return None
+
+
+def unconditional_init_touch(text, names, strip_braces=True):
     """The builder property this init-body text reads, if any (`_ = central`, `central.state`).
 
     Braced parts are dropped first: in `if paired { _ = central }` the read
     sits behind the condition.
     """
-    while re.search(r"\{[^{}]*\}", text):
+    while strip_braces and re.search(r"\{[^{}]*\}", text):
         text = re.sub(r"\{[^{}]*\}", "", text)
     for name in names:
         if re.search(rf"(?<![\w.])(?:self\s*\.\s*)?{name}\b(?!\s*:)", text):
@@ -101,6 +158,7 @@ def unconditional_init_touch(text, names):
 def scan(file, problems):
     lines = code_lines(file)
     builders = builder_properties(lines)
+    builder_methods = builder_functions(lines, builders)
     in_init, init_depth, depth = False, 0, 0
     for n, line in enumerate(lines, 1):
         header = bool(INIT_HEADER.match(line))
@@ -123,8 +181,11 @@ def scan(file, problems):
                 problems.append((file, n, line.strip(), "built inside init()"))
         elif in_init and top_level:
             touched = unconditional_init_touch(top_level, builders)
+            calls = called(re.sub(r"\{[^{}]*\}", "", top_level), builder_methods)
             if touched:
                 problems.append((file, n, line.strip(), f"init() reads `{touched}`, which builds one"))
+            elif calls:
+                problems.append((file, n, line.strip(), f"init() calls `{calls}()`, which builds one"))
         if in_init and depth <= init_depth and (opened != init_depth or (header and "{" in line)):
             in_init = False
 
@@ -133,7 +194,10 @@ problems = []
 scanned = 0
 for root in ROOTS:
     path = pathlib.Path(root)
-    files = [path] if path.is_file() else (sorted(path.rglob("*.swift")) if path.is_dir() else [])
+    if not path.exists():
+        print(f"check_no_eager_permission_prompts: scan root missing: {root}", file=sys.stderr)
+        raise SystemExit(2)
+    files = [path] if path.is_file() else sorted(path.rglob("*.swift"))
     for file in files:
         scanned += 1
         scan(file, problems)

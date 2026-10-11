@@ -1,17 +1,17 @@
 {
  "file": "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift",
- "hash": "dcaf9708c920895a",
+ "hash": "42f627bddc9b2d35",
  "role": "Forward-looking half of the `training.*` fact namespace (TrainingLoadNamespace extension): weekly load totals, recovery hours, days-until-fresh, Riegel race predictions, Daniels pace zones, sport baselines and ATL/CTL projection/convergence primitives exposed to the AI assistant as FactEntry tools.",
  "types": [
   "TrainingLoadNamespace: extension — projection / fitness-tool FactEntry declarations and resolvers"
  ],
  "state": [
   "static let trainingSportBaselineSportDescription (AI tool description text)",
-  "static let daysUntilAtlConvergesDescription",
+  "static let daysUntilAtlConvergesDescription (tells the model to take daily_trimp from training.load.trimp.by_date — the power-aware load unit of ATL/CTL — not workout.most_recent.snapshot's heart-rate trimp)",
   "static let trainingProjectFromParamsDescription",
   "static let daysUntilConvergedFromDescription"
  ],
- "toplevel": "Four static description strings (lines 266, 306, 397, 459) are AI-facing tool documentation; no other top-level code.",
+ "toplevel": "Four static description strings are AI-facing tool documentation; no other top-level code.",
  "flags": [
   {
    "kind": "untested",
@@ -66,11 +66,11 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.trainingDaysUntilAtlConvergesParamsEntry": "520a23ab2a98c8a0",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.trainingDaysUntilAtlConvergesParamsEntry": "5b2922845021d57b",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.trainingDaysUntilFreshEntry": "cd63b4beb31bfaad",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.trainingLoadWeeklyCurrentEntry": "a0860b4974afa31c",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.trainingLoadWeeklyLast4WeeksEntry": "86605545cf626ff7",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.trainingPaceZonesEntry": "0681c3ec31a60990",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.trainingPaceZonesEntry": "e8bd2bebe48f3d85",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.trainingRacePredictionsSportEntry": "7df748099249e833",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.trainingRecoveryHoursNeededEntry": "ad9c2459c564773e",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.trainingSportBaselineSportEntry": "87edf93cce32532a"
@@ -146,17 +146,18 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.historicalAvailability()": "3cfd9d71634b09e4",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.resolveTrainingLoadWeeklyLast4Weeks()": "1c88e9d09037930d",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.resolveTrainingLoadWeeklyLast4Weeks()": "bb95607ce0c0ceee",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)": "2ede3d3bbb6ddc46"
    }
   },
   {
    "key": "func TrainingLoadNamespace.resolveTrainingLoadWeeklyLast4Weeks()",
-   "hash": "6f9d77a9ef7d2748",
-   "does": "Builds 4 records {week_ending, trimp} for rolling 7-day windows ending now, now-7d, now-14d, now-21d by summing TrainingMetricsCache.samplesSince(weekStart) filtered to date < weekEnd; returns .list newest first.",
+   "hash": "515fe3da63c97176",
+   "does": "Reads TrainingMetricsCache.samplesSince(now − 28 d) once; with no samples returns missing(notRecorded, 'cache cold — no daily samples'); otherwise returns .list of weekRecord for the rolling 7-day windows ending now, now−7d, now−14d, now−21d (newest first; a window without samples totals 0).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.samplesSince(_:)"
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.samplesSince(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.weekRecord(weeksBack:from:samples:)"
    ],
    "reads": [
     "mem:TrainingMetricsCache.dailySeries"
@@ -164,51 +165,40 @@
    "writes": [],
    "branches": [
     {
-     "at": "+4",
-     "cond": "loop over weekIndex 0..<4",
-     "effect": "one window per week index"
+     "at": "+2",
+     "cond": "28-days-ago date not computable",
+     "effect": "returns missing(internalError)"
     },
     {
-     "at": "+5",
-     "cond": "both weekEnd and weekStart dates computable",
-     "effect": "false: that week is skipped (continue); true: sums the window's trimp and appends a record even when no samples exist (total 0)"
-    },
-    {
-     "at": "+17",
-     "cond": "items is empty",
-     "effect": "only true if every Calendar.date call failed; then missing(.notRecorded,'cache cold'). In practice always false, so weeks with no cached samples are returned as trimp 0"
+     "at": "+8",
+     "cond": "no cached samples in the 28 days (cold cache)",
+     "effect": "returns missing(notRecorded, 'cache cold — no daily samples')"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "guard !items.isEmpty is effectively unreachable: items is appended every iteration whose dates compute.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift:95"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "silent-failure",
-     "sev": "med",
-     "text": "With a cold TrainingMetricsCache (samplesSince returns [] ) the loop still appends four records with trimp 0.0, so the AI is told the user had zero load for 4 weeks; the sibling training.load.weekly.current returns notRecorded in the same state. The schema availability filter does not protect it: the production tool path (CompactToolRouter get_training_load which=last_4_weeks) resolves the key without checking availability.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift:86",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift:89",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift:95",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift:59",
-      "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift:362",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift:454",
-      "Emuqu/Sources/Analysis/TrainingMetricsCache.swift:233"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.samplesSince(_:)": "ffe29dcbda438e76",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.weekRecord(weeksBack:from:samples:)": "b44ce1b8f631e238",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
    }
+  },
+  {
+   "key": "func TrainingLoadNamespace.weekRecord(weeksBack:from:samples:)",
+   "hash": "5aa9142e91f1a0c6",
+   "does": "Sums the trimp of the samples dated in [weekEnd − 7 d, weekEnd) where weekEnd = now − 7·weeksBack days, as {week_ending, trimp}; nil when a calendar date cannot be computed.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "weekEnd or weekStart not computable",
+     "effect": "returns nil (week dropped by compactMap)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "var TrainingLoadNamespace.trainingRecoveryHoursNeededEntry",
@@ -244,7 +234,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RecoveryTimeEstimate.hoursFromTrainingLoad(atl:ctl:)": "df651fcaefde00f4",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.liveOrCached()": "dde23a0266529754",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.liveOrCached()": "f65f5f3d62365a97",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
     "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
    }
@@ -278,7 +268,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.daysUntilFresh(currentATL:currentCTL:)": "4ee276687dff6f4b",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.liveOrCached()": "dde23a0266529754",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.liveOrCached()": "f65f5f3d62365a97",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
     "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
    }
@@ -297,18 +287,17 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.resolveTrainingRacePredictionsSport(_:)": "a90fe65d8f0f2507",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.resolveTrainingRacePredictionsSport(_:)": "fc8edbd75b5c193b",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.parameterized(pattern:paramExample:description:resolve:)": "29b268940e76c9f8"
    }
   },
   {
    "key": "func TrainingLoadNamespace.resolveTrainingRacePredictionsSport(_:)",
-   "hash": "18edfa53a4e12039",
-   "does": "Parses sport, loads every archived workout session (decrypting each via retrieveLightweightOrLog), runs RaceTimePrediction.predictWithBasis, and returns a record with predicted_{5k,10k,half,marathon}_sec plus basis_* records.",
+   "hash": "b3dfeb2bc5842690",
+   "does": "Parses sport, gets racePredictions(for:) (recent-window workouts first, all history only when needed), and returns a record with predicted_{5k,10k,half,marathon}_sec plus basis_* records.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)",
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predictWithBasis(from:sport:now:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.racePredictions(for:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.raceBasisRecord(_:)"
    ],
    "reads": [
@@ -323,38 +312,71 @@
      "effect": "false: missing(.invalidParameter,'unknown sport'); note rawValues are run/trail_run/walk/hike/bike/indoor_bike/treadmill/row/air_bike/crossfit"
     },
     {
-     "at": "+9",
+     "at": "+5",
      "cond": "predictions non-empty",
      "effect": "false: missing(.notRecorded,'no <sport> workouts of 3 km or more'); true: builds record"
     },
     {
-     "at": "+14",
+     "at": "+10",
      "cond": "loop over 4 standard distances",
      "effect": "each label processed"
     },
     {
-     "at": "+15",
+     "at": "+11",
      "cond": "prediction exists for that distance",
      "effect": "false: skip label; true: sets predicted_<label>_sec and basis_<label>"
     }
    ],
-   "flags": [
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.raceBasisRecord(_:)": "e7fa6a72ebeb28c1",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.racePredictions(for:)": "3984045e10555b87"
+   }
+  },
+  {
+   "key": "func TrainingLoadNamespace.racePredictions(for:)",
+   "hash": "4c0338167f2ff4a1",
+   "does": "Loads the workouts started in the last RaceTimePrediction.recentWindowDays (90) and runs predictWithBasis on them; only when that yields nothing does it also load the older workouts and predict from all of them — the same result as predicting from all history (the predictor prefers the recent window) without decrypting it on the common path.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.loadSessions(_:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predictWithBasis(from:sport:now:)"
+   ],
+   "reads": [
+    "archive:entries",
+    "archive:retrieveLightweight"
+   ],
+   "writes": [],
+   "branches": [
     {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Loads and decrypts every workout session in the archive (no limit) for each call, unlike recentWorkouts which caps at the newest N.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift:159",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift:161"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+5",
+     "cond": "recent workouts give a prediction",
+     "effect": "returns it; otherwise loads older workouts and predicts from recent + older"
     }
    ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
     "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predictWithBasis(from:sport:now:)": "d13d57cdb2f9db13",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.loadSessions(_:)": "299ed88c127e8da9"
+   }
+  },
+  {
+   "key": "func TrainingLoadNamespace.loadSessions(_:)",
+   "hash": "60fdec9e589a00cd",
+   "does": "Lightweight-loads each archive entry's session, dropping ones that fail to load (logged by retrieveLightweightOrLog).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)"
+   ],
+   "reads": [
+    "archive:retrieveLightweight"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var TrainingLoadNamespace.entries": "2d60c9f9825b42bf",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.raceBasisRecord(_:)": "e7fa6a72ebeb28c1",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
    }
   },
@@ -372,8 +394,8 @@
   },
   {
    "key": "var TrainingLoadNamespace.trainingPaceZonesEntry",
-   "hash": "eae30889390d1f8f",
-   "does": "Declares fixed fact `training.pace_zones` whose resolver is resolveTrainingPaceZones.",
+   "hash": "8125bf0070dc3085",
+   "does": "Declares fixed fact `training.pace_zones` whose resolver is resolveTrainingPaceZones; description gives the multipliers TrainingPaceZones.from5KPace uses (easy ×1.30, marathon ×1.15, threshold ×1.06, interval ×1.00, repetition ×0.93).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
@@ -382,32 +404,20 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Tool description tells the AI threshold pace is 5K pace ×1.10, but TrainingPaceZones.from5KPace uses ×1.06 (its doc explains why); the model may describe zones with the wrong multiplier.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift:188",
-      "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift:429"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.resolveTrainingPaceZones()": "71f8deb76dd8d10f",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.resolveTrainingPaceZones()": "6c0ecff1662c11e5",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
    }
   },
   {
    "key": "func TrainingLoadNamespace.resolveTrainingPaceZones()",
-   "hash": "029558d36b16e8ab",
-   "does": "Loads all archived workouts, predicts 5K run time via RaceTimePrediction.predict, converts to sec/km and returns Daniels-style zone paces (easy, marathon, threshold, interval, repetition).",
+   "hash": "989121b736c9aedc",
+   "does": "Gets the run racePredictions(for: .run), builds zones with TrainingPaceZones.from(racePredictions:) (5K pace basis) and returns Daniels-style zone paces (easy, marathon, threshold, interval, repetition).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)",
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predict(from:sport:now:)",
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingPaceZones.from5KPace(secPerKm:)"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.racePredictions(for:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingPaceZones.from(racePredictions:)"
    ],
    "reads": [
     "archive:entries",
@@ -416,33 +426,15 @@
    "writes": [],
    "branches": [
     {
-     "at": "+6",
-     "cond": "5K prediction exists and from5KPace returns zones (pace > 0)",
-     "effect": "false: missing(.notRecorded,'no 5K running basis in history'); true: record of five sec/km values"
+     "at": "+2",
+     "cond": "no 5K prediction or from5KPace returns nil (pace ≤ 0)",
+     "effect": "missing(.notRecorded,'no 5K running basis in history'); otherwise record of five sec/km values"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Inlines predictions[5_000] -> from5KPace(secPerKm: total/5) which is exactly TrainingPaceZones.from(racePredictions:); that production helper is called only by tests, and the load-every-archived-workout scan is copied verbatim from resolveTrainingRacePredictionsSport.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift:201",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift:202",
-      "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift:436",
-      "EmuquTests/WorkoutLiveTrendsTests.swift:596",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift:158",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift:196"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predict(from:sport:now:)": "d09a73999868288c",
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingPaceZones.from5KPace(secPerKm:)": "183480b28ecc7ec8",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var TrainingLoadNamespace.entries": "2d60c9f9825b42bf",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingPaceZones.from(racePredictions:)": "84594852e98bcb56",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.racePredictions(for:)": "3984045e10555b87"
    }
   },
   {
@@ -567,7 +559,7 @@
   {
    "key": "var TrainingLoadNamespace.trainingDaysUntilAtlConvergesParamsEntry",
    "hash": "35d79ab6fdde428c",
-   "does": "Declares parameterized fact `training.days_until_atl_converges($params)` resolving via resolveTrainingDaysUntilAtlConvergesParams.",
+   "does": "Declares parameterized fact `training.days_until_atl_converges($params)` resolving via resolveTrainingDaysUntilAtlConvergesParams; the description points the model to training.load.trimp.by_date for daily_trimp so it is in the ATL/CTL load unit.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.parameterized(pattern:paramExample:description:resolve:)",
@@ -576,21 +568,7 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Tool description tells the model to take daily_trimp from workout.most_recent.snapshot ('TRIMP for today's most recent workout'), but that field is the heart-rate Lucia TRIMP of the newest workout (any day), while ATL/CTL are built from the power-aware load and include HealthKit-only workouts (this file's own weekly description and workout.recent's description say the two differ). Convergence days are computed from a load in a different unit than the ATL/CTL it is compared against.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift:308",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift:50",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift:101",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift:288",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutDetail.swift:489"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.resolveTrainingDaysUntilAtlConvergesParams(_:)": "85893ab9014b99bf",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.parameterized(pattern:paramExample:description:resolve:)": "29b268940e76c9f8"
@@ -630,7 +608,7 @@
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.fields(_:counts:format:)": "ca15e55cd20ce779",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.value(_:)": "8034cd0f43244764",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::var FactArgumentError.factValue": "e5a89b80263d0ea5",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.liveOrCached()": "dde23a0266529754",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.liveOrCached()": "f65f5f3d62365a97",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.convergenceRecord(atl:ctl:daily:gap:unmet:)": "980d31e1dea81438",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.wholeTrimp(_:)": "a151830bcd7aec11",
     "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
@@ -887,7 +865,7 @@
     "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)": "d4fe1750bac7aed4",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.value(_:)": "8034cd0f43244764",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::var FactArgumentError.factValue": "e5a89b80263d0ea5",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.liveOrCached()": "dde23a0266529754",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.liveOrCached()": "f65f5f3d62365a97",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.projection(atl:ctl:daily:days:)": "94b176e475bcd457",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.tomorrowRecord(live:trimp:day:)": "959d15629a664549",
     "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"

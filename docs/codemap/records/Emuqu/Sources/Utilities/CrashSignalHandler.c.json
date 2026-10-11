@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Utilities/CrashSignalHandler.c",
- "hash": "a7d8d565d362eadf",
+ "hash": "2a5114b93747964a",
  "role": "Async-signal-safe fatal-signal handler for the iOS app: on SIGABRT/SIGSEGV/SIGBUS/SIGFPE/SIGILL/SIGTRAP writes a raw-address crash log to the path given at install (CrashLogManager.crashLogURL = <app group container>/crash_log.txt), then re-raises with default disposition. Compiled into the iOS app target (project.pbxproj:4150).",
  "types": [],
  "state": [
@@ -8,11 +8,11 @@
   "mem:g_frames (static void*[128] backtrace buffer)",
   "mem:g_image_slide (main executable vmaddr slide)",
   "mem:g_code_image_base / g_code_image_name / g_code_image_name_len (dladdr result for the image containing app code)",
-  "mem:g_handling (volatile sig_atomic_t re-entrancy guard)",
+  "mem:g_handling (volatile sig_atomic_t, claimed with an atomic exchange) and g_handling_thread (pthread_t of the thread that claimed it)",
   "mem:kFatalSignals (const list of 6 signals)",
   "file:crash_log.txt (path passed in by CrashLogManager.installSignalHandlers, CrashLogManager.swift:457)"
  ],
- "toplevel": "Static globals lines 18-26; kFatalSignals lines 28-35 (SIGABRT,SIGSEGV,SIGBUS,SIGFPE,SIGILL,SIGTRAP) and count line 37; macro safe_write_lit (line 58) writes a string literal with compile-time length.",
+ "toplevel": "Static globals lines 19-30 (g_crash_path, g_frames, g_image_slide, g_code_image_*, g_handling, g_handling_thread); kFatalSignals lines 32-39 (SIGABRT,SIGSEGV,SIGBUS,SIGFPE,SIGILL,SIGTRAP) and count line 41; macro safe_write_lit writes a string literal with compile-time length.",
  "flags": [
   {
    "kind": "fragile",
@@ -169,8 +169,8 @@
   },
   {
    "key": "c emuqu_signal_handler",
-   "hash": "7343b334ff971a8e",
-   "does": "Fatal-signal handler: if already handling, _exit(128+sig); else sets g_handling, opens g_crash_path O_WRONLY|O_CREAT|O_TRUNC 0600 and writes header (signal name/number, main executable slide, app code image name and load address), a symbolication how-to, raw backtrace() return addresses (max 128) and an end marker; then restores SIG_DFL and re-raises so the OS crash report is still produced. Read on next launch by CrashLogManager.promoteCurrentCrashLog (CrashLogManager.swift:424) into previous_crash.txt.",
+   "hash": "dfb244057457f710",
+   "does": "Fatal-signal handler: claims g_handling with an atomic exchange. If it was already claimed: on the same thread (the handler itself faulted) _exit(128+sig); on another thread, waits in a pause() loop until the first thread's re-raise ends the process. Otherwise records g_handling_thread, opens g_crash_path O_WRONLY|O_CREAT|O_TRUNC 0600 and writes header (signal name/number, main executable slide, app code image name and load address), a symbolication how-to, raw backtrace() return addresses (max 128) and an end marker; then restores SIG_DFL and re-raises so the OS crash report is still produced. Read on next launch by CrashLogManager.promoteCurrentCrashLog into previous_crash.txt.",
    "entry": "Installed via sigaction for the six kFatalSignals by emuqu_install_crash_signal_handlers; invoked by the kernel on the crashing thread.",
    "calls": [
     "Emuqu/Sources/Utilities/CrashSignalHandler.c::c safe_write",
@@ -180,32 +180,47 @@
     "ext:open/close(2)",
     "ext:backtrace (execinfo)",
     "ext:signal/raise",
-    "ext:_exit"
+    "ext:_exit",
+    "ext:pause",
+    "ext:pthread_self/pthread_equal",
+    "ext:__atomic_exchange_n"
    ],
    "reads": [
     "mem:g_crash_path",
     "mem:g_image_slide",
     "mem:g_code_image_base",
-    "mem:g_code_image_name"
+    "mem:g_code_image_name",
+    "mem:g_handling_thread"
    ],
    "writes": [
     "file:crash_log.txt (truncated and rewritten)",
     "mem:g_handling",
+    "mem:g_handling_thread",
     "mem:g_frames"
    ],
    "branches": [
     {
-     "at": "+4",
-     "cond": "g_handling already set (a fatal signal arrived during handling, or a second thread crashed concurrently)",
-     "effect": "_exit(128+signal_number) immediately, no log, no OS re-raise; otherwise continue"
+     "at": "+3",
+     "cond": "g_handling was already claimed",
+     "effect": "go to the re-entry handling below; otherwise continue"
     },
     {
-     "at": "+10",
+     "at": "+7",
+     "cond": "the claiming thread is this thread (handler faulted)",
+     "effect": "_exit(128+signal_number), no log, no OS re-raise"
+    },
+    {
+     "at": "+12",
+     "cond": "another thread holds the handler",
+     "effect": "loops on pause() forever; the other thread's re-raise terminates the process"
+    },
+    {
+     "at": "+19",
      "cond": "open() returned fd >= 0",
-     "effect": "write the full log and close; if open fails (e.g. container unavailable) nothing is written and the handler goes straight to re-raise"
+     "effect": "write the full log and close; if open fails nothing is written and the handler goes straight to re-raise"
     },
     {
-     "at": "+44",
+     "at": "+53",
      "cond": "for each captured frame",
      "effect": "one hex line per frame"
     }
@@ -220,18 +235,6 @@
       "Emuqu/Sources/Utilities/CrashSignalHandler.c:217"
      ],
      "found": "first read, upheld on second"
-    },
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "The re-entrancy guard is process-wide, but sa_mask is empty and only the handled signal is blocked on the handling thread, so a fatal signal on a SECOND thread while the first is still writing hits g_handling and calls _exit(128+sig): the process ends mid-write, leaving a truncated crash_log.txt (no END OF CRASH LOG) and no OS crash report because the signal is never re-raised. The comment justifying the guard assumes the second signal comes from the handler itself.",
-     "evidence": [
-      "Emuqu/Sources/Utilities/CrashSignalHandler.c:107",
-      "Emuqu/Sources/Utilities/CrashSignalHandler.c:110",
-      "Emuqu/Sources/Utilities/CrashSignalHandler.c:111",
-      "Emuqu/Sources/Utilities/CrashSignalHandler.c:222"
-     ],
-     "found": "second read"
     }
    ],
    "deps": {
@@ -242,12 +245,35 @@
    }
   },
   {
+   "key": "c restore_handlers",
+   "hash": "58933dfe470a2ad2",
+   "does": "Re-installs the saved dispositions in previous[0..count-1] for the first count kFatalSignals (sigaction result ignored), undoing a partial install.",
+   "entry": null,
+   "calls": [
+    "ext:sigaction"
+   ],
+   "reads": [
+    "mem:kFatalSignals"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each of the first count signals",
+     "effect": "sigaction(sig, &previous[i], NULL)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
    "key": "c emuqu_install_crash_signal_handlers",
-   "hash": "031cc1e315c044de",
-   "does": "Copies crash_file_path into g_crash_path, records main-executable slide (_dyld_get_image_vmaddr_slide(0)) and, via dladdr on itself, the base name and load address of the image holding app code (Emuqu.debug.dylib on Xcode debug builds), warms backtrace(), then installs emuqu_signal_handler with sigaction for the six fatal signals. Returns false on NULL/empty/over-long path or the first sigaction failure. Called from CrashLogManager.installSignalHandlers (CrashLogManager.swift:457), which NSLogs on false.",
+   "hash": "b874bed3c6865307",
+   "does": "Copies crash_file_path into g_crash_path, records main-executable slide (_dyld_get_image_vmaddr_slide(0)) and, via dladdr on itself, the base name and load address of the image holding app code (Emuqu.debug.dylib on Xcode debug builds), warms backtrace(), then installs emuqu_signal_handler with sigaction for the six fatal signals, saving each previous disposition. Returns false on NULL/empty/over-long path, or on a sigaction failure after restoring the signals already installed (all or nothing). Called from CrashLogManager.installSignalHandlers, which NSLogs on false.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/CrashSignalHandler.c::c emuqu_signal_handler",
+    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c restore_handlers",
     "ext:_dyld_get_image_vmaddr_slide",
     "ext:dladdr",
     "ext:backtrace",
@@ -293,33 +319,20 @@
      "effect": "truncate to 255"
     },
     {
-     "at": "+64",
+     "at": "+67",
      "cond": "for each fatal signal",
-     "effect": "install handler"
+     "effect": "install handler, saving the previous action"
     },
     {
-     "at": "+65",
+     "at": "+68",
      "cond": "sigaction fails",
-     "effect": "return false immediately; handlers already installed for earlier signals stay installed (partial install reported as total failure)"
+     "effect": "restore_handlers for the signals already installed, return false (none left installed)"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "A sigaction failure on signal k returns false with handlers for signals 0..k-1 left installed; CrashLogManager.installSignalHandlers then logs \"failed to install signal handlers\", which misstates a partial install as none.",
-     "evidence": [
-      "Emuqu/Sources/Utilities/CrashSignalHandler.c:228",
-      "Emuqu/Sources/Utilities/CrashSignalHandler.c:229",
-      "Emuqu/Sources/Utilities/CrashSignalHandler.c:230",
-      "Emuqu/Sources/Utilities/CrashLogManager.swift:462",
-      "Emuqu/Sources/Utilities/CrashLogManager.swift:465"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c emuqu_signal_handler": "2714c135575c8dd5"
+    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c emuqu_signal_handler": "0e883cf168c9c6f3",
+    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c restore_handlers": "e4186443f26d5378"
    }
   }
  ],

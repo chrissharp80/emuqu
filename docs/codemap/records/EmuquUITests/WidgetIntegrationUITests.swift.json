@@ -1,41 +1,29 @@
 {
  "file": "EmuquUITests/WidgetIntegrationUITests.swift",
- "hash": "6fe39ec08d55ba9c",
- "role": "XCUITest that the app survives a background/foreground round trip, framed as widget integration coverage.",
+ "hash": "6c2b27b5fe79058a",
+ "role": "XCUITest of a background → foreground round trip: the app comes back to the foreground on the Record tab it left (not relaunched) and the tab bar still responds. Holds BackgroundForegroundUITests; the app has no widget, and the file name is left over from the removed widget coverage.",
  "types": [
-  "WidgetIntegrationUITests: class — XCTestCase"
+  "BackgroundForegroundUITests: class — XCTestCase"
  ],
  "state": [],
  "toplevel": "",
  "flags": [
   {
-   "kind": "spec-mismatch",
+   "kind": "naming",
    "sev": "low",
-   "text": "Passes the bare '-UITests' launch argument, which no production code reads (only -UITests-FreshInstall at AppLaunchRecovery.swift:185 and -UITests-ForcePaywall/-UITests-SeedArchive at UITestLaunchArguments.swift:18,23 are checked); it is inert",
+   "text": "The file is still named WidgetIntegrationUITests.swift although its class (BackgroundForegroundUITests) and doc no longer claim widget coverage; renaming the file needs project.pbxproj edits (it is listed by name at four places), outside this file.",
    "evidence": [
-    "EmuquUITests/WidgetIntegrationUITests.swift:32",
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift:185",
-    "Emuqu/Sources/Services/UITestLaunchArguments.swift:18"
+    "EmuquUITests/WidgetIntegrationUITests.swift:1",
+    "Emuqu.xcodeproj/project.pbxproj:974"
    ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "test-defect",
-   "sev": "med",
-   "text": "Tests a removed feature: the doc's WidgetDataPublisher.publishToday, WidgetCenter.reloadAllTimelines and WidgetDataPublisherTests.swift do not exist in the repo (no Swift file references WidgetCenter; DataPurgeService.swift:647-649 states the widget target does not exist). The suite is a plain background/foreground smoke test whose name and messages claim widget coverage",
-   "evidence": [
-    "EmuquUITests/WidgetIntegrationUITests.swift:9",
-    "EmuquUITests/WidgetIntegrationUITests.swift:23",
-    "Emuqu/Sources/Services/DataPurgeService.swift:647"
-   ],
-   "found": "first read, upheld on second"
+   "found": "fix pass b38"
   }
  ],
  "units": [
   {
-   "key": "func WidgetIntegrationUITests.setUp()",
-   "hash": "5afd054df2a6b2da",
-   "does": "Sets continueAfterFailure=false, creates XCUIApplication, appends launch arguments -UITests, -UITests-FreshInstall and English locale (UITestLanguage.english), launches the app (the app wipes onboarding/disclaimer/paywall flags, settings files and the session archive via AppLaunchRecovery.resetUITestStateIfRequested) and walks every first-run gate with UITestLaunch.toMainUI, ignoring its Bool result.",
+   "key": "func BackgroundForegroundUITests.setUp()",
+   "hash": "21c84c38230e01df",
+   "does": "Sets continueAfterFailure=false, creates XCUIApplication, appends launch arguments -UITests-FreshInstall and English locale (UITestLanguage.english), launches the app (the app wipes onboarding/disclaimer/paywall flags, settings files and the session archive via AppLaunchRecovery.resetUITestStateIfRequested) and walks every first-run gate with UITestLaunch.toMainUI, ignoring its Bool result.",
    "entry": "XCTest runner: setUp before each test in the class",
    "calls": [
     "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)",
@@ -53,7 +41,7 @@
    }
   },
   {
-   "key": "func WidgetIntegrationUITests.tearDown()",
+   "key": "func BackgroundForegroundUITests.tearDown()",
    "hash": "c6f9bd9c44559741",
    "does": "Releases the XCUIApplication (app = nil); does not terminate the app.",
    "entry": "XCTest runner: tearDown after each test in the class",
@@ -65,40 +53,26 @@
    "deps": {}
   },
   {
-   "key": "func WidgetIntegrationUITests.testBackgroundForegroundCycleSurvives()",
-   "hash": "88e29376d433c9d5",
-   "does": "Asserts the tab bar exists, presses Home, asserts SpringBoard exists, re-activates the app and asserts the tab bar exists again.",
+   "key": "func BackgroundForegroundUITests.testBackgroundForegroundCycleSurvives()",
+   "hash": "4690b7fd04a2acbb",
+   "does": "Opens the Record tab (asserting UITestNav.selectTab succeeded), sends the app to the background and back with UITestLaunch.backgroundToPersist (Home press, wait for background, activate, wait for foreground), then asserts the app is runningForeground, that the Record tab's content (tab.record identifier) is still showing within UITestTiming.s(8) — a crash and relaunch under -UITests-FreshInstall would be back at the first-run gates — and that selecting the Dashboard tab still works.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.selectTab(_:identifier:title:attempts:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.backgroundToPersist(_:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.anyElement(in:identifier:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
     "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "springboard.waitForExistence is true whenever SpringBoard runs (always), so the 'Home screen must appear' assertion is tautological; the tab bar element query was resolved before backgrounding and the final check only proves the app is running",
-     "evidence": [
-      "EmuquUITests/WidgetIntegrationUITests.swift:52",
-      "EmuquUITests/WidgetIntegrationUITests.swift:56"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same Home-press/activate round trip as UITestLaunch.backgroundToPersist",
-     "evidence": [
-      "EmuquUITests/WidgetIntegrationUITests.swift:49",
-      "EmuquUITests/EmuquUITests.swift:583"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.anyElement(in:identifier:)": "7c7096c59b35ed60",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.backgroundToPersist(_:)": "b4902c0b81652495",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.selectTab(_:identifier:title:attempts:)": "22e67274e9187b00",
     "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
    }
   }

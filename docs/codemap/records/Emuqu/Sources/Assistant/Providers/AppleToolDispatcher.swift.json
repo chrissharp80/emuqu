@@ -110,23 +110,12 @@
      "effect": "returns and charges the refusal JSON; else resolves the tool"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "The registry is set by setRegistry(factRegistry) only on the chat dispatch path; Apple sends from the summarizer, fact extractor and voice interjection carry no tools (4-arg send), so this is safe only because those callers pass empty tool lists — a tool-bearing Apple send from any other path would read whatever registry the last chat turn left (or nil).",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift:88",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:563"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.admit(_:)": "b103ed0a1fd6fcd7",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.admit(_:)": "abe88f24be3ad452",
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.charge(_:)": "38fbbdbd95349b2c",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveTool(name:argsJSON:)": "fa79c3bca0f486d3",
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.toToolResultJSON()": "de8ff66062894932",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveTool(name:argsJSON:)": "91acb46f4275096a",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.toToolResultJSON()": "2a0cf8feb56eb33d",
     "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.refusal(for:)": "7235a36d374e5f20"
    }
   },

@@ -9,20 +9,7 @@
  ],
  "state": [],
  "toplevel": "File-scope private free functions (banded, bandedAscending, *Row builders, interpret* helpers, wrappedTextAttributes, metricExplanationHeight, vitalsConcerns, lastSevenTrendText) are listed as units. No globals or stored state. Every displayed string goes through String(localized:bundle: LanguageManager.appBundle) except hard-coded metric names RMSSD, SDNN, pNN50, SDSD, SD1/SD2 (Poincaré), DFA α2 and the HRSS-like unit suffixes in format strings.",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "med",
-   "text": "Interpretation line is drawn into a fixed 14-pt-high rect with no wrapping budget; interpretations longer than one line (e.g. the 130-character \"High readiness — strong underlying capacity. This reads capacity, not today's recovery; check your Recovery score before going hard.\" and its translations) are clipped, so the caveat sentence is cut off in the PDF.",
-   "evidence": [
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift:283",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift:333",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift:336",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift:717"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "func DeepDiveReportRenderer.drawDeepHRVAnalysis(result:session:recentSessions:pageNumber:yPosition:in:pageRect:)",
@@ -75,7 +62,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)": "47c8e99023f07dcf",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)": "66c8176e95b924cb",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawSubsectionHeading(_:yPosition:pageRect:)": "44b64bb0ee8a94da",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func timeDomainRows(td:session:bundle:)": "025af269cdede632",
     "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::func DeepDiveReportRenderer.ensureSpace(needed:y:pageNumber:context:pageRect:)": "79c97b709effdb63",
@@ -112,7 +99,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)": "47c8e99023f07dcf",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)": "66c8176e95b924cb",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawSubsectionHeading(_:yPosition:pageRect:)": "44b64bb0ee8a94da",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawWrappedText(_:style:y:contentWidth:pageNumber:context:pageRect:)": "491eb379bc9a571e",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func frequencyDomainRows(fd:bundle:)": "f9a51008fe805115",
@@ -145,7 +132,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)": "47c8e99023f07dcf",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)": "66c8176e95b924cb",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawSubsectionHeading(_:yPosition:pageRect:)": "44b64bb0ee8a94da",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawWrappedText(_:style:y:contentWidth:pageNumber:context:pageRect:)": "491eb379bc9a571e",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.nonlinearRows(nl:bundle:)": "45d83a0c8df65c26",
@@ -178,7 +165,7 @@
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func dfaAlpha1Row(nl:bundle:)": "5c389406d2ef5dd1",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func dfaAlpha2Row(nl:bundle:)": "b44918e9d731cbf2",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func sd1Row(nl:bundle:)": "cd30581587b1347e",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func sd1Sd2RatioRow(nl:bundle:)": "e996ea2196a24ea0",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func sd1Sd2RatioRow(nl:bundle:)": "0e99a628770149d3",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func sd2Row(nl:bundle:)": "fc6c1768074a532a"
    }
   },
@@ -237,7 +224,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)": "47c8e99023f07dcf",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)": "66c8176e95b924cb",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawSubsectionHeading(_:yPosition:pageRect:)": "44b64bb0ee8a94da",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func ansRows(ans:bundle:)": "8242c71260f816e9",
     "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::func DeepDiveReportRenderer.ensureSpace(needed:y:pageNumber:context:pageRect:)": "79c97b709effdb63",
@@ -357,51 +344,40 @@
   },
   {
    "key": "func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)",
-   "hash": "0b84e83becdab583",
-   "does": "Draws one metric block: measures the explanation, reserves 18 + explanation + (14 if interpretation) + 8 pt (capped at a page) via ensureSpace, then draws name+value, explanation and optional bullet interpretation; returns y + 4.",
+   "hash": "30b2ceada8b6733e",
+   "does": "Draws one metric block. Builds the explanation and (optional) interpretation as attributed text and measures both at contentWidth−8 with the attributes they are drawn with; reserves 15 + explanation + 6 + interpretation + 4 pt (capped at a page) via ensureSpace; then draws name+value, the explanation and the wrapped interpretation at their full heights; returns y + 4.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func metricExplanationHeight(_:contentWidth:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func metricExplanationText(_:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func wrappedTextHeight(_:width:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func metricInterpretationText(_:)",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.wholeBlock(_:pageRect:)",
     "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::func DeepDiveReportRenderer.ensureSpace(needed:y:pageNumber:context:pageRect:)",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricNameAndValue(name:value:y:contentWidth:)",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricExplanation(_:y:contentWidth:height:)",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricInterpretation(_:y:contentWidth:)"
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricText(_:y:contentWidth:height:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+9",
-     "cond": "metric.interpretation != nil",
-     "effect": "adds 14pt to the reserved height; else 0"
+     "at": "+13",
+     "cond": "metric.interpretation is nil",
+     "effect": "interpretation height 0 in the reservation"
     },
     {
-     "at": "+13",
-     "cond": "metric.interpretation is non-nil",
-     "effect": "draws the bullet interpretation line and advances 14pt; otherwise skips it"
+     "at": "+18",
+     "cond": "metric.interpretation non-nil",
+     "effect": "draws the wrapped interpretation at its measured height; otherwise skips it"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Height is measured by metricExplanationHeight at contentWidth−20 with no paragraph style, but the text is drawn at contentWidth−8 with lineSpacing 1.0 into a rect only ceil(height)+4 tall; the two layouts differ, and the drawn box only fits because the narrower measuring width usually over-estimates. A long explanation whose line count does not drop at the wider width loses its last line(s) to the 1pt-per-line spacing.",
-     "evidence": [
-      "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift:282",
-      "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift:320",
-      "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift:777",
-      "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift:313"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricExplanation(_:y:contentWidth:height:)": "2e1da6eba1d57835",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricInterpretation(_:y:contentWidth:)": "5e64608b0f2e664b",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricNameAndValue(name:value:y:contentWidth:)": "a1ed9b21dd4e130d",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricText(_:y:contentWidth:height:)": "7334be80a865f35d",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.wholeBlock(_:pageRect:)": "d2bcef3c59c5489d",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func metricExplanationHeight(_:contentWidth:)": "9850b941afb06985",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func metricExplanationText(_:)": "1f9b2650e0c68214",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func metricInterpretationText(_:)": "3db0f0510406eb10",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func wrappedTextHeight(_:width:)": "f7ecf5860b73f976",
     "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::func DeepDiveReportRenderer.ensureSpace(needed:y:pageNumber:context:pageRect:)": "79c97b709effdb63"
    }
   },
@@ -423,12 +399,11 @@
    }
   },
   {
-   "key": "func DeepDiveReportRenderer.drawMetricExplanation(_:y:contentWidth:height:)",
-   "hash": "1efd478078183657",
-   "does": "Draws the explanation in 8.5pt gray, word-wrapped with lineSpacing 1.0, in a rect of width contentWidth−8 and height ceil(height)+4; returns y + ceil(height) + 6.",
+   "key": "func DeepDiveReportRenderer.drawMetricText(_:y:contentWidth:height:)",
+   "hash": "34676dab9b8f7d9f",
+   "does": "Draws a pre-measured attributed block at margin+4, contentWidth−8 wide and `height` tall; returns y + height.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.paragraphStyle()",
     "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func NSAttributedString.pdfDraw(in:)"
    ],
    "reads": [],
@@ -437,29 +412,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::var DeepDiveReportRenderer.config": "57667dee19578898",
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func NSAttributedString.pdfDraw(in:)": "9025a4c33d5fb3c1",
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.paragraphStyle()": "3c25801c4b034a3a"
-   }
-  },
-  {
-   "key": "func DeepDiveReportRenderer.drawMetricInterpretation(_:y:contentWidth:)",
-   "hash": "fd078a950e6345f6",
-   "does": "Draws \"<bullet> <interpretation>\" in 8.5pt medium dark gray into a single 14pt-high rect; returns y + 14.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.paragraphStyle()",
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::var PDFReadingDirection.bullet",
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(in:withAttributes:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::var DeepDiveReportRenderer.config": "57667dee19578898",
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.paragraphStyle()": "3c25801c4b034a3a",
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(in:withAttributes:)": "259840329617caee",
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::var PDFReadingDirection.bullet": "dc3518292cfe2e31"
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func NSAttributedString.pdfDraw(in:)": "9025a4c33d5fb3c1"
    }
   },
   {
@@ -597,8 +550,8 @@
   },
   {
    "key": "func DeepDiveReportRenderer.interpretTSB(_:)",
-   "hash": "e990bf5b6db80256",
-   "does": "Returns a TSB (form) band label.",
+   "hash": "cbe0cd3afa38f5fa",
+   "does": "Returns a TSB (form) band label. The fatigue band starts below TrainingAdviceGate.heavyFatigueTSB (−15), the advice gate's heavy-fatigue line the holistic report's Form row also uses.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
@@ -617,30 +570,17 @@
      "effect": "\"Fresh and ready — good performance window\""
     },
     {
-     "at": "+4",
-     "cond": "tsb > -10",
+     "at": "+6",
+     "cond": "tsb >= heavyFatigueTSB (−15)",
      "effect": "\"Near neutral — balanced training/recovery\""
     },
     {
-     "at": "+5",
+     "at": "+7",
      "cond": "tsb > -30",
      "effect": "\"Fatigued — productive overload zone if planned\"; otherwise \"Deeply fatigued — significant high strain, rest recommended\""
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "A third set of TSB bands for the same quantity: this deep-dive uses >5 / >-10 / >-30, the holistic Form row uses >5 / <-10 (HolisticDailyReport+Pages.swift:276-278) and the advice gate calls heavy fatigue at <=-15 (TrainingAdviceGate.swift:62). The same TSB can be described differently across reports.",
-     "evidence": [
-      "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift:381",
-      "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift:384",
-      "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift:278",
-      "Emuqu/Sources/Analysis/TrainingAdviceGate.swift:62"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
@@ -706,11 +646,12 @@
   },
   {
    "key": "func DeepDiveReportRenderer.assessVitalsPattern(_:)",
-   "hash": "48b3c5883b106c53",
-   "does": "Builds the combined-vitals paragraph from the list of flagged vitals (respiratory rate above baseline band, wrist temp above +0.3°C, SpO2 < 95).",
+   "hash": "d82f3bb68c4cbcfd",
+   "does": "Builds the combined-vitals paragraph from the list of flagged vitals (respiratory rate above baseline band, wrist temp above +0.3°C, SpO2 < 95); with none flagged, vitalsWithinRangeSentence.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func vitalsConcerns(_:bundle:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func vitalsWithinRangeSentence(_:bundle:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
@@ -724,24 +665,24 @@
     {
      "at": "+16",
      "cond": "exactly one concern",
-     "effect": "\"One vital is flagged (…)… if it persists for 2+ nights, it warrants attention…\"; with zero concerns returns \"Respiratory rate, wrist temperature and blood oxygen are within your usual ranges.\""
+     "effect": "\"One vital is flagged (…)… if it persists for 2+ nights, it warrants attention…\"; with zero concerns, vitalsWithinRangeSentence"
     }
    ],
    "flags": [
     {
      "kind": "broken",
      "sev": "low",
-     "text": "The multi-concern sentence says \"Multiple vitals are above your usual range\" but one of the possible concerns is \"low blood oxygen\" (SpO2 < 95), which is below, not above; and the zero-concern sentence asserts all three vitals are within range even when some are missing (nil values add no concern).",
+     "text": "The multi-concern sentence says \"Multiple vitals are above your usual range\" but one of the possible concerns is \"low blood oxygen\" (SpO2 < 95), which is below, not above. (The zero-concern sentence now names only what was measured.)",
      "evidence": [
-      "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift:421",
-      "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift:426",
-      "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift:839"
+      "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift:405",
+      "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift:863"
      ],
      "found": "first read, upheld on second"
     }
    ],
    "deps": {
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func vitalsConcerns(_:bundle:)": "bc1079c79bb64d80",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func vitalsWithinRangeSentence(_:bundle:)": "798b0f5bff6e5c94",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },
@@ -1153,8 +1094,8 @@
   },
   {
    "key": "func sd1Sd2RatioRow(nl:bundle:)",
-   "hash": "6a1623ad7eb03fa1",
-   "does": "Builds the SD1/SD2 ratio row (%.3f) with interpretation \"0.3 or higher\" when ratio > 0.3 else \"Below 0.3 — lower than typical during sleep\".",
+   "hash": "fcc7056cbc3647dc",
+   "does": "Builds the SD1/SD2 ratio row (%.3f) with interpretation \"0.3 or higher\" when ratio >= 0.3 else \"Below 0.3 — lower than typical during sleep\".",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
@@ -1165,21 +1106,11 @@
    "branches": [
     {
      "at": "+4",
-     "cond": "nl.sd1Sd2Ratio > 0.3",
+     "cond": "nl.sd1Sd2Ratio >= 0.3",
      "effect": "\"0.3 or higher\"; otherwise \"Below 0.3…\""
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Boundary mismatch: a ratio of exactly 0.3 fails `> 0.3` and is labelled \"Below 0.3\", while the other label says \"0.3 or higher\".",
-     "evidence": [
-      "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift:629"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
@@ -1278,7 +1209,7 @@
    "deps": {
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func pnsIndexRow(ans:bundle:)": "482f5a14e05632a1",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func readinessRow(ans:bundle:)": "c3cbb5f80878e29e",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func respirationRateRow(ans:bundle:)": "fc88d4ff2bd7e38f",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func respirationRateRow(ans:bundle:)": "a5a00c0fcbcdc5dd",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func snsIndexRow(ans:bundle:)": "ce73dd56313939ad",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func stressIndexRow(ans:bundle:)": "259351213b20c561"
    }
@@ -1398,12 +1329,12 @@
   },
   {
    "key": "func respirationRateRow(ans:bundle:)",
-   "hash": "78c3714feb25864f",
-   "does": "Builds the HRV-derived respiration rate row (formatted br/min) with interpretation <16 normal, <20 slightly elevated, else elevated.",
+   "hash": "e2617396372fa7ab",
+   "does": "Builds the HRV-derived respiration rate row (formatted br/min) with interpretation from respirationRateInterpretation (<16 normal, 16–18 slightly elevated, >18 elevated — the line the explanation calls unusual).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportBreathsPerMinute(_:)",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func bandedAscending(_:_:else:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func respirationRateInterpretation(_:bundle:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
@@ -1415,24 +1346,35 @@
      "effect": "returns nil (row omitted)"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "The explanation text says rates above 18 at rest are unusual/elevated, but the interpretation calls 16–20 only \"Slightly elevated\" and starts \"Elevated\" at 20.",
-     "evidence": [
-      "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift:728",
-      "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift:730",
-      "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift:731"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func bandedAscending(_:_:else:)": "26e7ac16369d1693",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func respirationRateInterpretation(_:bundle:)": "86c54a5cbfd420cb",
     "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportBreathsPerMinute(_:)": "d02107676f421479",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
+  },
+  {
+   "key": "func respirationRateInterpretation(_:bundle:)",
+   "hash": "e710f8d773d7858b",
+   "does": "Respiration-rate interpretation: < 16 'Normal range for rest/sleep', ≤ 18 'Slightly elevated', above 18 'Elevated — context-sensitive…'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "resp < 16",
+     "effect": "normal"
+    },
+    {
+     "at": "+2",
+     "cond": "resp <= 18",
+     "effect": "slightly elevated; else elevated"
+    }
+   ],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "func lastSevenTrendText(rmssd:recent:movement:bundle:)",
@@ -1496,11 +1438,47 @@
    }
   },
   {
-   "key": "func metricExplanationHeight(_:contentWidth:)",
-   "hash": "972ff64a31f1a165",
-   "does": "Measures the bounding height of an explanation in 8.5pt at width contentWidth−20, with no paragraph style.",
+   "key": "func metricExplanationText(_:)",
+   "hash": "02bae6c62489fe85",
+   "does": "The explanation as 8.5pt grey word-wrapped text with 1pt line spacing and the reading-direction paragraph style.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.paragraphStyle()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.paragraphStyle()": "3c25801c4b034a3a"
+   }
+  },
+  {
+   "key": "func metricInterpretationText(_:)",
+   "hash": "f780ae2696d1fcfc",
+   "does": "The interpretation as '<bullet> text' in 8.5pt medium dark grey, word-wrapped, so a long or translated interpretation keeps its last sentence.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.paragraphStyle()",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::var PDFReadingDirection.bullet"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.paragraphStyle()": "3c25801c4b034a3a",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::var PDFReadingDirection.bullet": "dc3518292cfe2e31"
+   }
+  },
+  {
+   "key": "func wrappedTextHeight(_:width:)",
+   "hash": "d14f9cb1a4892624",
+   "does": "ceil of the attributed text's bounding height at `width` (usesLineFragmentOrigin + usesFontLeading).",
+   "entry": null,
+   "calls": [
+    "ext:NSAttributedString.boundingRect"
+   ],
    "reads": [],
    "writes": [],
    "branches": [],
@@ -1671,6 +1649,24 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
+  },
+  {
+   "key": "func vitalsWithinRangeSentence(_:bundle:)",
+   "hash": "70c8348b78548508",
+   "does": "No-concern sentence: \"Respiratory rate, wrist temperature and blood oxygen are within your usual ranges.\" only when a respiratory rate with a baseline, a wrist-temperature deviation and SpO2 were all present; otherwise \"Every vital measured last night is within your usual range. No systemic stress flagged.\"",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "any of RR baseline, RR, wrist temperature, SpO2 missing",
+     "effect": "the 'every vital measured' sentence; else the all-three sentence"
+    }
+   ],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "func vitalsConcerns(_:bundle:)",

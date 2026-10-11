@@ -15,7 +15,9 @@ import SwiftUI
 /// Behavior:
 ///   • 5-point emoji scale (matches the morning prompt visually so
 ///     the feeling scale stays consistent across contexts).
-///   • Feelings 3-5 auto-commit after 1 s (cancellable by re-tapping).
+///   • Feelings 3-5 auto-commit 1 s after they are picked. Picking another
+///     face within that second restarts the wait for the new one; Skip/Cancel,
+///     or the prompt leaving the screen, stops it without saving.
 ///   • Feelings 1-2 reveal an optional free-text note field and an
 ///     explicit Done button — we want detail when things felt off.
 ///   • Editable: tap the commit'd badge to re-open.
@@ -31,7 +33,9 @@ struct WorkoutFeelingPrompt: View {
 
     @State private var selected: Int?
     @State private var noteText: String = ""
-    @State private var pendingCommit: DispatchWorkItem?
+    /// The 3-5 rating waiting out its auto-commit second; nil when nothing
+    /// is waiting.
+    @State private var autoCommitValue: Int?
     @FocusState private var noteFocused: Bool
 
     /// Labels come from `WorkoutFeelingDisplay.localizedLabel(for:)`.
@@ -68,6 +72,7 @@ struct WorkoutFeelingPrompt: View {
             if let existing { selected = existing }
             if let existingNote { noteText = existingNote }
         }
+        .feelingAutoCommit($autoCommitValue) { onSelect($0, nil) }
     }
 
     private var feelingPromptHeader: some View {
@@ -137,7 +142,7 @@ struct WorkoutFeelingPrompt: View {
 
     private var skipFeelingButton: some View {
         Button {
-            pendingCommit?.cancel()
+            autoCommitValue = nil
             onSkip()
         } label: {
             Text(existing == nil ? String(localized: "Skip", bundle: LanguageManager.appBundle) : String(localized: "Cancel", bundle: LanguageManager.appBundle))
@@ -182,9 +187,10 @@ struct WorkoutFeelingPrompt: View {
         .cornerRadius(8)
     }
 
-    /// User tapped an emoji. Feelings 3-5 auto-commit after 1 s
-    /// (cancellable on re-tap); 1-2 reveal the note field and wait for
-    /// explicit Save so the user can choose whether to annotate.
+    /// User tapped an emoji. Feelings 3-5 auto-commit 1 s after the pick
+    /// (`feelingAutoCommit`; another face restarts it); 1-2 stop any waiting
+    /// commit, reveal the note field and wait for explicit Save so the user
+    /// can choose whether to annotate.
     private func tapFeeling(_ value: Int) {
         withAnimation(.easeOut(duration: 0.15)) {
             selected = value
@@ -192,21 +198,46 @@ struct WorkoutFeelingPrompt: View {
                 noteText = ""
             }
         }
-        pendingCommit?.cancel()
-        if value >= 3 {
-            let work = DispatchWorkItem {
-                onSelect(value, nil)
-            }
-            pendingCommit = work
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: work)
-        }
+        autoCommitValue = value >= 3 ? value : nil
     }
 
     private func commitExplicit() {
-        pendingCommit?.cancel()
+        autoCommitValue = nil
         guard let value = selected else { return }
         let trimmed = noteText.trimmingCharacters(in: .whitespacesAndNewlines)
         onSelect(value, trimmed.isEmpty ? nil : trimmed)
+    }
+}
+
+/// The feeling prompts' auto-commit for a 3-5 rating: one second after
+/// `value` is set, it is cleared and passed to `commit`. Setting another value
+/// restarts the second; setting nil, or the view leaving the screen, cancels
+/// it, so nothing is saved for a prompt that is no longer shown.
+struct FeelingAutoCommit: ViewModifier {
+    @Binding var value: Int?
+    let commit: (Int) -> Void
+
+    func body(content: Content) -> some View {
+        content.task(id: value) { await commitAfterDelay() }
+    }
+
+    private func commitAfterDelay() async {
+        guard let pending = value else { return }
+        do {
+            try await Task.sleep(for: .seconds(1))
+        } catch {
+            // Cancelled: a new value, a cleared one, or the view went away.
+            return
+        }
+        value = nil
+        commit(pending)
+    }
+}
+
+extension View {
+    /// See `FeelingAutoCommit`.
+    func feelingAutoCommit(_ value: Binding<Int?>, commit: @escaping (Int) -> Void) -> some View {
+        modifier(FeelingAutoCommit(value: value, commit: commit))
     }
 }
 

@@ -40,18 +40,35 @@ if ! command -v swiftlint >/dev/null 2>&1; then
 
   Install it, then retry:
     curl -sSL -o /tmp/swiftlint.zip \\
-      https://github.com/realm/SwiftLint/releases/latest/download/portable_swiftlint.zip
+      https://github.com/realm/SwiftLint/releases/download/0.65.1/portable_swiftlint.zip
     unzip -o /tmp/swiftlint.zip -d /tmp/swiftlint && mkdir -p ~/.local/bin
     install /tmp/swiftlint/swiftlint ~/.local/bin/swiftlint
 
-  (~/.local/bin is already first on this machine's PATH.)"
+  (~/.local/bin is already first on this machine's PATH. 0.65.1 is the
+  version ci.yml pins, so the warning count matches the budget.)"
 fi
 
 # Only ERRORS block. The warnings are deliberate and budgeted by
 # `.ci/swiftlint_warning_budget.txt`, which CI enforces — printing them on every
 # commit would bury the one line that matters.
-lint_output="$(swiftlint lint --config .swiftlint.yml --quiet 2>/dev/null || true)"
+#
+# SwiftLint exits 0 when it found no error-severity violation and 2 when it
+# did. Any other status means it did not lint at all (an unreadable
+# `.swiftlint.yml`, a crash), and that blocks the commit with SwiftLint's own
+# diagnostics: an empty report from a run that failed is not a clean one.
+lint_stderr="$(mktemp "${TMPDIR:-/tmp}/emuqu-pre-commit-swiftlint.XXXXXX")" \
+    || fail "could not create a temporary file for SwiftLint's diagnostics."
+trap 'rm -f "$lint_stderr"' EXIT
+lint_status=0
+lint_output="$(swiftlint lint --config .swiftlint.yml --quiet 2>"$lint_stderr")" || lint_status=$?
 lint_errors="$(printf '%s\n' "$lint_output" | grep ': error:' || true)"
+
+if [[ "$lint_status" -ne 0 && "$lint_status" -ne 2 ]] \
+    || [[ "$lint_status" -eq 2 && -z "$lint_errors" ]]; then
+    cat "$lint_stderr" >&2
+    fail "SwiftLint did not complete (exit status ${lint_status}); its diagnostics are above.
+  Fix the cause, or \`git commit --no-verify\` if you know what you are doing."
+fi
 
 if [[ -n "$lint_errors" ]]; then
     printf '%s\n' "$lint_errors" >&2

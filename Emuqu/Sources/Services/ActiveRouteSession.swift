@@ -128,9 +128,11 @@ final class ActiveRouteSession: @unchecked Sendable {
         _hasLeftEnd = false
     }
 
-    /// Drop the active session. Called when the user reaches the
-    /// destination, manually clears via the AI ("never mind"), or a
-    /// new route is engaged.
+    /// Drop the active session. Called by the assistant's
+    /// `directions.clear` action ("never mind") and by Delete All My Data.
+    /// Engaging a new route replaces the session without it, and arriving
+    /// does not drop it: the route stays engaged (and evaluated by the
+    /// voice coach) until it is cleared or the app relaunches.
     func disengage() {
         lock.lock(); defer { lock.unlock() }
         _steps = []
@@ -162,7 +164,8 @@ final class ActiveRouteSession: @unchecked Sendable {
 
     /// The "upcoming" step is the one AFTER what the user is currently
     /// traversing — that's the instruction they need ("turn right onto
-    /// Oak in 200 ft"). On the last step, that IS the destination.
+    /// Oak in 200 ft"). On the last step, that IS the destination, and the
+    /// distance to it is the distance to the route's end.
     func currentStep(for location: CLLocation) -> StepResult? {
         lock.lock()
         defer { lock.unlock() }
@@ -170,18 +173,35 @@ final class ActiveRouteSession: @unchecked Sendable {
         noteDeparture(from: location, lastStep: lastStep)
         advanceStepIndex(for: location)
         let upcomingStep = _steps[min(_currentStepIndex + 1, _steps.count - 1)]
+        let ahead = distancesAhead(of: location)
         return StepResult(
             currentStepIndex: _currentStepIndex,
             currentInstruction: _steps[_currentStepIndex].instructions,
             upcomingInstruction: upcomingStep.instructions,
-            distanceToUpcomingStepMeters: polylineDistance(
-                from: location, to: upcomingStep.polyline, preferStart: true
-            ),
-            // Total remaining distance = sum of remaining-step distances.
-            remainingDistanceMeters: _steps.suffix(from: _currentStepIndex).reduce(0.0) { $0 + $1.distance },
+            distanceToUpcomingStepMeters: ahead.toUpcoming,
+            remainingDistanceMeters: ahead.remaining,
             destinationLabel: _destinationLabel,
             arrived: hasArrived(at: location, lastStep: lastStep)
         )
+    }
+
+    /// Distance to the next maneuver and to the destination. The next
+    /// maneuver is the start of the step after the current one; on the last
+    /// step it is the route's end (the destination). Remaining distance is
+    /// the straight line to the end of the current step plus every later
+    /// step's length. On a last step the user has not yet been away from (a
+    /// single-step loop, at its start) the step's full length counts instead,
+    /// so its end is not mistaken for the finish. Must be called with `lock`
+    /// held.
+    private func distancesAhead(of location: CLLocation) -> (toUpcoming: Double, remaining: Double) {
+        let current = _steps[_currentStepIndex]
+        let isLast = _currentStepIndex == _steps.count - 1
+        let end = isLast ? routeEnd(current) : stepEnd(current)
+        let toEnd = end.map { Self.distance(from: location, to: $0) } ?? current.distance
+        guard !isLast else { return (toEnd, _hasLeftEnd ? toEnd : current.distance) }
+        let later = _steps.dropFirst(_currentStepIndex + 1).reduce(0.0) { $0 + $1.distance }
+        let toNext = polylineDistance(from: location, to: _steps[_currentStepIndex + 1].polyline, preferStart: true)
+        return (toNext, toEnd + later)
     }
 
     /// Within 25 m of the route's end, on its last step, after the user has
@@ -204,9 +224,14 @@ final class ActiveRouteSession: @unchecked Sendable {
     /// the centre of the polyline's bounding box — halfway along a straight
     /// final leg. Must be called with `lock` held.
     private func routeEnd(_ lastStep: InternalStep) -> CLLocationCoordinate2D? {
-        let count = lastStep.polyline.pointCount
-        guard count > 0 else { return _destinationCoord }
-        return lastStep.polyline.points()[count - 1].coordinate
+        stepEnd(lastStep) ?? _destinationCoord
+    }
+
+    /// The last point of a step's polyline; nil for an empty polyline.
+    private func stepEnd(_ step: InternalStep) -> CLLocationCoordinate2D? {
+        let count = step.polyline.pointCount
+        guard count > 0 else { return nil }
+        return step.polyline.points()[count - 1].coordinate
     }
 
     /// Find the closest step polyline to the user's current position. Steps

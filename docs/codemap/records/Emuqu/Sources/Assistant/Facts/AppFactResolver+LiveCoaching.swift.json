@@ -1,48 +1,34 @@
 {
  "file": "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift",
- "hash": "be40936534f9a27d",
- "role": "Declares WorkoutLiveCoachingNamespace (head 'workout'): workout.live.location.* reverse-geocoded fields from the live workout snapshot and the location.current / location.situation actions, all gated so precise location is only released while a workout is recording; navigation entries live in AppFactResolver+LiveNavigation.swift.",
+ "hash": "f60d2e6d01a56706",
+ "role": "Declares WorkoutLiveCoachingNamespace (head 'workout'): workout.live.location.* reverse-geocoded fields from the live workout snapshot and the location.current / location.situation actions, all gated so precise location is only released while a workout is recording (the breadcrumb.*, directions.* and location.journey facts are disclosed separately on the consent sheet and not behind this gate, as the workoutActive() doc says); navigation entries live in AppFactResolver+LiveNavigation.swift.",
  "types": [
   "WorkoutLiveCoachingNamespace: struct (FactNamespaceResolver) — live-coaching location facts and actions"
  ],
  "state": [
   "let namespace = 'workout'",
-  "static let locationCurrentDescription (line 206)",
-  "static let locationSituationDescription (line 383)"
+  "static let locationCurrentDescription (says lat/lon are where the cached address was resolved, up to 5 min ago, and points to location.current_detailed for the live fix)",
+  "static let locationSituationDescription"
  ],
  "toplevel": "Struct conformance; registered in AppFactResolverFactory.registerHealthNamespaces (AppFactResolver.swift:201).",
  "flags": [],
  "units": [
   {
    "key": "func WorkoutLiveCoachingNamespace.snapshot()",
-   "hash": "9af654c649d29b12",
-   "does": "Returns LiveWorkoutBroker.currentSnapshot() read on the main actor; nil when no workout is recording.",
+   "hash": "c6100f49822b4404",
+   "does": "Returns LiveWorkoutBroker.currentSnapshot() (lock-guarded, callable from any thread, no main-actor assumption); nil when no workout is recording or the snapshot is stale.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.liveWorkoutBroker",
-    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSnapshot()",
-    "ext:MainActor.assumeIsolated"
+    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSnapshot()"
    ],
    "reads": [
     "mem:LiveWorkoutBroker snapshot"
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Wraps LiveWorkoutBroker.currentSnapshot() in MainActor.assumeIsolated although the broker is a lock-based Sendable class with a nonisolated accessor; the wrapper adds a trap if any sync resolve reaches it off the main actor. WorkoutLiveNamespace.snapshot reads the same broker without it (duplicate accessor).",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift:18",
-      "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift:17",
-      "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift:85",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift:30"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSnapshot()": "a50b1a67daa97277",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
@@ -65,7 +51,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.snapshot()": "58ac72188eb04c52"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.snapshot()": "c7353a940bceff43"
    }
   },
   {
@@ -177,7 +163,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.snapshot()": "58ac72188eb04c52",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.snapshot()": "c7353a940bceff43",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
     "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: String?, reason: MissingReason, detail: String?)": "944da9d754759532"
    }
@@ -205,7 +191,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.snapshot()": "58ac72188eb04c52",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.snapshot()": "c7353a940bceff43",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
     "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: String?, reason: MissingReason, detail: String?)": "944da9d754759532"
    }
@@ -233,7 +219,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.snapshot()": "58ac72188eb04c52",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.snapshot()": "c7353a940bceff43",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
     "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: String?, reason: MissingReason, detail: String?)": "944da9d754759532"
    }
@@ -261,10 +247,10 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.snapshot()": "58ac72188eb04c52",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.snapshot()": "c7353a940bceff43",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
     "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: String?, reason: MissingReason, detail: String?)": "944da9d754759532",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.currentCountryCode": "fb673c7431924f0f"
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.currentCountryCode": "d404fb66e823aca9"
    }
   },
   {
@@ -290,7 +276,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.snapshot()": "58ac72188eb04c52",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.snapshot()": "c7353a940bceff43",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
     "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: String?, reason: MissingReason, detail: String?)": "944da9d754759532"
    }
@@ -309,7 +295,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.resolveLocationCurrent()": "74770a47bbd373fd",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.resolveLocationCurrent()": "3c72a17255f8f10b",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)": "cc67ad9762ace28b"
    }
   },
@@ -343,19 +329,7 @@
      "effect": "returns the record; else missing notRecorded 'location cache not warm yet'"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Tool description promises the bundle includes the user's current position, but lat/lon come from the cached address's observedAtCoord, which can be up to 300 s old (maxAgeSec: 300) while the user is moving; only age_seconds signals it.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift:174",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift:184",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift:207"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.cachedAddressRecord(_:)": "e8614f78c7b46149",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.locationGatedOffMessage()": "b6f0dfefcb68a0be",

@@ -60,7 +60,7 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/SettingsView+Pages.swift::var EmailContactsSection.body": "9f3be933ec6fa921",
     "Emuqu/Sources/Views/SettingsView+Pages.swift::var ProfileSettingsPage.avatarSection": "faf1d290a3a1587c",
-    "Emuqu/Sources/Views/SettingsView+Pages.swift::var ProfileSettingsPage.birthdaySection": "e1ab55adc4f52170",
+    "Emuqu/Sources/Views/SettingsView+Pages.swift::var ProfileSettingsPage.birthdaySection": "cb61b31e0f311afe",
     "Emuqu/Sources/Views/SettingsView+Pages.swift::var ProfileSettingsPage.fitnessLevelSection": "c181bd2cbc6f6939",
     "Emuqu/Sources/Views/SettingsView+Pages.swift::var ProfileSettingsPage.recoveryEmailSection": "b7b942fe8a9d1384",
     "Emuqu/Sources/Views/SettingsView+Pages.swift::var ProfileSettingsPage.trainingEmailSection": "47bf4239ee047039",
@@ -87,7 +87,7 @@
   {
    "key": "var ProfileSettingsPage.birthdaySection",
    "hash": "98354823f8a31e25",
-   "does": "Section with the birthday wheel picker (with accessibility label/hint) and the age row.",
+   "does": "Section with the birthday control (birthdayPicker: the wheel, or a Not Set row when none is stored; with accessibility label/hint) and the age row.",
    "entry": "SwiftUI evaluates this view-builder property while rendering the parent",
    "calls": [
     "Emuqu/Sources/Views/SettingsView+Pages.swift::var ProfileSettingsPage.birthdayPicker",
@@ -100,14 +100,66 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/SettingsView+Pages.swift::var ProfileSettingsPage.ageRow": "26f6022e4e4826f8",
-    "Emuqu/Sources/Views/SettingsView+Pages.swift::var ProfileSettingsPage.birthdayPicker": "6b05e8cf18d1041a"
+    "Emuqu/Sources/Views/SettingsView+Pages.swift::var ProfileSettingsPage.birthdayPicker": "e23a80595a82a3a8"
    }
   },
   {
    "key": "var ProfileSettingsPage.birthdayPicker",
-   "hash": "ada5f69d4f6addaf",
-   "does": "Wheel DatePicker (dates up to today) bound to settings.birthday; when birthday is nil it displays a date 30 years ago; any spin writes the chosen date into settings.birthday.",
+   "hash": "f51a9b9d8c6863a1",
+   "does": "With a birthday stored, the birthdayWheel showing it; with none, setBirthdayRow (a 'Birthday — Not Set' row) instead of a wheel showing a made-up date.",
    "entry": "SwiftUI evaluates this view-builder property while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsView+Pages.swift::func ProfileSettingsPage.birthdayWheel(showing:)",
+    "Emuqu/Sources/Views/SettingsView+Pages.swift::var ProfileSettingsPage.setBirthdayRow",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "settings.birthday is non-nil",
+     "effect": "true: birthdayWheel(showing:) with it; false: setBirthdayRow"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "848cd8a572666b81",
+    "Emuqu/Sources/Views/SettingsView+Pages.swift::func ProfileSettingsPage.birthdayWheel(showing:)": "cd7e1394305ae3bf",
+    "Emuqu/Sources/Views/SettingsView+Pages.swift::var ProfileSettingsPage.setBirthdayRow": "485fa3d720cd1150"
+   }
+  },
+  {
+   "key": "var ProfileSettingsPage.setBirthdayRow",
+   "hash": "9bad9c433f7078af",
+   "does": "Button row 'Birthday' / 'Not Set'; tapping stores a starting birthday 30 years before today (Date() if that date cannot be computed), which swaps in the wheel and the age row.",
+   "entry": "SwiftUI evaluates this view-builder property while rendering birthdayPicker; tapped by the user.",
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SettingsManager.settings",
+    "file:user_settings.json (SettingsManager.save → enqueueDiskWrite)",
+    "notif:flowRecoverySettingsChanged"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "848cd8a572666b81",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func ProfileSettingsPage.birthdayWheel(showing:)",
+   "hash": "416102f29013243e",
+   "does": "Label plus wheel DatePicker (dates up to today) bound to settings.birthday, falling back to the passed birthday if the setting reads nil; any spin writes the chosen date.",
+   "entry": "Called from birthdayPicker when a birthday is stored.",
    "calls": [
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings"
    ],
@@ -119,27 +171,10 @@
     "file:user_settings.json (SettingsManager.save → enqueueDiskWrite)",
     "notif:flowRecoverySettingsChanged"
    ],
-   "branches": [
-    {
-     "at": "+6",
-     "cond": "settings.birthday is nil (?? fallback)",
-     "effect": "displays Calendar date 30 years before now (inner ?? falls back to Date() if that date computation returns nil); nothing is written until the user moves the wheel. Non-nil: shows stored birthday."
-    }
-   ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "With no birthday stored, the wheel shows a date 30 years ago as if it were set, while settings.birthday stays nil and the age row (line 84) is hidden; a user whose real birthday happens to be the shown date cannot 'confirm' it without moving the wheel away and back.",
-     "evidence": [
-      "Emuqu/Sources/Views/SettingsView+Pages.swift:70",
-      "Emuqu/Sources/Views/SettingsView+Pages.swift:84"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "branches": [],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "848cd8a572666b81",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
@@ -891,7 +926,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/SettingsView+Pages.swift::var SleepSettingsPage.bedtimePicker": "421aca9a48031cbf",
-    "Emuqu/Sources/Views/SettingsView+Pages.swift::var SleepSettingsPage.typicalSleepPicker": "56ca47e1b08d5a05",
+    "Emuqu/Sources/Views/SettingsView+Pages.swift::var SleepSettingsPage.typicalSleepPicker": "1b7476d73282a500",
     "Emuqu/Sources/Views/SettingsView+Pages.swift::var SleepSettingsPage.wakeTimeRow": "e80cb465c4eb7f30"
    }
   },
@@ -920,11 +955,12 @@
   },
   {
    "key": "var SleepSettingsPage.typicalSleepPicker",
-   "hash": "12be0119dfd6ef3d",
-   "does": "Picker bound to settings.typicalSleepHours offering 5.0–10.0 h in 0.5 h steps, labelled via formatDuration.",
+   "hash": "7e0fa9014c972b4e",
+   "does": "Picker bound to settings.typicalSleepHours offering 5.0–10.0 h in 0.5 h steps plus the stored value when it is not one of them (options(_:including:)), labelled via formatDuration.",
    "entry": "SwiftUI evaluates this view-builder property while rendering the parent",
    "calls": [
     "Emuqu/Sources/Views/SettingsView+Pages.swift::var SleepSettingsPage.settingsBinding",
+    "Emuqu/Sources/Views/SettingsView+Pages.swift::func SleepSettingsPage.options(_:including:)",
     "Emuqu/Sources/Views/SettingsView+Pages.swift::func SleepSettingsPage.formatDuration(_:)"
    ],
    "reads": [
@@ -936,21 +972,11 @@
     "notif:flowRecoverySettingsChanged"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Picker offers only 5–10 h in 0.5 steps while decoding clamps typicalSleepHours to 3–14 h; a stored value outside the offered tags (e.g. from a synced or hand-edited settings file) leaves the picker with no selected row.",
-     "evidence": [
-      "Emuqu/Sources/Views/SettingsView+Pages.swift:496",
-      "Emuqu/Sources/Models/UserSettings+Codable.swift:72"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/SettingsView+Pages.swift::func SleepSettingsPage.formatDuration(_:)": "4209e065bf20c84c",
+    "Emuqu/Sources/Views/SettingsView+Pages.swift::func SleepSettingsPage.options(_:including:)": "99d7a3db5e92d1f0",
     "Emuqu/Sources/Views/SettingsView+Pages.swift::var SleepSettingsPage.settingsBinding": "e1c955f3d39a0fb7"
    }
   },
@@ -1259,17 +1285,18 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/SettingsView+Pages.swift::var SleepSettingsPage.combineSegmentsPicker": "d76dc2d98026cc00",
     "Emuqu/Sources/Views/SettingsView+Pages.swift::var SleepSettingsPage.customGapWindowPicker": "b841fd79221bdff8",
-    "Emuqu/Sources/Views/SettingsView+Pages.swift::var SleepSettingsPage.splitFooter": "daa9ba6eb59b3663",
-    "Emuqu/Sources/Views/SettingsView+Pages.swift::var SleepSettingsPage.splitThresholdPicker": "048f1aacc0ced9ed"
+    "Emuqu/Sources/Views/SettingsView+Pages.swift::var SleepSettingsPage.splitFooter": "1c47f54f1700d546",
+    "Emuqu/Sources/Views/SettingsView+Pages.swift::var SleepSettingsPage.splitThresholdPicker": "1b77f7cd8c71bee8"
    }
   },
   {
    "key": "var SleepSettingsPage.splitThresholdPicker",
-   "hash": "786dfd066c5969ca",
-   "does": "Picker bound to settings.sleepSplitGapMinutes over [15,20,30,45,60,90,120] minutes.",
+   "hash": "2c2a6e7253d43561",
+   "does": "Picker bound to settings.sleepSplitGapMinutes over [15,20,30,45,60,90,120] minutes plus the stored value when it is not one of them (options(_:including:)).",
    "entry": "SwiftUI evaluates this view-builder property while rendering the parent",
    "calls": [
     "Emuqu/Sources/Views/SettingsView+Pages.swift::var SleepSettingsPage.settingsBinding",
+    "Emuqu/Sources/Views/SettingsView+Pages.swift::func SleepSettingsPage.options(_:including:)",
     "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)"
    ],
    "reads": [
@@ -1281,21 +1308,11 @@
     "notif:flowRecoverySettingsChanged"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Picker offers only 15/20/30/45/60/90/120 min but decoding only clamps sleepSplitGapMinutes to >= 0; any other stored value (older build, restored or hand-edited settings file) leaves the picker with no selected row while the footer still describes it.",
-     "evidence": [
-      "Emuqu/Sources/Views/SettingsView+Pages.swift:672",
-      "Emuqu/Sources/Models/UserSettings+Codable.swift:78"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "a4e4b582efee3f03",
+    "Emuqu/Sources/Views/SettingsView+Pages.swift::func SleepSettingsPage.options(_:including:)": "99d7a3db5e92d1f0",
     "Emuqu/Sources/Views/SettingsView+Pages.swift::var SleepSettingsPage.settingsBinding": "e1c955f3d39a0fb7"
    }
   },
@@ -1351,12 +1368,12 @@
   },
   {
    "key": "var SleepSettingsPage.gapWindowPicker",
-   "hash": "dd7cfb208e275a66",
+   "hash": "803aa3261c0acb18",
    "does": "Picker bound to settings.customMergeGapHours over 1.0–12.0 h in 0.5 h steps.",
    "entry": "SwiftUI evaluates this view-builder property while rendering the parent",
    "calls": [
     "Emuqu/Sources/Views/SettingsView+Pages.swift::var SleepSettingsPage.settingsBinding",
-    "Emuqu/Sources/Views/SettingsView+Pages.swift::func SleepSettingsPage.formatGap(_:)"
+    "Emuqu/Sources/Views/SettingsView+Pages.swift::func SleepSettingsPage.formatDuration(_:)"
    ],
    "reads": [
     "mem:SettingsManager.settings"
@@ -1370,7 +1387,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsView+Pages.swift::func SleepSettingsPage.formatGap(_:)": "eaad12caa8b52743",
+    "Emuqu/Sources/Views/SettingsView+Pages.swift::func SleepSettingsPage.formatDuration(_:)": "4209e065bf20c84c",
     "Emuqu/Sources/Views/SettingsView+Pages.swift::var SleepSettingsPage.settingsBinding": "e1c955f3d39a0fb7"
    }
   },
@@ -1488,40 +1505,32 @@
    }
   },
   {
-   "key": "func SleepSettingsPage.formatGap(_:)",
-   "hash": "f7cddac26b4eb9f3",
-   "does": "Formats fractional hours as localized hours/minutes; identical body to formatDuration.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)"
-   ],
+   "key": "func SleepSettingsPage.options(_:including:)",
+   "hash": "494e7249881bae27",
+   "does": "Returns the offered values unchanged when they contain the current one, else the offered values plus the current one, sorted.",
+   "entry": "Called from typicalSleepPicker and splitThresholdPicker.",
+   "calls": [],
    "reads": [],
    "writes": [],
-   "branches": [],
-   "flags": [
+   "branches": [
     {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "formatGap is byte-for-byte the same as formatDuration.",
-     "evidence": [
-      "Emuqu/Sources/Views/SettingsView+Pages.swift:751",
-      "Emuqu/Sources/Views/SettingsView+Pages.swift:755"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+1",
+     "cond": "offered contains current",
+     "effect": "true: offered as is; false: offered + [current], sorted"
     }
    ],
-   "deps": {
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "a4e4b582efee3f03"
-   }
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "var SleepSettingsPage.splitFooter",
-   "hash": "1e34cc919afe8bff",
-   "does": "Footer: 'Gaps of X or more … separate sessions.' plus a merge-mode sentence (off: scored independently; default: within 4.5 hours; custom: within the custom gap).",
+   "hash": "85e3efa7a11e12e2",
+   "does": "Footer: 'Gaps of X or more … separate sessions.' plus a merge-mode sentence (off: scored independently; default and custom: 'Segments within <effectiveMergeGapSeconds as h/min> count as one night', the gap the merge logic uses).",
    "entry": "SwiftUI evaluates this view-builder property while rendering the parent",
    "calls": [
     "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)",
-    "Emuqu/Sources/Views/SettingsView+Pages.swift::func SleepSettingsPage.formatGap(_:)"
+    "Emuqu/Sources/Views/SettingsView+Pages.swift::func SleepSettingsPage.formatDuration(_:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMergeGapSeconds"
    ],
    "reads": [
     "mem:SettingsManager.settings"
@@ -1535,32 +1544,16 @@
     },
     {
      "at": "+6",
-     "cond": "mergeMode .defaultGap",
-     "effect": "appends hardcoded 'within 4.5 hours'"
-    },
-    {
-     "at": "+7",
-     "cond": "mergeMode .custom",
-     "effect": "appends formatted customMergeGapHours"
+     "cond": "mergeMode .defaultGap or .custom",
+     "effect": "appends the effective merge gap formatted as hours/minutes"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "The default merge gap (4.5 h) is hardcoded in this footer text instead of derived from the value used by the merge logic, so changing the default would leave this text wrong.",
-     "evidence": [
-      "Emuqu/Sources/Views/SettingsView+Pages.swift:765",
-      "Emuqu/Sources/Models/UserSettings+Model.swift:768",
-      "Emuqu/Sources/Models/UserSettings.swift:254"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMergeGapSeconds": "a032844ad65e2bb1",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "a4e4b582efee3f03",
-    "Emuqu/Sources/Views/SettingsView+Pages.swift::func SleepSettingsPage.formatGap(_:)": "eaad12caa8b52743"
+    "Emuqu/Sources/Views/SettingsView+Pages.swift::func SleepSettingsPage.formatDuration(_:)": "4209e065bf20c84c"
    }
   }
  ],

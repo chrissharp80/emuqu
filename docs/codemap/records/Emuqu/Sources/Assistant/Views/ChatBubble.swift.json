@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Assistant/Views/ChatBubble.swift",
- "hash": "d94c6d647e9cfa7d",
+ "hash": "3cfbde921e41f18d",
  "role": "Chat bubble view for one ChatTurn (avatar, subsystem chip, inline-Markdown text with citation links and phonetic stripping, provider·model·tier footer, long-press menu incl. App-Review report mailto) plus SwiftUI-side helpers for AssistantSubsystem / SmartProviderRouter.Tier / ChatTurn and the ChatMarkdown heading normaliser.",
  "types": [
   "AssistantSubsystem: private extension — tint, chipName",
@@ -11,10 +11,10 @@
   "ChatMarkdown: enum — heading → bold-line rewrite"
  ],
  "state": [
-  "@State ChatBubble.reportMailUnavailable (line 67)",
-  "hardcoded report address mailto:chrissharp80@gmail.com (lines 155, 217)"
+  "@State ChatBubble.reportMailUnavailable",
+  "static ChatBubble.reportAddress = chrissharp80@gmail.com (report mailto); the same address is spelled in the localized no-mail alert text of reportMailUnavailableAlert"
  ],
- "toplevel": "No global code. ChatBubble's nonisolated == compares turn and availableActions only.",
+ "toplevel": "No global code. ChatBubble's nonisolated == compares turn and availableActions only. Declares a View extension (reportMailUnavailableAlert) shared with AssistantChatView.",
  "flags": [],
  "units": [
   {
@@ -226,31 +226,32 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatBubble.labelledBubble(_:)": "dd38075fa5dc7443",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatBubble.labelledBubble(_:)": "41c591dd4414f250",
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.avatar": "7a64cf806ec41259",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },
   {
    "key": "func ChatBubble.labelledBubble(_:)",
-   "hash": "1960909ec57e3362",
-   "does": "Bubble with combined accessibility (label + spokenText value), context menu bubbleMenu and the no-mail 'Report response' alert.",
+   "hash": "9c7d74c5f24db2a2",
+   "does": "Bubble with combined accessibility (label + spokenText value), context menu bubbleMenu and the shared no-mail 'Report response' alert (reportMailUnavailableAlert).",
    "entry": "SwiftUI view body evaluation",
    "calls": [
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.bubble",
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.spokenText",
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.bubbleMenu"
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.bubbleMenu",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func View.reportMailUnavailableAlert(isPresented:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func View.reportMailUnavailableAlert(isPresented:)": "8ded708bdcfe557a",
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.bubble": "54f3b80d964e3c92",
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.bubbleMenu": "9713c940fc69bcae",
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.spokenText": "b29d84e9dd261ab7",
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var SmartProviderRouter.Tier.label": "6ec67d3b9204e25f",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var SmartProviderRouter.Tier.label": "6ec67d3b9204e25f"
    }
   },
   {
@@ -372,32 +373,23 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatBubble.reportURL(quoting:)": "2c65387c9189a71d"
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatBubble.reportURL(quoting:)": "041452b1d4549fed"
    }
   },
   {
    "key": "func ChatBubble.reportURL(quoting:)",
-   "hash": "d568a9a0b7114798",
-   "does": "Builds mailto:chrissharp80@gmail.com with subject 'Emuqu: reported AI response' and body 'What is wrong with this response?' + separator + quoted text.",
+   "hash": "4c6478a47fa8efc4",
+   "does": "Builds mailto:<reportAddress> with subject 'Emuqu: reported AI response' and body 'What is wrong with this response?' + separator + the quoted text with phonetic [[word|IPA]] markup stripped (as the user saw it). The user reviews the email (which can quote health details) before sending.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.stripForDisplay(_:)"
+   ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "privacy",
-     "sev": "low",
-     "text": "The report body quotes the full raw turn.text (including any health data and [[word|IPA]] phonetic markup the bubble strips for display) into an email to the developer; the user sees it in the mail composer before sending, so disclosure is user-controlled.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Views/ChatBubble.swift:220",
-      "Emuqu/Sources/Assistant/Views/ChatBubble.swift:208",
-      "Emuqu/Sources/Assistant/Views/ChatBubble.swift:369"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.stripForDisplay(_:)": "119339496bdd7dc0",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },
@@ -504,7 +496,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.body": "34d45e00338db6a1",
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.renderedText": "63d8b3be3a9a2807",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.renderedText": "d1f79807862b43f8",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryFilled": "2f1e670aa8894ea8",
     "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
    }
@@ -647,7 +639,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.stripForDisplay(_:)": "119339496bdd7dc0",
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.displayText(_:)": "469edda741108c92"
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.displayText(_:)": "3bb7c5028ae1f29d"
    }
   },
   {
@@ -678,16 +670,6 @@
    ],
    "flags": [
     {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "AssistantCitationResolver.annotate runs against the session archive inside a View computed property on every body evaluation of a bubble (mitigated only by .equatable()); VoiceOver's spokenText does not run annotate, so spoken and shown text differ for cited dates only in link styling.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Views/ChatBubble.swift:370",
-      "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift:34"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
      "kind": "spec-mismatch",
      "sev": "low",
      "text": "USERS_MANUAL says Markdown lists render properly in streamed replies; the bubble parses inline-only Markdown (.inlineOnlyPreservingWhitespace) and its own comment says list markers stay as typed.",
@@ -702,15 +684,32 @@
    "deps": {
     "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::func AssistantCitationResolver.annotate(_:archive:)": "ae71766a28756119",
     "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.stripForDisplay(_:)": "119339496bdd7dc0",
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.displayText(_:)": "469edda741108c92"
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.displayText(_:)": "3bb7c5028ae1f29d"
+   }
+  },
+  {
+   "key": "func View.reportMailUnavailableAlert(isPresented:)",
+   "hash": "264325b393a25063",
+   "does": "View modifier: the 'Report response' alert telling the user no mail account is set up and to send the report to chrissharp80@gmail.com, with an OK button. Used by ChatBubble and AssistantChatView.",
+   "entry": "Alert presentation driven by the caller's binding",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },
   {
    "key": "func ChatMarkdown.displayText(_:)",
-   "hash": "5135e6953f7398ee",
-   "does": "Rewrites each ATX heading line outside ``` fences to '**title**' (empty heading → empty line); toggles fence state on lines starting with ```; other lines unchanged.",
+   "hash": "8589881ebbbc009c",
+   "does": "Rewrites each ATX heading line outside fenced code blocks to '**title**' (empty heading → empty line). A ``` or ~~~ line opens a block, and only a fence of the same kind closes it; fence lines and lines inside are kept.",
    "entry": "also called by ChatMarkdownTests (EmuquTests/ChatBubbleEquatableTests.swift:34)",
    "calls": [
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.fenceMarker(_:)",
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.headingTitle(_:)"
    ],
    "reads": [],
@@ -718,12 +717,12 @@
    "branches": [
     {
      "at": "+3",
-     "cond": "trimmed line starts with ```",
-     "effect": "toggle insideFence and keep the line"
+     "cond": "line is a fence and (no block open or it matches the open one)",
+     "effect": "open/close the block, keep the line"
     },
     {
      "at": "+7",
-     "cond": "outside a fence and line is a heading",
+     "cond": "outside a block and line is a heading",
      "effect": "replace with bold title; else line kept"
     },
     {
@@ -732,21 +731,23 @@
      "effect": "''; else '**title**'"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Only backtick fences are recognised; a model reply using a ~~~ fenced code block has '#'-prefixed lines inside it (e.g. shell comments) rewritten into bold headings, contradicting the doc comment 'Lines inside fenced code blocks are left alone'.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Views/ChatBubble.swift:390",
-      "Emuqu/Sources/Assistant/Views/ChatBubble.swift:395"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.fenceMarker(_:)": "2008fd67a3642137",
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.headingTitle(_:)": "b3375ef53b8bb0d7"
    }
+  },
+  {
+   "key": "func ChatMarkdown.fenceMarker(_:)",
+   "hash": "93a579e031605d2d",
+   "does": "\"```\" or \"~~~\" when the whitespace-trimmed line starts with it (a fence line), else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "func ChatMarkdown.headingTitle(_:)",

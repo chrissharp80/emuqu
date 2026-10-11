@@ -25,10 +25,18 @@ enum HRVSleepStageClassifier {
         let remScore: Double
         let awakeScore: Double
         let classifiedStage: HealthKitManager.SleepStage
-        /// Whether LF/HF ratio was available for this night's scoring.
+        /// Whether this window had its own LF/HF ratio (scored with the
+        /// frequency-domain weights). A window without one, on a night where
+        /// others have it, is ranked on a filler value and reads false here.
         /// Critical for augmentation gating: LF/HF is the only cardiac feature
         /// that reliably separates REM from N2 (Vanoli 1995, Herzig 2017).
         let hasFreqDomain: Bool
+        /// The REM score before the first-hour suppression. `remScore` is 0
+        /// there so classification never calls early REM; augmentation's
+        /// "Watch REM has weak REM evidence" check reads this instead, so the
+        /// forced 0 is not taken as evidence against REM. Nil means the same
+        /// as `remScore`.
+        var remEvidence: Double?
     }
 
     /// Result of augmenting Apple Watch stages with HRV evidence.
@@ -142,25 +150,21 @@ enum HRVSleepStageClassifier {
     /// Minutes per stage. `.unspecified` counts as core, matching how
     /// HealthKit's own "asleep" bucket is presented everywhere else.
     private static func summarise(_ intervals: [HealthKitManager.SleepStageInterval]) -> ClassificationResult {
-        var deep = 0, rem = 0, core = 0, awake = 0
-        for interval in intervals {
-            let minutes = interval.durationMinutes
-            switch interval.stage {
-            case .deep: deep += minutes
-            case .rem: rem += minutes
-            case .core: core += minutes
-            case .awake: awake += minutes
-            case .unspecified: core += minutes
-            }
-        }
+        let minutes = accumulateStageMinutes(intervals)
         return ClassificationResult(
-            stageIntervals: intervals, deepSleepMinutes: deep, remSleepMinutes: rem,
-            coreSleepMinutes: core, awakeMinutes: awake
+            stageIntervals: intervals, deepSleepMinutes: minutes.deep, remSleepMinutes: minutes.rem,
+            coreSleepMinutes: minutes.core, awakeMinutes: minutes.awake
         )
     }
 
     // MARK: - Feature Computation
 
+    /// Five-minute feature windows over `[sleepStartMs, sleepEndMs)`, both
+    /// wall-clock ms from `recordingStart`. Beats are placed on the wall clock
+    /// (`exportTimeMs`), not the beat-sum clock `t_ms`, which falls behind real
+    /// time after a streamed night's BLE drops; so window membership, the
+    /// bounds and the window dates all sit on the one clock the callers'
+    /// bounds and the Watch's intervals use.
     static func buildFeatureWindows(
         rrPoints: [RRPoint],
         sleepStartMs: Int64,
@@ -169,14 +173,14 @@ enum HRVSleepStageClassifier {
     ) -> [FeatureWindow] {
         var windows: [FeatureWindow] = []
         var windowStart = sleepStartMs
-        // Two-pointer sweep instead of a per-window filter.
-        // `rrPoints` is t_ms-monotonic and the window
-        // bounds advance monotonically, so membership is identical while
-        // cost drops from O(windows x n) to O(n).
-        var sweep = RRWindowSweep(rrPoints)
+        let timed = wallClockTimed(rrPoints)
+        // Two-pointer sweep instead of a per-window filter: `timed` is
+        // time-ordered and the window bounds advance monotonically, so
+        // membership is identical while cost drops from O(windows x n) to O(n).
+        var sweep = RRWindowSweep(timed)
         while windowStart < sleepEndMs {
             let windowEnd = min(windowStart + windowSizeMs, sleepEndMs)
-            let points = Array(rrPoints[sweep.range(start: windowStart, end: windowEnd)])
+            let points = Array(timed[sweep.range(start: windowStart, end: windowEnd)])
             if let window = featureWindow(points: points, windowStart: windowStart,
                                           windowEnd: windowEnd, recordingStart: recordingStart) {
                 windows.append(window)
@@ -184,6 +188,16 @@ enum HRVSleepStageClassifier {
             windowStart += windowSizeMs
         }
         return windows
+    }
+
+    /// The beats re-timed on the wall clock (`t_ms` = `exportTimeMs`), in
+    /// time order. A series that is already ordered keeps its beat order
+    /// (beats of one BLE packet share a wall-clock stamp); a merged series
+    /// that is not is sorted, so the sweep never skips beats.
+    static func wallClockTimed(_ rrPoints: [RRPoint]) -> [RRPoint] {
+        let timed = rrPoints.map { RRPoint(t_ms: $0.exportTimeMs, rr_ms: $0.rr_ms, wallClockMs: $0.wallClockMs, hr: $0.hr) }
+        let ordered = zip(timed, timed.dropFirst()).allSatisfy { $0.t_ms <= $1.t_ms }
+        return ordered ? timed : timed.sorted { $0.t_ms < $1.t_ms }
     }
 
     /// One window's features, or nil when the window is too sparse or too
@@ -244,13 +258,22 @@ enum HRVSleepStageClassifier {
     }
 
     /// LF/HF and HF power through the shared PSD pipeline, from cubic-spline
-    /// resampled (time, rr) pairs.
+    /// resampled (time, rr) pairs. Each valid beat's time is its midpoint on
+    /// the beat-sum clock within the window (the intervals before it, invalid
+    /// ones included): the wall-clock stamps the window was cut on repeat for
+    /// the beats of one BLE packet, which a spline cannot take as times.
     private static func windowFrequencyMetrics(_ windowPoints: [RRPoint]) -> FrequencyDomainMetrics? {
-        let validPoints = windowPoints.filter { HRVConstants.RRInterval.isValid($0.rr_ms) }
-        return FrequencyDomainAnalyzer.computeFromCleanPairs(
-            times: validPoints.map { $0.midpointMs / 1_000.0 },
-            rrValues: validPoints.map { Double($0.rr_ms) }
-        )
+        var elapsedMs = 0.0
+        var times: [Double] = []
+        var rrValues: [Double] = []
+        for point in windowPoints {
+            if HRVConstants.RRInterval.isValid(point.rr_ms) {
+                times.append((elapsedMs + Double(point.rr_ms) / 2.0) / 1_000.0)
+                rrValues.append(Double(point.rr_ms))
+            }
+            elapsedMs += Double(point.rr_ms)
+        }
+        return FrequencyDomainAnalyzer.computeFromCleanPairs(times: times, rrValues: rrValues)
     }
 
     // MARK: - Rank-Based Classification
@@ -324,12 +347,13 @@ enum HRVSleepStageClassifier {
             ranks: ranks, index: i, nightFraction: nightFraction,
             hasFreqDomain: hasFreqDomain, hasDFA: hasDFA
         )
+        let remEvidence = remScore
         if elapsedMs < minTimeBeforeREMMs { remScore = 0 }
         let awakeScore = computeAwakeScore(ranks: ranks, index: i, hasFreqDomain: hasFreqDomain)
         return WindowScores(
             deepScore: deepScore, remScore: remScore, awakeScore: awakeScore,
             classifiedStage: classifyStage(deepScore: deepScore, remScore: remScore, awakeScore: awakeScore),
-            hasFreqDomain: hasFreqDomain
+            hasFreqDomain: hasFreqDomain && ranks.lfHfPresent[i], remEvidence: remEvidence
         )
     }
 
@@ -338,6 +362,8 @@ enum HRVSleepStageClassifier {
     /// Pre-computed per-feature rank arrays for all windows.
     private struct FeatureRanks {
         let hr, rmssd, cv, hf, lfHf, dfa: [Double]
+        /// Whether each window had its own LF/HF (the rank uses a filler when not).
+        let lfHfPresent: [Bool]
     }
 
     private static func computeFeatureRanks(_ windows: [FeatureWindow]) -> FeatureRanks {
@@ -351,7 +377,8 @@ enum HRVSleepStageClassifier {
             cv: computeRanks(windows.map(\.hrCV)),
             hf: computeRanks(windows.map { $0.hfPower ?? 0 }),
             lfHf: computeRanks(windows.map { $0.lfHfRatio ?? 2.0 }),
-            dfa: computeRanks(dfaValues.map { $0 ?? medianDFA })
+            dfa: computeRanks(dfaValues.map { $0 ?? medianDFA }),
+            lfHfPresent: windows.map { $0.lfHfRatio != nil }
         )
     }
 

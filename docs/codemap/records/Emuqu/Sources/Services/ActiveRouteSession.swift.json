@@ -84,7 +84,7 @@
    "key": "func ActiveRouteSession.disengage()",
    "hash": "80636914a8e70f3d",
    "does": "Under the lock clears all session state.",
-   "entry": "Called from AppFactResolver+LiveNavigation.swift:652 and tests.",
+   "entry": "Called from AppFactResolver+LiveNavigation.swift (directions.clear), DataPurgeService.forgetInMemoryStores (Delete All My Data) and tests. Not called on arrival or when a new route is engaged (engageInternal overwrites the state).",
    "calls": [],
    "reads": [],
    "writes": [
@@ -92,29 +92,7 @@
     "mem:ActiveRouteSession._currentStepIndex"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Comment says disengage is called when the user reaches the destination or a new route is engaged; its only app caller is the assistant's directions.clear action (AppFactResolver+LiveNavigation.swift:652), engageInternal overwrites state without it, and nothing calls it on arrival. The route stays engaged and WorkoutVoiceCoach.tickRouteEngines keeps evaluating it in later workouts until the AI clears it or the app relaunches.",
-     "evidence": [
-      "Emuqu/Sources/Services/ActiveRouteSession.swift:131",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift:652",
-      "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:149"
-     ],
-     "found": "second read"
-    },
-    {
-     "kind": "privacy",
-     "sev": "low",
-     "text": "Delete All My Data does not clear the engaged route: DataPurgeService clears SavedRouteStore, BreadcrumbRecorder and AmbientLocationService (DataPurgeService.swift:591-593) but never references ActiveRouteSession, so the destination label/coordinate remain in memory and keep being used by the voice coach after a purge.",
-     "evidence": [
-      "Emuqu/Sources/Services/DataPurgeService.swift:591",
-      "Emuqu/Sources/Services/ActiveRouteSession.swift:53"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -144,13 +122,13 @@
   },
   {
    "key": "func ActiveRouteSession.currentStep(for:)",
-   "hash": "4de6ace79cf13b68",
-   "does": "Under the lock: updates departure flag and sticky step index for the fix, then returns current/upcoming instruction, distance to the upcoming step's first vertex, remaining distance (sum of steps from current inclusive) and arrival.",
+   "hash": "3d1d73e93fad6f5a",
+   "does": "Under the lock: updates departure flag and sticky step index for the fix, then returns current/upcoming instruction, distanceToUpcomingStepMeters and remainingDistanceMeters from distancesAhead (distance to the next step's start, or to the route's end on the last step; straight line to the current step's end plus later steps' lengths) and arrival.",
    "entry": "App-code callers: WorkoutVoiceCoach.swift:150 (every workout tick via tickRouteEngines, which mutates the sticky step index), AppFactResolver+LiveCoaching.swift:358 and AppFactResolver+LiveNavigation.swift:618 (assistant queries), RouteNavigationEnginesTests.",
    "calls": [
     "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.noteDeparture(from:lastStep:)",
     "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.advanceStepIndex(for:)",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.polylineDistance(from:to:preferStart:)",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.distancesAhead(of:)",
     "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.hasArrived(at:lastStep:)"
    ],
    "reads": [
@@ -167,24 +145,54 @@
      "effect": "compute; otherwise nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "On the last step the upcoming step is the current step, so distanceToUpcomingStepMeters is the distance to the START of the final leg (behind the user) and grows as they approach the destination; remainingDistanceMeters always counts the full current step.",
-     "evidence": [
-      "Emuqu/Sources/Services/ActiveRouteSession.swift:172",
-      "Emuqu/Sources/Services/ActiveRouteSession.swift:178",
-      "Emuqu/Sources/Services/ActiveRouteSession.swift:181"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.advanceStepIndex(for:)": "de370ac254078587",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.distancesAhead(of:)": "98bfcdfe4e7c83e4",
     "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.hasArrived(at:lastStep:)": "d5c6bb73f4d5d6d4",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.noteDeparture(from:lastStep:)": "3343f89777a0135f",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.noteDeparture(from:lastStep:)": "3343f89777a0135f"
+   }
+  },
+  {
+   "key": "func ActiveRouteSession.distancesAhead(of:)",
+   "hash": "03c987396454794e",
+   "does": "With the lock held: on a non-last step returns (distance to the next step's first vertex, straight-line distance to the current step's last vertex + the lengths of all later steps); on the last step returns (distance to the route's end, that same distance once the user has left the end, else the step's full length so a single-step loop at its start is not read as finished). A step with an empty polyline counts its full length.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.routeEnd(_:)",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.stepEnd(_:)",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.distance(from:to:)",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.polylineDistance(from:to:preferStart:)"
+   ],
+   "reads": [
+    "mem:ActiveRouteSession._steps",
+    "mem:ActiveRouteSession._currentStepIndex",
+    "mem:ActiveRouteSession._hasLeftEnd"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "current step is the last",
+     "effect": "end = routeEnd (falls back to destination); otherwise the current step's last vertex"
+    },
+    {
+     "at": "+4",
+     "cond": "?? — no end coordinate",
+     "effect": "use the step's full length"
+    },
+    {
+     "at": "+5",
+     "cond": "last step",
+     "effect": "return (toEnd, _hasLeftEnd ? toEnd : step length)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.distance(from:to:)": "a4855983acbcaa7f",
     "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.polylineDistance(from:to:preferStart:)": "4ff6d823f02a58db",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.routeEnd(_:)": "28a9cdf6b4d151b4",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.stepEnd(_:)": "4c8caa66b0facd31",
     "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.polyline(for:)": "92368270c3e12467"
    }
   },
@@ -209,7 +217,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.distance(from:to:)": "a4855983acbcaa7f",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.routeEnd(_:)": "02b0b05e6043dcad"
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.routeEnd(_:)": "28a9cdf6b4d151b4"
    }
   },
   {
@@ -235,26 +243,51 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.distance(from:to:)": "a4855983acbcaa7f",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.routeEnd(_:)": "02b0b05e6043dcad"
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.routeEnd(_:)": "28a9cdf6b4d151b4"
    }
   },
   {
    "key": "func ActiveRouteSession.routeEnd(_:)",
-   "hash": "b66cbabf544c4360",
-   "does": "Returns the last vertex of the last step's polyline, or the destination coordinate when that polyline is empty.",
+   "hash": "e706476d7b6ffef1",
+   "does": "Returns stepEnd(lastStep) (the last vertex of the last step's polyline), or the destination coordinate when that polyline is empty.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.stepEnd(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "?? — polyline empty",
+     "effect": "destination coordinate"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.stepEnd(_:)": "4c8caa66b0facd31"
+   }
+  },
+  {
+   "key": "func ActiveRouteSession.stepEnd(_:)",
+   "hash": "a9b6de7803332218",
+   "does": "Last vertex of a step's polyline; nil when the polyline has no points.",
+   "entry": null,
+   "calls": [
+    "ext:MKPolyline.points"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+2",
-     "cond": "polyline has points",
-     "effect": "return last point; otherwise destination coordinate"
+     "cond": "no points",
+     "effect": "nil"
     }
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Analysis/GPXImporter.swift::var GPXParserDelegate.points": "4931968170b1069b",
     "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.polyline(for:)": "92368270c3e12467"
    }
   },
@@ -346,7 +379,9 @@
     }
    ],
    "flags": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXImporter.swift::var GPXParserDelegate.points": "4931968170b1069b"
+   }
   }
  ],
  "deps": {}

@@ -36,7 +36,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only": "7123856c78189975",
+    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only": "73c8ded96a9405ae",
     ".github/workflows/ci.yml::step lint-and-budgets/Documentation links and constants": "88f60acd02668637",
     ".github/workflows/ci.yml::step lint-and-budgets/Every gate is wired into CI": "2d10106236edd3ae",
     ".github/workflows/ci.yml::step lint-and-budgets/Gates actually fail": "9b353c1b8e398485",
@@ -57,8 +57,8 @@
   },
   {
    "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > Executive Summary",
-   "hash": "aa9f4d7022e78f43",
-   "does": "Summary claims: 155 numeric constants in two files hashed with SHA-256, build fails if digest moves under the same version; stored scores carry version, old ones decode to `unversioned`; register of 19 heuristics (3 validated, 4 supported-transfer, 12 awaiting-validation) with claim/waive discovery; 64 plants; 125 targeted mutations; direction-from-filename budget ratchets. All counts verified at 8d32097 (155=91+64, hash 541b56e600080795 matches .ci baseline; register 19/3/4/12; 64 `check \"` plants; 125 `mutate \"` cases). The 'every stored score carries its version' claim fails for legacy sessions without a stored breakdown (see 3.1.3).",
+   "hash": "5cd08daa0bc4b321",
+   "does": "Summary claims: 155 numeric constants in two files hashed with SHA-256, build fails if digest moves under the same version; stored scores carry version, old ones decode to `unversioned`; register of 19 heuristics (3 validated, 4 supported-transfer, 12 awaiting-validation) with claim/waive discovery; 64 plants; 125 targeted mutations; direction-from-filename budget ratchets. All counts verified at 8d32097 (155=91+64, hash 541b56e600080795 matches .ci baseline; register 19/3/4/12; 64 `check \"` plants; 125 `mutate \"` cases). The 'every stored score carries its version' claim fails for legacy sessions without a stored breakdown (see 3.1.3). The ratchet bullet now says that at this revision only integer budget files are compared, so the views-coverage floor (43.5) and a deleted budget file are not (Section 3.6.2).",
    "entry": null,
    "calls": [
     "Makefile::target scoring-governance",
@@ -78,7 +78,7 @@
     "scripts/check_budget_monotonicity.sh::fn no_baseline",
     "scripts/check_budget_monotonicity.sh::fn is_allowed",
     "scripts/check_budget_monotonicity.sh::fn is_floor",
-    "scripts/check_budget_monotonicity.sh::fn read_int",
+    "scripts/check_budget_monotonicity.sh::fn read_number",
     "Makefile::target budget-monotonicity",
     ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline",
     ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only",
@@ -89,30 +89,15 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "The ratchet skips any .ci file whose value is not a bare integer (read_int requires ^[0-9]+$), and .ci/min_coverage_views.txt holds 43.5 (raised 42.0 -> 43.5 in a0a230f). The views-coverage floor is therefore never compared: it can be lowered to any value with no budget-raise-ok trailer and the gate prints clean. Contradicts 'Each CI budget file may move only in the tightening direction its filename declares' and README's 'Fails any diff that raises/loosens a value in .ci/*.txt'; check_coverage.sh enforces whatever value is committed.",
-     "evidence": [
-      "docs/whitepapers/04-claims-governance.md:24",
-      "docs/whitepapers/04-claims-governance.md:370",
-      "scripts/check_budget_monotonicity.sh:134",
-      "scripts/check_budget_monotonicity.sh:143",
-      ".ci/min_coverage_views.txt:1",
-      "scripts/check_coverage.sh:56"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only": "7123856c78189975",
+    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only": "73c8ded96a9405ae",
     ".github/workflows/ci.yml::step lint-and-budgets/Gates actually fail": "9b353c1b8e398485",
-    ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline": "9e5b7f6ce70661ff",
+    ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline": "02a1b4c3f2a3ec7c",
     ".github/workflows/ci.yml::step lint-and-budgets/Science register (every heuristic classified)": "56feb721e0de6eb5",
     ".github/workflows/ci.yml::step lint-and-budgets/Scoring governance (weight containment, version-on-change)": "489a2d5b99cdec0d",
     ".github/workflows/gates.yml::step script-gates/Copy perimeter, science register, scoring governance": "cb4f724309ba1d92",
-    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "4d1433bd1c0ca96c",
+    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "6e090e3051ab2682",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "6d045d2ab75f0630",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(from:)": "64e9bc9bc5ab879d",
     "Makefile::target budget-monotonicity": "734b517fa2d98f72",
@@ -122,12 +107,12 @@
     "scripts/check_budget_monotonicity.sh::fn is_allowed": "a002d0e35987ee73",
     "scripts/check_budget_monotonicity.sh::fn is_floor": "313191d94c7788a1",
     "scripts/check_budget_monotonicity.sh::fn no_baseline": "4d98f6bae9009dcc",
-    "scripts/check_budget_monotonicity.sh::fn read_int": "f177c3dac57c9863",
+    "scripts/check_budget_monotonicity.sh::fn read_number": "d8d0aa6b0f8126bc",
     "scripts/verify_gates_fail.sh::fn backup": "25552251e285cbb5",
     "scripts/verify_gates_fail.sh::fn check": "b61e3693876460cc",
     "scripts/verify_gates_fail.sh::fn restore_all": "2fd629e6dda69604",
     "scripts/verify_tests_fail.sh::fn backup": "70119fbe023b417f",
-    "scripts/verify_tests_fail.sh::fn mutate": "e9b411096264e708",
+    "scripts/verify_tests_fail.sh::fn mutate": "d86675934e28c4ce",
     "scripts/verify_tests_fail.sh::fn restore_all": "0cdb4c7320082e7d",
     "scripts/verify_tests_fail.sh::fn run_suite": "2627647aca12e8c4"
    }
@@ -256,8 +241,8 @@
   },
   {
    "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 3. Methods > 3.1 Scoring-constants hash and version lock > 3.1.1 Hash and version lock",
-   "hash": "8e09010d835fef1a",
-   "does": "Specifies check_scoring_governance.sh: hash files Constants+RecoveryScore.swift then HRVThresholds.swift (missing -> exit 2), strip // comments, regex-extract static let numeric literals, sort per file, SHA-256 over 'path:symbol=value\\n', first 16 hex; read ScoringVersion.current; baseline '<version> <hash>' (v3.1.oct2026 541b56e600080795); violation iff hash differs and version equals recorded version -> exit 1. Verified: recomputation gives 155 constants and 541b56e600080795; script logic matches. Both files contain only bare-literal static lets. Gaps: version-bump without baseline refresh leaves the gate open; missing version file / malformed baseline exit 1 not 2.",
+   "hash": "c12d816373945728",
+   "does": "Specifies check_scoring_governance.sh: hash files Constants+RecoveryScore.swift then HRVThresholds.swift (missing -> exit 2), strip // comments, regex-extract static let numeric literals, sort per file, SHA-256 over 'path:symbol=value\\n', first 16 hex; read ScoringVersion.current; baseline '<version> <hash>' (v3.1.oct2026 541b56e600080795); violation iff hash differs and version equals recorded version -> exit 1. Verified: recomputation gives 155 constants and 541b56e600080795; script logic matches. Both files contain only bare-literal static lets. Gaps: version-bump without baseline refresh leaves the gate open; missing version file / malformed baseline exit 1 not 2. A 'Limitation at this revision' paragraph after step 10 states the gate passes whenever the version differs from the recorded one, so a bump without a baseline update leaves the lock open until the new pair is recorded.",
    "entry": null,
    "calls": [
     "Makefile::target scoring-governance",
@@ -268,17 +253,6 @@
    "writes": [],
    "branches": [],
    "flags": [
-    {
-     "kind": "fragile",
-     "sev": "med",
-     "text": "The lock compares only against the recorded (version, hash) line, and the gate passes whenever version != recorded_version. A maintainer who bumps ScoringVersion.current but does not rewrite .ci/scoring_constants_hash.txt leaves the gate permanently open: every later constant change under the new version also passes, because the recorded version still differs. Nothing forces the baseline to be refreshed, so 'a change to a constant forces a version change' (Sections 3.8/N1) holds only for the first change after each baseline update.",
-     "evidence": [
-      "docs/whitepapers/04-claims-governance.md:132",
-      "scripts/check_scoring_governance.sh:91",
-      "scripts/check_scoring_governance.sh:92"
-     ],
-     "found": "first read, upheld on second"
-    },
     {
      "kind": "spec-mismatch",
      "sev": "low",
@@ -343,8 +317,8 @@
   },
   {
    "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 3. Methods > 3.1 Scoring-constants hash and version lock > 3.1.3 Version stamp at runtime",
-   "hash": "82f87e29418bdbc5",
-   "does": "Claims ScoreBreakdown defaults scoringVersion to current on construction, decodes missing key as 'unversioned', derived copies (vitals refresh, iCloud stripped copy) carry it forward, detail screen shows 'Scored by <stored>' or 'Scored before score versions were recorded' plus the calibrated-not-validated line, and the assistant fact score.algorithm.version / context block report the current version. Construction/decoding (RecoveryScoreCalculator.swift:120,149-150), VitalsScoring.swift:274, CloudKitSyncSupport.swift:626/725, display (Sections.swift:264-280), AppFactResolver.swift:391-396 and ContextBuilder.swift:239 match. Not true for legacy sessions with no stored breakdown: the live/pinned breakdown is stamped current. Table 3.2 version dates are history, not checkable from code.",
+   "hash": "71c2fb39b599e4e3",
+   "does": "Claims ScoreBreakdown defaults scoringVersion to current on construction, decodes missing key as 'unversioned', derived copies (vitals refresh, iCloud stripped copy) carry it forward, detail screen shows 'Scored by <stored>' or 'Scored before score versions were recorded' plus the calibrated-not-validated line, and the assistant fact score.algorithm.version / context block report the current version. Construction/decoding (RecoveryScoreCalculator.swift:120,149-150), VitalsScoring.swift:274, CloudKitSyncSupport.swift:626/725, display (Sections.swift:264-280), AppFactResolver.swift:391-396 and ContextBuilder.swift:239 match. Not true for legacy sessions with no stored breakdown: the live/pinned breakdown is stamped current. Table 3.2 version dates are history, not checkable from code. The Display row now states that a legacy session with no stored breakdown is shown with a recomputed breakdown carrying the current version (the code defect itself lives in the view/view-model files).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)",
@@ -363,36 +337,19 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Paper says unstamped history is shown as 'Scored before score versions were recorded' and every derived copy carries the stamp. A legacy session with a frozen recoveryScore but no stored scoreBreakdown is rendered by recomputing a live breakdown (stamped ScoringVersion.current by the init default) and, in MorningResultsViewModel, pinning that breakdown's composite to the frozen old score while again defaulting scoringVersion to current. The detail screen therefore shows the frozen pre-version score above 'Scored by v3.1.oct2026', attributing an old (v1/v2) number to today's algorithm.",
-     "evidence": [
-      "docs/whitepapers/04-claims-governance.md:149",
-      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:150",
-      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:168",
-      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:182",
-      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:206",
-      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:244",
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:129",
-      "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift:276"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "6d045d2ab75f0630",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(from:)": "64e9bc9bc5ab879d",
     "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.breakdownRefreshingVitalsFactor(_:freshVitals:baselineStats:)": "06335fbd097cdaa4",
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.buildUserProfile(settings:customTagNames:effectiveVO2Max:)": "b463408c2148f4e1",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.scoreAlgorithmVersionEntry": "337f02ee28379cbd",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.scoreAlgorithmVersionEntry": "98e718f4a096dca4",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.breakdownWithoutHealthKitReadings(_:)": "75fa66139d5209fc",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoring(_: RecoveryScoreCalculator.ScoreBreakdown?, from: RecoveryScoreCalculator.ScoreBreakdown?)": "994575427acd0d39",
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.pinnedToFrozenScore(_:)": "866c0c0b534912f6",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.pinnedToFrozenScore(_:)": "da283a835db29e0e",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.recoveryBreakdown()": "cde8ca2df2aec214",
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.scoringProvenance": "d68df7407da1b095",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.scoringVersionLine": "28b7a4a190ecf3a7",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.scoringVersionLine": "e765635777db6913",
     "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.breakdown": "897060435fb36112"
    }
   },
@@ -584,8 +541,8 @@
   },
   {
    "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 3. Methods > 3.4 Gates that test the gates > 3.4.2 Fails closed: temp-file preflight",
-   "hash": "2b7433ff1f6a5acc",
-   "does": "Specifies lib/preflight.sh helpers (gate_mktemp explicit template, exit 70 on failure/unwritable; gate_mktemp_dir 'same for directories'; gate_require_nonempty exit 70) and check_gate_preflight.sh scanning every scripts/*.sh except itself for bare mktemp, gate_mktemp without '|| exit' on the same line, and unresolved `source \"$(dirname \"$0\")/...\"`; 53 scripts, 10 guarded uses. Verified 53/10 by recomputation; gate logic matches. gate_mktemp_dir uses `mktemp -d -t label`, which fails on GNU.",
+   "hash": "3e45e8d78d283328",
+   "does": "Specifies lib/preflight.sh helpers (gate_mktemp explicit template, exit 70 on failure/unwritable; gate_mktemp_dir 'same for directories'; gate_require_nonempty exit 70) and check_gate_preflight.sh scanning every scripts/*.sh except itself for bare mktemp, gate_mktemp without '|| exit' on the same line, and unresolved `source \"$(dirname \"$0\")/...\"`; 53 scripts, 10 guarded uses. Verified 53/10 by recomputation; gate logic matches. gate_mktemp_dir uses `mktemp -d -t label`, which fails on GNU. The gate_mktemp_dir bullet now states it uses BSD-only `mktemp -d -t label`, so the two mutation harnesses exit 70 off macOS at this revision.",
    "entry": null,
    "calls": [
     "scripts/lib/preflight.sh::fn gate_mktemp",
@@ -598,19 +555,6 @@
    "writes": [],
    "branches": [],
    "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Paper says gate_mktemp uses an explicit template that behaves the same under BSD and GNU mktemp and that gate_mktemp_dir 'does the same for directories'. gate_mktemp_dir actually calls `mktemp -d -t \"$label\"`, the exact BSD-only form the gate_mktemp comment warns against: on GNU coreutils it fails ('too few X's in template'), so verify_gates_fail.sh and verify_tests_fail.sh exit 70 at startup on Linux. It fails closed, but both harnesses are unrunnable off macOS for a reason the paper does not state.",
-     "evidence": [
-      "docs/whitepapers/04-claims-governance.md:288",
-      "scripts/lib/preflight.sh:77",
-      "scripts/lib/preflight.sh:43",
-      "scripts/verify_gates_fail.sh:38",
-      "scripts/verify_tests_fail.sh:62"
-     ],
-     "found": "first read, upheld on second"
-    },
     {
      "kind": "fragile",
      "sev": "low",
@@ -629,8 +573,8 @@
     ".github/workflows/ci.yml::step lint-and-budgets/Gates fail closed": "7fb0e21ee5f44f0c",
     "Makefile::target gate-preflight": "6920a992e5fe9a61",
     "scripts/lib/preflight.sh::fn gate_mktemp": "2bf9e9cec64b1ffe",
-    "scripts/lib/preflight.sh::fn gate_mktemp_dir": "db452e7a5baf7d20",
-    "scripts/lib/preflight.sh::fn gate_require_nonempty": "7b1ef223e8fe987e"
+    "scripts/lib/preflight.sh::fn gate_mktemp_dir": "9f63eab3fc268bc7",
+    "scripts/lib/preflight.sh::fn gate_require_nonempty": "6e0c0dbc5ae9acef"
    }
   },
   {
@@ -676,8 +620,8 @@
   },
   {
    "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 3. Methods > 3.5 Tests that must catch defects > 3.5.1 Targeted test mutations",
-   "hash": "b804abf66a00d8de",
-   "does": "Specifies verify_tests_fail.sh: 125 curated mutations each naming a suite; run suite alone with -only-testing and parallel testing off; classify 0 pass/1 fail/2 build-or-runner failure (banner or no 'Test Suite'/'Test Case'); retry baseline once on 2; SKIP if baseline not 0 or mutation not applicable; PASS if mutated run nonzero (including 2 = build failure of the mutated tree); any FAIL or SKIP exits 1; not in make ci or any workflow. Verified: 125 `mutate \"` cases; run_suite uses -only-testing and -parallel-testing-enabled NO; exit 1 when FAIL or SKIP nonzero; no Makefile/workflow reference.",
+   "hash": "e07402918c97bde3",
+   "does": "Specifies verify_tests_fail.sh: 125 curated mutations each naming a suite; run suite alone with -only-testing and parallel testing off; classify 0 pass/1 fail/2 build-or-runner failure (banner or no 'Test Suite'/'Test Case'); retry baseline once on 2; SKIP if baseline not 0 or mutation not applicable; PASS if mutated run nonzero (including 2 = build failure of the mutated tree); any FAIL or SKIP exits 1; not in make ci or any workflow. Verified: 125 `mutate \"` cases; run_suite uses -only-testing and -parallel-testing-enabled NO; exit 1 when FAIL or SKIP nonzero; no Makefile/workflow reference. Step 5 and 'Why it works' now state that at this revision the mutated run did not separate build failures (a non-compiling mutation counted as caught); only the baseline did. verify_tests_fail.sh has since been fixed (b45).",
    "entry": null,
    "calls": [
     "scripts/verify_tests_fail.sh::fn run_suite",
@@ -688,23 +632,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Paper says 'Classifying build failures separately stops a broken build from counting as a catch'. The classification is only used for the baseline run; the mutated run is scored `code != 0 -> PASS`, so a mutation that fails to compile, or a transient build/runner failure (return 2) during the mutated run, is reported as 'caught'. A mutation whose replacement text does not compile proves nothing about the suite yet counts as PASS.",
-     "evidence": [
-      "docs/whitepapers/04-claims-governance.md:331",
-      "scripts/verify_tests_fail.sh:92",
-      "scripts/verify_tests_fail.sh:128",
-      "scripts/verify_tests_fail.sh:131"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "scripts/verify_tests_fail.sh::fn backup": "70119fbe023b417f",
-    "scripts/verify_tests_fail.sh::fn mutate": "e9b411096264e708",
+    "scripts/verify_tests_fail.sh::fn mutate": "d86675934e28c4ce",
     "scripts/verify_tests_fail.sh::fn restore_all": "0cdb4c7320082e7d",
     "scripts/verify_tests_fail.sh::fn run_suite": "2627647aca12e8c4"
    }
@@ -760,11 +691,11 @@
     ".github/workflows/ci.yml::step lint-and-budgets/No leaked test mutations": "a6db432637722f65",
     "Makefile::target ci-local": "2f301710427d57ea",
     "Makefile::target leaked-mutations-guard": "4944d2f5b2b6a744",
-    "scripts/lib/preflight.sh::fn gate_acquire_tree_lock": "d605a361d71d1614",
+    "scripts/lib/preflight.sh::fn gate_acquire_tree_lock": "8261ba2c532e1783",
     "scripts/lib/preflight.sh::fn gate_release_tree_lock": "7a8e2c68b3650dea",
-    "scripts/lib/preflight.sh::fn gate_require_unmutated_tree": "654f69c47cb8b3b9",
+    "scripts/lib/preflight.sh::fn gate_require_unmutated_tree": "de19fe67d79d4de5",
     "scripts/verify_tests_fail.sh::fn backup": "70119fbe023b417f",
-    "scripts/verify_tests_fail.sh::fn mutate": "e9b411096264e708",
+    "scripts/verify_tests_fail.sh::fn mutate": "d86675934e28c4ce",
     "scripts/verify_tests_fail.sh::fn restore_all": "0cdb4c7320082e7d",
     "scripts/verify_tests_fail.sh::fn run_suite": "2627647aca12e8c4"
    }
@@ -801,14 +732,14 @@
   },
   {
    "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 3. Methods > 3.6 One-way budget ratchets > 3.6.2 Monotonicity gate",
-   "hash": "e8f753a16cf74f96",
-   "does": "Specifies check_budget_monotonicity.sh: baseline from arg, origin/$GITHUB_BASE_REF, BUDGET_BASE_REF, else none; none/all-zero/unresolvable -> exit 1 if BUDGET_REQUIRE_BASELINE else skip exit 0; trailers '^budget-raise-ok:' case-insensitive from baseline..HEAD; per .ci/*.txt sorted: skip non-integer current, absent or non-integer baseline; min_* floors loosen on decrease, others on increase; acknowledged loosening ALLOWED else violation -> exit 1. CI wiring: ci.yml uses input or HEAD~1, root commit with .ci edits compares to HEAD, sets require; gates.yml passes origin/base on PR (no require flag) and HEAD~1 with require on push. Matches code; push path only compares the last commit; the non-integer files (.ci/min_coverage_views.txt = 43.5 and .ci/scoring_constants_hash.txt) are never compared.",
+   "hash": "b8ccdca0766d1843",
+   "does": "Specifies check_budget_monotonicity.sh: baseline from arg, origin/$GITHUB_BASE_REF, BUDGET_BASE_REF, else none; none/all-zero/unresolvable -> exit 1 if BUDGET_REQUIRE_BASELINE else skip exit 0; trailers '^budget-raise-ok:' case-insensitive from baseline..HEAD; per .ci/*.txt sorted: skip non-integer current, absent or non-integer baseline; min_* floors loosen on decrease, others on increase; acknowledged loosening ALLOWED else violation -> exit 1. CI wiring: ci.yml uses input or HEAD~1, root commit with .ci edits compares to HEAD, sets require; gates.yml passes origin/base on PR (no require flag) and HEAD~1 with require on push. Matches code; push path only compares the last commit; the non-integer files (.ci/min_coverage_views.txt = 43.5 and .ci/scoring_constants_hash.txt) are never compared. Text now states that at this revision the views-coverage floor (43.5) and deleted budget files were not compared, and that a push compared only its last commit.",
    "entry": null,
    "calls": [
     "scripts/check_budget_monotonicity.sh::fn no_baseline",
     "scripts/check_budget_monotonicity.sh::fn is_allowed",
     "scripts/check_budget_monotonicity.sh::fn is_floor",
-    "scripts/check_budget_monotonicity.sh::fn read_int",
+    "scripts/check_budget_monotonicity.sh::fn read_number",
     "Makefile::target budget-monotonicity",
     ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline",
     ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only",
@@ -818,31 +749,6 @@
    "writes": [],
    "branches": [],
    "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "On push to main the per-push workflow compares budgets only against HEAD~1 of the pushed head. A push of several commits in which an earlier commit raises a budget (and the last does not touch it) is never compared against the pre-push state, so the loosening passes with no budget-raise-ok trailer. 'A push to main therefore cannot skip the comparison' is true only for single-commit pushes.",
-     "evidence": [
-      "docs/whitepapers/04-claims-governance.md:377",
-      ".github/workflows/gates.yml:81",
-      ".github/workflows/gates.yml:82"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "The ratchet skips any .ci file whose value is not a bare integer (read_int requires ^[0-9]+$), and .ci/min_coverage_views.txt holds 43.5 (raised 42.0 -> 43.5 in a0a230f). The views-coverage floor is therefore never compared: it can be lowered to any value with no budget-raise-ok trailer and the gate prints clean. Contradicts 'Each CI budget file may move only in the tightening direction its filename declares' and README's 'Fails any diff that raises/loosens a value in .ci/*.txt'; check_coverage.sh enforces whatever value is committed.",
-     "evidence": [
-      "docs/whitepapers/04-claims-governance.md:24",
-      "docs/whitepapers/04-claims-governance.md:370",
-      "scripts/check_budget_monotonicity.sh:134",
-      "scripts/check_budget_monotonicity.sh:143",
-      ".ci/min_coverage_views.txt:1",
-      "scripts/check_coverage.sh:56"
-     ],
-     "found": "second read"
-    },
     {
      "kind": "fragile",
      "sev": "low",
@@ -858,14 +764,14 @@
     }
    ],
    "deps": {
-    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only": "7123856c78189975",
-    ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline": "9e5b7f6ce70661ff",
-    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "4d1433bd1c0ca96c",
+    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only": "73c8ded96a9405ae",
+    ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline": "02a1b4c3f2a3ec7c",
+    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "6e090e3051ab2682",
     "Makefile::target budget-monotonicity": "734b517fa2d98f72",
     "scripts/check_budget_monotonicity.sh::fn is_allowed": "a002d0e35987ee73",
     "scripts/check_budget_monotonicity.sh::fn is_floor": "313191d94c7788a1",
     "scripts/check_budget_monotonicity.sh::fn no_baseline": "4d98f6bae9009dcc",
-    "scripts/check_budget_monotonicity.sh::fn read_int": "f177c3dac57c9863"
+    "scripts/check_budget_monotonicity.sh::fn read_number": "d8d0aa6b0f8126bc"
    }
   },
   {
@@ -895,7 +801,7 @@
     "scripts/check_budget_monotonicity.sh::fn no_baseline",
     "scripts/check_budget_monotonicity.sh::fn is_allowed",
     "scripts/check_budget_monotonicity.sh::fn is_floor",
-    "scripts/check_budget_monotonicity.sh::fn read_int",
+    "scripts/check_budget_monotonicity.sh::fn read_number",
     "Makefile::target budget-monotonicity",
     ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline",
     ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only",
@@ -918,14 +824,14 @@
     }
    ],
    "deps": {
-    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only": "7123856c78189975",
-    ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline": "9e5b7f6ce70661ff",
-    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "4d1433bd1c0ca96c",
+    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only": "73c8ded96a9405ae",
+    ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline": "02a1b4c3f2a3ec7c",
+    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "6e090e3051ab2682",
     "Makefile::target budget-monotonicity": "734b517fa2d98f72",
     "scripts/check_budget_monotonicity.sh::fn is_allowed": "a002d0e35987ee73",
     "scripts/check_budget_monotonicity.sh::fn is_floor": "313191d94c7788a1",
     "scripts/check_budget_monotonicity.sh::fn no_baseline": "4d98f6bae9009dcc",
-    "scripts/check_budget_monotonicity.sh::fn read_int": "f177c3dac57c9863"
+    "scripts/check_budget_monotonicity.sh::fn read_number": "d8d0aa6b0f8126bc"
    }
   },
   {
@@ -992,8 +898,8 @@
   },
   {
    "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 3. Methods > 3.8 How the parts form one chain",
-   "hash": "2b2cd9ea62b298de",
-   "does": "Claims the gates compose into one chain: constant edit fails scoring governance until version changes, new version fails the register until scoring_version and entries are revisited, new/removed adjusting functions fail discovery/stale check, new copy passes the perimeter. Each link exists, but the first link only holds while the hash baseline is current (see 3.1.1), and the register gate checks only that scoring_version string changed, not that any entry was revisited.",
+   "hash": "9cd7329ac285be28",
+   "does": "Claims the gates compose into one chain: constant edit fails scoring governance until version changes, new version fails the register until scoring_version and entries are revisited, new/removed adjusting functions fail discovery/stale check, new copy passes the perimeter. Each link exists, but the first link only holds while the hash baseline is current (see 3.1.1), and the register gate checks only that scoring_version string changed, not that any entry was revisited. Now qualifies 'fails until the version changes' as once per baseline update (Section 3.1.1).",
    "entry": null,
    "calls": [
     "Makefile::target scoring-governance",
@@ -1008,19 +914,7 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "med",
-     "text": "The lock compares only against the recorded (version, hash) line, and the gate passes whenever version != recorded_version. A maintainer who bumps ScoringVersion.current but does not rewrite .ci/scoring_constants_hash.txt leaves the gate permanently open: every later constant change under the new version also passes, because the recorded version still differs. Nothing forces the baseline to be refreshed, so 'a change to a constant forces a version change' (Sections 3.8/N1) holds only for the first change after each baseline update.",
-     "evidence": [
-      "docs/whitepapers/04-claims-governance.md:132",
-      "scripts/check_scoring_governance.sh:91",
-      "scripts/check_scoring_governance.sh:92"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     ".github/workflows/ci.yml::step lint-and-budgets/Science register (every heuristic classified)": "56feb721e0de6eb5",
     ".github/workflows/ci.yml::step lint-and-budgets/Scoring governance (weight containment, version-on-change)": "489a2d5b99cdec0d",
@@ -1046,8 +940,8 @@
   },
   {
    "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 5. What Is New",
-   "hash": "ae03fbf843cb1f19",
-   "does": "Novelty statements N1-N14 restating mechanisms of Sections 3.1-3.8 with prior-art and dated private-repo records (not verifiable here). Mechanism descriptions match the scripts as noted per section; N2 'the stamp is carried through every derived copy' is contradicted by the legacy pinned/live breakdown path; N12 'a CI-set flag turns a missing baseline into a failure' does not apply to the PR path of gates.yml.",
+   "hash": "cb64c3b09a92f849",
+   "does": "Novelty statements N1-N14 restating mechanisms of Sections 3.1-3.8 with prior-art and dated private-repo records (not verifiable here). Mechanism descriptions match the scripts as noted per section; N2 'the stamp is carried through every derived copy' is contradicted by the legacy pinned/live breakdown path; N12 'a CI-set flag turns a missing baseline into a failure' does not apply to the PR path of gates.yml. N2 now notes that at the described revision a legacy session with no stored breakdown is displayed under the current version.",
    "entry": null,
    "calls": [
     "Makefile::target scoring-governance",
@@ -1076,7 +970,7 @@
     "scripts/check_budget_monotonicity.sh::fn no_baseline",
     "scripts/check_budget_monotonicity.sh::fn is_allowed",
     "scripts/check_budget_monotonicity.sh::fn is_floor",
-    "scripts/check_budget_monotonicity.sh::fn read_int",
+    "scripts/check_budget_monotonicity.sh::fn read_number",
     "Makefile::target budget-monotonicity",
     ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline",
     ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only",
@@ -1092,22 +986,6 @@
    "flags": [
     {
      "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Paper says unstamped history is shown as 'Scored before score versions were recorded' and every derived copy carries the stamp. A legacy session with a frozen recoveryScore but no stored scoreBreakdown is rendered by recomputing a live breakdown (stamped ScoringVersion.current by the init default) and, in MorningResultsViewModel, pinning that breakdown's composite to the frozen old score while again defaulting scoringVersion to current. The detail screen therefore shows the frozen pre-version score above 'Scored by v3.1.oct2026', attributing an old (v1/v2) number to today's algorithm.",
-     "evidence": [
-      "docs/whitepapers/04-claims-governance.md:149",
-      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:150",
-      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:168",
-      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:182",
-      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:206",
-      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:244",
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:129",
-      "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift:276"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "spec-mismatch",
      "sev": "low",
      "text": "Section 3.6.4 says 'in CI the require flag makes the same condition a failure', but the per-push workflow's pull-request path calls the ratchet with origin/<base> and no BUDGET_REQUIRE_BASELINE, so an unresolvable base ref skips with exit 0 on PRs.",
      "evidence": [
@@ -1119,17 +997,17 @@
     }
    ],
    "deps": {
-    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only": "7123856c78189975",
+    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only": "73c8ded96a9405ae",
     ".github/workflows/ci.yml::step lint-and-budgets/Documentation links and constants": "88f60acd02668637",
     ".github/workflows/ci.yml::step lint-and-budgets/Every gate is wired into CI": "2d10106236edd3ae",
     ".github/workflows/ci.yml::step lint-and-budgets/Gates actually fail": "9b353c1b8e398485",
     ".github/workflows/ci.yml::step lint-and-budgets/Gates fail closed": "7fb0e21ee5f44f0c",
     ".github/workflows/ci.yml::step lint-and-budgets/No leaked test mutations": "a6db432637722f65",
-    ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline": "9e5b7f6ce70661ff",
+    ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline": "02a1b4c3f2a3ec7c",
     ".github/workflows/ci.yml::step lint-and-budgets/Science register (every heuristic classified)": "56feb721e0de6eb5",
     ".github/workflows/ci.yml::step lint-and-budgets/Scoring governance (weight containment, version-on-change)": "489a2d5b99cdec0d",
     ".github/workflows/gates.yml::step script-gates/Copy perimeter, science register, scoring governance": "cb4f724309ba1d92",
-    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "4d1433bd1c0ca96c",
+    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "6e090e3051ab2682",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "6d045d2ab75f0630",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(from:)": "64e9bc9bc5ab879d",
     "Makefile::target budget-monotonicity": "734b517fa2d98f72",
@@ -1143,15 +1021,15 @@
     "scripts/check_budget_monotonicity.sh::fn is_allowed": "a002d0e35987ee73",
     "scripts/check_budget_monotonicity.sh::fn is_floor": "313191d94c7788a1",
     "scripts/check_budget_monotonicity.sh::fn no_baseline": "4d98f6bae9009dcc",
-    "scripts/check_budget_monotonicity.sh::fn read_int": "f177c3dac57c9863",
+    "scripts/check_budget_monotonicity.sh::fn read_number": "d8d0aa6b0f8126bc",
     "scripts/lib/preflight.sh::fn gate_mktemp": "2bf9e9cec64b1ffe",
-    "scripts/lib/preflight.sh::fn gate_mktemp_dir": "db452e7a5baf7d20",
-    "scripts/lib/preflight.sh::fn gate_require_nonempty": "7b1ef223e8fe987e",
+    "scripts/lib/preflight.sh::fn gate_mktemp_dir": "9f63eab3fc268bc7",
+    "scripts/lib/preflight.sh::fn gate_require_nonempty": "6e0c0dbc5ae9acef",
     "scripts/verify_gates_fail.sh::fn backup": "25552251e285cbb5",
     "scripts/verify_gates_fail.sh::fn check": "b61e3693876460cc",
     "scripts/verify_gates_fail.sh::fn restore_all": "2fd629e6dda69604",
     "scripts/verify_tests_fail.sh::fn backup": "70119fbe023b417f",
-    "scripts/verify_tests_fail.sh::fn mutate": "e9b411096264e708",
+    "scripts/verify_tests_fail.sh::fn mutate": "d86675934e28c4ce",
     "scripts/verify_tests_fail.sh::fn restore_all": "0cdb4c7320082e7d",
     "scripts/verify_tests_fail.sh::fn run_suite": "2627647aca12e8c4"
    }
@@ -1358,7 +1236,7 @@
     "scripts/check_budget_monotonicity.sh::fn no_baseline",
     "scripts/check_budget_monotonicity.sh::fn is_allowed",
     "scripts/check_budget_monotonicity.sh::fn is_floor",
-    "scripts/check_budget_monotonicity.sh::fn read_int",
+    "scripts/check_budget_monotonicity.sh::fn read_number",
     "Makefile::target budget-monotonicity",
     ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline",
     ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only",
@@ -1383,16 +1261,16 @@
     }
    ],
    "deps": {
-    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only": "7123856c78189975",
+    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only": "73c8ded96a9405ae",
     ".github/workflows/ci.yml::step lint-and-budgets/Documentation links and constants": "88f60acd02668637",
     ".github/workflows/ci.yml::step lint-and-budgets/Every gate is wired into CI": "2d10106236edd3ae",
     ".github/workflows/ci.yml::step lint-and-budgets/Gates actually fail": "9b353c1b8e398485",
     ".github/workflows/ci.yml::step lint-and-budgets/Gates fail closed": "7fb0e21ee5f44f0c",
-    ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline": "9e5b7f6ce70661ff",
+    ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline": "02a1b4c3f2a3ec7c",
     ".github/workflows/ci.yml::step lint-and-budgets/Science register (every heuristic classified)": "56feb721e0de6eb5",
     ".github/workflows/ci.yml::step lint-and-budgets/Scoring governance (weight containment, version-on-change)": "489a2d5b99cdec0d",
     ".github/workflows/gates.yml::step script-gates/Copy perimeter, science register, scoring governance": "cb4f724309ba1d92",
-    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "4d1433bd1c0ca96c",
+    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "6e090e3051ab2682",
     "Makefile::target budget-monotonicity": "734b517fa2d98f72",
     "Makefile::target doc-links": "a8f084188e2d717b",
     "Makefile::target gate-preflight": "6920a992e5fe9a61",
@@ -1403,15 +1281,15 @@
     "scripts/check_budget_monotonicity.sh::fn is_allowed": "a002d0e35987ee73",
     "scripts/check_budget_monotonicity.sh::fn is_floor": "313191d94c7788a1",
     "scripts/check_budget_monotonicity.sh::fn no_baseline": "4d98f6bae9009dcc",
-    "scripts/check_budget_monotonicity.sh::fn read_int": "f177c3dac57c9863",
+    "scripts/check_budget_monotonicity.sh::fn read_number": "d8d0aa6b0f8126bc",
     "scripts/lib/preflight.sh::fn gate_mktemp": "2bf9e9cec64b1ffe",
-    "scripts/lib/preflight.sh::fn gate_mktemp_dir": "db452e7a5baf7d20",
-    "scripts/lib/preflight.sh::fn gate_require_nonempty": "7b1ef223e8fe987e",
+    "scripts/lib/preflight.sh::fn gate_mktemp_dir": "9f63eab3fc268bc7",
+    "scripts/lib/preflight.sh::fn gate_require_nonempty": "6e0c0dbc5ae9acef",
     "scripts/verify_gates_fail.sh::fn backup": "25552251e285cbb5",
     "scripts/verify_gates_fail.sh::fn check": "b61e3693876460cc",
     "scripts/verify_gates_fail.sh::fn restore_all": "2fd629e6dda69604",
     "scripts/verify_tests_fail.sh::fn backup": "70119fbe023b417f",
-    "scripts/verify_tests_fail.sh::fn mutate": "e9b411096264e708",
+    "scripts/verify_tests_fail.sh::fn mutate": "d86675934e28c4ce",
     "scripts/verify_tests_fail.sh::fn restore_all": "0cdb4c7320082e7d",
     "scripts/verify_tests_fail.sh::fn run_suite": "2627647aca12e8c4"
    }
@@ -1570,11 +1448,11 @@
     ".github/workflows/ci.yml::step lint-and-budgets/No leaked test mutations": "a6db432637722f65",
     "Makefile::target ci-local": "2f301710427d57ea",
     "Makefile::target leaked-mutations-guard": "4944d2f5b2b6a744",
-    "scripts/lib/preflight.sh::fn gate_acquire_tree_lock": "d605a361d71d1614",
+    "scripts/lib/preflight.sh::fn gate_acquire_tree_lock": "8261ba2c532e1783",
     "scripts/lib/preflight.sh::fn gate_release_tree_lock": "7a8e2c68b3650dea",
-    "scripts/lib/preflight.sh::fn gate_require_unmutated_tree": "654f69c47cb8b3b9",
+    "scripts/lib/preflight.sh::fn gate_require_unmutated_tree": "de19fe67d79d4de5",
     "scripts/verify_tests_fail.sh::fn backup": "70119fbe023b417f",
-    "scripts/verify_tests_fail.sh::fn mutate": "e9b411096264e708",
+    "scripts/verify_tests_fail.sh::fn mutate": "d86675934e28c4ce",
     "scripts/verify_tests_fail.sh::fn restore_all": "0cdb4c7320082e7d",
     "scripts/verify_tests_fail.sh::fn run_suite": "2627647aca12e8c4"
    }
@@ -1588,7 +1466,7 @@
     "scripts/check_budget_monotonicity.sh::fn no_baseline",
     "scripts/check_budget_monotonicity.sh::fn is_allowed",
     "scripts/check_budget_monotonicity.sh::fn is_floor",
-    "scripts/check_budget_monotonicity.sh::fn read_int",
+    "scripts/check_budget_monotonicity.sh::fn read_number",
     "Makefile::target budget-monotonicity",
     ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline",
     ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only",
@@ -1601,15 +1479,15 @@
    "branches": [],
    "flags": [],
    "deps": {
-    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only": "7123856c78189975",
-    ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline": "9e5b7f6ce70661ff",
-    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "4d1433bd1c0ca96c",
+    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only": "73c8ded96a9405ae",
+    ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline": "02a1b4c3f2a3ec7c",
+    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "6e090e3051ab2682",
     "Makefile::target budget-monotonicity": "734b517fa2d98f72",
     "Makefile::target debt-budget": "8e30dd4714319a14",
     "scripts/check_budget_monotonicity.sh::fn is_allowed": "a002d0e35987ee73",
     "scripts/check_budget_monotonicity.sh::fn is_floor": "313191d94c7788a1",
     "scripts/check_budget_monotonicity.sh::fn no_baseline": "4d98f6bae9009dcc",
-    "scripts/check_budget_monotonicity.sh::fn read_int": "f177c3dac57c9863",
+    "scripts/check_budget_monotonicity.sh::fn read_number": "d8d0aa6b0f8126bc",
     "scripts/enforce_tech_debt_budgets.sh::fn read_budget": "8384d98e4d124966"
    }
   },
@@ -1648,7 +1526,7 @@
     "scripts/check_budget_monotonicity.sh::fn no_baseline",
     "scripts/check_budget_monotonicity.sh::fn is_allowed",
     "scripts/check_budget_monotonicity.sh::fn is_floor",
-    "scripts/check_budget_monotonicity.sh::fn read_int",
+    "scripts/check_budget_monotonicity.sh::fn read_number",
     "Makefile::target budget-monotonicity",
     ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline",
     ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only",
@@ -1677,28 +1555,28 @@
    "flags": [],
    "deps": {
     ".github/workflows/ci.yml::job lint-and-budgets": "e8fbfbf528bb1174",
-    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only": "7123856c78189975",
+    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only": "73c8ded96a9405ae",
     ".github/workflows/ci.yml::step lint-and-budgets/Documentation links and constants": "88f60acd02668637",
     ".github/workflows/ci.yml::step lint-and-budgets/Every gate is wired into CI": "2d10106236edd3ae",
     ".github/workflows/ci.yml::step lint-and-budgets/Gates actually fail": "9b353c1b8e398485",
     ".github/workflows/ci.yml::step lint-and-budgets/Gates fail closed": "7fb0e21ee5f44f0c",
     ".github/workflows/ci.yml::step lint-and-budgets/No leaked test mutations": "a6db432637722f65",
-    ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline": "9e5b7f6ce70661ff",
+    ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline": "02a1b4c3f2a3ec7c",
     ".github/workflows/ci.yml::step lint-and-budgets/Science register (every heuristic classified)": "56feb721e0de6eb5",
     ".github/workflows/ci.yml::step lint-and-budgets/Scoring governance (weight containment, version-on-change)": "489a2d5b99cdec0d",
     ".github/workflows/gates.yml::job script-gates": "a3719763dec17ea7",
     ".github/workflows/gates.yml::step script-gates/Copy perimeter, science register, scoring governance": "cb4f724309ba1d92",
-    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "4d1433bd1c0ca96c",
+    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "6e090e3051ab2682",
     ".github/workflows/testflight.yml::job quality-gate": "cbcc490220e8dd12",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "6d045d2ab75f0630",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(from:)": "64e9bc9bc5ab879d",
     "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.breakdownRefreshingVitalsFactor(_:freshVitals:baselineStats:)": "06335fbd097cdaa4",
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.buildUserProfile(settings:customTagNames:effectiveVO2Max:)": "b463408c2148f4e1",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.scoreAlgorithmVersionEntry": "337f02ee28379cbd",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.scoreAlgorithmVersionEntry": "98e718f4a096dca4",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.breakdownWithoutHealthKitReadings(_:)": "75fa66139d5209fc",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoring(_: RecoveryScoreCalculator.ScoreBreakdown?, from: RecoveryScoreCalculator.ScoreBreakdown?)": "994575427acd0d39",
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.scoringProvenance": "d68df7407da1b095",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.scoringVersionLine": "28b7a4a190ecf3a7",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.scoringVersionLine": "e765635777db6913",
     "Makefile::target budget-monotonicity": "734b517fa2d98f72",
     "Makefile::target ci": "b679f3a8965b735e",
     "Makefile::target ci-local": "2f301710427d57ea",
@@ -1715,16 +1593,16 @@
     "scripts/check_budget_monotonicity.sh::fn is_allowed": "a002d0e35987ee73",
     "scripts/check_budget_monotonicity.sh::fn is_floor": "313191d94c7788a1",
     "scripts/check_budget_monotonicity.sh::fn no_baseline": "4d98f6bae9009dcc",
-    "scripts/check_budget_monotonicity.sh::fn read_int": "f177c3dac57c9863",
+    "scripts/check_budget_monotonicity.sh::fn read_number": "d8d0aa6b0f8126bc",
     "scripts/evidence_report.sh::fn budget": "7b60743b6aec5438",
     "scripts/lib/preflight.sh::fn gate_mktemp": "2bf9e9cec64b1ffe",
-    "scripts/lib/preflight.sh::fn gate_mktemp_dir": "db452e7a5baf7d20",
-    "scripts/lib/preflight.sh::fn gate_require_nonempty": "7b1ef223e8fe987e",
+    "scripts/lib/preflight.sh::fn gate_mktemp_dir": "9f63eab3fc268bc7",
+    "scripts/lib/preflight.sh::fn gate_require_nonempty": "6e0c0dbc5ae9acef",
     "scripts/verify_gates_fail.sh::fn backup": "25552251e285cbb5",
     "scripts/verify_gates_fail.sh::fn check": "b61e3693876460cc",
     "scripts/verify_gates_fail.sh::fn restore_all": "2fd629e6dda69604",
     "scripts/verify_tests_fail.sh::fn backup": "70119fbe023b417f",
-    "scripts/verify_tests_fail.sh::fn mutate": "e9b411096264e708",
+    "scripts/verify_tests_fail.sh::fn mutate": "d86675934e28c4ce",
     "scripts/verify_tests_fail.sh::fn restore_all": "0cdb4c7320082e7d",
     "scripts/verify_tests_fail.sh::fn run_suite": "2627647aca12e8c4"
    }

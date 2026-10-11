@@ -1,29 +1,17 @@
 {
  "file": "Emuqu/Sources/Collection/WorkoutStartLatencyTracker.swift",
- "hash": "678270a3174a2858",
+ "hash": "625083861c09c76b",
  "role": "MainActor singleton that stamps tap → start.entry → phase flip → announce → start() returned during workout start and logs each gap (warning above 500 ms).",
  "types": [
   "WorkoutStartLatencyTracker: final class — start-latency instrumentation"
  ],
  "state": [
   "mem:WorkoutStartLatencyTracker.shared",
-  "mem:WorkoutStartLatencyTracker.tapAt/startEntryAt/phaseFlipAt"
+  "mem:WorkoutStartLatencyTracker.tapAt/startEntryAt/phaseFlipAt",
+  "static tapMatchWindowSeconds = 60"
  ],
  "toplevel": "Singleton `shared` with private init.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Header says announce.fire is when 'announceStart() actually ran on the main actor', but recordAnnounceFire is stamped synchronously inside start() (wireEarlyHRObservationAndStampAnnounce) before the announce Task runs, so the logged phase→announce gap never measures the real announce delay.",
-   "evidence": [
-    "Emuqu/Sources/Collection/WorkoutStartLatencyTracker.swift:11",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:423",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:427",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:437"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "init WorkoutStartLatencyTracker()",
@@ -55,15 +43,19 @@
   },
   {
    "key": "func WorkoutStartLatencyTracker.recordStartEntry()",
-   "hash": "ad93cf8db8fc4ed3",
-   "does": "If a tap was stamped, stamps start entry and logs tap→start.entry ms (warning above 500 ms).",
+   "hash": "0f83bb94cf716869",
+   "does": "If a tap was stamped within the last 60 s, stamps start entry and logs tap→start.entry ms (warning above 500 ms); an older tap is not this start's — logged and all stamps cleared.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Collection/WorkoutStartLatencyTracker.swift::func WorkoutStartLatencyTracker.clear()"
+   ],
    "reads": [
     "mem:WorkoutStartLatencyTracker.tapAt"
    ],
    "writes": [
-    "mem:WorkoutStartLatencyTracker.startEntryAt"
+    "mem:WorkoutStartLatencyTracker.startEntryAt",
+    "mem:WorkoutStartLatencyTracker.tapAt"
    ],
    "branches": [
     {
@@ -72,28 +64,19 @@
      "effect": "false: returns (start not from preflight tap, e.g. Watch command)"
     },
     {
-     "at": "+4",
+     "at": "+2",
+     "cond": "tap within tapMatchWindowSeconds",
+     "effect": "false: logs and clear(), not measured"
+    },
+    {
+     "at": "+9",
      "cond": "ms > 500 (?:)",
      "effect": "warning level else info"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "tapAt is cleared only by recordStartReturned; when start() throws after recordStartEntry (applyStartParametersAndGuardIdle / resolveEffectiveSource / beginPolarStreamingOrDefer) or the preflight tap never reaches start, the stale tap stays, and a later Watch-triggered start (no recordTap) logs 'tap -> start.entry' measured from that old tap, at warning level.",
-     "evidence": [
-      "Emuqu/Sources/Collection/WorkoutStartLatencyTracker.swift:37",
-      "Emuqu/Sources/Collection/WorkoutStartLatencyTracker.swift:72",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:65",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:71",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:81",
-      "Emuqu/Sources/Services/AppLaunchTasks.swift:58"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Collection/WorkoutStartLatencyTracker.swift::func WorkoutStartLatencyTracker.clear()": "949ee325a9703ca6",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
@@ -167,10 +150,13 @@
   },
   {
    "key": "func WorkoutStartLatencyTracker.recordStartReturned()",
-   "hash": "937af8a05f33d933",
-   "does": "If a tap was stamped, logs tap→start() returned ms and clears all stamps.",
+   "hash": "f1a2fbf0a937cd1f",
+   "does": "If a tap was stamped, logs tap→start() returned ms and clears all stamps (clear()).",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Collection/WorkoutStartLatencyTracker.swift::func WorkoutStartLatencyTracker.clear()"
+   ],
    "reads": [
     "mem:WorkoutStartLatencyTracker.tapAt"
    ],
@@ -193,8 +179,45 @@
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Collection/WorkoutStartLatencyTracker.swift::func WorkoutStartLatencyTracker.clear()": "949ee325a9703ca6",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
+  },
+  {
+   "key": "func WorkoutStartLatencyTracker.recordStartAbandoned()",
+   "hash": "9417243a63a7616c",
+   "does": "start() threw: clears the tap and stamps (clear()) so a later start — a Watch start records no tap — is not measured from them.",
+   "entry": "Called by WorkoutSessionLifecycle.abandonFailedStart from start()'s defer on a throw.",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutStartLatencyTracker.swift::func WorkoutStartLatencyTracker.clear()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:WorkoutStartLatencyTracker.tapAt",
+    "mem:WorkoutStartLatencyTracker.startEntryAt",
+    "mem:WorkoutStartLatencyTracker.phaseFlipAt"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutStartLatencyTracker.swift::func WorkoutStartLatencyTracker.clear()": "949ee325a9703ca6"
+   }
+  },
+  {
+   "key": "func WorkoutStartLatencyTracker.clear()",
+   "hash": "0ebd6d188b5b9151",
+   "does": "Sets tapAt, startEntryAt and phaseFlipAt to nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:WorkoutStartLatencyTracker.tapAt",
+    "mem:WorkoutStartLatencyTracker.startEntryAt",
+    "mem:WorkoutStartLatencyTracker.phaseFlipAt"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
   }
  ],
  "deps": {}

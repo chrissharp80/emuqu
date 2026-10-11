@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift",
  "hash": "e60c311cb03595b4",
- "role": "One-shot recalibration of frozen trainingSnapshot on scored overnight/nap sessions with the current TRIMP formula (post-Banister 0.64 fix), followed by a rescore against the prior-nights baseline.",
+ "role": "One-shot recalibration of the frozen trainingSnapshot (and the frozen readiness derived from it) on scored overnight/nap sessions with the current TRIMP formula (post-Banister 0.64 fix); the recovery score is left as it is, since the composite does not read training.",
  "types": [
   "SessionDataMigrations: extension — training-snapshot recalibration + shared helpers carriesRecoveryScore/trainingAnchor/recalibratedContext"
  ],
@@ -9,30 +9,17 @@
   "ud:didRunTrainingRecalibration_v1_banister064 (standard suite; static trainingRecalibrationKey)"
  ],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "med",
-   "text": "Doc says the migration rescores \"with the corrected training context\" so stored CTL no longer lands in the novel-load path, but RecoveryScoreCalculator.calculateWithBreakdown(trainingContext:) discards trainingContext (`_ = trainingContext`). The rescore therefore changes recoveryScore only through other inputs (current settings, prior-nights baseline, raw vitals, referenceDate = now), i.e. it silently rescores every scored night for reasons unrelated to training.",
-   "evidence": [
-    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift:10-24",
-    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift:146-158",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:486"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "func SessionDataMigrations.runTrainingRecalibrationIfNeeded()",
-   "hash": "ba137d3696fa28a9",
-   "does": "If the flag is unset, loads all sessions, picks candidates, recalibrates each with its prior-nights baseline (yielding between), sets the flag and logs the touched count.",
+   "hash": "fcb9156dbeb420be",
+   "does": "If the flag is unset, loads all sessions, picks candidates, recalibrates each (yielding between), sets the flag and logs the touched count.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.loadArchivedSessions()",
     "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.recalibrationCandidates(in:defaults:)",
-    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.recalibrate(_:baseline:)",
-    "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.scoringBaseline(for:)",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.recalibrate(_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
@@ -50,7 +37,7 @@
     },
     {
      "at": "+3",
-     "cond": "recalibrationCandidates nil (none -> flag set; or no baseline -> retry next launch)",
+     "cond": "no candidates (flag set by callee)",
      "effect": "return"
     },
     {
@@ -66,17 +53,6 @@
    ],
    "flags": [
     {
-     "kind": "race",
-     "sev": "med",
-     "text": "Sessions are loaded once and each is written back after an awaited HealthKit training-load query; any archive update to that session in between is overwritten by the stale copy.",
-     "evidence": [
-      "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift:44",
-      "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift:92",
-      "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift:101"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
      "kind": "untested",
      "sev": "low",
      "text": "No test calls runTrainingRecalibrationIfNeeded; only the static recalibratedContext is tested (RRModelsTests.swift:358-379).",
@@ -84,30 +60,26 @@
       "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift:41",
       "EmuquTests/RRModelsTests.swift:358"
      ],
-     "found": "second read"
+     "found": "first read, upheld on second"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.recalibrate(_:baseline:)": "49eaf633b53b980e",
-    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.recalibrationCandidates(in:defaults:)": "53bc5c215e491240",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.recalibrate(_:)": "5982f471c0968fca",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.recalibrationCandidates(in:defaults:)": "63cc82718d0b9598",
     "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.loadArchivedSessions()": "126051022cf23c3b",
-    "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.scoringBaseline(for:)": "0ae7470dd30e42f8",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
    "key": "func SessionDataMigrations.recalibrationCandidates(in:defaults:)",
-   "hash": "a1acb871e5b3b965",
-   "does": "Filters sessions with a trainingSnapshot that carry a recovery score; sets the flag and returns nil if none; returns nil (no flag) if the all-nights baseline is not built; else returns candidates.",
+   "hash": "8e91d974f321f597",
+   "does": "Filters sessions with a trainingSnapshot that carry a recovery score; sets the flag and returns nil if none; else returns them (no baseline is needed: nothing is rescored).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.carriesRecoveryScore(_:)",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
-   "reads": [
-    "mem:BaselineTracker.historicalData"
-   ],
+   "reads": [],
    "writes": [
     "ud:didRunTrainingRecalibration_v1_banister064"
    ],
@@ -116,40 +88,35 @@
      "at": "+2",
      "cond": "no candidates",
      "effect": "set flag, log, return nil"
-    },
-    {
-     "at": "+7",
-     "cond": "BaselineTracker.recoveryBaselineStats nil",
-     "effect": "log, return nil without flag (retry next launch); otherwise return candidates"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats": "9916669422d3e401",
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
     "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.carriesRecoveryScore(_:)": "15ddd86c7ef287cf",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
-   "key": "func SessionDataMigrations.recalibrate(_:baseline:)",
-   "hash": "eb6a112ae01a3927",
-   "does": "Recomputes training load as of the session end via HealthKit, builds a new TrainingContext (keeping frozen VO2max), writes it to trainingSnapshot and analysisResult.trainingContext, rescores when a baseline is given, and archives; returns whether written.",
+   "key": "func SessionDataMigrations.recalibrate(_:)",
+   "hash": "306b7e57e3380365",
+   "does": "Recomputes the training load as of the session end via HealthKit and builds a new TrainingContext (keeping the frozen VO2max); applies it with applyCorrectedContext to the archived copy as it is at the write (archive.update, no re-upload), so a change saved during the HealthKit query is kept; returns whether written.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.trainingAnchor(of:)",
     "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::func HealthKitManager.calculateTrainingLoad(relativeTo:)",
     "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.recalibratedContext(load:anchor:old:)",
-    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.applyRescore(_:result:context:baseline:)",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.applyCorrectedContext(_:to:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
-    "hk:workouts/heart rate via calculateTrainingLoad(relativeTo:)"
+    "hk:workouts/heart rate via calculateTrainingLoad(relativeTo:)",
+    "archive:session (current copy, in update)"
    ],
    "writes": [
-    "archive:SessionArchive.archive(_:) (full-session overwrite, skipSameNightMerge false, no reupload)",
-    "notif:flowRecoveryArchiveChanged (posted by SessionArchive.archive)"
+    "archive:SessionArchive.update (in place, no reupload)",
+    "notif:flowRecoveryArchiveChanged (posted by SessionArchive.update)"
    ],
    "branches": [
     {
@@ -159,28 +126,23 @@
     },
     {
      "at": "+4",
-     "cond": "recalibratedContext nil (no metrics, ctl and atl both 0, or TrainingContext init failed)",
-     "effect": "return false; snapshot left alone"
+     "cond": "no recalibrated context (no metrics / no training)",
+     "effect": "return false"
     },
     {
-     "at": "+10",
-     "cond": "baseline (prior nights) non-nil",
-     "effect": "applyRescore; nil -> snapshot rewritten but recoveryScore/breakdown/frozenReadiness kept"
-    },
-    {
-     "at": "+14",
-     "cond": "archive throws",
-     "effect": "log, return false"
+     "at": "+12",
+     "cond": "update throws",
+     "effect": "logged, return false"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
-    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.applyRescore(_:result:context:baseline:)": "590ee3d6511439f3",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.applyCorrectedContext(_:to:)": "07f1c5fa41cb3e13",
     "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.recalibratedContext(load:anchor:old:)": "72c0a39e793f43f1",
     "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.trainingAnchor(of:)": "f21e1f3c3178fccd",
     "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::func HealthKitManager.calculateTrainingLoad(relativeTo:)": "6701fb9622de3bda",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "e021c7f17b266931",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
@@ -242,62 +204,26 @@
    }
   },
   {
-   "key": "func SessionDataMigrations.applyRescore(_:result:context:baseline:)",
-   "hash": "8b0d926fcb12ab91",
-   "does": "Recomputes the composite with the given context, prior baseline, stored sleep and raw vitals snapshot, current settings, useBaselineHRV = !isReliableForHRVAggregates and acceptance ANS balance; writes recoveryScore, scoreBreakdown and frozenReadiness.",
+   "key": "func SessionDataMigrations.applyCorrectedContext(_:to:)",
+   "hash": "25577beb4f9103bf",
+   "does": "Writes the corrected context to trainingSnapshot and analysisResult.trainingContext and recomputes frozenReadiness from the night's own composite score with it; recoveryScore and scoreBreakdown stay.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoringConfiguration(from:)",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates",
-    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.ansBalance(_:)"
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)"
    ],
-   "reads": [
-    "mem:SettingsManager.settings"
-   ],
+   "reads": [],
    "writes": [],
-   "branches": [],
-   "flags": [
+   "branches": [
     {
-     "kind": "duplicate",
-     "sev": "med",
-     "text": "Duplicate of InsufficientDataMigration.applyBaselineRescore and ReanalysisService.rescoreBreakdown; uses raw vitalsSnapshot rather than ReanalysisService.scoringVitals (nocturnal HR swap), so the migrated score can differ from what recomputeScoreOnly produces for the same night.",
-     "evidence": [
-      "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift:150",
-      "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift:98",
-      "Emuqu/Sources/Services/ReanalysisService.swift:583-596"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "broken",
-     "sev": "high",
-     "text": "Rescore passes no referenceDate, so RecoveryScoreCalculator.calculateWithBreakdown uses Date() and the baseline-staleness penalty is measured from the prior-nights baseline's last point (the night before the session) to NOW; every archived night older than ~7 days gets 5-20 points deducted from its HRV score, lowering the stored recoveryScore of historic nights. ReanalysisService.rescoreBreakdown passes referenceDate: session.endDate ?? startDate for exactly this reason.",
-     "evidence": [
-      "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift:146-158",
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:484",
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift:61",
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift:79-91",
-      "Emuqu/Sources/Utilities/Constants+RecoveryScore.swift:71-75",
-      "Emuqu/Sources/Services/ReanalysisService.swift:603-605"
-     ],
-     "found": "second read"
+     "at": "+3",
+     "cond": "no scoreBreakdown",
+     "effect": "frozenReadiness left as it was"
     }
    ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)": "18aa103b513d602d",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)": "ca2be1737136e0d8",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoringConfiguration(from:)": "5bd1e51efadaa4a7",
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
-    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.ansBalance(_:)": "a84ca1852d788d10",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)": "7aa853f03a8994f8",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "245c2d41dcd0a692"
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)": "7aa853f03a8994f8"
    }
   },
   {
@@ -313,38 +239,6 @@
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c"
-   }
-  },
-  {
-   "key": "func SessionDataMigrations.ansBalance(_:)",
-   "hash": "d296db378a192635",
-   "does": "Returns pnsIndex - snsIndex or nil when either is missing.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "pnsIndex or snsIndex missing",
-     "effect": "nil; otherwise difference"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same helper as InsufficientDataMigration ansBalance and ReanalysisService.ansBalance(of:).",
-     "evidence": [
-      "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift:171",
-      "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift:114",
-      "Emuqu/Sources/Services/ReanalysisService.swift:568"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d"
    }
   }
  ],

@@ -73,11 +73,6 @@ final class ProviderRegistry {
     /// provider changes. View renders read the cached bool — zero
     /// Keychain access per keystroke.
     private(set) var activeProviderAvailable: Bool = false
-    /// Same idea for Apple specifically — `AppleFoundationProvider.isAvailable`
-    /// calls `SystemLanguageModel.default.availability` (Foundation
-    /// Models framework hop). Cached so repeated reads in the input
-    /// bar don't pay the cost.
-    private(set) var appleAvailable: Bool = false
 
     /// `refreshAvailabilityCache()` must run on EVERY branch, not
     /// only the third (nothing-available). If the first two
@@ -143,24 +138,17 @@ final class ProviderRegistry {
         provider.availableModels.first(where: { $0.isDefault }) ?? provider.availableModels.first
     }
 
-    /// Recompute the cached availability bools. Call:
+    /// Recompute the cached availability bool. Call:
     ///   - After a key is set/removed (via `keysChanged()`)
     ///   - After `setActive(...)` swaps the active provider
     ///   - At app launch via deferred init
     func refreshAvailabilityCache() {
         AppDependencies.current.app.keyboardPerfSignpost.event("ProviderRegistry.refreshAvailabilityCache")
         let active = activeProvider.isAvailable
-        let apple = self.apple.isAvailable
         if activeProviderAvailable != active { activeProviderAvailable = active }
-        if appleAvailable != apple { self.appleAvailable = apple }
     }
 
     // MARK: - Selection API
-
-    /// True when at least one provider is callable (Apple available OR any key set).
-    var anyProviderAvailable: Bool {
-        allProviders.contains(where: \.isAvailable)
-    }
 
     /// Providers that have a chance of working right now.
     /// (Apple always shows; paid providers only show when their key is set

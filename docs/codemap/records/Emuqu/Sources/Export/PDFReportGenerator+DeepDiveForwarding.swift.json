@@ -1,24 +1,13 @@
 {
  "file": "Emuqu/Sources/Export/PDFReportGenerator+DeepDiveForwarding.swift",
  "hash": "6a58d92ad7130c87",
- "role": "Forwarders on PDFReportGenerator to DeepDiveReportRenderer for the four deep-dive blocks and wrapped text, plus the `deepDive` computed property that builds the renderer.",
+ "role": "Forwarders on PDFReportGenerator to DeepDiveReportRenderer for the four deep-dive blocks, plus the `deepDive` computed property that builds the renderer afresh on each call.",
  "types": [
   "PDFReportGenerator: extension — deep-dive forwarding"
  ],
  "state": [],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Comment calls `deepDive` 'Lazy' and built only when needed; it is a computed property that constructs a new DeepDiveReportRenderer on every access (each forwarder call), not a lazily cached instance.",
-   "evidence": [
-    "Emuqu/Sources/Export/PDFReportGenerator+DeepDiveForwarding.swift:14",
-    "Emuqu/Sources/Export/PDFReportGenerator+DeepDiveForwarding.swift:16"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "var PDFReportGenerator.deepDive",
@@ -101,36 +90,6 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.drawDeepVitalsAnalysis(vitals:pageNumber:yPosition:in:pageRect:)": "edaf6195f452e18e",
-    "Emuqu/Sources/Export/PDFReportGenerator+DeepDiveForwarding.swift::var PDFReportGenerator.deepDive": "478fbdd48f8d3d63"
-   }
-  },
-  {
-   "key": "func PDFReportGenerator.drawWrappedText(_:style:y:contentWidth:pageNumber:context:pageRect:)",
-   "hash": "aadaeadd97159d47",
-   "does": "Forwards to DeepDiveReportRenderer.drawWrappedText.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawWrappedText(_:style:y:contentWidth:pageNumber:context:pageRect:)",
-    "Emuqu/Sources/Export/PDFReportGenerator+DeepDiveForwarding.swift::var PDFReportGenerator.deepDive"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No caller: grep finds `drawWrappedText(` only inside DeepDiveReportRenderer (which calls its own method), WorkoutPDFReport/HolisticDailyReport (their own methods) and this forwarder's body; nothing calls PDFReportGenerator.drawWrappedText, tests included.",
-     "evidence": [
-      "Emuqu/Sources/Export/PDFReportGenerator+DeepDiveForwarding.swift:79",
-      "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift:67",
-      "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift:123"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawWrappedText(_:style:y:contentWidth:pageNumber:context:pageRect:)": "491eb379bc9a571e",
     "Emuqu/Sources/Export/PDFReportGenerator+DeepDiveForwarding.swift::var PDFReportGenerator.deepDive": "478fbdd48f8d3d63"
    }
   }

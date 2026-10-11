@@ -3,7 +3,7 @@ import XCTest
 /// Settings sub-page coverage.
 ///
 /// Settings owns 21+ sub-pages. This suite walks
-/// every sub-page reachable from the Settings root and asserts:
+/// every page the Settings root pushes, by its row's identifier, and asserts:
 ///
 ///   • Tapping the row leaves the Settings root (the row is covered by the
 ///     pushed page or sheet).
@@ -12,6 +12,10 @@ import XCTest
 ///
 /// Each test is independent so a failure in one sub-page doesn't
 /// cascade. Rows are found by accessibility identifier.
+///
+/// Not walked: Contact Support, a `mailto:` link that leaves the app for
+/// Mail, and Restore Purchases, an action rather than a page. The delete
+/// route under Advanced Data Controls is `DataDeletionUITests`'s.
 @MainActor
 final class SettingsNavigationUITests: XCTestCase {
 
@@ -20,7 +24,7 @@ final class SettingsNavigationUITests: XCTestCase {
     override func setUp() async throws {
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments += ["-UITests", "-UITests-FreshInstall"] + UITestLanguage.english
+        app.launchArguments += ["-UITests-FreshInstall"] + UITestLanguage.english
         app.launch()
         UITestLaunch.toMainUI(app)
         navigateToSettings()
@@ -101,7 +105,7 @@ final class SettingsNavigationUITests: XCTestCase {
         // proves anything moved. The tapped row leaving the screen does: it
         // stops being hittable once a page is pushed (or a sheet covers it).
         XCTAssertTrue(
-            waitUntil(UITestTiming.s(5)) { !row.exists || !row.isHittable },
+            waitUntil(UITestTiming.s(5)) { !row.exists || !UITestFind.isSafelyHittable(row, in: app) },
             "'\(identifier)' tap did not leave the Settings root — \(UITestFind.onScreen(app))",
             file: file, line: line
         )
@@ -110,13 +114,16 @@ final class SettingsNavigationUITests: XCTestCase {
         popToSettingsRoot()
         let returned = scrolledIntoView(identifier: identifier, label: label)
         XCTAssertTrue(
-            waitUntil(UITestTiming.s(5)) { returned.exists && returned.isHittable },
+            waitUntil(UITestTiming.s(5)) { UITestFind.isSafelyHittable(returned, in: app) },
             "Back from '\(identifier)' did not return to the Settings root — \(UITestFind.onScreen(app))",
             file: file, line: line
         )
     }
 
-    /// Polls `condition` until it holds or `timeout` passes.
+    /// Polls `condition` until it holds or `timeout` passes. Conditions ask
+    /// `UITestFind.isSafelyHittable`, never bare `isHittable`: this polls
+    /// mid-transition, exactly when `isHittable` raises on an element whose
+    /// frame has left the app.
     private func waitUntil(_ timeout: TimeInterval, _ condition: () -> Bool) -> Bool {
         let deadline = Date().addingTimeInterval(timeout)
         while Date() < deadline {
@@ -180,21 +187,32 @@ final class SettingsNavigationUITests: XCTestCase {
         walkSubPage(identified: UITestID.settingsModes, label: "Modes")
     }
 
-    /// AI Assistant settings (skip when AI tab is disabled in this build).
-    func testAIAssistantSubpageRenders() throws {
-        // By identifier. The row is titled "Flo" and sits
-        // under a section header that is also "Flo", so the old
-        // `label CONTAINS[c] "Flo"` query matched the header — which is not
-        // tappable — roughly as often as it matched the row.
-        let row = UITestFind.row(in: app, identifier: UITestID.settingsFlo, label: "Flo")
-        try XCTSkipUnless(row.waitForExistence(timeout: UITestTiming.s(3)),
-                          "Flo (AI) disabled in this build; settings row hidden")
-        row.tap()
-        let navBar = app.navigationBars.firstMatch
-        XCTAssertTrue(navBar.waitForExistence(timeout: UITestTiming.s(3)),
-                      "Flo settings page must render a navigation bar")
-        let backButtons = app.navigationBars.buttons.allElementsBoundByIndex
-        if let back = backButtons.first { back.tap() }
+    /// Flo (AI assistant) settings. The row is in every build, so it is
+    /// walked like the others rather than skipped when not found. By
+    /// identifier: the row is titled "Flo" and sits under a section header
+    /// that is also "Flo", which a label query matches as often as the row.
+    func testAIAssistantSubpageRenders() {
+        walkSubPage(identified: UITestID.settingsFlo, label: "Flo")
+    }
+
+    /// iCloud & Data: sync and storage controls.
+    func testDataSubpageRenders() {
+        walkSubPage(identified: UITestID.settingsData, label: "iCloud & Data")
+    }
+
+    /// Tags: the custom tag library.
+    func testTagsSubpageRenders() {
+        walkSubPage(identified: UITestID.settingsTags, label: "Tags")
+    }
+
+    /// My Routes: the saved route library.
+    func testRoutesSubpageRenders() {
+        walkSubPage(identified: UITestID.settingsRoutes, label: "My Routes")
+    }
+
+    /// Permissions: what the app has been allowed, and where to change it.
+    func testPermissionsSubpageRenders() {
+        walkSubPage(identified: UITestID.settingsPermissions, label: "Permissions")
     }
 
     /// Notifications: morning notification scheduler toggle, time picker.
@@ -229,6 +247,21 @@ final class SettingsNavigationUITests: XCTestCase {
         walkSubPage(identified: UITestID.settingsHelpCenter, label: "Help & Learn")
     }
 
+    /// Metric Guide: what each metric means.
+    func testMetricGuideSubpageRenders() {
+        walkSubPage(identified: UITestID.settingsMetricGuide, label: "Metric Guide")
+    }
+
+    /// How Emuqu scores recovery: the methodology page.
+    func testMethodologySubpageRenders() {
+        walkSubPage(identified: UITestID.settingsMethodology, label: "How Emuqu scores recovery")
+    }
+
+    /// Terms of Use.
+    func testTermsOfUseSubpageRenders() {
+        walkSubPage(identified: UITestID.settingsTermsOfUse, label: "Terms of Use")
+    }
+
     /// Privacy Policy must always be reachable from Settings (App
     /// Store guideline 5.1.1).
     func testPrivacyPolicySubpageRenders() {
@@ -255,11 +288,12 @@ final class SettingsNavigationUITests: XCTestCase {
         // Zip is the last entry in the list, so it is below
         // the fold on every device; waiting for it in place reports it missing.
         //
-        // Completeness is not checked here — a hand-written list goes stale
-        // (RxSwift stopped being a dependency when the Polar SDK moved to
-        // 8.2.0) while `check_acknowledgements_complete.sh` compares every
-        // entry against `Package.resolved`, which cannot. What this test owns
-        // is that the page actually renders and scrolls to its last entry.
+        // Completeness is not checked here, and nothing else checks it
+        // either: the list in `PrivacyPolicyView` is hand-written and can go
+        // stale (RxSwift stopped being a dependency when the Polar SDK moved
+        // to 8.2.0) with no gate comparing it to `Package.resolved`. What
+        // this test owns is that the page renders and scrolls to the three
+        // entries named below.
         let names = ["polar-ble-sdk", "swift-protobuf", "Zip"]
         for name in names {
             let pkg = app.staticTexts[name]
@@ -277,30 +311,16 @@ final class SettingsNavigationUITests: XCTestCase {
         if let back = backButtons.first { back.tap() }
     }
 
-    /// Delete-All-Data row reachable. The actual purge is exercised in
-    /// `DataDeletionUITests`; here we just confirm the entry point.
-    /// The previous version searched the Settings *root*
-    /// for "Delete All Data", skipped when it wasn't there (it never is — the
-    /// row lives one level down, under Advanced Data Controls) and then closed
-    /// with `XCTAssertTrue(true)`. Two ways of asserting nothing in six lines.
-    func testDeleteAllDataEntryReachable() {
-        let advanced = scrolledIntoView(identifier: UITestID.settingsAdvancedDataControls,
-                                        label: "Advanced Data Controls")
-        XCTAssertTrue(advanced.exists,
-                      "Advanced Data Controls must be reachable — \(UITestFind.onScreen(app))")
-        guard advanced.exists else { return }
-        advanced.tap()
-
-        let deleteRow = UITestFind.row(in: app, identifier: UITestID.settingsDeleteAllData,
-                                       label: "Delete All My Data")
-        XCTAssertTrue(deleteRow.waitForExistence(timeout: UITestTiming.s(5)),
-                      "Advanced Data Controls must list the delete route — \(UITestFind.onScreen(app))")
-        popToSettingsRoot()
+    /// Advanced Data Controls. The tap-through route on to Delete All My
+    /// Data, and the purge itself, are `DataDeletionUITests`'s.
+    func testAdvancedDataControlsSubpageRenders() {
+        walkSubPage(identified: UITestID.settingsAdvancedDataControls, label: "Advanced Data Controls")
     }
 
     /// The search route to the delete page must work exactly like the
-    /// tap-through route above: search, open Advanced Data Controls from the
-    /// results, then open Delete All My Data from inside it. Search results
+    /// tap-through route `DataDeletionUITests` walks: search, open Advanced
+    /// Data Controls from the results, then open Delete All My Data from
+    /// inside it. Search results
     /// used to open in a sheet whose inner links did nothing, so this last
     /// tap was dead.
     func testDeleteAllDataReachableFromSearch() {

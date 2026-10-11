@@ -1,6 +1,6 @@
 {
  "file": "scripts/check_refactor_spec_conformance.sh",
- "hash": "4ee4c19bd3952234",
+ "hash": "31d57529cc2b44bc",
  "role": "CI gate for docs/REFACTOR_SPEC.md: counts functions and computed properties/inits/closure-initialised properties over 20 body lines or nested deeper than 2, commented-out code lines, empty catches, justified waivers and malformed waivers in Emuqu (and a combined count for the watch app) against .ci budgets.",
  "types": [],
  "state": [
@@ -13,7 +13,7 @@
   "file:.ci/spec_deep_nesting_properties_budget.txt",
   "file:.ci/spec_watch_budget.txt"
  ],
- "toplevel": "cd to repo root. SCAN_DIR=Emuqu (missing -> 2). LONG/NEST/COMMENT budgets via read_budget in $(...); MEASURED=measure_spec Emuqu (empty -> 2); first line parsed into 9 counts; justified/property budgets read; prints report; over() for each axis (empty catches and malformed waivers against 0); any over -> worst offenders + exit 1; below-budget hints. Watch: budget file missing -> 2, non-integer -> 2; measure_spec on watch dir; total of 4 axes vs .ci/spec_watch_budget.txt (0); over -> exit 1. Else clean.",
+ "toplevel": "cd to repo root. SCAN_DIR=Emuqu (missing -> 2). Every budget is read with `$(read_budget ...) || exit $?`, so a missing or non-integer budget file exits 2. MEASURED=measure_spec Emuqu (empty -> 2); first line parsed into 9 counts; prints report; over() for each axis (empty catches and malformed waivers against 0); any over -> worst offenders + exit 1; below-budget hints. Watch: budget file missing -> 2, non-integer -> 2; measure_spec on watch dir; total of 4 axes vs .ci/spec_watch_budget.txt (0); over -> exit 1. Else clean.",
  "flags": [
   {
    "kind": "spec-mismatch",
@@ -40,29 +40,27 @@
  "units": [
   {
    "key": "fn read_budget",
-   "hash": "b49f438fa6920ee7",
-   "does": "Prints the whitespace-stripped content of .ci/$1; missing file -> stderr + exit 2. Always called inside $(...), so that exit only ends the subshell and the caller receives an empty budget.",
+   "hash": "53a5d37f4be85321",
+   "does": "Prints the whitespace-stripped content of .ci/<name>; exits 2 (from the $( ) subshell, which every call site turns into the script exit with `|| exit $?`) if the file is missing or its content is not a non-negative integer.",
    "entry": null,
    "calls": [],
    "reads": [
     "file:.ci/spec_*_budget.txt"
    ],
    "writes": [],
-   "branches": [],
-   "flags": [
+   "branches": [
     {
-     "kind": "silent-failure",
-     "sev": "med",
-     "text": "read_budget runs inside $(...), so its `exit 2` ends only the subshell. A missing .ci/spec_* budget file gives an empty budget, which over() evaluates as 0. Any axis currently measuring 0 then passes and the script prints 'clean', exit 0, instead of the documented exit-2 config error. Content is not validated as an integer.",
-     "evidence": [
-      "scripts/check_refactor_spec_conformance.sh:84",
-      "scripts/check_refactor_spec_conformance.sh:89",
-      "scripts/check_refactor_spec_conformance.sh:480",
-      "scripts/check_aggregate_type_size.sh:44"
-     ],
-     "found": "second read"
+     "at": "+2",
+     "cond": "file missing",
+     "effect": "stderr, exit 2"
+    },
+    {
+     "at": "+7",
+     "cond": "content not ^[0-9]+$",
+     "effect": "stderr, exit 2; else print value"
     }
    ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -109,6 +107,6 @@
  "deps": {
   "scripts/check_refactor_spec_conformance.sh::fn measure_spec": "509182b8a7724c89",
   "scripts/check_refactor_spec_conformance.sh::fn over": "a8abf10c9c4d580f",
-  "scripts/check_refactor_spec_conformance.sh::fn read_budget": "5b0a58754128dcf2"
+  "scripts/check_refactor_spec_conformance.sh::fn read_budget": "0bb5b672bbc299cf"
  }
 }

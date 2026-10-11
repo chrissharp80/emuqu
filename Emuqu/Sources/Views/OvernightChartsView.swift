@@ -19,6 +19,10 @@ protocol OvernightChartViewport {
 /// clamping, sleep-segment shading, and the horizontal grid.
 @MainActor
 enum OvernightChartDrawing {
+    /// An analysis window spanning more than this share of the viewport is
+    /// treated as the whole recording, and its highlight is skipped.
+    nonisolated static let fullRecordingWindowFraction: CGFloat = 0.8
+
     /// X-axis labels showing clock times across the chart viewport.
     /// When HealthKit sleep extends beyond the recording, labels span the full
     /// viewport.
@@ -66,8 +70,10 @@ enum OvernightChartDrawing {
         return x
     }
 
-    /// Five evenly-spaced clock times across the viewport, anchored to the
-    /// chart's wall-clock start.
+    /// Five evenly-spaced clock times across the viewport, each the wall
+    /// clock of its `t_ms` position (`axisTime`), as the nadir, peak and
+    /// window labels are converted, so a marker's time and the axis under it
+    /// agree on a streamed night whose `t_ms` drifted.
     ///
     /// Reuses the cached formatter — these run per scrub frame,
     /// and allocating a DateFormatter each time was tooltip jank.
@@ -75,15 +81,23 @@ enum OvernightChartDrawing {
         guard let series = session.rrSeries, !series.points.isEmpty else { return [] }
         let chartDurationMs = stats.chartEndMs - stats.chartStartMs
         guard chartDurationMs > 0 else { return [] }
-        let chartStartDate = session.startDate.addingTimeInterval(Double(stats.chartStartMs) / 1000.0)
         let formatter = OvernightChartFormatters.clockTimeFormatter
         let labelCount = 5
-        let totalDuration = Double(chartDurationMs) / 1000.0
         return (0 ..< labelCount).map { i in
             let fraction = CGFloat(i) / CGFloat(labelCount - 1)
-            let actualTime = chartStartDate.addingTimeInterval(totalDuration * Double(fraction))
-            return (formatter.string(from: actualTime), fraction * width)
+            let tMs = stats.chartStartMs + Int64(Double(chartDurationMs) * Double(fraction))
+            return (formatter.string(from: axisTime(forTMs: tMs, series: series)), fraction * width)
         }
+    }
+
+    /// Wall-clock time of a `t_ms` position: `RRSeries.wallClockTime` inside
+    /// the recording; beyond it (a viewport widened by HealthKit sleep) the
+    /// time at the nearer end plus the distance past it.
+    private static func axisTime(forTMs tMs: Int64, series: RRSeries) -> Date {
+        let firstMs = series.points.first?.t_ms ?? tMs
+        let lastMs = series.points.last?.t_ms ?? tMs
+        let edgeMs = min(max(tMs, firstMs), lastMs)
+        return series.wallClockTime(forTMs: edgeMs).addingTimeInterval(Double(tMs - edgeMs) / 1000.0)
     }
 
     /// Keeps the tooltip inside the canvas: 50 pt of padding either side.
@@ -153,17 +167,22 @@ struct OvernightChartsView<InterChartContent: View>: View {
         }
     }
 
-    /// Task identity: the session, the analysis window (beat indices, so a
-    /// reanalysis restarts the task), the number of beats, and the HealthKit
-    /// sleep bounds quantised to the minute. HealthKit can nudge sleep
-    /// boundaries by a few seconds after the fact; the quantisation keeps
-    /// those nudges from re-running the stats pipeline, while sleep arriving
-    /// for the first time still does.
+    /// Task identity: everything the stats read. The session, the analysis
+    /// window (beat indices and its ms bounds, so any reanalysis restarts the
+    /// task), whether the result carries organized zones, the number of beats,
+    /// the stored sleep period, and the HealthKit sleep bounds and segment
+    /// count quantised to the minute. HealthKit can nudge sleep boundaries by
+    /// a few seconds after the fact; the quantisation keeps those nudges from
+    /// re-running the stats pipeline, while sleep arriving for the first time
+    /// or a changed split still does.
     private var statsTaskKey: String {
         let sleepStart = healthKitSleep?.sleepStart.map { Int($0.timeIntervalSince1970 / 60) } ?? -1
         let sleepEnd = healthKitSleep?.sleepEnd.map { Int($0.timeIntervalSince1970 / 60) } ?? -1
+        let segments = healthKitSleep?.effectiveSegments.count ?? -1
         let beats = session.rrSeries?.points.count ?? 0
-        return "\(session.id)-\(result.windowStart)-\(result.windowEnd)-\(beats)-\(sleepStart)-\(sleepEnd)"
+        let window = "\(result.windowStart)-\(result.windowEnd)-\(result.windowStartMs ?? -1)-\(result.windowEndMs ?? -1)"
+        let stored = "\(session.sleepStartMs ?? -1)-\(session.sleepEndMs ?? -1)-\(result.organizedRecoveryZones?.count ?? -1)"
+        return "\(session.id)-\(window)-\(beats)-\(stored)-\(sleepStart)-\(sleepEnd)-\(segments)"
     }
 
     private var chartsPlaceholder: some View {
@@ -199,26 +218,28 @@ struct OvernightChartsView<InterChartContent: View>: View {
     ///
     /// The zone-cache state is snapshotted BEFORE the compute so
     /// the disk backfill keeps the exact trigger condition:
-    /// persisted zones absent AND memory-cache miss, i.e. the
-    /// on-demand WindowSelector scan is about to actually run. The archive
-    /// WRITE lives at this task boundary, not in `computeOrganizedZonesOnDemand`
-    /// (stats math), so the side effect fires once per task id.
+    /// persisted zones absent AND memory-cache miss for this sleep window,
+    /// i.e. the on-demand WindowSelector scan is about to actually run. The
+    /// archive WRITE lives at this task boundary, not in
+    /// `computeOrganizedZonesOnDemand` (stats math), so the side effect fires
+    /// once per task id.
+    ///
+    /// A changed task id cancels this task, but not the detached compute or
+    /// the HealthKit fetch it awaits, so each await is followed by a
+    /// cancellation check: a superseded run never assigns its stale stats
+    /// over the newer run's.
     private func loadOvernightStats() async {
-        // Run expensive stats computation off the main thread so scrolling
-        // stays responsive. The view shows a spinner until this completes.
         let computer = OvernightStatsComputer(session: session, result: result, healthKitSleep: healthKitSleep)
-        let zonesNeedDiskBackfill = result.organizedRecoveryZones == nil
-            && AppDependencies.current.app.organizedZonesCache.get(session.id) == nil
+        let zonesNeedDiskBackfill = computer.willScanOrganizedZones()
         var stats = await Task.detached(priority: .userInitiated) {
             computer.computeOvernightStats()
         }.value
-
-        if zonesNeedDiskBackfill, let computedZones = AppDependencies.current.app.organizedZonesCache.get(session.id) {
-            OvernightStatsComputer.backfillZonesToArchive(sessionId: session.id, zones: computedZones)
+        guard !Task.isCancelled else { return }
+        if zonesNeedDiskBackfill {
+            OvernightStatsComputer.backfillZonesToArchive(sessionId: session.id, zones: stats.organizedRecoveryZones)
         }
-
         stats = await withHealthKitGapFill(stats)
-
+        guard !Task.isCancelled else { return }
         cachedOvernightStats = stats
     }
 
@@ -306,27 +327,23 @@ struct OvernightChartsView<InterChartContent: View>: View {
     }
 
     /// Split-night segment boundaries, as the viewport would have to widen for
-    /// them. A start before the recording's own data is ignored, exactly as the
-    /// inline version did.
-    private static func segmentBounds(
-        _ stats: OvernightStats,
-        dataStartMs: Int64
-    ) -> (start: Int64, end: Int64) {
-        let starts = stats.sleepSegmentRanges.map(\.startMs).min()
-        let ends = stats.sleepSegmentRanges.map(\.endMs).max()
-        return (
-            starts.flatMap { $0 >= dataStartMs ? $0 : nil } ?? .max,
-            ends ?? .min
-        )
+    /// them. A segment starting before the recording's data is kept: the
+    /// stats viewport (`OvernightStatsComputer.chartStart`) already widens to
+    /// it on a split night, because the segment ranges are deliberately not
+    /// clamped to the recording.
+    private static func segmentBounds(_ stats: OvernightStats) -> (start: Int64, end: Int64) {
+        (stats.sleepSegmentRanges.map(\.startMs).min() ?? .max, stats.sleepSegmentRanges.map(\.endMs).max() ?? .min)
     }
 
+    /// Only the overall HealthKit sleep start is held to the recording's data
+    /// start; split-night segment starts are not (see `segmentBounds`).
     private static func viewportBounds(
         _ stats: OvernightStats,
         hkSleep: SleepData,
         session: HRVSession,
         dataStartMs: Int64
     ) -> (start: Int64, end: Int64) {
-        let (segStartMs, segEndMs) = segmentBounds(stats, dataStartMs: dataStartMs)
+        let (segStartMs, segEndMs) = segmentBounds(stats)
         var extendedStart = min(stats.chartStartMs, segStartMs)
         var extendedEnd = max(stats.chartEndMs, segEndMs)
         // Full HealthKit sleep window (short recording + long sleep)
@@ -447,7 +464,8 @@ struct OvernightChartsView<InterChartContent: View>: View {
             value: "\(count)",
             unit: "",
             subtitle: String(localized: "from sleep data", bundle: LanguageManager.appBundle),
-            color: count > 3 ? AppTheme.terracotta : AppTheme.sage
+            // Bad colour on the same "fragmented" threshold the note uses.
+            color: count > 5 ? AppTheme.terracotta : AppTheme.sage
         )
     }
 

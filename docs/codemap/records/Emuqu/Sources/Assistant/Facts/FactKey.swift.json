@@ -1,11 +1,10 @@
 {
  "file": "Emuqu/Sources/Assistant/Facts/FactKey.swift",
- "hash": "87a41ab8f99be9f8",
+ "hash": "8acc0d60e911f109",
  "role": "Parsed dotted fact-key grammar (tokens with optional parenthesised argument) used by the registry and namespace pattern matching.",
  "types": [
   "FactKey: struct — token list with parse/render",
-  "FactKey.Token: struct — name + optional argument",
-  "FactKey: extension — split() helper"
+  "FactKey.Token: struct — name + optional argument"
  ],
  "state": [],
  "toplevel": "",
@@ -83,13 +82,13 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/FactKey.swift::func FactKey.parseToken(_:)": "acfe1a44088c3dbd",
-    "Emuqu/Sources/Assistant/Facts/FactKey.swift::func FactKey.splitOnTopLevelDots(_:)": "2e4d311cfa119352"
+    "Emuqu/Sources/Assistant/Facts/FactKey.swift::func FactKey.splitOnTopLevelDots(_:)": "e1e4ce6bca5db583"
    }
   },
   {
    "key": "func FactKey.splitOnTopLevelDots(_:)",
-   "hash": "8173f9cee59bab8f",
-   "does": "Splits a key on dots at paren depth 0, failing on empty pieces between dots, a leading dot, or unbalanced parens.",
+   "hash": "1de91fb864a32989",
+   "does": "Splits a key on dots at paren depth 0, failing on empty pieces between dots, a leading or trailing dot, or unbalanced parens.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactKey.swift::func FactKey.flushPiece(_:into:)",
@@ -120,27 +119,11 @@
     },
     {
      "at": "+12",
-     "cond": "depth != 0 at end",
-     "effect": "returns nil"
-    },
-    {
-     "at": "+13",
-     "cond": "buffer non-empty at end",
-     "effect": "appends final piece; an empty final buffer (trailing dot) is silently accepted"
+     "cond": "depth != 0 at end, or the final piece is empty (trailing dot)",
+     "effect": "returns nil; else appends the final piece"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Doc says empty tokens are malformed, but a trailing dot ('user.profile.max_hr.') leaves an empty buffer that is skipped, so the key parses as if the dot were absent.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/FactKey.swift:38",
-      "Emuqu/Sources/Assistant/Facts/FactKey.swift:64"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/FactKey.swift::func FactKey.adjustDepth(_:for:)": "6f968397ecd89675",
     "Emuqu/Sources/Assistant/Facts/FactKey.swift::func FactKey.flushPiece(_:into:)": "868bdd63286d12cd"
@@ -221,39 +204,6 @@
    "deps": {
     "Emuqu/Sources/Assistant/Facts/FactKey.swift::init FactKey.Token(name:argument:)": "4ea4ec60a1391f75"
    }
-  },
-  {
-   "key": "func FactKey.split()",
-   "hash": "4d8f14ca8d0c1eb8",
-   "does": "Returns the first token and the remaining tokens as a FactKey (nil tail when only one token); nil for no tokens.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "no tokens",
-     "effect": "nil"
-    },
-    {
-     "at": "+3",
-     "cond": "rest empty",
-     "effect": "tail nil; else FactKey(rest)"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "FactKey.split() has no caller in app or tests (grep 'split()').",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/FactKey.swift:103"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
   }
  ],
  "deps": {}

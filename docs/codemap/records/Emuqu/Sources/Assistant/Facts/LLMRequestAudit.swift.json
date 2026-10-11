@@ -14,29 +14,7 @@
   "mem:LLMRequestAudit.maxPayloadCharacters = 60_000"
  ],
  "toplevel": "Singleton `shared`; constants maxEntries 10 and maxPayloadCharacters 60000. Never persisted; cleared by the audit page's Clear button and DataPurgeService.purgeHealthCaches.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "File doc says 'Every provider's stream entry point pushes a record here' and refers to a nonexistent `update(...)` API; the only record() caller is AssistantViewModel.recordPromptAudit, and the update API is append/setUsage/setError.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift:5",
-    "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift:78",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift:246"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Doc claims worst case ~10 × ~50 KB = ~500 KB, but each entry may hold four strings each capped at 60,000 characters (system prompt, messages, tools, response), i.e. up to ~2.4M characters across 10 entries.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift:18",
-    "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift:33"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "init LLMRequestAudit()",

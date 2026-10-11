@@ -26,7 +26,7 @@ import Observation
 @Observable
 final class ArchiveSignal {
     /// Monotonically increments on every coalesced archive mutation.
-    /// Consumers react via `$version` / `.onChange(of:)`.
+    /// Consumers react via `.onChange(of: archiveSignal.version)`.
     private(set) var version: Int = 0
 
     @ObservationIgnored private let observers = NotificationTokens()
@@ -54,7 +54,6 @@ final class ArchiveSignal {
     /// writes from one CloudKit pull or one morning-processing additive-
     /// merge sequence into a single dashboard refresh.
     private static let coalesceWindow: TimeInterval = 0.08
-    @ObservationIgnored private var pendingBump = false
     @ObservationIgnored private var coalesceTask: Task<Void, Never>?
 
     /// `queue:` is deliberately `nil`, not `.main`.
@@ -96,17 +95,14 @@ final class ArchiveSignal {
 
     /// Schedule a single `version` bump at the end of the current coalesce
     /// window. If another notification arrives before the timer fires, it
-    /// gets folded into the same bump.
+    /// cancels this task and its own task bumps instead, so the burst folds
+    /// into one bump.
     private func scheduleCoalescedBump() {
-        pendingBump = true
         coalesceTask?.cancel()
         coalesceTask = Task { @MainActor [weak self] in
             await sleepQuietly(UInt64(ArchiveSignal.coalesceWindow * 1_000_000_000), context: "scheduleCoalescedBump")
             guard !Task.isCancelled, let self else { return }
-            if self.pendingBump {
-                self.pendingBump = false
-                self.version &+= 1
-            }
+            self.version &+= 1
         }
     }
 

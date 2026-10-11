@@ -8,8 +8,9 @@ reports through the issue templates are welcome.
 This file is the maintainer's own procedure. Emuqu is a solo-maintained iOS
 and watchOS app that reads heart-rate variability off a chest strap and turns
 it into a recovery score. That shapes everything below: there is no second
-reviewer, so the gates are the reviewer. The Linux gates run on every push;
-everything that needs Xcode runs only when you run it. The conventions here
+reviewer, so the gates are the reviewer. The Linux gates run on every push to
+`main` and on every pull request; everything that needs Xcode runs only when
+you run it. The conventions here
 exist to keep that meaningful.
 
 If you are new to the codebase, read [`docs/MAINTAINERS.md`](docs/MAINTAINERS.md)
@@ -90,17 +91,36 @@ reach-throughs, `try?` uses, legacy `ObservableObject` conformances, SwiftLint
 warnings, `@unchecked Sendable` escapes, and more. When you reduce one,
 **lower the budget file in the same change** so the gain is locked in.
 
-Raising a budget requires a written reason in the commit message explaining why
-the debt is worth taking and when it will be repaid. `make budget-monotonicity`
-is the guard; treat an increase as a decision, not a formality.
+Raising a ceiling, or lowering one of the `min_*` floors, needs a trailer line
+in the message of a commit that lands with it:
+
+```text
+budget-raise-ok: .ci/<name>.txt <why the debt is worth taking and when it will be repaid>
+```
+
+The path must be written exactly as shown; the reason is for the reader.
+`gates.yml` is the guard that enforces this: on a push to `main` it compares
+every budget with the commit before the push, and on a pull request with the
+target branch, and fails on any loosening without a matching trailer in that
+range. Locally, `make budget-monotonicity` compares the working tree with
+`HEAD`. That catches an uncommitted raise, but it cannot see a trailer you have
+not committed yet, nor a raise you already committed; for those, run
+`BUDGET_BASE_REF=origin/main make budget-monotonicity`. Treat an increase as a
+decision, not a formality.
 
 ### Adding a new Swift file
 
-The Xcode project is checked in. A new file must be registered in
-`Emuqu.xcodeproj/project.pbxproj` at **four** points: `PBXBuildFile`,
-`PBXFileReference`, the group's `children` array, and the target's `Sources`
-build phase. `make orphan-swift-guard` fails if a file on disk is not in the
-project, which is the usual way a missed registration is caught.
+The Xcode project is checked in. A new file in `Emuqu`, `EmuquTests` or
+`EmuquUITests` must be registered in `Emuqu.xcodeproj/project.pbxproj` at
+**four** points: `PBXBuildFile`, `PBXFileReference`, the group's `children`
+array, and the target's `Sources` build phase. `make orphan-swift-guard` fails
+if a file on disk is not in the project, which is the usual way a missed
+registration is caught.
+
+`EmuquWatch Watch App` is the exception: it is a synchronised folder, so a file
+there is in the watch target by being on disk. Do not register it by hand; a
+second, explicit entry builds the file twice and fails with "Multiple commands
+produce".
 
 A path containing `+` **must be quoted** in the file reference —
 `path = "Foo+Bar.swift";`. An unquoted one makes `xcodebuild` unable to read
@@ -133,10 +153,14 @@ Check the exit status, not the last line of output. **This is the enforcement.**
 tech-debt budgets and spec conformance; the build, the test suite, SwiftLint
 and its warning budget need macOS and run only on demand, for reasons costed
 in [`docs/CI_POSTURE.md`](docs/CI_POSTURE.md). So `make ci` is the gate rather
-than a convenience. `make ci` runs every gate: lint, budgets, spec
-conformance, localization, copy perimeter, documentation links, and the full
-test suite with coverage. The test suite is the slow part, because the UI
-target drives a real simulator.
+than a convenience. `make ci` runs lint, budgets, spec conformance,
+localization, copy perimeter, documentation links, and the full test suite
+with coverage. The test suite is the slow part, because the UI target drives a
+real simulator. Two checks that `ci.yml` runs are not part of `make ci`,
+because each needs a build of its own: `make thread-sanitizer` (the unit suite
+under Thread Sanitizer) and `make release-build` (the Release configuration
+compiles). Run them as well when a change touches concurrency or could differ
+under the optimizer.
 
 `make codemap-impact` lists everything your branch's changes can affect; the
 pull request gets the same list in the `gates.yml` job summary. Check each
@@ -152,6 +176,11 @@ The refactor specification in
 standard, and `make spec-conformance` enforces the measurable parts of it:
 declarations stay at or under 20 lines, nesting stays at or under depth 2, no
 commented-out code, no empty catch blocks.
+
+The length and nesting rules allow a written waiver for a declaration that
+cannot be split without harm. Waivers are counted against budgets in `.ci/`
+(the `spec_justified_*` files), which ratchet down like every other budget, so
+taking a new one is a budget raise and needs the trailer above.
 
 Beyond what the gate measures:
 

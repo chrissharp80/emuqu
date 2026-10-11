@@ -112,12 +112,13 @@ extension ImportDataView {
         VStack(alignment: .leading, spacing: 16) {
             loadedHeader(String(localized: "File Loaded Successfully", bundle: LanguageManager.appBundle))
             singleFileInfoRows(result)
+            recordingDatePicker(result)
             Divider()
             Button(action: startAnalysis) {
                 analyzeButtonLabel
             }
             .buttonStyle(.zen(AppTheme.sage))
-            .disabled(isAnalyzing)
+            .disabled(isAnalyzing || (result.recordingDate == nil && importRecordingDate == nil))
         }
         .padding()
         .background(AppTheme.cardBackground)
@@ -132,6 +133,27 @@ extension ImportDataView {
             ImportInfoRow(label: String(localized: "Duration", bundle: LanguageManager.appBundle), value: String(format: String(localized: "%.1f min", bundle: LanguageManager.appBundle), locale: LanguageManager.appLocale, result.durationMinutes))
             if let date = result.recordingDate {
                 ImportInfoRow(label: String(localized: "Recorded", bundle: LanguageManager.appBundle), value: formatDate(date))
+            }
+        }
+    }
+
+    /// A file that does not say when it was recorded is dated by the user,
+    /// not filed under the time of import: Analyze stays off until they set
+    /// the date (`importRecordingDate`).
+    @ViewBuilder
+    private func recordingDatePicker(_ result: RRDataImporter.ImportResult) -> some View {
+        if result.recordingDate == nil {
+            VStack(alignment: .leading, spacing: 4) {
+                DatePicker(
+                    String(localized: "Recorded", bundle: LanguageManager.appBundle),
+                    selection: Binding(get: { importRecordingDate ?? Date() }, set: { importRecordingDate = $0 }),
+                    in: ...Date(),
+                    displayedComponents: [.date, .hourAndMinute]
+                )
+                .font(.subheadline)
+                Text(String(localized: "This file doesn't say when it was recorded. Set the date and time it was recorded so it lands on the right day.", bundle: LanguageManager.appBundle))
+                    .font(.caption)
+                    .foregroundColor(AppTheme.textTertiary)
             }
         }
     }
@@ -241,7 +263,8 @@ extension ImportDataView {
             Text(String(localized: "New Sessions Preview", bundle: LanguageManager.appBundle))
                 .font(.subheadline.bold())
                 .foregroundColor(AppTheme.textPrimary)
-            ForEach(newSessions.prefix(5), id: \.date) { eliteSessionRow($0) }
+            // By position: two summaries can share a timestamp.
+            ForEach(Array(newSessions.prefix(5).enumerated()), id: \.offset) { eliteSessionRow($0.element) }
             moreSessionsNote(total: newSessions.count)
         }
         .padding(.vertical, 8)

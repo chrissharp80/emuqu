@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift",
- "hash": "873c2096feef92f3",
+ "hash": "0e0ed20f2fd0d5ba",
  "role": "WorkoutSessionLifecycle extension: workout start() sequence (idle guard, HR-source resolution, provenance, Polar streaming, per-workout resets, phase flip, deferred GPS/pedometer/sensor/Zwift/geocoding/persistence/tail tasks), interval-plan voice wiring, and pause/resume; plus file-scope geocoding reset and foot-pod management helpers.",
  "types": [
   "WorkoutSessionLifecycle.HRSource: enum — strap / watch / none heart-rate source",
@@ -9,40 +9,31 @@
  "state": [
   "static let motionAccessProbe = CMPedometer() (Start.swift:508)",
   "static let pedometerSports: Set<Sport> = [.walk,.run,.trailRun,.hike,.treadmill] (Start.swift:529)",
-  "StartStamps.t0 / marks (instance, Start.swift:91-92)"
+  "StartStamps.t0 / marks (instance, Start.swift:91-92)",
+  "static let recordingStateQueue = DispatchQueue(label: \"WorkoutRecorder.persistedRecordingState\", qos: .utility) — serial queue for this recorder's PersistedRecordingState save and clear"
  ],
- "toplevel": "HRSource enum (28-32); file-scope private @MainActor helpers deferGeocodingReset, manageFootPod, footPodManagerServes.",
- "flags": [
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "footPodManagerServes re-declares the same five-sport set as pedometerSports in a different order; the two lists must be kept in sync by hand.",
-   "evidence": [
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:529",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:819"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "HRSource enum (28-32); file-scope private @MainActor helpers deferGeocodingReset, manageFootPod, footPodManagerServes, footPodDeviceToReconnect.",
+ "flags": [],
  "units": [
   {
    "key": "func WorkoutSessionLifecycle.start(sport:source:intervalPlan:thresholds:route:)",
-   "hash": "4b007aa567bc6dbd",
-   "does": "Public workout start: records latency entry, opens a log-correlation scope (closed by defer unless start completes), guards idle and applies thresholds/route, resolves the effective HR source (may throw strapBusy or downgrade), builds provenance and the starting session, starts Polar streaming for strap, brings recording up, logs the sync breakdown, records start-returned.",
+   "hash": "b3681113fb075d3e",
+   "does": "Public workout start: records latency entry, opens a log-correlation scope, refuses a start while a workout records or finalizes (guardStartablePhase; .finished/.failed go ahead), resolves the effective HR source (may throw strapBusy or downgrade), builds the starting session with its provenance, starts Polar streaming for strap, and only then applies thresholds/route and clears the old summary (applyStartParameters) so a refused start changes nothing; brings recording up, logs the sync breakdown, records start-returned. A throw runs abandonFailedStart (closes the scope, drops the latency stamps).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutStartLatencyTracker.swift::func WorkoutStartLatencyTracker.recordStartEntry()",
     "Emuqu/Sources/Collection/WorkoutStartLatencyTracker.swift::func WorkoutStartLatencyTracker.recordStartReturned()",
     "Emuqu/Sources/Collection/WorkoutRecorder+Correlation.swift::func WorkoutRecorder.beginWorkoutCorrelation()",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Correlation.swift::func WorkoutRecorder.endWorkoutCorrelation()",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.applyStartParametersAndGuardIdle(thresholds:route:)",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.resolveEffectiveSource(requested:)",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.makeStartProvenance(effectiveSource:)",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.makeStartingSession(sport:provenance:)",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.beginPolarStreamingOrDefer(effectiveSource:workoutId:)",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.bringUpRecording(session:sport:effectiveSource:intervalPlan:stamps:)",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.StartStamps.mark(_:)",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.StartStamps.breakdown()"
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.StartStamps.breakdown()",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.guardStartablePhase()",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.applyStartParameters(thresholds:route:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.abandonFailedStart()"
    ],
    "reads": [],
    "writes": [
@@ -53,40 +44,50 @@
     {
      "at": "+10",
      "cond": "startCompleted false at exit (a throw)",
-     "effect": "defer: endWorkoutCorrelation closes the scope; true: scope stays open until stop()"
+     "effect": "abandonFailedStart: ends the correlation scope and clears the latency tracker's stamps"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "applyStartParametersAndGuardIdle writes userThresholds/plannedRoute before resolveEffectiveSource or startStreaming can throw, so a failed start (strapBusy, Polar throw) leaves the idle recorder holding the new thresholds and route.",
-     "evidence": [
-      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:71",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:72",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:77",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:169",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:171"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/WorkoutRecorder+Correlation.swift::func WorkoutRecorder.beginWorkoutCorrelation()": "c283d04321d43755",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Correlation.swift::func WorkoutRecorder.endWorkoutCorrelation()": "19e620e7b3d156e6",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.StartStamps.breakdown()": "c3ad5a18d804c5af",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.StartStamps.mark(_:)": "4fbb507d8f537ccb",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.applyStartParametersAndGuardIdle(thresholds:route:)": "6cd06078f1af8846",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.beginPolarStreamingOrDefer(effectiveSource:workoutId:)": "c8d711711a6e8d17",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.abandonFailedStart()": "cf459f04cf7a4e43",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.applyStartParameters(thresholds:route:)": "e4ec83cc7543aae3",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.beginPolarStreamingOrDefer(effectiveSource:workoutId:)": "6f9a42e47ebf7f36",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.bringUpRecording(session:sport:effectiveSource:intervalPlan:stamps:)": "77f81d8937b0321e",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.guardStartablePhase()": "7d822597f16f0666",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.makeStartProvenance(effectiveSource:)": "b32aae82027f69d0",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.makeStartingSession(sport:provenance:)": "9e8cd2e27bda5a5d",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.resolveEffectiveSource(requested:)": "c6883566e5ad7ff1",
-    "Emuqu/Sources/Collection/WorkoutStartLatencyTracker.swift::func WorkoutStartLatencyTracker.recordStartEntry()": "a91622364533f512",
-    "Emuqu/Sources/Collection/WorkoutStartLatencyTracker.swift::func WorkoutStartLatencyTracker.recordStartReturned()": "6d104824d5d66914",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.resolveEffectiveSource(requested:)": "db317e58153453d8",
+    "Emuqu/Sources/Collection/WorkoutStartLatencyTracker.swift::func WorkoutStartLatencyTracker.recordStartEntry()": "0ef2b26648186f10",
+    "Emuqu/Sources/Collection/WorkoutStartLatencyTracker.swift::func WorkoutStartLatencyTracker.recordStartReturned()": "1f3e971f9d627382",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func WorkoutSessionLifecycle.abandonFailedStart()",
+   "hash": "a3dfcbb04d501048",
+   "does": "For a start that threw: ends the workout log-correlation scope and tells the latency tracker to drop this start's tap and stamps, so a later start is neither tagged nor measured from them.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+Correlation.swift::func WorkoutRecorder.endWorkoutCorrelation()",
+    "Emuqu/Sources/Collection/WorkoutStartLatencyTracker.swift::func WorkoutStartLatencyTracker.recordStartAbandoned()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:WorkoutRecorder.logCorrelation",
+    "mem:WorkoutStartLatencyTracker"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Correlation.swift::func WorkoutRecorder.endWorkoutCorrelation()": "19e620e7b3d156e6",
+    "Emuqu/Sources/Collection/WorkoutStartLatencyTracker.swift::func WorkoutStartLatencyTracker.recordStartAbandoned()": "7d9d36bb0970ff0f",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
    }
   },
   {
@@ -180,7 +181,7 @@
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.installAIContextProviders()": "08a3f7ee27d493fc",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.launchDeferredStartWork(session:sport:intervalPlan:)": "c65fcf8f16e79b62",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.queueStartAnnouncement(sport:)": "46c2127573b2eb35",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.resetPerWorkoutState(session:startDate:effectiveSource:)": "d96f7ac918f9aaea",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.resetPerWorkoutState(session:startDate:effectiveSource:)": "e6c1b74a8ac6a9ce",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.wireEarlyHRObservationAndStampAnnounce(effectiveSource:)": "47a4630a00b5d146"
    }
   },
@@ -203,70 +204,77 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.deferLocationTrackingStart(sport:)": "a034459e825cd8b0",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.deferPedometerStart(sport:)": "b68bfa75f1fd16be",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.deferLocationTrackingStart(sport:)": "a34f2041a409c88c",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.deferPedometerStart(sport:)": "9edb2857fe2ddd50",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.launchStartTailTask(sport:startDate:intervalPlan:)": "fd1897fb898456a0",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.persistRecordingStateOffMain(session:startDate:sport:)": "8a0a6cf4de741dfb",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.persistRecordingStateOffMain(session:startDate:sport:)": "87ce24bc388d5297",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.reconnectOrDisconnectSecondarySensors(sport:)": "39d6072429d8506b",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.requestMotionAccessIfUndetermined(sport:)": "9b5114f4a8b41803",
-    "Emuqu/Sources/Collection/WorkoutRecorder+StartBaselines.swift::func WorkoutRecorder.resetCachedBaselinesAndLaunchBaselineTask(sport:)": "530a6a5ceed8353b"
+    "Emuqu/Sources/Collection/WorkoutRecorder+StartBaselines.swift::func WorkoutRecorder.resetCachedBaselinesAndLaunchBaselineTask(sport:)": "a4b6a9f26c74e07f"
    }
   },
   {
-   "key": "func WorkoutSessionLifecycle.applyStartParametersAndGuardIdle(thresholds:route:)",
-   "hash": "b329c44e7e9f8d15",
-   "does": "Throws alreadyRecording unless phase is .idle; otherwise stores thresholds, clears breach seconds, sets planned route and resets route auto-detect flags.",
+   "key": "func WorkoutSessionLifecycle.guardStartablePhase()",
+   "hash": "e4944b22af11a3bd",
+   "does": "Lets a start proceed from .idle, and from .finished/.failed (the last workout's summary or error still up — e.g. the Watch's Start, which AppLaunchTasks lets through); throws alreadyRecording (with a warning log) while a workout records or finalizes. Changes nothing.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
    "reads": [
     "mem:WorkoutLifecycle.phase"
    ],
-   "writes": [
-    "mem:WorkoutRecorder.userThresholds",
-    "mem:WorkoutRecorder.thresholdBreachSec",
-    "mem:WorkoutRecorder.plannedRoute",
-    "mem:WorkoutRecorder.plannedRouteWasAutoDetected",
-    "mem:WorkoutRecorder.routeDetectionAttempted"
-   ],
+   "writes": [],
    "branches": [
     {
-     "at": "+1",
-     "cond": "recorder.phase is .idle",
-     "effect": "false: warning log and throws WorkoutRecorderError.alreadyRecording; true: applies parameters"
-    }
-   ],
-   "flags": [
+     "at": "+2",
+     "cond": "phase .idle/.finished/.failed",
+     "effect": "returns"
+    },
     {
-     "kind": "broken",
-     "sev": "med",
-     "text": "The guard admits only .idle, but phase stays .finished after stop until acknowledgeFinished. The Watch start path explicitly lets .finished through (AppLaunchTasks.swift:52) and expects the start to proceed, and the doc on stopStaleStreamIfIdle (Start:224-226) names the Watch Start as the case it handles. In practice a Watch Start while the iPhone summary is up throws alreadyRecording ('A workout is already in progress.'), which is only logged on the phone. The Watch had already been told the start succeeded (EmuquApp.swift:773-782).",
-     "evidence": [
-      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:165",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:167",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:224",
-      "Emuqu/Sources/Services/AppLaunchTasks.swift:52",
-      "Emuqu/Sources/Services/AppLaunchTasks.swift:58",
-      "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift:259",
-      "Emuqu/EmuquApp.swift:782"
-     ],
-     "found": "second read"
+     "at": "+4",
+     "cond": "phase .recording/.finalizing",
+     "effect": "logs and throws WorkoutRecorderError.alreadyRecording"
     }
    ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase": "d0bce80edccaa2fe",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.plannedRoute": "5e139adcaa347944",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
+   "key": "func WorkoutSessionLifecycle.applyStartParameters(thresholds:route:)",
+   "hash": "10410f0c72484bdd",
+   "does": "After every step of start() that can throw: clears the previous workout's finishedSession, stores the thresholds (resetting breach counters), the planned route, the auto-detected flag and the route-detection schedule (nextRouteDetectionAtMeters = 0).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:WorkoutLifecycle.finishedSession",
+    "mem:WorkoutRecorder.userThresholds",
+    "mem:WorkoutRecorder.thresholdBreachSec",
+    "mem:WorkoutRecorder.plannedRoute",
+    "mem:WorkoutRecorder.plannedRouteWasAutoDetected",
+    "mem:WorkoutRecorder.nextRouteDetectionAtMeters"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.finishedSession": "877321d8f1364805",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.plannedRoute": "5e139adcaa347944"
+   }
+  },
+  {
    "key": "func WorkoutSessionLifecycle.resolveEffectiveSource(requested:)",
-   "hash": "e8a1f8d75f85d47e",
-   "does": "For non-strap requests returns the request; for strap stops a stale Polar stream, asks WorkoutHRSourceResolver (logs it) and acts: strapBusy → throws; reconnectThenUseStrap → connectToLastDevice and returns .strap; use(x) → returns x (strap/watch/none downgrade).",
+   "hash": "d19a1091ad586208",
+   "does": "For non-strap requests returns the request; for strap stops this recorder's own lingering stream or throws strapBusy when another session (RRCollector) is buffering on the strap (stopOwnStaleStreamOrRefuse), asks WorkoutHRSourceResolver (logs it) and returns its provenanceSource: nil (strapBusy) → throws; reconnectThenUseStrap → connectToLastDevice and .strap; use(x) → x (strap/watch/none downgrade).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.stopStaleStreamIfIdle()",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.stopOwnStaleStreamOrRefuse()",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.currentSourceResolution(requested:)",
     "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift::func WorkoutHRSourceResolver.log(_:)",
+    "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift::func WorkoutHRSourceResolver.provenanceSource(for:)",
     "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.connectToLastDevice()"
    ],
    "reads": [],
@@ -281,26 +289,22 @@
     },
     {
      "at": "+8",
-     "cond": "case .strapBusy",
+     "cond": "provenanceSource nil (strapBusy)",
      "effect": "throws WorkoutRecorderError.strapBusy"
     },
     {
-     "at": "+10",
-     "cond": "case .reconnectThenUseStrap",
-     "effect": "triggers connectToLastDevice, returns .strap without waiting for the link"
-    },
-    {
-     "at": "+13",
-     "cond": "case .use(resolved)",
-     "effect": "returns resolved (strap if connected, watch if paired, else none)"
+     "at": "+11",
+     "cond": "resolution .reconnectThenUseStrap",
+     "effect": "triggers connectToLastDevice; returns .strap without waiting for the link"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.connectToLastDevice()": "fd314598290b94f0",
     "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift::func WorkoutHRSourceResolver.log(_:)": "e1c5d38e4664e95b",
+    "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift::func WorkoutHRSourceResolver.provenanceSource(for:)": "ca87aaf6b275111c",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.currentSourceResolution(requested:)": "1a3e5c09dfcb5187",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.stopStaleStreamIfIdle()": "9542e38eda23eef6"
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.stopOwnStaleStreamOrRefuse()": "147c89d402af3685"
    }
   },
   {
@@ -330,44 +334,35 @@
    }
   },
   {
-   "key": "func WorkoutSessionLifecycle.stopStaleStreamIfIdle()",
-   "hash": "b0eae87908e02e10",
-   "does": "If the Polar manager is still streaming while idle, logs and stops the stream (discarding returned points).",
+   "key": "func WorkoutSessionLifecycle.stopOwnStaleStreamOrRefuse()",
+   "hash": "dae0f16af85c92af",
+   "does": "With a live Polar stream: when it is this recorder's own (streamingStartTime equals ownedStrapStreamStart — the HRR capture's lingering stream) logs and stops it, discarding its points; when it is any other session's (RRCollector overnight/quick streaming on the same manager) logs and throws strapBusy, so that session's buffered beats are never discarded. No stream: no-op.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.stopStreaming()"
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.stopStreaming()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
-    "mem:PolarManager.isStreaming"
+    "mem:PolarManager.isStreaming",
+    "mem:PolarManager.streamingStartTime",
+    "mem:WorkoutRecorder.ownedStrapStreamStart"
    ],
    "writes": [
-    "ble:Polar stream stopped"
+    "ble:Polar stream stopped (own stream only)"
    ],
    "branches": [
     {
-     "at": "+1",
-     "cond": "polarManager.isStreaming",
-     "effect": "false: no-op; true: stopStreaming()"
-    }
-   ],
-   "flags": [
+     "at": "+2",
+     "cond": "polar.isStreaming",
+     "effect": "false: no-op"
+    },
     {
-     "kind": "data-loss",
-     "sev": "high",
-     "text": "The function assumes any live Polar stream is a lingering post-workout stream, but RRCollector's overnight and quick streaming use the same polarManager.startStreaming. The strap-busy check (resolver and Watch refusal) only tests isRecordingOnDevice, which is false for Verity Sense overnights, overnights with useDeviceInternalBackup=false, and quick streaming sessions. In those cases a strap workout start stops the running RRCollector stream and discards the buffered RR points (`_ =`). startStreaming then resets the buffer for the workout.",
-     "evidence": [
-      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:228",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:230",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:274",
-      "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift:94",
-      "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift:95",
-      "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift:64",
-      "Emuqu/EmuquApp.swift:789",
-      "Emuqu/Sources/Collection/PolarManager+Streaming.swift:56"
-     ],
-     "found": "second read"
+     "at": "+3",
+     "cond": "stream start matches ownedStrapStreamStart",
+     "effect": "false: logs and throws strapBusy; true: stops the stale own stream"
     }
    ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.stopStreaming()": "61f032bd39cc3856",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
@@ -421,18 +416,21 @@
   },
   {
    "key": "func WorkoutSessionLifecycle.beginPolarStreamingOrDefer(effectiveSource:workoutId:)",
-   "hash": "d53f20bfb3a1d5d0",
-   "does": "Clears strapNotice; for strap source starts Polar streaming (may throw) and arms the device-internal backup for this workout id.",
+   "hash": "d0c003565ccbbf07",
+   "does": "Clears strapNotice; for strap source starts Polar streaming (may throw), records the stream's start stamp as ownedStrapStreamStart (marks the stream as this recorder's) and arms the device-internal backup for this workout id.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.startStreaming()",
     "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.startDeviceInternalBackupIfPossible(workoutId:)"
    ],
-   "reads": [],
+   "reads": [
+    "mem:PolarManager.streamingStartTime"
+   ],
    "writes": [
     "mem:WorkoutLifecycle.strapNotice",
     "ble:Polar stream started",
-    "ble:Polar H10 internal recording"
+    "ble:Polar H10 internal recording",
+    "mem:WorkoutRecorder.ownedStrapStreamStart"
    ],
    "branches": [
     {
@@ -452,8 +450,8 @@
   },
   {
    "key": "func WorkoutSessionLifecycle.resetPerWorkoutState(session:startDate:effectiveSource:)",
-   "hash": "1752c7556fbb3314",
-   "does": "Resets all per-workout recorder state: active HR source, current session, start date, collected points, clock/pause, HR metrics, ingest cursor, samples, live pace, foot-pod baseline, power sums, motion power/foot-pod flags, last strap HR time, DFA analyzer, voice coach.",
+   "hash": "221f38032c9ab412",
+   "does": "Resets all per-workout recorder state: active HR source, current session, start date, collected points, clock/pause, HR metrics, ingest cursor, samples, live pace, foot-pod odometer (fresh FootPodOdometer), power sums, motion power/foot-pod flags, last strap HR time, DFA analyzer, voice coach.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.resetClockAndPauseState()",
@@ -471,7 +469,7 @@
     "mem:WorkoutRecorder.lastIngestedPointCount",
     "mem:WorkoutRecorder.workoutSamples",
     "mem:WorkoutRecorder.livePace",
-    "mem:WorkoutRecorder.footPodOdometer (via footPodStartDistanceMeters = nil)",
+    "mem:WorkoutRecorder.footPodOdometer",
     "mem:WorkoutRecorder.powerSampleSum",
     "mem:WorkoutRecorder.powerSampleCount",
     "mem:WorkoutRecorder.maxPowerObserved",
@@ -485,15 +483,15 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.reset(sessionStart:)": "af308ed521ae53fa",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.reset(sessionStart:)": "36cd2340db131f7c",
     "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.reset()": "92c687ebb7d366f5",
     "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.reset()": "ee32ed6c36820d47",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.collectedPoints": "95b1582000cb698f",
     "Emuqu/Sources/Collection/WorkoutHR.swift::func WorkoutHR.reset()": "fad94d4b8d475c1e",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.resetClockAndPauseState()": "f13d651891224298",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::init FootPodOdometer(baselineMeters:)": "5981568fb8583312",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.activeHRSource": "daaf8ce19213f55e",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.footPodActive": "c783733cbe74fe58",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.footPodStartDistanceMeters": "ed692d5f84578b47",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "ad61e93456f590a4"
    }
   },
@@ -538,7 +536,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.installConversationContextProviders()": "cd7e6fcf557dcbe2",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.installLiveWorkoutSamplesProvider()": "7b9a9a6eb6280c42"
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.installLiveWorkoutSamplesProvider()": "6cbd77371bc22b7d"
    }
   },
   {
@@ -575,8 +573,8 @@
   },
   {
    "key": "func WorkoutSessionLifecycle.installLiveWorkoutSamplesProvider()",
-   "hash": "55b1d3e9b55a617b",
-   "does": "Registers a samples provider on LiveWorkoutBroker returning recorder.samplesView via MainActor.assumeIsolated ([] once recorder is gone).",
+   "hash": "6d37bfc0313cb0c8",
+   "does": "Registers a samples provider on LiveWorkoutBroker returning recorder.samplesView, read via MainActor.assumeIsolated only when called on the main thread; a caller on another thread gets [] instead of an isolation trap ([] too once the recorder is gone).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.registerSamplesProvider(_:)",
@@ -588,23 +586,17 @@
    ],
    "branches": [
     {
-     "at": "+3",
-     "cond": "recorder nil",
-     "effect": "?? [] samples"
-    }
-   ],
-   "flags": [
+     "at": "+2",
+     "cond": "not on the main thread",
+     "effect": "returns []"
+    },
     {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "MainActor.assumeIsolated traps if the broker ever invokes the provider off the main actor; safety rests on the comment's claim that the fact resolver runs on main.",
-     "evidence": [
-      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:351",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:346"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+4",
+     "cond": "recorder nil",
+     "effect": "returns []"
     }
    ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.registerSamplesProvider(_:)": "6614770ac6277d81",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.samplesView": "da27f0b18ac388b1",
@@ -761,38 +753,36 @@
   },
   {
    "key": "func WorkoutSessionLifecycle.deferLocationTrackingStart(sport:)",
-   "hash": "ab8f168e85601ddb",
-   "does": "For GPS sports queues a main-actor Task that calls recorder.location.startTracking() and logs its duration.",
+   "hash": "ea26fd862a458a7a",
+   "does": "For GPS sports queues a main-actor Task that, only if the workout is still recording, calls recorder.location.startTracking(), re-applies the lifecycle's pause state (startTracking starts unpaused) and logs its duration.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.startTracking()"
    ],
-   "reads": [],
+   "reads": [
+    "mem:WorkoutLifecycle.phase",
+    "mem:WorkoutLifecycle.isPaused"
+   ],
    "writes": [
-    "mem:WorkoutLocationManager tracking state"
+    "mem:WorkoutLocationManager tracking state",
+    "mem:WorkoutLocationManager.isPaused"
    ],
    "branches": [
     {
      "at": "+1",
      "cond": "sport.usesGPS",
-     "effect": "false: return; true: deferred startTracking"
-    }
-   ],
-   "flags": [
+     "effect": "false: returns"
+    },
     {
-     "kind": "race",
-     "sev": "low",
-     "text": "Unlike deferZwiftBroadcast (which re-checks phase == .recording, Start.swift:463), the deferred task starts GPS without checking the workout is still recording; a stop processed before the hop leaves location tracking running after stopTracking (WorkoutRecorder+Stop.swift:129). Same pattern in deferPedometerStart.",
-     "evidence": [
-      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:499",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:501",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:463"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+4",
+     "cond": "recorder gone or phase not .recording when the task runs",
+     "effect": "returns without starting GPS"
     }
    ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.startTracking()": "e11eaf31eee2adf6",
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.startTracking()": "fe48bf543867c029",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase": "d0bce80edccaa2fe",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
@@ -819,13 +809,15 @@
   },
   {
    "key": "func WorkoutSessionLifecycle.deferPedometerStart(sport:)",
-   "hash": "b35ede01b303fd3d",
-   "does": "For pedometer sports queues a main-actor Task that starts the pedometer, logs duration, and warns if >100 ms.",
+   "hash": "c66eb8d2e9f42d26",
+   "does": "For pedometer sports queues a main-actor Task that, only if the workout is still recording, starts the pedometer, logs duration, and warns if >100 ms.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutPedometer.swift::func WorkoutPedometer.start()"
    ],
-   "reads": [],
+   "reads": [
+    "mem:WorkoutLifecycle.phase"
+   ],
    "writes": [
     "mem:WorkoutPedometer"
    ],
@@ -833,17 +825,23 @@
     {
      "at": "+1",
      "cond": "sport in pedometerSports",
-     "effect": "false: return; true: deferred start"
+     "effect": "false: returns"
     },
     {
-     "at": "+8",
+     "at": "+4",
+     "cond": "recorder gone or phase not .recording",
+     "effect": "returns without starting"
+    },
+    {
+     "at": "+9",
      "cond": "ptMs > 100",
-     "effect": "true: warning log"
+     "effect": "warning log"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/WorkoutPedometer.swift::func WorkoutPedometer.start()": "b2d6e575543b2590",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase": "d0bce80edccaa2fe",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
@@ -873,10 +871,10 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.holdLinkForWorkout(_:)": "9187ae9f8cd2a455",
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.holdLinkForWorkout(_:)": "c6e351f2be523395",
     "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.reconnectLast()": "68b4511dae9ba503",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func manageFootPod(for:)": "3a4259d0f00929f6",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func manageFootPod(for:)": "aad385559db9bf20",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
@@ -884,39 +882,38 @@
   },
   {
    "key": "func WorkoutSessionLifecycle.persistRecordingStateOffMain(session:startDate:sport:)",
-   "hash": "3bacbcd92c7ece2e",
-   "does": "Builds PersistedRecordingState (session id, start, .workout, phase 'workout:<sport>') and saves it to UserDefaults on a detached utility task; logs if save took >50 ms.",
+   "hash": "85dcda3f0d0dcf5e",
+   "does": "Builds PersistedRecordingState (session id, start, .workout, phase 'workout:<sport>') and, on the serial recordingStateQueue (ordered before the archive's clear), saves it unless the key holds an RRCollector (non-workout) recording, which is left in place with a log; logs if the save took >50 ms.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.save(_:)"
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.load()",
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.save(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:DispatchQueue.async"
    ],
-   "reads": [],
+   "reads": [
+    "ud:RRCollector.persistedRecordingState"
+   ],
    "writes": [
     "ud:RRCollector.persistedRecordingState (UserDefaultsKeys.persistedRecordingState)"
    ],
    "branches": [
     {
-     "at": "+12",
-     "cond": "save took > 50 ms",
-     "effect": "true: log"
-    }
-   ],
-   "flags": [
+     "at": "+9",
+     "cond": "stored state belongs to a non-workout session",
+     "effect": "logs and leaves it; no save"
+    },
     {
-     "kind": "race",
-     "sev": "low",
-     "text": "The save runs on an unawaited detached task, while a successful archive calls PersistedRecordingState.clear() on main (Metrics:187). If the detached save lands after the clear (very short workout, contended cfprefsd, which the comment says can stall for seconds), a stale record for an already-archived workout survives and the next launch offers to recover it. The write also overwrites any RRCollector recording's state under the same key.",
-     "evidence": [
-      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:622",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:624",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift:187",
-      "Emuqu/Sources/Collection/PersistedRecordingState.swift:38"
-     ],
-     "found": "second read"
+     "at": "+16",
+     "cond": "save took > 50 ms",
+     "effect": "debug log"
     }
    ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.save(_:)": "956b3fbf479fafc1",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.load()": "369ba575c47e4e85",
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.save(_:)": "3fd1e07aa3e68060",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.StartStamps.ms(_:_:)": "5408ded6f8e98147",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
@@ -1186,14 +1183,16 @@
   },
   {
    "key": "func manageFootPod(for:)",
-   "hash": "d3e62a8935d54315",
-   "does": "File-scope: decides if the foot-pod manager serves this sport, holds/releases its link accordingly; if served and a known device is disconnected, defers reconnectLast; if not served and connected, defers disconnect.",
+   "hash": "2b3e5f8f86b7027e",
+   "does": "File-scope: decides if the foot-pod manager serves this sport, holds/releases its link accordingly; if served, the device to reconnect is known (footPodDeviceToReconnect) and the manager is disconnected, defers connect(deviceId:) to it; if not served and connected, defers disconnect.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func footPodManagerServes(_:pod:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func footPodDeviceToReconnect(for:pod:)",
     "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.holdLinkForWorkout(_:)",
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.reconnectLast()",
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.disconnect()"
+    "Emuqu/Sources/Collection/FootPodManager.swift::func BLEPeripheralConnecting.connect(deviceId:)",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.disconnect()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
     "mem:FootPodManager.knownDevices",
@@ -1210,22 +1209,23 @@
     },
     {
      "at": "+19",
-     "cond": "known devices non-empty and disconnected",
-     "effect": "false: return; true: deferred reconnectLast"
+     "cond": "a device to reconnect and pod disconnected",
+     "effect": "defers connect(deviceId:); else returns"
     },
     {
-     "at": "+26",
+     "at": "+27",
      "cond": "pod connected (not-served sport)",
-     "effect": "false: return; true: deferred disconnect"
+     "effect": "defers disconnect; else returns"
     }
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Collection/FootPodManager.swift::func BLEPeripheralConnecting.connect(deviceId:)": "698a62ba3a0c388c",
     "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.disconnect()": "b9ba282009a86785",
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.holdLinkForWorkout(_:)": "5d8e481a809cc2de",
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.reconnectLast()": "784b084b0d30c712",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.holdLinkForWorkout(_:)": "26b9a543c31a47dd",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func footPodManagerServes(_:pod:)": "9ab5b2d3814ced1d",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func footPodDeviceToReconnect(for:pod:)": "828ad5c4cadccff8",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func footPodManagerServes(_:pod:)": "c514b0abc1ab96c4",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
@@ -1233,8 +1233,8 @@
   },
   {
    "key": "func footPodManagerServes(_:pod:)",
-   "hash": "8deb4a8c7759a425",
-   "does": "File-scope: true for run/trailRun/walk/hike/treadmill; for bike/indoorBike true only when the first known device supports power; false otherwise.",
+   "hash": "c7c78a1d2fe065f5",
+   "does": "File-scope: true for the pedometer sports (WorkoutSessionLifecycle.pedometerSports); for bike/indoorBike true when any remembered device supports power; false otherwise.",
    "entry": null,
    "calls": [],
    "reads": [
@@ -1243,27 +1243,37 @@
    "writes": [],
    "branches": [
     {
-     "at": "+3",
-     "cond": "sport in foot sports",
-     "effect": "true: return true"
+     "at": "+2",
+     "cond": "sport in pedometerSports",
+     "effect": "true"
     },
     {
-     "at": "+4",
+     "at": "+3",
      "cond": "sport is .bike or .indoorBike",
-     "effect": "false: return false; true: first known device supportsPower"
+     "effect": "false: false; true: any power device remembered"
     }
    ],
-   "flags": [
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func footPodDeviceToReconnect(for:pod:)",
+   "hash": "c30e526e1f9ccdfb",
+   "does": "File-scope: the remembered device a workout reconnects: the most recent one (as reconnectLast picks) for a foot sport, the most recent power-carrying one for a bike sport; nil when none is remembered.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:FootPodManager.knownDevices"
+   ],
+   "writes": [],
+   "branches": [
     {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Only knownDevices.first is checked for power support; with several remembered devices a power trainer that is not first is ignored and gets disconnected for a bike workout.",
-     "evidence": [
-      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:822"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+2",
+     "cond": "sport is not .bike/.indoorBike",
+     "effect": "knownDevices.first; else first with supportsPower"
     }
    ],
+   "flags": [],
    "deps": {}
   }
  ],

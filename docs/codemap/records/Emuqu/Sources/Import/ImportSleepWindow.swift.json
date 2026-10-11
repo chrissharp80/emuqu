@@ -1,28 +1,15 @@
 {
  "file": "Emuqu/Sources/Import/ImportSleepWindow.swift",
- "hash": "28fa9ddf83bdcf20",
+ "hash": "e99b0be1828cf94a",
  "role": "Pure helpers for the RR import screen: convert HealthKit sleep start/end Dates into Int64 millisecond offsets into an imported recording without trapping, and compute an artifact percentage that is nil for an empty series.",
  "types": [
   "ImportSleepWindow: enum (namespace)",
   "ImportSleepWindow.Offsets: struct — optional startMs/wakeMs",
   "ImportSleepWindow.Rejection: enum (String, Error) — notFinite | outOfRange"
  ],
- "state": [
-  "mem:ImportSleepWindow.maxOffsetMs (static 100 years in ms; unused)"
- ],
+ "state": [],
  "toplevel": "Callers: ImportDataView+Actions.swift:195 (artifactPercent) and :435 (offsets).",
- "flags": [
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "maxOffsetMs is never read anywhere in the repo (grep finds only its declaration); the actual ±100-year bound is MillisecondOffset.representableLimitMs, so the doc comment at 34-36 describes a constant that has no effect and duplicates another.",
-   "evidence": [
-    "Emuqu/Sources/Import/ImportSleepWindow.swift:37",
-    "Emuqu/Sources/Utilities/MillisecondOffset.swift:19"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "var ImportSleepWindow.Rejection.localizedReason",

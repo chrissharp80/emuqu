@@ -1,10 +1,10 @@
 {
  "file": "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift",
- "hash": "9c7381fb7ca3d580",
- "role": "Opt-in Tier-2 split-marker announcements: MileMarkerInterval setting enum, per-workout MileMarkerState, a pure evaluator that emits a MileMarkerPayload when a new distance/time marker is crossed, and a formatter that renders it as one localized spoken line. Driven by WorkoutVoiceCoach.tickMileMarker when enableMileMarkerNotifications is on.",
+ "hash": "f52cecc102d00868",
+ "role": "Opt-in Tier-2 split-marker announcements: MileMarkerInterval setting enum, per-workout MileMarkerState, a pure evaluator that emits a MileMarkerPayload when a new distance/time marker is crossed (restarting the split silently when the resolved unit changes mid-workout), and a formatter that renders it as one localized spoken line. Evaluated every tick by WorkoutVoiceCoach.tickMileMarker; announced only when enableMileMarkerNotifications is on and the coach is unmuted.",
  "types": [
   "MileMarkerInterval: enum (String, Codable, CaseIterable) — stored in UserSettings.mileMarkerInterval",
-  "MileMarkerState: struct — lastMarkerIndex and split-start distance/elevation/elapsed",
+  "MileMarkerState: struct — lastMarkerIndex, split-start distance/elevation/elapsed, and the markerUnit the index counts in",
   "MileMarkerPayload: struct — one announcement's data",
   "MileMarkerUnit: enum — resolved marker unit",
   "WorkoutMileMarkerEngine: enum — pure evaluator",
@@ -15,40 +15,8 @@
   "static let WorkoutMileMarkerEngine.cadenceShiftSpm: Double = 5 (line 212)",
   "UserSettings key mileMarkerInterval (declared in UserSettings+Model.swift:468, type declared here)"
  ],
- "toplevel": "MileMarkerState fields default 0; MileMarkerPayload.cadenceShiftSpm is a var.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Formatter header says it caps content at the 4-second target 'by elision (drop optional fields, shorten labels)', but render() has no length check or label shortening; it only omits nil fields.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift:245",
-    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift:258"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "MileMarkerState starts at index 0 / split start 0 and WorkoutVoiceCoach only runs the evaluator while enableMileMarkerNotifications is on, so turning the toggle on mid-workout makes the first announcement report the whole workout so far as one split (e.g. 'Mile 4 in 34:10', with the average pace), skipping miles 1-3.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:114",
-    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift:146",
-    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift:143"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "split.markerCompleted in the trigger engine computes the same per-mile/km crossing (with a 60 s guard) as this engine; the rule is .silent and only writes the engine's unread history.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:594",
-    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift:134"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "MileMarkerState fields default 0 and markerUnit nil (not yet evaluated); MileMarkerPayload.cadenceShiftSpm is a var. The formatter's header comment: no length cap, it leaves out nil fields.",
+ "flags": [],
  "units": [
   {
    "key": "var MileMarkerInterval.displayName",
@@ -99,16 +67,14 @@
   },
   {
    "key": "func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)",
-   "hash": "36d3d8c4f4f83597",
-   "does": "Before 60 s elapsed returns (nil, state). Otherwise resolves the marker unit, computes the current marker index, and if it exceeds state.lastMarkerIndex returns a payload (split duration, split pace, HR zone label, totals, shifted cadence, split climb) plus a new state anchored at the current distance/elevation gain/elapsed; else (nil, state).",
+   "hash": "209e3e1c50f2bbdf",
+   "does": "Before 60 s elapsed returns (nil, state). Otherwise resolves the marker unit and the current marker index. If the state counts a different unit (interval or units changed mid-workout) it returns no payload and a fresh split starting now with the current index counted. Else, if the index exceeds state.lastMarkerIndex, returns makePayload's payload plus a new split anchored at the current distance/elevation gain/elapsed; otherwise no payload and the state with its unit recorded.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.resolvedUnit(for:unitsImperial:)",
     "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.markerIndex(context:unit:)",
-    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitPace(context:state:)",
-    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.hrZoneLabel(context:)",
-    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.shiftedCadence(context:)",
-    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitElevation(context:state:)"
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitStarting(at:unit:index:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.makePayload(context:state:unit:index:)"
    ],
    "reads": [],
    "writes": [],
@@ -120,31 +86,58 @@
     },
     {
      "at": "+9",
-     "cond": "currentIndex > state.lastMarkerIndex",
-     "effect": "false: returns (nil, state); true: builds payload and next state. If several markers were crossed since last tick only the latest index is announced, its split spanning all of them"
-    }
-   ],
-   "flags": [
+     "cond": "state.markerUnit set and differs from the resolved unit",
+     "effect": "returns (nil, split starting now at the current index in the new unit)"
+    },
     {
-     "kind": "broken",
-     "sev": "med",
-     "text": "state.lastMarkerIndex is stored in whatever unit was in force when it was set, but each tick recomputes the index in the CURRENT interval/units (settings.mileMarkerInterval and UnitsPreferenceStore are re-read every tick in WorkoutVoiceCoach.tickMileMarker). Changing the interval mid-workout from km to 5 km at km 7 mutes markers until 40 km (index must exceed 7); changing 5 km to km at 5 km fires immediately with a split spanning the whole workout. Units .auto/metric→imperial flips with .everyDistanceUnit have the same effect.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift:143",
-      "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift:155",
-      "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:124",
-      "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:128"
-     ],
-     "found": "second read"
+     "at": "+14",
+     "cond": "currentIndex > state.lastMarkerIndex",
+     "effect": "false: returns (nil, state with markerUnit set); true: payload and next state. If several markers were crossed since last tick only the latest index is announced, its split spanning all of them"
     }
    ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.hrZoneLabel(context:)": "cbb1bae8eec1f74c",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.makePayload(context:state:unit:index:)": "99d6905c18514bfe",
     "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.markerIndex(context:unit:)": "14863b952d22fc20",
     "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.resolvedUnit(for:unitsImperial:)": "e2aab5cbf7e2baad",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitStarting(at:unit:index:)": "7853219993ced21e",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc"
+   }
+  },
+  {
+   "key": "func WorkoutMileMarkerEngine.makePayload(context:state:unit:index:)",
+   "hash": "7d6cd7233921f426",
+   "does": "Builds the MileMarkerPayload for crossing marker index of unit: split duration from state's split start, split pace, HR zone label, total distance/elapsed, shifted cadence (computed once) and split climb.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.shiftedCadence(context:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitPace(context:state:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.hrZoneLabel(context:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitElevation(context:state:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.hrZoneLabel(context:)": "cbb1bae8eec1f74c",
     "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.shiftedCadence(context:)": "3813776223e42003",
     "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitElevation(context:state:)": "0543dbdd80d395a1",
     "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitPace(context:state:)": "bebd24eb2e800250",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc"
+   }
+  },
+  {
+   "key": "func WorkoutMileMarkerEngine.splitStarting(at:unit:index:)",
+   "hash": "786b4765810fd5b8",
+   "does": "Returns a MileMarkerState for a split starting at this snapshot: lastMarkerIndex = index, split start at the context's distance, elevation gain and elapsed, markerUnit = unit.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933"
    }

@@ -101,7 +101,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.computeANSMetrics(series:flags:windowStart:windowEnd:timeDomain:nonlinear:daytimeRestingHR:config:)": "ab5d51ab0f547c96",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.computeANSMetrics(series:flags:windowStart:windowEnd:timeDomain:nonlinear:daytimeRestingHR:config:)": "05d823709d8e3e76",
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.fetchDaytimeRestingHR(for:sessionId:)": "aa6488cd2fa1a209"
    }
   },
@@ -306,8 +306,8 @@
   },
   {
    "key": "func HRVAnalysisPipeline.analyzeFullSeries(series:flags:windowStart:windowEnd:trainingContext:ansConfig:daytimeRestingHR:)",
-   "hash": "84b6c4bbaa99bddf",
-   "does": "Sync streaming analysis of series[windowStart..<windowEnd] clamped to the series; logs and returns nil for an empty clamped range; otherwise builds the result via fullSeriesResult, sets training context and whole-night HR stats. Uses caller-supplied daytimeRestingHR (no HealthKit read).",
+   "hash": "d652c05ec0798cea",
+   "does": "Sync streaming analysis of series[windowStart..<windowEnd] clamped to the series; logs and returns nil for an empty clamped range; otherwise builds the result via fullSeriesResult (reporting the clamped window), sets training context and whole-night HR stats. Uses caller-supplied daytimeRestingHR (no HealthKit read).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.logPipelineError(_:)",
@@ -334,31 +334,18 @@
      "effect": "nil: returns nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "The result's windowStart/windowEnd are the caller's unclamped values (reportedWindow) while metrics use the clamped range, so a caller passing windowEnd beyond the series gets a result whose window indices exceed the series.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift:280",
-      "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift:281",
-      "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift:290",
-      "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift:344"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.attachOvernightHRStats(_:series:flags:)": "901d3313c57d414b",
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.logPipelineError(_:)": "0c1ad38b9671776e",
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.fullSeriesResult(series:flags:start:end:reportedWindow:ansConfig:daytimeRestingHR:)": "c3843d2d5896b458",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.fullSeriesResult(series:flags:start:end:reportedWindow:ansConfig:daytimeRestingHR:)": "e424042ae1e8334f",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
    "key": "func HRVAnalysisPipeline.fullSeriesResult(series:flags:start:end:reportedWindow:ansConfig:daytimeRestingHR:)",
-   "hash": "aa5248f358739b83",
-   "does": "Sync core for streaming: time-domain and nonlinear metrics (logging and nil on failure), ANS metrics with the passed daytime HR and the given config or a default (baselineRMSSD 40, no VO2max, no load adjustment), then streamingResult.",
+   "hash": "ce700dba6da3e2b9",
+   "does": "Sync core for streaming: time-domain and nonlinear metrics (logging and nil on failure), ANS metrics with the passed daytime HR and the optional config (none: readiness on absolute RMSSD bands, no invented baseline), then streamingResult.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.computeTimeDomain(series:flags:start:end:)",
@@ -379,26 +366,11 @@
      "at": "+14",
      "cond": "nonlinear non-nil",
      "effect": "nil: logs .nonlinearFailed, nil"
-    },
-    {
-     "at": "+21",
-     "cond": "ansConfig ?? default",
-     "effect": "nil: ANSConfiguration(baselineRMSSD: 40.0, vo2Max: nil, trainingLoadAdjustment: 0)"
     }
    ],
-   "flags": [
-    {
-     "kind": "hack",
-     "sev": "low",
-     "text": "When no ANSConfiguration is passed, the readiness score is computed against a hard-coded 40 ms baseline RMSSD instead of the user's; production callers all pass one (RRCollector+Streaming.swift:222, MorningProcessingService+Merging.swift:315,320, SampleDataLibrary.swift:103), so only tests and future callers hit it.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift:322"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.computeANSMetrics(series:flags:windowStart:windowEnd:timeDomain:nonlinear:daytimeRestingHR:config:)": "ab5d51ab0f547c96",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.computeANSMetrics(series:flags:windowStart:windowEnd:timeDomain:nonlinear:daytimeRestingHR:config:)": "05d823709d8e3e76",
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.computeNonlinear(series:flags:start:end:)": "574ff934aa8814b8",
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.computeTimeDomain(series:flags:start:end:)": "f6f5b63d856747b9",
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.logPipelineError(_:)": "0c1ad38b9671776e",
@@ -449,17 +421,17 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSeries(series:flags:windowStart:windowEnd:trainingContext:ansConfig:daytimeRestingHR:)": "16f070d35d68d9c8",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSeries(series:flags:windowStart:windowEnd:trainingContext:ansConfig:daytimeRestingHR:)": "29c8b5a2dbaab494",
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.attachPeakCapacityWindow(_:bounds:peakCapacity:sessionId:)": "6ccb57a434d7616d",
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.peakCapacityBounds(series:peakCapacity:)": "8f27cfe76f6c9f7a",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.peakCapacityBounds(series:peakCapacity:)": "d4d2733795a9061a",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakCapacity(from:)": "7f3278f31052cc1b",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
    "key": "func HRVAnalysisPipeline.peakCapacityBounds(series:peakCapacity:)",
-   "hash": "15f4906d79a2cdd8",
-   "does": "Converts PeakCapacity.windowRelativePosition and windowDurationMinutes to a centred ms window over the series and its beat indices; whole series with nil ms when there is no relative position or no points.",
+   "hash": "5ab7395c6dd8463f",
+   "does": "Converts PeakCapacity.windowRelativePosition and windowDurationMinutes to a centred ms window over the series and its beat indices; whole series with nil ms (so no Peak Capacity window is attached) when there is no relative position, no points, or no beat at or after the window start.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.indexRange(in:fromMs:toMs:)",
@@ -471,51 +443,38 @@
     {
      "at": "+9",
      "cond": "relPos exists && series non-empty",
-     "effect": "true: computes centred window and indices; false: whole series, nil ms"
-    }
-   ],
-   "flags": [
+     "effect": "true: computes centred window; false: whole series, nil ms"
+    },
     {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "When the computed window starts after the last beat, indexRange leaves startIdx = 0 and endIdx = count, so the whole series is analysed while the result still reports the (out-of-range) peak window ms as its window.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift:438",
-      "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift:442",
-      "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift:427",
-      "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift:458"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+17",
+     "cond": "a beat at or after the window start",
+     "effect": "indices and ms set; else whole series, nil ms"
     }
    ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.indexRange(in:fromMs:toMs:)": "37d604f93e4a854b",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.indexRange(in:fromMs:toMs:)": "e34f60819b7595c9",
     "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b"
    }
   },
   {
    "key": "func HRVAnalysisPipeline.indexRange(in:fromMs:toMs:)",
-   "hash": "25bf771d5c5a2752",
-   "does": "Linear scan: first index with t_ms >= startMs (default 0) and first index with t_ms >= endMs (default count).",
+   "hash": "0b68177e89e894cb",
+   "does": "First index with t_ms >= startMs and, from there, first index with t_ms >= endMs (count when none); nil when no beat is at or after startMs.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+4",
-     "cond": "for each point",
-     "effect": "scans"
+     "at": "+1",
+     "cond": "no beat at or after startMs",
+     "effect": "nil"
     },
     {
-     "at": "+5",
-     "cond": "t_ms >= startMs && !foundStart",
-     "effect": "records start index once"
-    },
-    {
-     "at": "+9",
-     "cond": "t_ms >= endMs",
-     "effect": "records end index and stops"
+     "at": "+2",
+     "cond": "no beat at or after endMs",
+     "effect": "end = count"
     }
    ],
    "flags": [],

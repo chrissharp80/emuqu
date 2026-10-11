@@ -9,18 +9,8 @@
  "state": [
   "file:FileManager.temporaryDirectory/<sport.rawValue>-<yyyyMMdd-HHmmss UTC>.csv (written by writeToTempFile)"
  ],
- "toplevel": "Units has no stored-property initializers beyond its init; the default argument of Units.init reads UnitsPreferenceStore.current.resolved. File header comment (lines 21-22) says an indoor/no-GPS session gets only the summary row with an empty trackpoint section, but export appends indoorBlock when samples exist (line 111-113).",
+ "toplevel": "Units has no stored-property initializers beyond its init; the default argument of Units.init reads UnitsPreferenceStore.current.resolved. The file header comment describes the sections as export builds them: per-fix rows with values from the nearest 1 Hz WorkoutSample (no RR beats), and for a track-less session an empty trackpoint section followed by the per-second sample table when samples exist.",
  "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Header comment says indoor/no-GPS sessions get only the summary row and an empty trackpoint section; export() appends a per-second indoor table whenever samples exist.",
-   "evidence": [
-    "Emuqu/Sources/Analysis/CSVExporter.swift:21",
-    "Emuqu/Sources/Analysis/CSVExporter.swift:111"
-   ],
-   "found": "first read, upheld on second"
-  },
   {
    "kind": "privacy",
    "sev": "low",
@@ -31,16 +21,6 @@
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift:472"
    ],
    "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Header comment says the HR column is the nearest-in-time beat-derived HR; trackpointRow actually uses WorkoutSample.heartRate (the recorder's smoothed 1 Hz value) and no RR beats are read.",
-   "evidence": [
-    "Emuqu/Sources/Analysis/CSVExporter.swift:10",
-    "Emuqu/Sources/Analysis/CSVExporter.swift:174"
-   ],
-   "found": "second read"
   }
  ],
  "units": [
@@ -215,54 +195,41 @@
     "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.headerBlock(session:sport:units:iso:)": "3ba7bb557cde97a1",
     "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.indoorBlock(samples:units:)": "f8966309990fe195",
     "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.splitsBlock(_:units:)": "ee00f769477b3961",
-    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.trackpointBlock(session:track:samples:units:iso:)": "43cae3779ab21fe6",
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.trackpointBlock(session:track:samples:units:iso:)": "f89461773dded7ad",
     "Emuqu/Sources/Analysis/CSVExporter.swift::init CSVExporter.Units(imperial:)": "679b9e97f80aebce",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.displayName": "77a6486ffa8861f3"
    }
   },
   {
    "key": "func CSVExporter.trackpointBlock(session:track:samples:units:iso:)",
-   "hash": "c02d4d93dbfb9f06",
+   "hash": "f1e372d9a0b7c6c5",
    "does": "Writes the trackpoint header (unit-suffixed columns) and one row per GPS fix inside [startDate, sessionEnd], with cumulative distance summed over kept fixes only.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.trackpointRow(fix:cumulative:session:samples:units:iso:)",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration"
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.trackpointRow(fix:cumulative:session:samples:units:iso:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+8",
+     "at": "+10",
      "cond": "session.endDate nil",
-     "effect": "sessionEnd = startDate+duration; duration is derived from endDate (SessionMetadata.swift:642) so it is also nil and the fallback is Date() (now), keeping every fix after start"
+     "effect": "sessionEnd = Date() (now), keeping every fix after start"
     },
     {
-     "at": "+12",
+     "at": "+14",
      "cond": "for each in-window fix",
      "effect": "emits one row per fix"
     },
     {
-     "at": "+13",
+     "at": "+15",
      "cond": "idx > 0",
      "effect": "adds great-circle distance from previous kept fix to cumulative; first fix stays 0"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "The `session.duration.map{...}` fallback can never produce a value: HRVSession.duration returns nil exactly when endDate is nil, so the chain always falls through to Date().",
-     "evidence": [
-      "Emuqu/Sources/Analysis/CSVExporter.swift:141",
-      "Emuqu/Sources/Models/SessionMetadata.swift:642"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.trackpointRow(fix:cumulative:session:samples:units:iso:)": "bd55d7486adb2927",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48"
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.trackpointRow(fix:cumulative:session:samples:units:iso:)": "60c18842be1e3e08"
    }
   },
   {
@@ -311,7 +278,7 @@
     {
      "kind": "broken",
      "sev": "med",
-     "text": "Joins each fix to a sample by wall-clock seconds since start (fix.timestamp - startDate), but WorkoutSample.offsetSec is pause-excluded active time and decode() spreads fix times evenly over the wall-clock duration; after any pause (or with a non-uniform fix rate) every later row gets HR/pace/cadence/power/alpha1 from the wrong moment or an empty cell.",
+     "text": "Joins each fix to a sample by wall-clock seconds since start (fix.timestamp − startDate), but WorkoutSample.offsetSec is pause-excluded active time and the stored track carries no real fix times (GPXExporter.decode spreads them evenly over the wall-clock duration); neither the pause timeline nor per-fix times are persisted on WorkoutMetadata, so after any pause (or with a non-uniform fix rate) later rows get HR/pace/cadence/power/alpha1 from the wrong moment or an empty cell. Fixing it needs those persisted (outside this file).",
      "evidence": [
       "Emuqu/Sources/Analysis/CSVExporter.swift:164",
       "Emuqu/Sources/Analysis/CSVExporter.swift:165",
@@ -324,7 +291,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.nearestSample(to:in:)": "dcbf8a5c59544c94",
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.nearestSample(to:in:)": "dce7b3646a6968af",
     "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "99b5dc9d71b51468",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "d9315eaf78873e8c",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "ad61e93456f590a4"
@@ -432,51 +399,35 @@
   },
   {
    "key": "func CSVExporter.nearestSample(to:in:)",
-   "hash": "5c1b4aad1b289e01",
-   "does": "Linear scan for the sample with the smallest |offsetSec − target|; returns it only if within 5 s.",
+   "hash": "4790810bb4256f45",
+   "does": "Binary search for the first sample at or after the target second (samples are in offsetSec order); of it and the sample before it, returns the closer (the earlier on a tie) if within 5 s, else nil. O(log n) per fix.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+1",
-     "cond": "samples empty",
-     "effect": "returns nil"
+     "at": "+2",
+     "cond": "lo < hi",
+     "effect": "halve the range (lower bound on offsetSec)"
     },
     {
      "at": "+4",
-     "cond": "loop over every sample",
-     "effect": "scans all samples (no early exit except exact match)"
+     "cond": "samples[mid].offsetSec < target",
+     "effect": "lo = mid + 1; else hi = mid"
     },
     {
-     "at": "+6",
-     "cond": "distance not smaller than best so far",
-     "effect": "skip sample"
+     "at": "+7",
+     "cond": "no candidate (samples empty)",
+     "effect": "returns nil"
     },
     {
-     "at": "+9",
-     "cond": "exact match d == 0",
-     "effect": "break early"
-    },
-    {
-     "at": "+11",
-     "cond": "bestDelta <= 5",
-     "effect": "returns best; else nil"
+     "at": "+8",
+     "cond": "closest within 5 s",
+     "effect": "returns it; else nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Called once per GPS fix and scans all samples each time (O(fixes×samples)); for a 2 h session with ~7 200 samples and thousands of fixes this is tens of millions of iterations on export. Comment acknowledges it.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/CSVExporter.swift:233",
-      "Emuqu/Sources/Analysis/CSVExporter.swift:239"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {

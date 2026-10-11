@@ -13,19 +13,7 @@
   "ud:UserDefaultsKeys.activeRecordingSessionType (legacy)"
  ],
  "toplevel": "Static key constants only.",
- "flags": [
-  {
-   "kind": "coupling",
-   "sev": "low",
-   "text": "One UserDefaults slot is shared by overnight recording (RRCollector+Lifecycle.swift:18/24) and workouts (WorkoutRecorder+Start.swift:624, WorkoutRecorder+Metrics.swift:187); clear() takes no session id, so finishing any workout erases whatever recording state is persisted, and a workout start overwrites an overnight's slot.",
-   "evidence": [
-    "Emuqu/Sources/Collection/PersistedRecordingState.swift:62",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift:187",
-    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift:18"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "func PersistedRecordingState.save(_:)",
@@ -46,27 +34,15 @@
      "effect": "logs, returns false; nothing written"
     }
    ],
-   "flags": [
-    {
-     "kind": "race",
-     "sev": "low",
-     "text": "WorkoutRecorder saves in a detached utility Task (WorkoutRecorder+Start.swift:622-624) while the workout end clears synchronously (WorkoutRecorder+Metrics.swift:187); a very short workout can have the save land after the clear, leaving a stale record that AppLaunchRecovery reports as an interrupted session.",
-     "evidence": [
-      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:622",
-      "Emuqu/Sources/Collection/PersistedRecordingState.swift:38",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift:187"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
    "key": "func PersistedRecordingState.load()",
-   "hash": "d9a9aa5d866a5b37",
-   "does": "Decodes the stored record; on missing data or decode failure falls back to the legacy 3-key format (which migrates if present).",
+   "hash": "c751c244c9405eb8",
+   "does": "Decodes the stored record; on missing data falls back to the legacy 3-key format (which migrates if present); a decode failure is logged as a warning (it reaches Recent Problems: the interrupted-session prompt cannot appear for that record) and then falls back to legacy.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.loadLegacy()",
@@ -85,21 +61,10 @@
     {
      "at": "+5",
      "cond": "decode throws",
-     "effect": "logged at info, the undecodable blob is left in place and the legacy path is tried (normally nil), so the interrupted session is not detected"
+     "effect": "logged at .warning, the undecodable blob is left in place and the legacy path is tried (normally nil)"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "A decode failure (e.g. a SessionType raw value unknown to this build) is only logged at info and returns nil via the legacy path; the interrupted-session prompt silently never appears and the bad blob stays until clear().",
-     "evidence": [
-      "Emuqu/Sources/Collection/PersistedRecordingState.swift:52",
-      "Emuqu/Sources/Collection/PersistedRecordingState.swift:58"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.loadLegacy()": "4734cb3a034dd027",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
@@ -230,7 +195,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.clearLegacy()": "ca35115a5fb23bd9",
-    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.save(_:)": "956b3fbf479fafc1",
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.save(_:)": "3fd1e07aa3e68060",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },

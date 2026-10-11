@@ -1,19 +1,19 @@
 {
  "file": "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift",
- "hash": "4d7fa71e0fbdaef6",
- "role": "HRV sleep-stage classifier thresholds/weights, baseline deviation and replacement thresholds, enhanced sleep-score constants, history de-dup tolerances, heat-acclimation model constants, and the FeatureFlags kill-switch store (App Group UserDefaults + in-memory cache).",
+ "hash": "22620db76d2e7f7f",
+ "role": "HRV sleep-stage classifier thresholds/weights, baseline replacement thresholds and SD floors, the two sleep fragmentation-index coefficients, history de-dup tolerances, heat-acclimation model constants, and the FeatureFlags kill-switch store (App Group UserDefaults + in-memory cache).",
  "types": [
   "SleepClassifierConstants: enum — stage thresholds and composite weights per feature set",
-  "BaselineConstants: enum — deviation bands, replacement fractions, SD floors",
-  "SleepScienceConstants: enum — fragmentation/cycle/enhanced sleep score constants",
+  "BaselineConstants: enum — replacement fractions, SD floors",
+  "SleepScienceConstants: enum — fragmentation-index coefficients",
   "HistoryConstants: enum — filter debounce and duplicate/artifact tolerances",
   "HeatConstants: enum — WBGT stimulus, EWMA rates, bands, replay lookback",
   "FeatureFlags: final class (Sendable) — kill-switch store",
   "FeatureFlags.Key: enum String — 7 flags, all default true"
  ],
  "state": [
-  "mem:FeatureFlags.shared (static let singleton, line 423)",
-  "mem:FeatureFlags.cache (OSAllocatedUnfairLock<[String: Bool]>, line 426)",
+  "mem:FeatureFlags.shared (static let singleton, line 347)",
+  "mem:FeatureFlags.cache (OSAllocatedUnfairLock<[String: Bool]>, line 350)",
   "ud(suite group.com.chrissharp.flowrecovery):medicalGuardEnabled",
   "ud(suite group.com.chrissharp.flowrecovery):providerOpenAIEnabled",
   "ud(suite group.com.chrissharp.flowrecovery):providerAnthropicEnabled",
@@ -22,34 +22,8 @@
   "ud(suite group.com.chrissharp.flowrecovery):providerDeepSeekEnabled",
   "ud(suite group.com.chrissharp.flowrecovery):beatConsistencyCardEnabled"
  ],
- "toplevel": "Static let constant namespaces; `import os` mid-file (line 415); FeatureFlags.suiteName = AppConfig.appGroupIdentifier and the cache lock initialised empty.",
- "flags": [
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "Unreferenced anywhere in Swift: BaselineConstants rmssd*Threshold and overall*Threshold (the ±10/±20/±15% bands the doc calls 'display-only'), and every SleepScienceConstants value except the two fragmentation weights (cycle detection, architecture thresholds and all enhanced-sleep-score points/targets). SleepScienceAnalyzer therefore uses other literals or no such scoring, while this file presents them as the score's weights.",
-   "evidence": [
-    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift:175",
-    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift:184",
-    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift:239",
-    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift:246",
-    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift:253",
-    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift:286",
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift:134"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "File header says it holds 'dashboard, morning-result' constants, but the file declares no dashboard or morning-result namespace (only SleepClassifier, Baseline, SleepScience, History, Heat constants and FeatureFlags).",
-   "evidence": [
-    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift:3",
-    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift:4"
-   ],
-   "found": "second read"
-  }
- ],
+ "toplevel": "Static let constant namespaces; `import os` mid-file (line 339); FeatureFlags.suiteName = AppConfig.appGroupIdentifier and the cache lock initialised empty.",
+ "flags": [],
  "units": [
   {
    "key": "var FeatureFlags.defaults",
@@ -156,37 +130,6 @@
    "deps": {
     "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.value(for:)": "a2781a86fccf2cac",
     "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::var FeatureFlags.defaults": "77b1e786bef45aae"
-   }
-  },
-  {
-   "key": "func FeatureFlags.snapshot()",
-   "hash": "20c743d2bbf2715c",
-   "does": "Returns (key, value, isDefault) for every flag, isDefault meaning the value equals the compiled default.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.value(for:)",
-    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::var FeatureFlags.Key.defaultValue"
-   ],
-   "reads": [
-    "mem:FeatureFlags.cache"
-   ],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No caller anywhere in the repo (grep 'featureFlags.snapshot'/'FeatureFlags.shared.snapshot' finds none), contradicting its doc comment that it feeds Settings → Diagnostics → 'Provider status'.",
-     "evidence": [
-      "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift:497",
-      "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift:499"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.value(for:)": "a2781a86fccf2cac",
-    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::var FeatureFlags.Key.defaultValue": "6904ac00f3193e7f"
    }
   }
  ],

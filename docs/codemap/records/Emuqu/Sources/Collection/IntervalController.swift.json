@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Collection/IntervalController.swift",
- "hash": "590acd1e8961c00c",
- "role": "@Observable main-actor cursor over an IntervalPlan (repeats flattened) ticked by WorkoutRecorder each second; advances steps on duration/distance and fires onStepChange/onFinish hooks.",
+ "hash": "9491d06ccc2769a4",
+ "role": "@Observable main-actor cursor over an IntervalPlan (repeats flattened) ticked by WorkoutRecorder once per second of recording (not while paused); times steps in those ticks, advances on duration/distance and fires onStepChange/onFinish hooks.",
  "types": [
   "IntervalController: final class (@Observable, @MainActor) — interval plan runner"
  ],
@@ -25,8 +25,8 @@
  "units": [
   {
    "key": "func IntervalController.load(plan:startAt:)",
-   "hash": "3d6aea41fa172d44",
-   "does": "Stores plan, flattens steps repeatCount (min 1) times, resets cursor to 0 (or nil if empty), elapsed 0, start time, clears distance anchor and finished flag, and fires onStepChange for the first step.",
+   "hash": "1b32e6b07e2aeea5",
+   "does": "Stores plan, flattens steps repeatCount (min 1) times, resets cursor to 0 (or nil if empty), elapsed 0, clears distance anchor and finished flag, and fires onStepChange for the first step. The startAt argument is ignored (steps are timed in ticks).",
    "entry": null,
    "calls": [
     "closure:onStepChange set by WorkoutRecorder+Start.swift:678 (speaks IntervalSpokenCue/AI cue)"
@@ -47,17 +47,28 @@
      "effect": "currentStepIndex nil; else 0"
     },
     {
-     "at": "+11",
+     "at": "+10",
      "cond": "first step exists",
      "effect": "fire onStepChange(first,1,count); else nothing"
     }
    ],
-   "flags": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "The startAt parameter is ignored since steps are timed in recorder ticks; its only caller (WorkoutRecorder+Start.swift startIntervalPlan) still passes it.",
+     "evidence": [
+      "Emuqu/Sources/Collection/IntervalController.swift:54",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:748"
+     ],
+     "found": "b10 fix of the wall-clock step timer"
+    }
+   ],
    "deps": {}
   },
   {
    "key": "func IntervalController.clear()",
-   "hash": "9e79dd44131ea1e4",
+   "hash": "f2240aab64b4bb62",
    "does": "Resets all plan state to empty/nil/false.",
    "entry": null,
    "calls": [],
@@ -71,12 +82,12 @@
   },
   {
    "key": "func IntervalController.tick(totalDistanceMeters:)",
-   "hash": "7aaa57a04d25a7d5",
-   "does": "Per-second tick: recomputes stepElapsedSec from wall clock since stepStartAt, anchors step-start distance on the first tick of the step, advances when the step is complete, returns current step.",
+   "hash": "910848511994451c",
+   "does": "Per-second tick from the recorder (one second of recording; the recorder does not tick the plan while paused): adds 1 to stepElapsedSec, anchors step-start distance on the first tick of the step, advances when the step is complete, returns current step.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/IntervalController.swift::func IntervalController.isComplete(_:elapsedSec:stepDistanceMeters:)",
-    "Emuqu/Sources/Collection/IntervalController.swift::func IntervalController.advance(at:)",
+    "Emuqu/Sources/Collection/IntervalController.swift::func IntervalController.advance()",
     "Emuqu/Sources/Collection/IntervalController.swift::var IntervalController.currentStep"
    ],
    "reads": [],
@@ -92,36 +103,18 @@
     },
     {
      "at": "+5",
-     "cond": "stepStartAt set",
-     "effect": "elapsed = now - stepStartAt; else elapsed unchanged"
-    },
-    {
-     "at": "+8",
      "cond": "stepStartDistanceMeters ?? totalDistanceMeters",
      "effect": "first tick of a step anchors at current total distance"
     },
     {
-     "at": "+11",
+     "at": "+8",
      "cond": "step complete",
-     "effect": "advance(at: now)"
+     "effect": "advance()"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "Step time is wall-clock time since the step started (Date() - stepStartAt), and WorkoutRecorder calls tick() every second even while the workout is paused (runTick only skips elapsedSeconds, incrementalBackupTick still runs and calls tick). A manual or auto pause therefore keeps consuming duration steps and can advance/announce the next interval while the user is stopped; the header says the recorder is the source of truth for elapsed time.",
-     "evidence": [
-      "Emuqu/Sources/Collection/IntervalController.swift:87",
-      "Emuqu/Sources/Collection/IntervalController.swift:13",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:63",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:185"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/IntervalController.swift::func IntervalController.advance(at:)": "95e8ac5b1f7f7335",
+    "Emuqu/Sources/Collection/IntervalController.swift::func IntervalController.advance()": "2842b934740a5017",
     "Emuqu/Sources/Collection/IntervalController.swift::func IntervalController.isComplete(_:elapsedSec:stepDistanceMeters:)": "11c5ce07c3cc5f10",
     "Emuqu/Sources/Collection/IntervalController.swift::var IntervalController.currentStep": "6c0bd09b26406a10"
    }
@@ -151,18 +144,18 @@
   },
   {
    "key": "func IntervalController.skip()",
-   "hash": "563b1251766be4cd",
+   "hash": "0173b2667210e8b5",
    "does": "User skip: advance immediately.",
    "entry": "FitnessRecordingView skip button (FitnessRecordingView.swift:453)",
    "calls": [
-    "Emuqu/Sources/Collection/IntervalController.swift::func IntervalController.advance(at:)"
+    "Emuqu/Sources/Collection/IntervalController.swift::func IntervalController.advance()"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/IntervalController.swift::func IntervalController.advance(at:)": "95e8ac5b1f7f7335"
+    "Emuqu/Sources/Collection/IntervalController.swift::func IntervalController.advance()": "2842b934740a5017"
    }
   },
   {
@@ -259,29 +252,30 @@
    }
   },
   {
-   "key": "func IntervalController.advance(at:)",
-   "hash": "d067149ad4551e74",
-   "does": "Moves cursor to next step: on last step marks finished, clears index/elapsed/start and fires onFinish; otherwise resets elapsed, start time, distance anchor and fires onStepChange.",
+   "key": "func IntervalController.advance()",
+   "hash": "caee5a41ee367bb6",
+   "does": "Moves to the next flattened step: past the last one sets isFinished, clears the index and elapsed, and fires onFinish; otherwise sets the index, resets elapsed and the distance anchor, and fires onStepChange(step, number, total).",
    "entry": null,
    "calls": [
-    "closure:onFinish set by WorkoutRecorder+Start.swift:682",
-    "closure:onStepChange set by WorkoutRecorder+Start.swift:678"
+    "closure:onFinish set by WorkoutRecorder+Start.swift",
+    "closure:onStepChange set by WorkoutRecorder+Start.swift (speaks IntervalSpokenCue/AI cue)"
    ],
    "reads": [],
    "writes": [
     "mem:IntervalController.currentStepIndex",
+    "mem:IntervalController.stepElapsedSec",
     "mem:IntervalController.isFinished"
    ],
    "branches": [
     {
      "at": "+1",
      "cond": "no current index",
-     "effect": "return (no-op, e.g. skip after finish)"
+     "effect": "return"
     },
     {
      "at": "+3",
-     "cond": "next >= count",
-     "effect": "finish and fire onFinish; else move to next and fire onStepChange"
+     "cond": "next past the last step",
+     "effect": "finish: isFinished, index nil, onFinish(); return"
     }
    ],
    "flags": [],

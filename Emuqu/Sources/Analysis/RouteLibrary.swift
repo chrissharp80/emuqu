@@ -86,7 +86,10 @@ enum RouteLibrary {
     /// Reverse is the same loop travelled the other way: the track is reversed
     /// AND a fresh `Route` is built from the reversed trackpoints, so the climb
     /// queue reflects the climbs the user will actually hit in THIS direction —
-    /// a downhill on the forward route is an uphill on the reverse.
+    /// a downhill on the forward route is an uphill on the reverse. The rebuilt
+    /// track keeps each point's saved altitude, which is what that climb
+    /// detection reads. Reverse climbs carry no road names: the library's
+    /// geocoding pass (`enrichedClimbs`) names only the forward climbs.
     private static func candidates(
         for saved: SavedRoute,
         liveTrack: [CLLocation],
@@ -95,7 +98,7 @@ enum RouteLibrary {
         let route = saved.toRoute()
         // Reconstruct a CLLocation track from the saved Route's trackpoints so
         // the distance math matches the GPS comparison.
-        let track = route.trackpoints.map { CLLocation(latitude: $0.latitude, longitude: $0.longitude) }
+        let track = route.trackpoints.map(location(of:))
         guard track.count >= 2 else { return [] }
         let reversedTrack = Array(track.reversed())
         return [
@@ -111,6 +114,27 @@ enum RouteLibrary {
         ].compactMap { $0 }
     }
 
+    /// A saved trackpoint as a `CLLocation`, altitude included. The timestamp
+    /// is unused by the distance and climb math.
+    private static func location(of point: Route.Point) -> CLLocation {
+        CLLocation(
+            coordinate: CLLocationCoordinate2D(latitude: point.latitude, longitude: point.longitude),
+            altitude: point.altitudeMeters, horizontalAccuracy: 0, verticalAccuracy: 0,
+            timestamp: .distantPast
+        )
+    }
+
+    /// How far today's first fix may be from a saved route's start (in the
+    /// direction being scored) for that direction to be considered. A cheap
+    /// reject before the shape comparison; it also means a workout started
+    /// partway round a saved loop is not recognised.
+    static let startGateMeters: Double = 150
+
+    /// How much further than the live track has travelled the saved prefix
+    /// runs, so a live track slightly longer along the route than the prefix
+    /// still finds its nearest points.
+    static let prefixOvershootMeters: Double = 200
+
     private static func scoreDirection(
         liveTrack: [CLLocation],
         savedTrack: [CLLocation],
@@ -121,10 +145,10 @@ enum RouteLibrary {
     ) -> Match? {
         guard let liveStart = liveTrack.first, let savedStart = savedTrack.first else { return nil }
         // Cheap reject: if the saved route's starting point (in this
-        // direction) isn't within 150 m of where we are, this direction
-        // doesn't fit. Skips the expensive shape comparison.
-        guard liveStart.distance(from: savedStart) <= 150 else { return nil }
-        let prefix = thinned(trackPrefix(savedTrack, meters: liveTraveled + 200), spacing: prefixSpacingMeters)
+        // direction) isn't within the start gate of where we began, this
+        // direction doesn't fit. Skips the expensive shape comparison.
+        guard liveStart.distance(from: savedStart) <= startGateMeters else { return nil }
+        let prefix = thinned(trackPrefix(savedTrack, meters: liveTraveled + prefixOvershootMeters), spacing: prefixSpacingMeters)
         let meanDist = meanNearestDistance(from: evenSample(liveTrack, count: maxScoredPoints), to: prefix)
         guard meanDist <= matchToleranceMeters else { return nil }
         return Match(

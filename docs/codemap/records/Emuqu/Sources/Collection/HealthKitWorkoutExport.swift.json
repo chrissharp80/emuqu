@@ -254,8 +254,8 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:startDate:bodyWeightKg:)": "56c3d624e161b75f",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:startDate:)": "90e62ad4b343ffed",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:startDate:bodyWeightKg:)": "fe9b08b2b96ddd7f",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:startDate:)": "26d0edf873b2ae91",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(of:startDate:)": "5153529c7d5a9985",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.isWritable(_:in:)": "38ac7c08de4b893a",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.writesHeartRate(with:)": "a442d2da6a9bf345",
@@ -328,8 +328,8 @@
   },
   {
    "key": "func HealthKitWorkoutExport.distanceSamples(from:sport:startDate:)",
-   "hash": "f602b014bb90109c",
-   "does": "Builds delta-distance samples per tick for sports with a Health distance type: ticks sorted by offset, each increase over the last cumulative distance becomes a sample spanning previous tick offset → this tick offset.",
+   "hash": "ab3354a4ccb72a95",
+   "does": "Builds delta-distance samples for sports with a Health distance type: ticks sorted by offset, each increase over the last cumulative distance becomes a sample spanning from where the previous written delta ended (the workout start for the first) to this tick, so a delta that built up over non-advancing ticks covers all of them.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceType(for:)",
@@ -352,17 +352,12 @@
     {
      "at": "+11",
      "cond": "tick has no distanceMeters or distance not greater than the last emitted cumulative distance",
-     "effect": "tick skipped (no sample, lastDistance unchanged)"
+     "effect": "tick skipped (no sample; span start unchanged)"
     },
     {
      "at": "+13",
      "cond": "delta not finite or <= 0",
-     "effect": "tick skipped; otherwise lastDistance updated"
-    },
-    {
-     "at": "+15",
-     "cond": "idx > 0",
-     "effect": "span starts at the previous tick's offset (even if that tick had no distance); first tick spans from offset 0"
+     "effect": "tick skipped; otherwise lastDistance updated and the span start moves to this tick"
     },
     {
      "at": "+21",
@@ -370,18 +365,7 @@
      "effect": "appended; nil (invalid interval/value) dropped"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "The span start is the immediately preceding tick even when that tick was skipped (no distance / no increase), so a delta accumulated over several ticks is plotted over only the last tick interval; totals are right but Health's per-interval distance/pace is compressed into the final interval.",
-     "evidence": [
-      "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift:241",
-      "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift:245"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceType(for:)": "c6d0d1c31de553b0",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "b0a7b59109847524",
@@ -418,8 +402,8 @@
   },
   {
    "key": "func HealthKitWorkoutExport.activeEnergySamples(from:startDate:bodyWeightKg:)",
-   "hash": "f6a08ba55cebb26e",
-   "does": "Builds per-tick active-energy samples: kcal = METs × 3.5 × bodyWeightKg × minutes / 200 over the interval since the previous tick, skipping non-positive/non-finite METs and windows ≤ 0.01 kcal.",
+   "hash": "716638a00ce8c64a",
+   "does": "Builds per-tick active-energy samples: kcal = METs × 3.5 × bodyWeightKg × minutes / 200 over the interval since the previous tick (since the workout start for the first tick), skipping non-positive/non-finite METs and windows ≤ 0.01 kcal.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)",
@@ -444,36 +428,26 @@
      "effect": "tick skipped"
     },
     {
-     "at": "+11",
+     "at": "+12",
      "cond": "idx > 0",
-     "effect": "window starts at previous tick offset; first tick uses its own offset, so durationSec = max(1,0) = 1 s and the sample is zero-length"
+     "effect": "window starts at the previous tick; the first tick's window starts at the workout start (a tick at offset 0 still gets max(1,0) = 1 s)"
     },
     {
-     "at": "+15",
+     "at": "+16",
      "cond": "kcal <= 0.01",
      "effect": "tick skipped; otherwise sample built"
     },
     {
-     "at": "+21",
+     "at": "+22",
      "cond": "factory returned a sample",
      "effect": "appended; nil dropped"
     }
    ],
    "flags": [
     {
-     "kind": "broken",
-     "sev": "low",
-     "text": "The first tick is credited a fixed 1 second of energy (max(1, 0)) on a zero-length interval instead of the time since workout start, so the energy between start and the first tick is not counted.",
-     "evidence": [
-      "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift:280",
-      "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift:281"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
      "kind": "duplicate",
      "sev": "low",
-     "text": "Active energy written to Health is computed per tick (windows between ticks, ticks with nil/<=0 METs dropped, first tick credited 1 s), while the in-app calories card computes avg METs x activeDuration in WorkoutStatsCards+Cards.estimatedCaloriesDisplay; the file header claims 'the same formula that the post-summary shows', but the two totals differ whenever ticks lack METs, have gaps, or the first tick is not at offset 0.",
+     "text": "Active energy written to Health is computed per tick interval (ticks with nil/<=0 METs add nothing), while the in-app calories card computes avg METs x activeDuration in WorkoutStatsCards+Cards.estimatedCaloriesDisplay, so the two totals differ whenever ticks lack METs or have gaps. The file header now says so; making them agree means changing the card (outside this file).",
      "evidence": [
       "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift:19",
       "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift:279",
@@ -481,7 +455,7 @@
       "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:125",
       "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:134"
      ],
-     "found": "second read"
+     "found": "second read; header corrected by b10"
     }
    ],
    "deps": {

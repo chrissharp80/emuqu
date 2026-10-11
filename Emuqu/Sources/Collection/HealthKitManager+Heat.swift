@@ -62,6 +62,11 @@ extension HealthKitManager {
         if let indoor = workout.metadata?[HKMetadataKeyIndoorWorkout] as? Bool {
             return !indoor
         }
+        // A swim records pool vs open water here, not in the indoor flag;
+        // a pool swim is not outdoor heat exposure.
+        if let location = workout.metadata?[HKMetadataKeySwimmingLocationType] as? NSNumber {
+            return location.intValue == HKWorkoutSwimmingLocationType.openWater.rawValue
+        }
         // No indoor flag — fall back to the activity type. Only types that
         // are normally done outdoors qualify; gym/studio types are excluded
         // so a hot-day strength session isn't counted as heat exposure.

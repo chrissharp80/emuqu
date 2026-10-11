@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Models/DashboardSessionPolicy.swift",
- "hash": "0f9c9f1cbd8c85af",
+ "hash": "f0a3b09babb05837",
  "role": "Pure, clock-free session-selection rules for the v2 dashboard (hero score, HRV/sleep/vitals sources, 7-day Recent strip) on full sessions and on the lightweight index for cold-start seeds, plus ScoreAppearancePolicy night thresholds.",
  "types": [
   "DashboardSessionPolicy: enum — dashboard selection rules",
@@ -10,77 +10,35 @@
   "ScoreAppearancePolicy.Stage: enum — building/provisional/full"
  ],
  "state": [
-  "ScoreAppearancePolicy.personalBaselineNights = RecoveryBaselineStats.minimumDays",
   "ScoreAppearancePolicy.scoreShownNights = 14",
   "ScoreAppearancePolicy.fullBaselineNights = 28"
  ],
  "toplevel": "Static constants only.",
- "flags": [
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "ScoreAppearancePolicy.personalBaselineNights is declared but never referenced anywhere in the repo (grep finds only the declaration).",
-   "evidence": [
-    "Emuqu/Sources/Models/DashboardSessionPolicy.swift:334"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "func DashboardSessionPolicy.latestOvernightScore(inEntries:calendar:)",
-   "hash": "c24b71622ed68071",
-   "does": "From index entries, keeps reliable overnights with a recoveryScore, groups by start-of-day of their wake day, takes the latest night and its longest entry, and returns safeDisplayScore(score*10); nil when none.",
+   "hash": "607e8df0bd7e1ede",
+   "does": "Returns safeDisplayScore(score*10) of the entry latestScoredOvernightEntry picks (the longest reliable, scored overnight on the latest wake day); nil when there is none.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.entryDay(of:)",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestScoredOvernightEntry(in:calendar:)",
     "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+4",
-     "cond": "no qualifying entries",
+     "at": "+1",
+     "cond": "no qualifying entry",
      "effect": "return nil"
-    },
-    {
-     "at": "+6",
-     "cond": "byNight.keys.max() nil",
-     "effect": "return nil (unreachable once candidates non-empty)"
-    },
-    {
-     "at": "+7",
-     "cond": "endDate ?? date in the inline duration closure",
-     "effect": "zero duration when endDate nil"
-    },
-    {
-     "at": "+8",
-     "cond": "no winner or winner.recoveryScore nil",
-     "effect": "return nil (score nil unreachable after filter)"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Re-implements latestScoredOvernightEntry (same filter/grouping/selection) and inlines a copy of entryDuration instead of calling them.",
-     "evidence": [
-      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:44-51",
-      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:79-93"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
-    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.entryDay(of:)": "833161fbb2854061",
-    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.entryDuration(_:)": "a7a027d1823096d5",
-    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "243c4d1d41c669f4",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates": "7af30eca3eb87384",
-    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestScoredOvernightEntry(in:calendar:)": "4b423b376e16cf8d",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "503106affd4064c8"
    }
   },
   {
@@ -111,7 +69,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestScoredOvernightEntry(in:calendar:)": "4b423b376e16cf8d",
-    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.recentDays(fromEntries:today:calendar:)": "c4b39e63f3087dc3",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.recentDays(fromEntries:today:calendar:)": "b24d16593b6b2869",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183"
    }
   },
@@ -134,8 +92,7 @@
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.entryDay(of:)": "833161fbb2854061",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.entryDuration(_:)": "a7a027d1823096d5",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates": "7af30eca3eb87384",
-    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates": "2be5455112ec9732"
    }
   },
   {
@@ -205,32 +162,18 @@
      "effect": "skip that day (continue)"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Doc claims the same day rules as sessionForDay so the strip does not move on full load, but entryForDay requires recoveryScore != nil while isDayCandidate also admits sessions with only an analysisResult and recentDays falls back to readinessScore; a day whose overnight lacks a stored recoveryScore picks a different session (or none) in the seed than after full load.",
-     "evidence": [
-      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:102-105",
-      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:125",
-      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:253",
-      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:310"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
-    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.entryForDay(_:in:calendar:)": "c5b1c400b4f25717",
-    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "243c4d1d41c669f4",
-    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)": "89445abed2b3e6c9",
-    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.entryForDay(_:in:calendar:)": "603c51c679edd86d",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "503106affd4064c8",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)": "89445abed2b3e6c9"
    }
   },
   {
    "key": "func DashboardSessionPolicy.entryForDay(_:in:calendar:)",
-   "hash": "2192d7c7031f8b54",
-   "does": "Among index entries on the given wake day that are not workouts, carry a recoveryScore and are HRV-reliable, returns the longest overnight, else the longest other entry.",
+   "hash": "d42c6112d7dcee80",
+   "does": "Among index entries on the given wake day that are not workouts, were analysed (meanRMSSD present) or scored, and are HRV-reliable — isDayCandidate's gate on the index — returns the longest overnight, else the longest other entry.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.entryDay(of:)",
@@ -252,7 +195,7 @@
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.entryDay(of:)": "833161fbb2854061",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.entryDuration(_:)": "a7a027d1823096d5",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates": "7af30eca3eb87384"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates": "2be5455112ec9732"
    }
   },
   {
@@ -315,8 +258,7 @@
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)": "66af73ddaab61aa6",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)": "78d07c4b9fb885a1",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f",
-    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "15319afa7ff717d9"
    }
   },
   {
@@ -398,7 +340,7 @@
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)": "66af73ddaab61aa6",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "15319afa7ff717d9"
    }
   },
   {
@@ -489,9 +431,8 @@
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.sessionForDay(_:in:calendar:)": "c7e62ebb41839584",
-    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "243c4d1d41c669f4",
-    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)": "89445abed2b3e6c9",
-    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "503106affd4064c8",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)": "89445abed2b3e6c9"
    }
   },
   {

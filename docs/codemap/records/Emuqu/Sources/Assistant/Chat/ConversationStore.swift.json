@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Assistant/Chat/ConversationStore.swift",
- "hash": "cf5628dde4573da6",
+ "hash": "f06586fb44083064",
  "role": "Persists the assistant chat thread as ISO-8601 JSON (Assistant/conversation.json in the App Group) with debounced saves, complete file protection, unlock-retry and merge-on-unreadable protection; plus UndecodableFile helper that renames corrupt files aside.",
  "types": [
   "ConversationStore: final class @unchecked Sendable — chat persistence",
@@ -13,10 +13,11 @@
   "mem:ConversationStore.queue (serial 'com.chrissharp.flowrecovery.assistant.conversationstore', utility)",
   "mem:ConversationStore.latestTurns/saveScheduled/writePending (queue-only)",
   "mem:ConversationStore.unreadableOnDisk (OSAllocatedUnfairLock<Bool>)",
+  "mem:ConversationStore.diskMerge (OSAllocatedUnfairLock<Void>: one disk merge at a time)",
   "mem:ConversationStore.defaultSaveDebounceMs = 750",
   "mem:ConversationStore.unlockObservers (NotificationTokens)"
  ],
- "toplevel": "unlockObservers = NotificationTokens(); unreadableOnDisk lock initial false.",
+ "toplevel": "unlockObservers = NotificationTokens(); unreadableOnDisk lock initial false; diskMerge = OSAllocatedUnfairLock().",
  "flags": [],
  "units": [
   {
@@ -143,19 +144,17 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()": "773bc2da50db0d80"
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()": "91470ec41509ddb4"
    }
   },
   {
    "key": "func ConversationStore.writeCoalescedSnapshot()",
-   "hash": "170b7f01b41f4338",
-   "does": "Trailing debounce: if still scheduled, gets a merge-safe snapshot, encodes ISO-8601 JSON and writes atomically with complete protection; held/failed writes set writePending.",
+   "hash": "77c121a15bbc017b",
+   "does": "Trailing debounce: if still scheduled, gets a merge-safe snapshot and writes it via write(_:); a held save or any failed encode/write sets writePending (retried by retryHeldSave on unlock/become-active), a successful write clears it.",
    "entry": "DispatchQueue.asyncAfter from save()",
    "calls": [
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "ext:Data.write(.atomic,.completeFileProtection)"
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.write(_:)"
    ],
    "reads": [
     "mem:ConversationStore.saveScheduled"
@@ -177,48 +176,46 @@
      "effect": "writePending=true, return"
     },
     {
-     "at": "+9",
-     "cond": "encode fails",
-     "effect": "return silently (logged by attempt); writePending unchanged"
-    },
-    {
-     "at": "+13",
-     "cond": "write throws (e.g. locked)",
-     "effect": "writePending=true, log error; success sets writePending=false"
+     "at": "+7",
+     "cond": "write(_:) false",
+     "effect": "writePending=true; true → writePending=false"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "An encode failure returns without setting writePending, so the turns are never retried and are lost if no later save happens.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Chat/ConversationStore.swift:137"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "data-loss",
-     "sev": "med",
-     "text": "After Delete All My Data the sweep deletes the App Group 'Assistant/' directory before ConversationStore.clear() runs, and only the singleton init (line 38) creates it. Every later write fails because the parent directory is missing. writePending is set and retryHeldSave retries on every unlock/become-active, but each retry fails the same way. The log says 'retrying when the phone is unlocked', and every chat turn after the wipe is lost at the next launch.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Chat/ConversationStore.swift:38",
-      "Emuqu/Sources/Assistant/Chat/ConversationStore.swift:139",
-      "Emuqu/Sources/Assistant/Chat/ConversationStore.swift:142",
-      "Emuqu/Sources/Assistant/Chat/ConversationStore.swift:143",
-      "Emuqu/Sources/Assistant/Chat/ConversationStore.swift:238",
-      "Emuqu/Sources/Services/DataPurgeService.swift:560",
-      "Emuqu/Sources/Services/DataPurgeService.swift:196",
-      "Emuqu/Sources/Services/DataPurgeService.swift:420",
-      "Emuqu/Sources/Services/DataPurgeService.swift:451",
-      "Emuqu/Sources/Services/DataPurgeService.swift:453",
-      "EmuquTests/DataPurgeServiceTests.swift:362"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()": "9b8bb6177e99bd77",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.write(_:)": "3f3db9c2e82130df"
+   }
+  },
+  {
+   "key": "func ConversationStore.write(_:)",
+   "hash": "8bb5ef4a5724ce42",
+   "does": "Encodes the turns as ISO-8601 JSON, creates the parent directory (Delete All My Data removes it under a running store), writes atomically with complete file protection; true on success, false when encode (logged by attempt) or the directory/write fails (logged at error).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:FileManager.createDirectory",
+    "ext:Data.write(.atomic,.completeFileProtection)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:Assistant/conversation.json"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "encode fails",
+     "effect": "return false"
+    },
+    {
+     "at": "+8",
+     "cond": "createDirectory or write throws",
+     "effect": "log error, return false; else true"
+    }
+   ],
+   "flags": [],
+   "deps": {
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
    }
@@ -246,7 +243,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()": "773bc2da50db0d80"
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()": "91470ec41509ddb4"
    }
   },
   {
@@ -317,8 +314,26 @@
   },
   {
    "key": "func ConversationStore.mergedWithDisk(_:acknowledging:)",
-   "hash": "c3b65be4ddbf9e5c",
-   "does": "When disk was unreadable: returns current merged with on-disk turns not already present (sorted by createdAt); nil while still unreadable; sets an undecodable file aside; clears the flag only when acknowledging or when file vanished/was set aside.",
+   "hash": "d7290d2acfd2258c",
+   "does": "Runs mergeWithDiskLocked while holding diskMerge, so the view model's adoption (main actor) and a save's merge (store queue) never read or set aside the file at the same time.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergeWithDiskLocked(_:acknowledging:)"
+   ],
+   "reads": [
+    "mem:ConversationStore.diskMerge"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergeWithDiskLocked(_:acknowledging:)": "2c9f335e46aec9c4"
+   }
+  },
+  {
+   "key": "func ConversationStore.mergeWithDiskLocked(_:acknowledging:)",
+   "hash": "01d0e14025685b4a",
+   "does": "When disk was unreadable: returns current merged with on-disk turns not already present (sorted by createdAt); nil while still unreadable; sets an undecodable file aside; clears the flag only when acknowledging or when the file vanished/was set aside. Called only with diskMerge held.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
@@ -365,19 +380,7 @@
      "effect": "clear flag (view model adopted turns); else keep flag set"
     }
    ],
-   "flags": [
-    {
-     "kind": "race",
-     "sev": "low",
-     "text": "Called both from the main actor (AssistantViewModel.recoverAfterUnlock) and from the store queue (snapshotSafeToWrite) without serialization; two concurrent undecodable reads can both call setAside, the second fails and that save is held until another retry.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Chat/ConversationStore.swift:198",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:255",
-      "Emuqu/Sources/Assistant/Chat/ConversationStore.swift:219"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.decodedTurns(_:)": "9889b1c1db9564d5",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func UndecodableFile.setAside(_:caller:)": "76b5be5e37c88b2f",
@@ -406,7 +409,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)": "5ec8797cc5e4303e",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)": "ea382288f26dc91d",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },

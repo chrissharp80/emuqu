@@ -107,6 +107,11 @@ struct OvernightStats {
     /// recovery was detected without trial-and-error window selection.
     var organizedRecoveryZones: [HRVAnalysisResult.TimeRange]
 
+    /// The 30–70% band of the sleep window the peak-HRV search used, on the
+    /// `t_ms` axis, for the chart's 30%/70% markers. Nil when the night has
+    /// no known sleep boundaries (no markers then).
+    var peakSearchBandMs: (earlyMs: Int64, lateMs: Int64)?
+
     /// Return a copy with HealthKit HR data and updated chart bounds.
     ///
     /// Updates the summary fields too, not just the chart payload. If
@@ -139,7 +144,7 @@ struct OvernightStats {
             deepSleepMinutes: deepSleepMinutes, awakeningsCount: awakeningsCount,
             sleepEfficiency: sleepEfficiency, isHealthKitData: isHealthKitData,
             sleepSegmentRanges: sleepSegmentRanges, chartStartMs: chartStartMs, chartEndMs: chartEndMs,
-            healthKitHR: hr, organizedRecoveryZones: organizedRecoveryZones
+            healthKitHR: hr, organizedRecoveryZones: organizedRecoveryZones, peakSearchBandMs: peakSearchBandMs
         )
     }
 

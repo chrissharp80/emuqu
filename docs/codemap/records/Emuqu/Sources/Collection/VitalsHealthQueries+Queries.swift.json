@@ -7,19 +7,8 @@
   "HealthKitManager.DailyActivity: struct (Identifiable, Equatable, Sendable) — one day's steps/distance/flights"
  ],
  "state": [],
- "toplevel": "Nested struct DailyActivity declared in an extension of HealthKitManager (lines 507-515). All other code in units.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Comment says the respiratory window is '24-hour window centered around the reference date's overnight period', but vitalsWindow is a trailing 24 h window ending at min(referenceDate, now).",
-   "evidence": [
-    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift:33",
-    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift:50"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "Nested struct DailyActivity declared in an extension of HealthKitManager (lines 544-552). All other code in units.",
+ "flags": [],
  "units": [
   {
    "key": "func VitalsHealthQueries.fetchRecoveryVitals(relativeTo:)",
@@ -53,17 +42,17 @@
    "deps": {
     "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.fetchOxygenSaturation(relativeTo:)": "c85f3d25b13d2a9c",
     "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.fetchOxygenSaturationMin(relativeTo:)": "789bc65f40e4822d",
-    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.fetchRespiratoryRate(relativeTo:)": "7d0bb6fbd11fe152",
-    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.fetchRespiratoryRateBaseline(relativeTo:)": "a69473983ee9c44f",
-    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.fetchRestingHeartRate(relativeTo:)": "891d922aed9a3d20",
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.fetchRespiratoryRate(relativeTo:)": "be8b2ba882d0d56f",
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.fetchRespiratoryRateBaseline(relativeTo:)": "0541a959dd0038f1",
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.fetchRestingHeartRate(relativeTo:)": "69cfb7eb1fca2637",
     "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.fetchWristTemperature(relativeTo:)": "57773d79a3475ea7",
-    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.fetchWristTemperatureBaseline(relativeTo:)": "9970f4784cdf6ed3"
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.fetchWristTemperatureBaseline(relativeTo:)": "7d25ee9510e02ca8"
    }
   },
   {
    "key": "func VitalsHealthQueries.fetchRespiratoryRate(relativeTo:)",
-   "hash": "aa51e858f84728c8",
-   "does": "Reads up to the 10 most recent respiratory-rate samples in the trailing 24 h window and returns their mean in breaths/min, bounded by the vitals query timeout.",
+   "hash": "53cb25ed9739e676",
+   "does": "Reads every respiratory-rate sample in the trailing 24 h window ending at min(referenceDate, now) and returns their mean in breaths/min (the whole night, not its last part), bounded by the vitals query timeout.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable",
@@ -85,18 +74,7 @@
      "effect": "returns nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Mean of only the 10 newest samples in a 24 h window (limit: 10, sorted by end date desc), not the whole night; a night with more than 10 samples is represented by its last part only.",
-     "evidence": [
-      "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift:40",
-      "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift:43"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "9d978ad8215553c9",
     "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)": "52219c5df437cf7d",
@@ -159,6 +137,28 @@
    "deps": {}
   },
   {
+   "key": "func VitalsHealthQueries.cachedBaselineIfToday(_:relativeTo:)",
+   "hash": "84eaad91a6dee839",
+   "does": "Lets a cached baseline stand in only for a reading of today (refreshesBaselineCache): returns `cached` for today's referenceDate, nil for a historical one, which would otherwise be compared with the latest (a different week's) baseline.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.refreshesBaselineCache(relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "referenceDate is today",
+     "effect": "cached value; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.refreshesBaselineCache(relativeTo:)": "eea88e8459978477"
+   }
+  },
+  {
    "key": "func VitalsHealthQueries.meanRespiratoryRate(samples:error:)",
    "hash": "98962f5aa67a62b5",
    "does": "Converts query result to mean breaths/min; logs and returns nil on error or no samples.",
@@ -188,8 +188,8 @@
   },
   {
    "key": "func VitalsHealthQueries.fetchRespiratoryRateBaseline(relativeTo:)",
-   "hash": "6a985878b80fa59c",
-   "does": "Respiratory baseline: discreteAverage over the 7 days before tonight's window; on success writes RespiratoryBaselineCache when referenceDate is today; when HK unavailable or the query yields nil, returns the cached value (≤30 days old).",
+   "hash": "ed2f715f861ef1f0",
+   "does": "Respiratory baseline: discreteAverage over the 7 days before tonight's window; on success writes RespiratoryBaselineCache when referenceDate is today; when HK unavailable or the query yields nil, returns the cached value (≤30 days old) for today's reading only (cachedBaselineIfToday); a historical reading gets nil.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable",
@@ -200,8 +200,9 @@
     "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.respiratoryBaselineValue(statistics:error:)",
     "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.refreshesBaselineCache(relativeTo:)",
     "Emuqu/Sources/Storage/RespiratoryBaselineCache.swift::func RespiratoryBaselineCache.read()",
-    "Emuqu/Sources/Storage/RespiratoryBaselineCache.swift::func RespiratoryBaselineCache.write(value:sampleCount:)",
-    "ext:HKStatisticsQuery"
+    "Emuqu/Sources/Storage/RespiratoryBaselineCache.swift::func RespiratoryBaselineCache.write(value:)",
+    "ext:HKStatisticsQuery",
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.cachedBaselineIfToday(_:relativeTo:)"
    ],
    "reads": [
     "hk:respiratoryRate",
@@ -214,7 +215,7 @@
     {
      "at": "+1",
      "cond": "HealthKit unavailable or type nil",
-     "effect": "returns cached baseline (or nil)"
+     "effect": "cached baseline when referenceDate is today, else nil"
     },
     {
      "at": "+14",
@@ -225,31 +226,25 @@
      "at": "+15",
      "cond": "referenceDate is today",
      "effect": "writes cache; otherwise cache untouched"
-    }
-   ],
-   "flags": [
+    },
     {
-     "kind": "broken",
-     "sev": "med",
-     "text": "For a historical referenceDate (reanalysis of an older night) a nil HealthKit result falls back to the cache holding TODAY's baseline, so the old night is scored against a baseline from a different week; the write side is date-guarded (line 113) but the read side at line 116 is not.",
-     "evidence": [
-      "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift:113",
-      "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift:116",
-      "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift:66"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+18",
+     "cond": "no live value",
+     "effect": "cached baseline when referenceDate is today, else nil"
     }
    ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "9d978ad8215553c9",
     "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)": "52219c5df437cf7d",
     "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.vitalsQueryTimeoutSec": "790d183a184158dc",
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "6a80ac7c585d4e2f",
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.cachedBaselineIfToday(_:relativeTo:)": "0de7262205be71f3",
     "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.priorNightsWindow(days:relativeTo:)": "51a9780aa7c1144a",
     "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.refreshesBaselineCache(relativeTo:)": "eea88e8459978477",
     "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.respiratoryBaselineValue(statistics:error:)": "b9dacf342e22df7e",
-    "Emuqu/Sources/Storage/RespiratoryBaselineCache.swift::func RespiratoryBaselineCache.read()": "1201e35fa21b8562",
-    "Emuqu/Sources/Storage/RespiratoryBaselineCache.swift::func RespiratoryBaselineCache.write(value:sampleCount:)": "3e00247434372c7e"
+    "Emuqu/Sources/Storage/RespiratoryBaselineCache.swift::func RespiratoryBaselineCache.read()": "db728509d73fff33",
+    "Emuqu/Sources/Storage/RespiratoryBaselineCache.swift::func RespiratoryBaselineCache.write(value:)": "7a72975733ec3ee7"
    }
   },
   {
@@ -501,8 +496,8 @@
   },
   {
    "key": "func VitalsHealthQueries.fetchWristTemperatureBaseline(relativeTo:)",
-   "hash": "84647cbeb25c2e1b",
-   "does": "Wrist temperature baseline: mean normalised deviation of all samples in the 7 days before tonight's window; writes WristTemperatureBaselineCache when referenceDate is today; falls back to the cache when HK unavailable or nil.",
+   "hash": "021e671c92ec6051",
+   "does": "Wrist temperature baseline: mean normalised deviation of all samples in the 7 days before tonight's window; writes WristTemperatureBaselineCache when referenceDate is today; falls back to the cache when HK unavailable or nil, for today's reading only (a historical reading gets nil).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable",
@@ -513,8 +508,9 @@
     "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.meanWristTemperatureDeviation(samples:error:)",
     "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.refreshesBaselineCache(relativeTo:)",
     "Emuqu/Sources/Storage/WristTemperatureBaselineCache.swift::func WristTemperatureBaselineCache.read()",
-    "Emuqu/Sources/Storage/WristTemperatureBaselineCache.swift::func WristTemperatureBaselineCache.write(value:sampleCount:)",
-    "ext:HKSampleQuery"
+    "Emuqu/Sources/Storage/WristTemperatureBaselineCache.swift::func WristTemperatureBaselineCache.write(value:)",
+    "ext:HKSampleQuery",
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.cachedBaselineIfToday(_:relativeTo:)"
    ],
    "reads": [
     "hk:appleSleepingWristTemperature",
@@ -527,7 +523,7 @@
     {
      "at": "+1",
      "cond": "HealthKit unavailable, iOS < 16, or type nil",
-     "effect": "returns cached baseline (or nil)"
+     "effect": "cached baseline when referenceDate is today, else nil"
     },
     {
      "at": "+16",
@@ -538,30 +534,25 @@
      "at": "+17",
      "cond": "referenceDate is today",
      "effect": "writes cache; otherwise not"
-    }
-   ],
-   "flags": [
+    },
     {
-     "kind": "broken",
-     "sev": "med",
-     "text": "Same as the respiratory baseline: a historical reanalysis whose HealthKit query yields nil is given today's cached wrist-temperature baseline (read at line 265 is not date-guarded), so isTemperatureElevated for that past night compares against the wrong week.",
-     "evidence": [
-      "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift:262",
-      "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift:265"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+20",
+     "cond": "no live value",
+     "effect": "cached baseline when referenceDate is today, else nil"
     }
    ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "9d978ad8215553c9",
     "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)": "52219c5df437cf7d",
     "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.vitalsQueryTimeoutSec": "790d183a184158dc",
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "6a80ac7c585d4e2f",
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.cachedBaselineIfToday(_:relativeTo:)": "0de7262205be71f3",
     "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.meanWristTemperatureDeviation(samples:error:)": "03da386139cce001",
     "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.priorNightsWindow(days:relativeTo:)": "51a9780aa7c1144a",
     "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.refreshesBaselineCache(relativeTo:)": "eea88e8459978477",
-    "Emuqu/Sources/Storage/WristTemperatureBaselineCache.swift::func WristTemperatureBaselineCache.read()": "e0200c602a465aef",
-    "Emuqu/Sources/Storage/WristTemperatureBaselineCache.swift::func WristTemperatureBaselineCache.write(value:sampleCount:)": "2f29db2699b27432"
+    "Emuqu/Sources/Storage/WristTemperatureBaselineCache.swift::func WristTemperatureBaselineCache.read()": "aa43cc148dd3adbf",
+    "Emuqu/Sources/Storage/WristTemperatureBaselineCache.swift::func WristTemperatureBaselineCache.write(value:)": "7432385a01194941"
    }
   },
   {
@@ -629,7 +620,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "6a80ac7c585d4e2f",
-    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.observeVitalsType(_:)": "7f7b0721cf6c1659",
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.observeVitalsType(_:)": "dd60825467bcabac",
     "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.observedVitalsTypes()": "838f4be6d63ca523",
     "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.stopObservingVitalsData()": "a962523a596a42df"
    }
@@ -674,13 +665,14 @@
   },
   {
    "key": "func VitalsHealthQueries.observeVitalsType(_:)",
-   "hash": "c260559140b4fd8d",
-   "does": "Creates an HKAnchoredObjectQuery over the last 48 h for the type, ignores initial results, and on each update with new samples increments manager.vitalsDataVersion on the main actor; stores, executes the query and enables immediate background delivery (completion ignored).",
+   "hash": "f50ece042f1fe29e",
+   "does": "Creates an HKAnchoredObjectQuery over the last 48 h for the type, ignores initial results, and on each update with new samples increments manager.vitalsDataVersion on the main actor; stores, executes the query and enables immediate background delivery, logging the type and error when registration fails.",
    "entry": null,
    "calls": [
     "ext:HKAnchoredObjectQuery",
     "ext:HKHealthStore.execute",
-    "ext:HKHealthStore.enableBackgroundDelivery"
+    "ext:HKHealthStore.enableBackgroundDelivery",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
    "writes": [
@@ -692,18 +684,14 @@
      "at": "+9",
      "cond": "manager deallocated or update has no new samples",
      "effect": "handler does nothing; otherwise bumps vitalsDataVersion"
+    },
+    {
+     "at": "+18",
+     "cond": "background delivery registration succeeded",
+     "effect": "nothing; failure: logs type and error"
     }
    ],
    "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "enableBackgroundDelivery's completion (success, error) is discarded, so a failure to register background delivery is never logged.",
-     "evidence": [
-      "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift:333"
-     ],
-     "found": "first read, upheld on second"
-    },
     {
      "kind": "broken",
      "sev": "med",
@@ -720,7 +708,9 @@
      "found": "second read"
     }
    ],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
   },
   {
    "key": "func VitalsHealthQueries.stopObservingVitalsData()",
@@ -791,23 +781,11 @@
      "effect": "returns it; otherwise logs and falls back to minimum heart rate"
     }
    ],
-   "flags": [
-    {
-     "kind": "hack",
-     "sev": "low",
-     "text": "Fallback uses the lowest instantaneous heart-rate sample over 36 h as 'resting heart rate'; the doc comment on minimumHeartRate calls it a 24h-window minimum though the predicate is 36 h.",
-     "evidence": [
-      "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift:364",
-      "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift:369",
-      "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift:399"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.hrReadExcludingOwnWrites(dateRange:)": "c7750dc31021ea8d",
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "6a80ac7c585d4e2f",
-    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.minimumHeartRate(predicate:)": "ee64abc0a59c8962",
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.minimumHeartRate(predicate:)": "91496547372caa95",
     "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.watchRestingHeartRate(predicate:)": "dc1bdccfaa59bb2c",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
@@ -867,7 +845,7 @@
   {
    "key": "func VitalsHealthQueries.minimumHeartRate(predicate:)",
    "hash": "8daf89d8886c4e5b",
-   "does": "Minimum heart rate (bpm) matching the predicate via discreteMin statistics.",
+   "does": "Minimum heart rate (bpm) matching the caller's predicate (the 36 h window in fetchRestingHeartRate) via discreteMin statistics.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)",
@@ -1029,7 +1007,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "6a80ac7c585d4e2f",
-    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.sumActivityQuantity(type:unit:from:to:)": "492af1777ff55c27",
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.sumActivityQuantity(type:unit:from:to:)": "abc8bf691cba502b",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func stepCount(samples:)": "6c00c4d3ab2ac3d3"
    }
   },
@@ -1077,7 +1055,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "6a80ac7c585d4e2f",
-    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.sumActivityQuantity(type:unit:from:to:)": "492af1777ff55c27"
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.sumActivityQuantity(type:unit:from:to:)": "abc8bf691cba502b"
    }
   },
   {
@@ -1124,17 +1102,19 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "6a80ac7c585d4e2f",
-    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.sumActivityQuantity(type:unit:from:to:)": "492af1777ff55c27"
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.sumActivityQuantity(type:unit:from:to:)": "abc8bf691cba502b"
    }
   },
   {
    "key": "func VitalsHealthQueries.sumActivityQuantity(type:unit:from:to:)",
-   "hash": "f3d30c0e2cb076c9",
-   "does": "cumulativeSum HKStatisticsQuery over [start,end] (strictStartDate) returning the sum in unit or nil; the query error is ignored.",
+   "hash": "a24ce9b267b534bf",
+   "does": "cumulativeSum HKStatisticsQuery over [start,end] (strictStartDate): the sum in unit; 0 when HealthKit has no samples in range (errorNoData or no sum); nil when the query failed (other error, logged by activitySum) or timed out, with a log line naming the type. The public fetchSum… totals still read nil as 0.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)",
     "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.vitalsQueryTimeoutSec",
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.activitySum(_:error:unit:typeName:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "ext:HKStatisticsQuery"
    ],
    "reads": [
@@ -1143,11 +1123,47 @@
     "hk:flightsClimbed"
    ],
    "writes": [],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+17",
+     "cond": "sum nil (failed or timed out)",
+     "effect": "logs that the total is unavailable; returns nil"
+    }
+   ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)": "52219c5df437cf7d",
-    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.vitalsQueryTimeoutSec": "790d183a184158dc"
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.vitalsQueryTimeoutSec": "790d183a184158dc",
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.activitySum(_:error:unit:typeName:)": "1530d5a1bec64e9c",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func VitalsHealthQueries.activitySum(_:error:unit:typeName:)",
+   "hash": "06604db5ae6ca32d",
+   "does": "Reads a cumulative-sum statistics result: no error → the sum in unit, 0 when there is none; HealthKit errorNoData → 0 (a real zero); any other error → logged with the type, nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "error present",
+     "effect": "checked below; else sum ?? 0"
+    },
+    {
+     "at": "+3",
+     "cond": "error is HKErrorDomain errorNoData",
+     "effect": "true: 0; false: logs and returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {

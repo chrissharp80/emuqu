@@ -9,24 +9,11 @@
   "RampBand: enum String — ramp-rate band"
  ],
  "state": [
-  "mem:TrajectoryVerdict.deepFatigueOverreachTSB (static let -15)",
+  "mem:TrajectoryVerdict.deepFatigueOverreachTSB (static let -15; also TrainingAdviceGate.heavyFatigueTSB)",
   "mem:TrajectoryVerdict.rampTrendWindowDays (static let 14)"
  ],
  "toplevel": "Two static constants; CaseIterable/String raw values used by AppFactResolver+Trajectory for assistant facts.",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "Boundaries disagree at exact values despite the 'lockstep' comments: compute calls rapidIncrease only for rampRate > 8 while RampBand is rapidIncrease at ≥ 8; compute needs delta > 1.5 for building while RampBand is conservative ('You're building gradually') at exactly 1.5, so the chip says Maintaining while the ramp card says building.",
-   "evidence": [
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift:206",
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift:289",
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift:216",
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift:319"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "var TrajectoryVerdict.chipLabel",
@@ -287,7 +274,7 @@
   {
    "key": "func TrajectoryVerdict.ctlSlopePerWeek(_:)",
    "hash": "39ba805bd29bad0e",
-   "does": "OLS slope of the last ≤14 daily CTL values ×7 (CTL points/week); 0 when fewer than 8 values or zero x-variance.",
+   "does": "OLS slope of the last ≤14 daily CTL values ×7 (CTL points/week); 0 when fewer than 8 values or zero x-variance. x is the index, so the input must be one value per consecutive day (documented); every caller passes TrainingMetricsCache's daily series, which has a sample for every day including rest days.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -309,18 +296,7 @@
      "effect": "true → slope×7; false → 0"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Assumes the series is one value per consecutive day (x = index); a series with missing days would be regressed per-sample, not per-day.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/TrajectoryVerdict.swift:156",
-      "Emuqu/Sources/Analysis/TrajectoryVerdict.swift:163"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -520,26 +496,8 @@
   },
   {
    "key": "init RampBand(tssPerDayPerWeek:)",
-   "hash": "fdf66240069fd99f",
-   "does": "Ramp band: < −1.5 detraining, < 1.5 holdingSteady, < 3 conservative, < 8 standard, else rapidIncrease.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+5",
-     "cond": "if/else chain on tssPerDayPerWeek",
-     "effect": "< −1.5 → detraining; < 1.5 → holdingSteady; < 3 → conservative; < 8 → standard; else (incl. NaN) → rapidIncrease"
-    }
-   ],
-   "flags": [],
-   "deps": {}
-  },
-  {
-   "key": "var RampBand.word",
-   "hash": "e6bb87c6b58f3d16",
-   "does": "English ramp word ('Easing down', 'Holding steady', …).",
+   "hash": "9719344e7a77f5dc",
+   "does": "Ramp band on compute's own boundaries: < −1.5 detraining, ≤ 1.5 holdingSteady, < 3 conservative, ≤ 8 standard, else rapidIncrease — so at exactly 1.5 or 8 the ramp card agrees with the trajectory chip (building needs > 1.5, rapid increase > 8).",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -547,42 +505,11 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "case .detraining",
-     "effect": "returns English word"
-    },
-    {
-     "at": "+3",
-     "cond": "case .holdingSteady",
-     "effect": "returns English word"
-    },
-    {
-     "at": "+4",
-     "cond": "case .conservative",
-     "effect": "returns English word"
-    },
-    {
-     "at": "+5",
-     "cond": "case .standard",
-     "effect": "returns English word"
-    },
-    {
-     "at": "+6",
-     "cond": "case .rapidIncrease",
-     "effect": "returns English word"
+     "cond": "if/else chain on tssPerDayPerWeek",
+     "effect": "< −1.5 → detraining; ≤ 1.5 → holdingSteady; < 3 → conservative; ≤ 8 → standard; else (incl. NaN) → rapidIncrease"
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "RampBand.word has no caller: AppFactResolver+Trajectory emits the rawValue (line 41) and views use localizedWord; grep '\\.word' finds no RampBand use.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/TrajectoryVerdict.swift:293",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift:41"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {

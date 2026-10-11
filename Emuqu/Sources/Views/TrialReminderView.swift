@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// A friendly daily reminder shown during the free trial period.
+/// A friendly once-a-day reminder shown in the last week of the free trial
+/// (`PaywallGatePolicy.reminderWindowDays`), never earlier in it.
 /// Must be dismissed by tapping "Continue" — not swipe-dismissible.
 struct TrialReminderView: View {
     @Environment(SettingsManager.self) private var settingsManager

@@ -1,15 +1,13 @@
 {
  "file": "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift",
- "hash": "72fe8137da2ffaed",
- "role": "Output side of the live-workout coach: owned by WorkoutRecorder, it is fed a WorkoutAIContext each recorder tick, runs the rule-based WorkoutTriggerEngine plus the mile-marker, turn-alert and turn-marker engines, and speaks their lines via the shared VoiceConversationController (preferred) or its own AVSpeechSynthesizer. Also holds the in-session mute and exposes the app-language voice helper used by other TTS paths.",
+ "hash": "f35d20e432ada407",
+ "role": "Output side of the live-workout coach: owned by WorkoutRecorder, it is fed a WorkoutAIContext each recorder tick, runs the rule-based WorkoutTriggerEngine plus the mile-marker, turn-alert and turn-marker engines, and hands their lines to the shared VoiceConversationController's handleTrigger (nothing is said while no conversation is set). Also holds the in-session mute (which purges queued trigger lines) and exposes the app-language voice helper used by other TTS paths.",
  "types": [
   "WorkoutVoiceCoach: class (@Observable @MainActor final) — workout TTS coach, engine state holder, mute toggle"
  ],
  "state": [
-  "mem:WorkoutVoiceCoach.isMuted (observable, toggled by FitnessRecordingView:280)",
+  "mem:WorkoutVoiceCoach.isMuted (observable, toggled by FitnessRecordingView:280; didSet purges queued spoken trigger lines on mute)",
   "mem:WorkoutVoiceCoach.engine (private let WorkoutTriggerEngine)",
-  "mem:WorkoutVoiceCoach.synthesizer (private lazy AVSpeechSynthesizer, @ObservationIgnored)",
-  "mem:WorkoutVoiceCoach.cueReleaser (private lazy CueAudioSessionReleaser over AppDependencies.current.collection.backgroundAudioManager)",
   "mem:WorkoutVoiceCoach.watchBridge (private weak WatchConnectivityBridge; stored, never read)",
   "mem:WorkoutVoiceCoach.conversation (weak VoiceConversationController, set by WorkoutRecorder.swift:422)",
   "mem:WorkoutVoiceCoach.hasAnnouncedSubsystem (private Bool)",
@@ -19,7 +17,7 @@
   "mem:WorkoutVoiceCoach.routeEngagedAt (private Date?)",
   "mem:WorkoutVoiceCoach.ambientFixMaxAgeSec (private static let = 10 s)"
  ],
- "toplevel": "Stored-property initializers: isMuted=false, hasAnnouncedSubsystem=false, fresh MileMarkerState/TurnAlertState/TurnMarkerState, routeEngagedAt=nil; synthesizer and cueReleaser are lazy (built on first speak, cueReleaser resolves AppDependencies.current.collection.backgroundAudioManager at that time). static ambientFixMaxAgeSec=10.",
+ "toplevel": "Stored-property initializers: isMuted=false, hasAnnouncedSubsystem=false, fresh MileMarkerState/TurnAlertState/TurnMarkerState, routeEngagedAt=nil. static ambientFixMaxAgeSec=10. The coach has no synthesizer of its own.",
  "flags": [
   {
    "kind": "dead",
@@ -30,17 +28,6 @@
     "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:78",
     "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:255",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift:417"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Comments say the first-line preamble is \"Workout Coach here.\" but AssistantSubsystem.workoutVoiceCoach.voiceAnnouncement returns \"Coach here.\".",
-   "evidence": [
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:47",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:288",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift:146"
    ],
    "found": "first read, upheld on second"
   },
@@ -58,12 +45,39 @@
  ],
  "units": [
   {
+   "key": "var WorkoutVoiceCoach.isMuted",
+   "hash": "9e4f7ba82f2b5829",
+   "does": "In-session mute flag, toggled by the recording UI. On a change from unmuted to muted, its didSet asks the conversation to discard the spoken trigger lines still queued (discardPendingSpokenTriggers), so nothing the coach handed over before the tap plays after it.",
+   "entry": "FitnessRecordingView mute button (coach.isMuted.toggle())",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.discardPendingSpokenTriggers()"
+   ],
+   "reads": [
+    "mem:WorkoutVoiceCoach.conversation"
+   ],
+   "writes": [
+    "mem:WorkoutVoiceCoach.isMuted",
+    "mem:VoiceConversationController.pendingTriggers (via discardPendingSpokenTriggers)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isMuted && !oldValue (just muted)",
+     "effect": "purge queued spoken triggers; otherwise nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.discardPendingSpokenTriggers()": "deb2f58b411dd3e1"
+   }
+  },
+  {
    "key": "init WorkoutVoiceCoach(engine:watchBridge:)",
    "hash": "b8a5998c0b9f9746",
-   "does": "Initializer: stores the given WorkoutTriggerEngine or builds WorkoutTriggerEngine() (init at WorkoutTriggerEngine.swift:99, which loads defaultRules()), and stores the weak watchBridge.",
+   "does": "Initializer: stores the given WorkoutTriggerEngine or builds WorkoutTriggerEngine() (default rules over the app's settings), and stores the weak watchBridge.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine(rules:)"
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine(rules:settingsProvider:)"
    ],
    "reads": [],
    "writes": [
@@ -79,20 +93,20 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine(rules:)": "0723364d2e82d3ae"
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine(rules:settingsProvider:)": "00247454d7684582"
    }
   },
   {
    "key": "func WorkoutVoiceCoach.tick(context:)",
-   "hash": "0b29e6c44c9f1c35",
-   "does": "Per-recorder-tick entry (WorkoutRecorder+Ticker.swift:843): reads current UserSettings, always runs the trigger engine on the context (advancing cooldowns/history even when muted/disabled), dispatches its events only if coachAlertsEnabled and not muted, then runs the mile-marker engine if enabled and the route engines if either turn setting is on.",
+   "hash": "99cab88999495a0f",
+   "does": "Per-recorder-tick entry (WorkoutRecorder+Ticker.swift:843): reads current UserSettings; canSpeak = coachAlertsEnabled && !isMuted; always runs the trigger engine with canSpeak (non-spoken rules advance cooldowns/history even when muted; a spoken rule doesn't fire while it can't be heard), dispatches its events only when canSpeak, always runs the mile-marker engine (it announces only when enabled and unmuted), and runs the route engines if either turn setting is on.",
    "entry": "Called once per recorder tick from WorkoutRecorder+Ticker.swift:843 (app code, not a framework trigger).",
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager",
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::func WorkoutTriggerEngine.evaluate(context:now:)",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::func WorkoutTriggerEngine.evaluate(context:now:canSpeak:)",
     "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.dispatch(event:)",
     "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.tickMileMarker(context:settings:)",
     "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.tickRouteEngines(context:settings:)"
@@ -106,57 +120,28 @@
    ],
    "branches": [
     {
-     "at": "+3",
-     "cond": "settings.coachAlertsEnabled && !isMuted",
-     "effect": "true → every event from engine.evaluate is passed to dispatch(event:); false → events are discarded (they still consumed cooldowns and sit in engine history)."
+     "at": "+4",
+     "cond": "canSpeak (coachAlertsEnabled && !isMuted)",
+     "effect": "true → every event from engine.evaluate is passed to dispatch(event:); false → events are discarded (non-spoken ones still consumed cooldowns and sit in engine history; spoken rules did not fire)."
     },
     {
-     "at": "+4",
+     "at": "+5",
      "cond": "for each event in events",
      "effect": "dispatch each in order; empty array → nothing."
     },
     {
-     "at": "+8",
-     "cond": "settings.enableMileMarkerNotifications (default false)",
-     "effect": "true → tickMileMarker runs (state advances even if muted); false → mile-marker engine does not run and its state is frozen."
-    },
-    {
-     "at": "+11",
+     "at": "+10",
      "cond": "enableTurnByTurnAlerts || enableTurnMarkerUpdates (both default false)",
      "effect": "true → tickRouteEngines; false → route engines skipped, ActiveRouteSession step index is not advanced by the coach."
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "isMuted is documented as silencing all coach output, but lines already handed to conversation.handleTrigger while the user/AI was busy sit in pendingTriggers and still play after the user taps mute; the coach has no way to purge them.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:20",
-      "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:108",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift:371",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift:468"
-     ],
-     "found": "second read"
-    },
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Doc comment says alerts and mile markers both route through conversation.handleTrigger and its queue, but routine trigger-engine events are dropped (not queued) in dispatch when the AI is in flight, while routine mile-marker/route lines are queued.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:95",
-      "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:250",
-      "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:135",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift:371"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::func WorkoutTriggerEngine.evaluate(context:now:)": "876160b8dace8b52",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.dispatch(event:)": "9e3fab6955112398",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.tickMileMarker(context:settings:)": "b6c9169990fa577e",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.tickRouteEngines(context:settings:)": "14493e89b9911f1f",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::func WorkoutTriggerEngine.evaluate(context:now:canSpeak:)": "625dd6a7b78118b5",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.dispatch(event:)": "56e99d22bdf96403",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.tickMileMarker(context:settings:)": "9114ebdaaa50f85a",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.tickRouteEngines(context:settings:)": "47a7791fbd3ee863",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::var WorkoutVoiceCoach.isMuted": "1a7ee0826f692e35",
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
@@ -165,22 +150,21 @@
   },
   {
    "key": "func WorkoutVoiceCoach.tickMileMarker(context:settings:)",
-   "hash": "ee6d40dea7dab0ab",
-   "does": "Runs WorkoutMileMarkerEngine.evaluate with the current interval and units, stores the next state, and if not muted and a payload fired, renders the split line and sends it to conversation.handleTrigger (routine urgency) or speaks it directly.",
+   "hash": "d47c3f9e9d1b1746",
+   "does": "Runs WorkoutMileMarkerEngine.evaluate with the current interval and units every tick and stores the next state; only when enableMileMarkerNotifications is on, the coach is unmuted, a payload fired and a conversation is set does it render the split line and send it to conversation.handleTrigger (routine urgency).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved",
     "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)",
     "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.render(payload:unitsImperial:)",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.handleTrigger(message:urgency:)",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.speak(_:)"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.handleTrigger(message:urgency:)"
    ],
    "reads": [
     "ud:fitness.unitsPreference (App Group suite, legacy standard-suite fallback)",
     "mem:WorkoutVoiceCoach.mileMarkerState",
     "mem:WorkoutVoiceCoach.isMuted",
-    "mem:SettingsManager.settings (mileMarkerInterval)"
+    "mem:SettingsManager.settings (mileMarkerInterval, enableMileMarkerNotifications)"
    ],
    "writes": [
     "mem:WorkoutVoiceCoach.mileMarkerState"
@@ -188,43 +172,24 @@
    "branches": [
     {
      "at": "+9",
-     "cond": "!isMuted and result.payload != nil",
-     "effect": "false (muted or no marker crossed) → return after saving state (marker silently consumed while muted); true → render and announce."
-    },
-    {
-     "at": "+11",
-     "cond": "conversation is non-nil",
-     "effect": "true → conversation.handleTrigger(message:) with default .routine urgency (queued if user/AI busy); false → speak(body) via own synthesizer."
+     "cond": "notifications on, !isMuted, payload fired and conversation set",
+     "effect": "false → return after saving state (marker silently consumed); true → render and handleTrigger(message:) with default .routine urgency (queued if user/AI busy)."
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "Line 136-137 else branch (speak directly): conversation is never nil in production: WorkoutRecorder.init takes a non-optional VoiceConversationController and assigns it at WorkoutRecorder.swift:422, and the only one passed is the app-lifetime @State voiceChat (EmuquApp.swift:96, :839; FitnessTabView.swift:171), so the direct-speak fallback branch never runs outside a deallocated conversation; no test constructs WorkoutVoiceCoach.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:134",
-      "Emuqu/Sources/Collection/WorkoutRecorder.swift:406",
-      "Emuqu/Sources/Collection/WorkoutRecorder.swift:422",
-      "Emuqu/EmuquApp.swift:96",
-      "Emuqu/Sources/Views/FitnessTabView.swift:171"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.handleTrigger(message:urgency:)": "bc9e7a9e730970e1",
     "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.render(payload:unitsImperial:)": "0e4dc65f6684d03d",
-    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)": "19d326dc1e2efeb4",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.speak(_:)": "3984cc3476298e6b",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)": "30562879d4645834",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::var WorkoutVoiceCoach.isMuted": "1a7ee0826f692e35",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d"
    }
   },
   {
    "key": "func WorkoutVoiceCoach.tickRouteEngines(context:settings:)",
-   "hash": "a6263b5275556839",
-   "does": "Reads the engaged route snapshot and a position fix; if both exist and ActiveRouteSession.currentStep(for:) yields a step (which also advances the session's step index), resets route-engine state on a new route, then runs the turn-alert engine and/or the turn-marker engine per settings and announces any rendered payload.",
+   "hash": "506fa69c2724320b",
+   "does": "Reads the engaged route snapshot and a position fix; if both exist, ActiveRouteSession.currentStep(for:) yields a step (which also advances the session's step index) and a second snapshot shows the same engagedAt (no route swap between the two locked reads), resets route-engine state on a new route, then runs the turn-alert engine and/or the turn-marker engine per settings and announces any rendered payload.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
@@ -254,49 +219,36 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "snapshot() non-nil (route engaged), routeFix non-nil, and currentStep(for:) non-nil",
-     "effect": "any nil → return; no engine runs and their state is untouched. All present → continue."
+     "cond": "snapshot() non-nil, routeFix non-nil, currentStep(for:) non-nil, and snapshot()?.engagedAt unchanged",
+     "effect": "any fails → return; no engine runs this tick (a swapped route is read whole next tick). All hold → continue."
     },
     {
-     "at": "+7",
+     "at": "+8",
      "cond": "settings.enableTurnByTurnAlerts",
      "effect": "true → tickTurnAlert; false → turn-alert engine skipped."
     },
     {
-     "at": "+10",
+     "at": "+11",
      "cond": "settings.enableTurnMarkerUpdates",
      "effect": "true → TurnMarkerEngine.evaluate, store nextState, maybe announce; false → skipped."
     },
     {
-     "at": "+13",
+     "at": "+14",
      "cond": "marker.payload non-nil",
      "effect": "true → announceRouteLine(rendered text); false → nothing spoken."
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "snapshot() and currentStep(for:) take ActiveRouteSession's lock separately; a route swap between the two calls pairs the old route's engagedAt/stepCount with the new route's step result for that tick.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:150",
-      "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:151",
-      "Emuqu/Sources/Services/ActiveRouteSession.swift:149",
-      "Emuqu/Sources/Services/ActiveRouteSession.swift:167"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.evaluate(step:context:state:)": "f2b9402240281d21",
     "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerFormatter.render(payload:unitsImperial:)": "b417f89669383404",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.announceRouteLine(_:)": "086d2079d777cbf2",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.announceRouteLine(_:)": "34b79c229217f5ca",
     "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.resetRouteStateIfNewRoute(engagedAt:)": "623ee699450e9d71",
     "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.routeFix(context:)": "aa5467c2cbf70e31",
     "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.tickTurnAlert(step:stepCount:imperial:)": "1ee610be0d422680",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.currentStep(for:)": "074edeb377d65cad",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.currentStep(for:)": "4fda6362df3bfa07",
     "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.snapshot()": "c0ce08ecb6d252c2",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "236ffadb120d332c",
@@ -330,7 +282,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.evaluate(step:state:isFinalStep:)": "3d226c62978a31d8",
     "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.render(payload:unitsImperial:)": "c18371c16ee28f67",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.announceRouteLine(_:)": "086d2079d777cbf2",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.announceRouteLine(_:)": "34b79c229217f5ca",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func stepCount(samples:)": "6c00c4d3ab2ac3d3"
    }
   },
@@ -390,47 +342,28 @@
   },
   {
    "key": "func WorkoutVoiceCoach.announceRouteLine(_:)",
-   "hash": "00d2917de4f1cfe8",
-   "does": "Announces one route line: drops it if muted or empty, else routes to conversation.handleTrigger (routine) or speaks directly.",
+   "hash": "a5276a3079b327b4",
+   "does": "Announces one route line: drops it if muted, empty or no conversation is set, else routes it to conversation.handleTrigger (routine).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.handleTrigger(message:urgency:)",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.speak(_:)"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.handleTrigger(message:urgency:)"
    ],
    "reads": [
-    "mem:WorkoutVoiceCoach.isMuted"
+    "mem:WorkoutVoiceCoach.isMuted",
+    "mem:WorkoutVoiceCoach.conversation"
    ],
    "writes": [],
    "branches": [
     {
      "at": "+1",
-     "cond": "!isMuted && !body.isEmpty",
-     "effect": "false → return silently (line lost; engine state already advanced); true → announce."
-    },
-    {
-     "at": "+2",
-     "cond": "conversation non-nil",
-     "effect": "true → handleTrigger(message:) default .routine; false → speak(body)."
+     "cond": "!isMuted && !body.isEmpty && conversation set",
+     "effect": "false → return silently (line lost; engine state already advanced); true → handleTrigger(message:) default .routine."
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "Line 213-214 else branch (speak directly): conversation is never nil in production: WorkoutRecorder.init takes a non-optional VoiceConversationController and assigns it at WorkoutRecorder.swift:422, and the only one passed is the app-lifetime @State voiceChat (EmuquApp.swift:96, :839; FitnessTabView.swift:171), so the direct-speak fallback branch never runs outside a deallocated conversation; no test constructs WorkoutVoiceCoach.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:211",
-      "Emuqu/Sources/Collection/WorkoutRecorder.swift:406",
-      "Emuqu/Sources/Collection/WorkoutRecorder.swift:422",
-      "Emuqu/EmuquApp.swift:96",
-      "Emuqu/Sources/Views/FitnessTabView.swift:171"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.handleTrigger(message:urgency:)": "bc9e7a9e730970e1",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.speak(_:)": "3984cc3476298e6b"
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::var WorkoutVoiceCoach.isMuted": "1a7ee0826f692e35"
    }
   },
   {
@@ -504,68 +437,45 @@
       "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:255"
      ],
      "found": "second read"
-    },
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Comment names WatchConnectivityBridge.sendVoiceTrigger as the missing Watch handler, but no method named sendVoiceTrigger exists anywhere in the repo (grep).",
-     "evidence": [
-      "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:247"
-     ],
-     "found": "second read"
     }
    ],
    "deps": {
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::var VoiceConversationController.isAIInFlight": "082991477bc5db3a",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.dispatchSpoken(_:)": "6fa33235476f9b42",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.dispatchSpoken(_:)": "1cccbf832563c9e6",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
    "key": "func WorkoutVoiceCoach.dispatchSpoken(_:)",
-   "hash": "1bfb5461f6a41fa0",
-   "does": "Builds the spoken text (\"Coach alert — \" prefix, plus the \"Coach here.\" preamble on first line/preempt) and sends it to conversation.handleTrigger with the event's urgency mapped to .urgent/.routine, or speaks it directly when there is no conversation.",
+   "hash": "a1d49c952d11c150",
+   "does": "With a conversation set: builds the spoken text (\"Coach alert — \" prefix, plus the \"Coach here.\" preamble on first line/preempt) and sends it to conversation.handleTrigger with the event's urgency mapped to .urgent/.routine. Without one: says nothing.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.taggedAlertText(_:)",
     "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.announcedAlertText(_:)",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.handleTrigger(message:urgency:)",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.speak(_:)"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.handleTrigger(message:urgency:)"
    ],
-   "reads": [],
+   "reads": [
+    "mem:WorkoutVoiceCoach.conversation"
+   ],
    "writes": [],
    "branches": [
     {
-     "at": "+2",
-     "cond": "conversation non-nil",
-     "effect": "true → handleTrigger(message:urgency:) (routine queues if user/AI busy; urgent preempts and copies partial transcript to clipboard); false → speak(tagged)."
+     "at": "+1",
+     "cond": "conversation nil",
+     "effect": "return without speaking"
     },
     {
      "at": "+4",
      "cond": "event.urgency == .urgent (?:)",
-     "effect": ".urgent → TriggerUrgency.urgent; anything else → .routine."
+     "effect": ".urgent → TriggerUrgency.urgent; anything else → .routine. handleTrigger: routine queues if user/AI busy; urgent preempts and copies partial transcript to clipboard."
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "Line 281-282 else branch (speak directly): conversation is never nil in production: WorkoutRecorder.init takes a non-optional VoiceConversationController and assigns it at WorkoutRecorder.swift:422, and the only one passed is the app-lifetime @State voiceChat (EmuquApp.swift:96, :839; FitnessTabView.swift:171), so the direct-speak fallback branch never runs outside a deallocated conversation; no test constructs WorkoutVoiceCoach.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:277",
-      "Emuqu/Sources/Collection/WorkoutRecorder.swift:406",
-      "Emuqu/Sources/Collection/WorkoutRecorder.swift:422",
-      "Emuqu/EmuquApp.swift:96",
-      "Emuqu/Sources/Views/FitnessTabView.swift:171"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.handleTrigger(message:urgency:)": "bc9e7a9e730970e1",
     "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.announcedAlertText(_:)": "ecdb0354dca70e6e",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.speak(_:)": "3984cc3476298e6b",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.taggedAlertText(_:)": "4c38c8f723ad04c1"
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.taggedAlertText(_:)": "08fb77e0faec67be"
    }
   },
   {
@@ -615,8 +525,8 @@
   },
   {
    "key": "func WorkoutVoiceCoach.taggedAlertText(_:)",
-   "hash": "53b72541c63fb4a0",
-   "does": "Static: returns message prefixed with the localized \"Coach alert — \" unless it already starts with it.",
+   "hash": "f2c1c191d5803898",
+   "does": "Static: returns message prefixed with the localized \"Coach alert — \". Only trigger-engine alerts carry it (its one caller is dispatchSpoken).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
@@ -625,27 +535,8 @@
     "mem:LanguageManager.shared.bundle"
    ],
    "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "message already has the prefix",
-     "effect": "true → returned unchanged; false → prefix + message."
-    }
-   ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Comment says idempotence matters because other dispatch paths re-route the same string, but the only caller in the repo is dispatchSpoken (grep), so the check guards nothing; mile-marker/turn lines (123, 209) never get the 'Coach alert —' tag the comment at 260-264 says distinguishes scripted lines.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:313",
-      "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:276",
-      "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:133",
-      "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:209"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "branches": [],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
@@ -677,131 +568,6 @@
    "deps": {
     "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.cachedCompactVoiceIfReady(forLanguage:)": "9a5029b9978ca312",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
-   }
-  },
-  {
-   "key": "func WorkoutVoiceCoach.speak(_:)",
-   "hash": "fc388433c0cca5bf",
-   "does": "Direct TTS path: sets cueReleaser as synthesizer delegate, then in a Task looks up the compact app-language voice and claims+activates the audio session (beginCue) on a detached userInitiated task, and on return calls speakPrepared; if the coach was deallocated meanwhile, ends the cue.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::init CueAudioSessionReleaser(manager:)",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.backgroundAudioManager",
-    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.cachedCompactVoice(forLanguage:)",
-    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.beginCue()",
-    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.endCue(_:)",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.speakPrepared(_:voice:token:)"
-   ],
-   "reads": [
-    "mem:WorkoutStartCue voice cache",
-    "mem:LanguageManager.shared.locale"
-   ],
-   "writes": [
-    "mem:BackgroundAudioManager cue holds / AVAudioSession active (ext:AVAudioSession.setActive via beginCue)"
-   ],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "appLocale languageCode nil (??)",
-     "effect": "nil → \"en\"."
-    },
-    {
-     "at": "+9",
-     "cond": "self (weak) still alive after the detached work",
-     "effect": "nil → endCue(token) and return (line dropped, session released); alive → speakPrepared."
-    }
-   ],
-   "flags": [
-    {
-     "kind": "race",
-     "sev": "low",
-     "text": "Each speak spawns an independent Task awaiting its own detached voice/beginCue work; two lines spoken in the same tick (e.g. a turn alert and a turn marker at 156/162 with no conversation) can reach speakPrepared in either order, and isMuted toggled during the await does not stop an already-started line.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:356",
-      "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:357",
-      "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:365",
-      "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:156",
-      "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:162"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "speak (and the lazy synthesizer/cueReleaser it initializes) is only reached from the conversation==nil fallbacks at 137, 214, 282, which never run in production because the conversation is always set (WorkoutRecorder.swift:422) to the app-lifetime voiceChat; no test constructs WorkoutVoiceCoach (grep), so tests do not reach it either.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:137",
-      "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:214",
-      "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:282",
-      "Emuqu/Sources/Collection/WorkoutRecorder.swift:406",
-      "Emuqu/Sources/Collection/WorkoutRecorder.swift:422",
-      "Emuqu/EmuquApp.swift:96",
-      "Emuqu/Sources/Views/FitnessTabView.swift:171"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.speakPrepared(_:voice:token:)": "c4c1cf34b6a8912f",
-    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.beginCue()": "73c6ae1ce9608494",
-    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.endCue(_:)": "416d3a125402698c",
-    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::init CueAudioSessionReleaser(manager:)": "5c2b489d7079c91e",
-    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.cachedCompactVoice(forLanguage:)": "254c9e6ff037df2b",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.backgroundAudioManager": "a650b3abbfe836c8"
-   }
-  },
-  {
-   "key": "func WorkoutVoiceCoach.speakPrepared(_:voice:token:)",
-   "hash": "49180aa4e12ad371",
-   "does": "Builds an AVSpeechUtterance (given voice, 0.95x default rate, pitch 1, volume 1), registers it with cueReleaser under the cue token, and speaks via the ObjC FRSafeSpeak shim; if queuing fails (ObjC exception) releases the cue immediately and logs a warning.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func CueAudioSessionReleaser.track(_:token:)",
-    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeSpeak",
-    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func CueAudioSessionReleaser.release(_:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "ext:AVSpeechSynthesizer.speak (via FRSafeSpeak)"
-   ],
-   "reads": [],
-   "writes": [
-    "mem:CueAudioSessionReleaser.pending"
-   ],
-   "branches": [
-    {
-     "at": "+8",
-     "cond": "FRSafeSpeak returns false",
-     "effect": "true (failed) → cueReleaser.release (ends cue) and debugLog .warning; line silently dropped. false → utterance queued; delegate callbacks release the cue on finish/cancel."
-    },
-    {
-     "at": "+10",
-     "cond": "speakErr?.localizedDescription ?? \"?\"",
-     "effect": "no NSError → logs \"?\"."
-    }
-   ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Only caller is speak (365), which is itself unreached in production (see speak's dead flag); the FRSafeSpeak failure handling here is therefore never exercised.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:365",
-      "Emuqu/Sources/Collection/WorkoutRecorder.swift:422"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voice": "fa61a702fe44b576",
-    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func CueAudioSessionReleaser.release(_:)": "e30c8b132cebf5e5",
-    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func CueAudioSessionReleaser.track(_:token:)": "feded6e160d987b2",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeSpeak": "7d8b80467768d419"
    }
   }
  ],

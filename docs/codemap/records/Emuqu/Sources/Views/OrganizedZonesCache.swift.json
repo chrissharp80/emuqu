@@ -1,9 +1,10 @@
 {
  "file": "Emuqu/Sources/Views/OrganizedZonesCache.swift",
- "hash": "c0a35c90bb0ee717",
- "role": "Process-wide bounded LRU (128 entries) memo of organized-recovery zones per session id, guarded by an OSAllocatedUnfairLock.",
+ "hash": "06306cb087caadfd",
+ "role": "Process-wide bounded LRU (128 entries) memo of organized-recovery zones per session id, each entry recording the sleep window the zones were scanned for, guarded by an OSAllocatedUnfairLock. The keyed get misses when that window changed.",
  "types": [
-  "OrganizedZonesCache: final class Sendable — get/set/invalidate",
+  "OrganizedZonesCache: final class Sendable — get/set (unkeyed and sleep-window-keyed)/invalidate",
+  "OrganizedZonesCache.Entry: struct (private) — zones + the sleep window (nil when stored unkeyed)",
   "OrganizedZonesCache.State: struct (private) — dictionary + recency order"
  ],
  "state": [
@@ -33,6 +34,22 @@
    "deps": {}
   },
   {
+   "key": "func OrganizedZonesCache.State.store(_:_:)",
+   "hash": "05c71445df491e27",
+   "does": "Stores the entry for id, touches it, then evicts least-recently-used ids beyond maxEntries (128).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.State.touch(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.State.touch(_:)": "0b1eb22897c4ffb2"
+   }
+  },
+  {
    "key": "init OrganizedZonesCache()",
    "hash": "4f171088cdf643a5",
    "does": "Private init; only the shared singleton exists.",
@@ -46,8 +63,8 @@
   },
   {
    "key": "func OrganizedZonesCache.get(_:)",
-   "hash": "5ad3e3965d7a9ec0",
-   "does": "Returns cached zones for id under the lock and marks it recently used; nil on miss.",
+   "hash": "f44de81f88875d8d",
+   "does": "Returns the cached zones for id whatever sleep window they were scanned for, under the lock, and marks it recently used; nil on miss. Callers that know the window use the keyed overload.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.State.touch(_:)"
@@ -61,20 +78,18 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "no cached value",
-     "effect": "return nil without touching order"
+     "cond": "no entry",
+     "effect": "nil"
     }
    ],
    "flags": [
     {
      "kind": "fragile",
      "sev": "med",
-     "text": "Cache is keyed by session id only, but the cached zones are computed from series, flags AND sleepStartMs/sleepEndMs (OvernightChartsView+Stats.swift:243-264); the only invalidation is ReanalysisService.persist, so a sleep-boundary change (user adjust or a later HealthKit fetch) keeps serving zones for the old sleep window for the rest of the process.",
+     "text": "Unkeyed lookup: zones depend on the sleep window as well as the beats. OvernightStatsComputer now uses the window-keyed get/set, but RecoveryScoreDetailView.computeOrganizedZonesOnDemand still calls get(_:)/set(_:zones:), so after a sleep-boundary change that screen keeps serving the old window's zones. Handoff b23: RecoveryScoreDetailView to call OvernightStatsComputer.computeOrganizedZonesOnDemand, then remove the unkeyed get/set.",
      "evidence": [
-      "Emuqu/Sources/Views/OrganizedZonesCache.swift:28",
-      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:251",
-      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:259",
-      "Emuqu/Sources/Services/ReanalysisService.swift:443"
+      "Emuqu/Sources/Views/OrganizedZonesCache.swift:51",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:478"
      ],
      "found": "second read"
     }
@@ -84,12 +99,38 @@
    }
   },
   {
-   "key": "func OrganizedZonesCache.set(_:zones:)",
-   "hash": "405529c49cbb534f",
-   "does": "Stores zones for id, touches it, then evicts least-recently-used ids beyond 128.",
+   "key": "func OrganizedZonesCache.get(_:sleepStartMs:sleepEndMs:)",
+   "hash": "761a681d7df70127",
+   "does": "Returns the cached zones for id only when they were stored for exactly this sleep window (start/end ms), marking the entry recently used; nil on a miss, an unkeyed entry, or a different window.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.State.touch(_:)"
+   ],
+   "reads": [
+    "mem:OrganizedZonesCache.state"
+   ],
+   "writes": [
+    "mem:OrganizedZonesCache.state"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no entry, no window, or a different window",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.State.touch(_:)": "0b1eb22897c4ffb2"
+   }
+  },
+  {
+   "key": "func OrganizedZonesCache.set(_:zones:)",
+   "hash": "32a6fc271bc3d04c",
+   "does": "Stores zones for id without a sleep window (a keyed get misses them), via State.store (touch + LRU eviction beyond 128).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.State.store(_:_:)"
    ],
    "reads": [],
    "writes": [
@@ -104,8 +145,25 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.Difficulty.order(_:)": "a2e3af04705bd5b5",
-    "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.State.touch(_:)": "0b1eb22897c4ffb2"
+    "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.State.store(_:_:)": "fa874519c63e2113"
+   }
+  },
+  {
+   "key": "func OrganizedZonesCache.set(_:sleepStartMs:sleepEndMs:zones:)",
+   "hash": "99a64ae5d2836912",
+   "does": "Stores zones for id together with the sleep window the scan used, via State.store (touch + LRU eviction beyond 128).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.State.store(_:_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:OrganizedZonesCache.state"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.State.store(_:_:)": "fa874519c63e2113"
    }
   },
   {

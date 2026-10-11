@@ -20,10 +20,24 @@ set -euo pipefail
 # denominator — those are pure format/punctuation strings ("%@ · %@", "—") where
 # a translation is meaningless.
 #
-# Usage: check_localization_coverage.sh [catalogue] [floor-file]
+# The locales measured are the ones the app SHIPS: the project's
+# `knownRegions` (minus `Base` and the source language), plus any other locale
+# that appears in the catalogue. Taking them from the catalogue alone would let
+# a locale whose entries were all removed drop out of the denominator instead of
+# failing at 0%.
+#
+# Usage: check_localization_coverage.sh [catalogue] [floor-file] [project.pbxproj]
+
+cd "$(dirname "$0")/.."
 
 CATALOGUE="${1:-Emuqu/Localizable.xcstrings}"
 FLOOR_FILE="${2:-.ci/min_localization_coverage.txt}"
+PROJECT_FILE="${3:-Emuqu.xcodeproj/project.pbxproj}"
+
+if [[ ! -f "$PROJECT_FILE" ]]; then
+    echo "Project file not found (the shipped locales come from it): $PROJECT_FILE" >&2
+    exit 66
+fi
 
 if [[ ! -f "$CATALOGUE" ]]; then
     echo "String catalogue not found: $CATALOGUE" >&2
@@ -41,12 +55,14 @@ if [[ -z "$FLOOR" ]]; then
     exit 65
 fi
 
-SUMMARY="$(python3 - "$CATALOGUE" "$FLOOR" <<'PY'
+SUMMARY="$(python3 - "$CATALOGUE" "$FLOOR" "$PROJECT_FILE" <<'PY'
 import json
+import re
 import sys
 
 catalogue_path = sys.argv[1]
 floor = float(sys.argv[2])
+project_path = sys.argv[3]
 
 with open(catalogue_path, encoding="utf-8") as fh:
     catalogue = json.load(fh)
@@ -61,12 +77,17 @@ translatable = {
     if value.get("shouldTranslate") is not False
 }
 
-# Locales the app ships = every locale that appears anywhere in the catalogue,
-# minus the source language.
-locales = set()
+# Locales the app ships = the project knownRegions, plus every locale that
+# appears anywhere in the catalogue, minus Base and the source language.
+with open(project_path, encoding="utf-8") as fh:
+    regions = re.search(r"knownRegions = \(([^)]*)\);", fh.read())
+if regions is None:
+    print(f"No knownRegions list in {project_path}.")
+    raise SystemExit(65)
+locales = {r.strip().strip('"') for r in regions.group(1).split(",") if r.strip()}
 for value in translatable.values():
     locales.update((value.get("localizations") or {}).keys())
-locales.discard(source)
+locales -= {source, "Base"}
 
 if not locales:
     print("No non-source locales found in the catalogue.")

@@ -1,27 +1,30 @@
 {
  "file": "Emuqu/Sources/Storage/Archive+Internal.swift",
- "hash": "874d1b2b3d05b713",
+ "hash": "ab0b690146a5ea4c",
  "role": "ArchiveStore's persistence mechanics: the locked write path (_archive with tombstone/schema gates, rrSeries splice, same-night merge, atomic write + index save with rollback), the hash-checked read path, dual-format (encrypted/legacy) decoding, split-night segment normalisation, tombstones + deletion times, and batch archiving.",
  "types": [
   "ArchiveStore: extension — internal write/read/delete/batch mechanics over SessionArchive state",
   "ArchiveStore.StoredRRSeries: enum — preserved(beats, viaRawDecode)/noBeatsStored/unreadable outcome of reading stored beats",
   "ArchiveStore.OverlapVerdict: enum (private) — keepLonger/distinct for segment dedupe",
-  "ArchiveStore.BatchOutcome: struct (private) — newEntries + updatedIds of one archiveBatch pass"
+  "ArchiveStore.BatchOutcome: struct (private) — newEntries + updatedIds of one archiveBatch pass",
+  "ArchiveStore.PriorFile: struct — a file's bytes, existence and pending-encryption state before a write, for rollBackWrite",
+  "ArchiveStore.UnsavedDeletionTime: private enum — recorded(epoch) / forgotten"
  ],
  "state": [
   "static ArchiveStore.minMeaningfulSegment = 600 s (segments shorter are dropped as artifacts)",
   "static ArchiveStore.duplicateTolerance = 300 s",
   "ud:archive.deletionTimes (standard suite; [uuidString: epoch seconds] dictionary, ArchiveStore.deletionTimesKey)",
   "mem:ArchiveStore.deletionTimesQueue (serial DispatchQueue 'archive.deletionTimes' for UserDefaults writes)",
+  "mem:ArchiveStore.unsavedDeletionTimes (static OSAllocatedUnfairLock<[UUID: UnsavedDeletionTime]>: deletion-time changes staged but not yet in UserDefaults)",
   "file:<archiveDirectory>/<uuid>.json (session files written by writeAndIndex/writeBatchSession)"
  ],
- "toplevel": "File-scope private func verifyHash (fileprivate). No global state besides the static constants and the deletion-times queue/key above. Header comment states underscored/private helpers assume the caller holds archive.archiveLock while exists/delete/archiveBatch/entries etc. take it themselves.",
+ "toplevel": "Imports os (OSAllocatedUnfairLock). File-scope private func verifyHash (fileprivate). No global state besides the static constants, the deletion-times queue/key and the staged deletion-time overlay above. Header comment states underscored/private helpers assume the caller holds archive.archiveLock while exists/delete/archiveBatch/entries etc. take it themselves.",
  "flags": [],
  "units": [
   {
    "key": "func ArchiveStore._archive(_:skipSameNightMerge:)",
-   "hash": "6f393f47f7c878a9",
-   "does": "Locked-caller write entry: runs guardWritable (tombstone + newer-schema gates), splices stored rrSeries onto a beat-less incoming session, then either folds an overnight into a same-night/copy target (sameNightMerge) or writes file + index (writeAndIndex); returns the resulting index entry.",
+   "hash": "a8602671b2c22bfa",
+   "does": "Locked-caller write entry: runs guardWritable (tombstone + newer-schema gates), splices stored rrSeries onto a beat-less incoming session (throws, writing nothing, when the stored file cannot be read or decrypted now), then either folds an overnight into a same-night/copy target (sameNightMerge) or writes file + index (writeAndIndex); returns the resulting index entry.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.guardWritable(_:)",
@@ -48,9 +51,9 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.guardWritable(_:)": "16a0b4d99872986b",
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.preservingRRSeries(_:)": "c6945f3ac05cebd0",
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.sameNightMerge(of:skipSameNightMerge:)": "a2d6b9c582fd44ae",
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.writeAndIndex(_:)": "4951df4c2db9517d"
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.preservingRRSeries(_:)": "c53b691e375203ef",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.sameNightMerge(of:skipSameNightMerge:)": "1dba84662b2c378b",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.writeAndIndex(_:)": "1180b84914f56872"
    }
   },
   {
@@ -84,11 +87,12 @@
   },
   {
    "key": "func ArchiveStore.preservingRRSeries(_:)",
-   "hash": "ae1d4ce51518b521",
-   "does": "If the incoming session has rrSeries == nil and the id is already indexed, reads the stored copy's beats (storedRRSeries) and splices them back onto the session before it is written; returns the (possibly patched) session.",
+   "hash": "24b490f0cfacd28e",
+   "does": "If the incoming session has rrSeries == nil and the id is already indexed, reads the stored copy's beats (storedRRSeries) and splices them back onto the session before it is written; returns the (possibly patched) session. When neither reader can open the stored file, throws the read/decrypt error (storedBytesError) so a transient failure never overwrites intact beats; only bytes that read and decrypt but do not decode let the write go ahead without beats.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.storedRRSeries(for:)",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.storedBytesError(for:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
@@ -118,29 +122,60 @@
      "effect": "nothing to splice (file read fine, no beats)"
     },
     {
-     "at": "+12",
-     "cond": "case .unreadable",
-     "effect": "log .error and return the session WITHOUT beats, so the following write overwrites the stored file's rrSeries"
-    }
-   ],
-   "flags": [
+     "at": "+13",
+     "cond": "case .unreadable and the stored bytes cannot be read or decrypted now",
+     "effect": "log .error and throw that error; the write is abandoned"
+    },
     {
-     "kind": "data-loss",
-     "sev": "med",
-     "text": "On .unreadable the re-archive proceeds and overwrites the stored file with rrSeries=nil. Unreadable includes a decrypt failure while the encryption key is unavailable (plaintextBytes/loadAndDecodeSessionFile both call encryptionManager.decrypt); writeAndIndex only aborts when the raw bytes cannot be read, not when they cannot be decrypted, so a lightweight-loaded session re-archived while the key is unreachable replaces a night's intact encrypted beats with a beat-less plaintext file. The log text claims the data 'was already unrecoverable on disk', which is false for a transient decrypt failure.",
-     "evidence": [
-      "Emuqu/Sources/Storage/Archive+Internal.swift:84",
-      "Emuqu/Sources/Storage/Archive+Internal.swift:85",
-      "Emuqu/Sources/Storage/Archive+Internal.swift:116",
-      "Emuqu/Sources/Storage/Archive+Internal.swift:311",
-      "Emuqu/Sources/Storage/Archive+Internal.swift:210"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+17",
+     "cond": "case .unreadable otherwise (bytes read and decrypt but do not decode)",
+     "effect": "log .error and return the session WITHOUT beats, so the following write replaces the corrupt file"
     }
    ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.storedBytesError(for:)": "5aa83aa5400cbe93",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.storedRRSeries(for:)": "4c02bae464058c6b",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func ArchiveStore.storedBytesError(for:)",
+   "hash": "296ccdd7b2fe54e1",
+   "does": "The error from reading the indexed file's bytes and turning them into plaintext (plaintextBytes decrypts encrypted files), or nil when that succeeds, the id is not indexed, or there is no file.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.plaintextBytes(_:id:)",
+    "ext:FileManager.fileExists",
+    "ext:Data(contentsOf:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.index",
+    "file:<archiveDirectory>/<uuid>.json"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "id not in index",
+     "effect": "nil"
+    },
+    {
+     "at": "+3",
+     "cond": "no file at the resolved path",
+     "effect": "nil (nothing to protect)"
+    },
+    {
+     "at": "+7",
+     "cond": "read or decrypt throws",
+     "effect": "return the error; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)": "462da1c0710663cb",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.plaintextBytes(_:id:)": "46c976f3cbac7ee0"
    }
   },
   {
@@ -182,7 +217,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)": "de3b38dc99eee4a4",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)": "462da1c0710663cb",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore._retrieve(_:)": "6843baad12c58853",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.loadAndDecodeSessionFile(at:decoder:)": "93ff92a48b7f6d45",
     "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.sessionDecoder": "77d9e4601604691c"
@@ -190,8 +225,8 @@
   },
   {
    "key": "func ArchiveStore.sameNightMerge(of:skipSameNightMerge:)",
-   "hash": "c883dc67196af742",
-   "does": "For a NEW overnight (not a re-archive, merge not skipped, no explicit linkedSessionIds) with a same-sleep gap configured, finds a merge target; if found, loads it, merges the incoming session's data into it (SessionMerger) and re-archives the existing session, discarding the new UUID. Returns the merged entry, or nil to write standalone; rethrows a retrieve/archive failure.",
+   "hash": "fc5a972d09074115",
+   "does": "For a NEW overnight (not a re-archive, merge not skipped, no explicit linkedSessionIds) with a same-sleep gap configured, finds a merge target; if found, loads it, merges the incoming session's data into it (SessionMerger) and re-archives the existing session, discarding the new UUID. Returns the merged entry, or nil to write standalone; a target that cannot be loaded (retrieve throws, or the id lookup misses) or re-archived throws instead.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+MergeTarget.swift::func ArchiveStore.sameSleepGap(for:)",
@@ -230,26 +265,15 @@
     {
      "at": "+11",
      "cond": "_retrieve(existing.sessionId) returned nil",
-     "effect": "return nil → caller writes the new session standalone (a same-night duplicate); non-nil merges and re-archives existing"
+     "effect": "throw ArchiveError.fileNotFound (caught below, rethrown); never a standalone write"
     },
     {
-     "at": "+15",
-     "cond": "catch: _retrieve or the recursive _archive threw",
+     "at": "+17",
+     "cond": "catch: _retrieve, the lookup miss or the recursive _archive threw",
      "effect": "log warning and rethrow so the caller does not mark the backup archived"
     }
    ],
    "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "The doc above says a retrieve failure must not fall through to the standalone write, but a nil from _retrieve (entryById miss, possible only through a stale sessionIdLookup cache) does exactly that via `else { return nil }`.",
-     "evidence": [
-      "Emuqu/Sources/Storage/Archive+Internal.swift:148",
-      "Emuqu/Sources/Storage/Archive+Internal.swift:168",
-      "Emuqu/Sources/Storage/Archive+Internal.swift:572"
-     ],
-     "found": "first read, upheld on second"
-    },
     {
      "kind": "spec-mismatch",
      "sev": "low",
@@ -268,7 +292,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore._archive(_:skipSameNightMerge:)": "740d98b7c017d36a",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore._archive(_:skipSameNightMerge:)": "71b5c97dd70f4908",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore._retrieve(_:)": "6843baad12c58853",
     "Emuqu/Sources/Storage/Archive+MergeForwarding.swift::func SessionArchive.mergeSessionData(from:into:)": "176aeb8adb4f5aba",
     "Emuqu/Sources/Storage/Archive+MergeTarget.swift::func ArchiveStore.mergeTarget(for:sameSleepGap:)": "3fdc38d069d40530",
@@ -278,17 +302,16 @@
   },
   {
    "key": "func ArchiveStore.writeAndIndex(_:)",
-   "hash": "d36dd37e6da4c07e",
-   "does": "Encodes the session (encrypted when possible) to <uuid>.json with format-dependent protection options, replaces/appends its index entry and saves the index; on save failure restores the previous index and file and rethrows. Reads the previous file bytes first (throws if they cannot be read).",
+   "hash": "42e62ae0a30f4af0",
+   "does": "Encodes the session (encrypted when possible), snapshots the file it replaces (PriorFile: bytes, existence, pending-encryption state; throws if the bytes cannot be read), writes <uuid>.json through writeArchiveBytes (protection by format; ledger restored if the write throws), replaces/appends its index entry and saves the index; on save failure rollBackWrite restores the previous index, file, protection class and ledger entry, then rethrows.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.encodedForDisk(_:)",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::init ArchiveStore.PriorFile(at:id:fileManager:)",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func writeArchiveBytes(_:to:format:sessionID:)",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchiveEntry.make(from:hash:filePath:overridingSessionId:recoveryScoreFallback:)",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()",
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.rollBackWrite(to:filePath:previousData:existed:)",
-    "ext:FileManager.fileExists",
-    "ext:Data(contentsOf:)",
-    "ext:Data.write(to:options:)"
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.rollBackWrite(to:filePath:prior:id:)"
    ],
    "reads": [
     "mem:SessionArchive.index",
@@ -299,58 +322,85 @@
     "mem:SessionArchive.index",
     "file:<archiveDirectory>/index.json",
     "mem:SessionArchive.sortedEntriesCache",
-    "mem:SessionArchive.sessionIdLookup"
+    "mem:SessionArchive.sessionIdLookup",
+    "ud:storage.pendingReencryption.sessionIDs"
    ],
    "branches": [
     {
-     "at": "+7",
-     "cond": "a file already existed at the path",
-     "effect": "read its bytes (throws → whole write aborted before anything is written); else previousData = nil"
+     "at": "+6",
+     "cond": "a file already existed and cannot be read",
+     "effect": "PriorFile throws → whole write aborted before anything is written"
     },
     {
-     "at": "+14",
+     "at": "+13",
      "cond": "catch: archive.saveIndex() threw",
-     "effect": "rollBackWrite (restore index, caches, previous file or remove new file) then rethrow; on success return the new entry"
+     "effect": "rollBackWrite (index, caches, previous file with its protection class and ledger entry, or removal of the new file) then rethrow; on success return the new entry"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "907008a128361c54",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchiveEntry.make(from:hash:filePath:overridingSessionId:recoveryScoreFallback:)": "fc939f955bfe257a",
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.encodedForDisk(_:)": "ba1d36336911f2ad",
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.rollBackWrite(to:filePath:previousData:existed:)": "4021508dc21520d1"
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.encodedForDisk(_:)": "6156d425e8eb43e7",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.rollBackWrite(to:filePath:prior:id:)": "e3b74e2fec745439",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::init ArchiveStore.PriorFile(at:id:fileManager:)": "43bc1c2189a08656",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func writeArchiveBytes(_:to:format:sessionID:)": "ac70e10d77deab0d"
+   }
+  },
+  {
+   "key": "init ArchiveStore.PriorFile(at:id:fileManager:)",
+   "hash": "39ba29c489fdddb0",
+   "does": "Records whether a file exists at url, its bytes when it does (throws if they cannot be read), and whether the session id is queued in PendingEncryptionLedger (its bytes plaintext awaiting re-encryption).",
+   "entry": null,
+   "calls": [
+    "ext:FileManager.fileExists",
+    "ext:Data(contentsOf:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::var PendingEncryptionLedger.pending"
+   ],
+   "reads": [
+    "file:<archiveDirectory>/<uuid>.json",
+    "ud:storage.pendingReencryption.sessionIDs"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "file exists",
+     "effect": "read its bytes (throws); else data nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::var PendingEncryptionLedger.pending": "704f946253c65bf4"
    }
   },
   {
    "key": "func ArchiveStore.encodedForDisk(_:)",
-   "hash": "e51e0a7637cc64ae",
-   "does": "Encodes the session with SessionArchive.sessionEncoder (compact sortedKeys) via SessionFileCodec.encodeForDisk and returns (bytes, sha256 of bytes-as-written, write options for the resulting format, which also records/clears the PendingEncryptionLedger entry).",
+   "hash": "0b87f5bfc2a6f2aa",
+   "does": "Encodes the session with SessionArchive.sessionEncoder (compact sortedKeys) via SessionFileCodec.encodeForDisk and returns (bytes, sha256 of bytes-as-written, the disk format). No ledger change: the write (writeArchiveBytes) handles that.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.encodeForDisk(_:encoder:onPlaintextFallback:)",
-    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)"
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.encodeForDisk(_:encoder:onPlaintextFallback:)"
    ],
    "reads": [],
-   "writes": [
-    "ud:storage.pendingReencryption.sessionIDs"
-   ],
+   "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)": "d9ad1255ee6ca7c4",
     "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.encodeForDisk(_:encoder:onPlaintextFallback:)": "2975e4eff5812cf9",
     "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.sessionEncoder": "d0cc6fdb1e766587",
     "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.SearchResultRoute.hash(into:)": "c7d7a73258ef0964"
    }
   },
   {
-   "key": "func ArchiveStore.rollBackWrite(to:filePath:previousData:existed:)",
-   "hash": "37181431a8afd0ce",
-   "does": "After a failed index save: restores archive.index to the pre-write snapshot, nils sortedEntriesCache and sessionIdLookup, and either rewrites the previous file bytes or removes the newly created file; file-rollback failures are only logged via attempt().",
+   "key": "func ArchiveStore.rollBackWrite(to:filePath:prior:id:)",
+   "hash": "9c9298f4851dfbd1",
+   "does": "Restores the pre-write state after a failed index save: puts the index back, drops the derived caches, and either rewrites the previous bytes through writeArchiveBytes with the format they had (plaintext pending encryption → .completeFileProtection and re-queued; otherwise encrypted protection and ledger cleared) or, when there was no file before, clears the ledger entry and removes the new file. File failures are logged (attempt), not thrown. Caller holds the lock (writeAndIndex, ArchiveMigrations.relinkUnderLock).",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func writeArchiveBytes(_:to:format:sessionID:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
-    "ext:Data.write",
     "ext:FileManager.removeItem"
    ],
    "reads": [],
@@ -358,35 +408,25 @@
     "mem:SessionArchive.index",
     "mem:SessionArchive.sortedEntriesCache",
     "mem:SessionArchive.sessionIdLookup",
-    "file:<archiveDirectory>/<uuid>.json"
+    "file:<archiveDirectory>/<uuid>.json",
+    "ud:storage.pendingReencryption.sessionIDs"
    ],
    "branches": [
     {
      "at": "+6",
-     "cond": "previousData is non-nil (file existed and was read)",
-     "effect": "rewrite it with [.atomic, .completeFileProtectionUntilFirstUserAuthentication] inside attempt (error logged, swallowed)"
+     "cond": "previous bytes exist",
+     "effect": "rewrite them; format from wasPendingEncryption"
     },
     {
-     "at": "+10",
-     "cond": "no previous data AND file did not exist before",
-     "effect": "remove the new file inside attempt (error logged, swallowed); if it existed but previousData is nil nothing is restored (cannot happen: writeAndIndex throws before writing in that case)"
+     "at": "+12",
+     "cond": "no file existed before",
+     "effect": "clear ledger entry, remove the new file"
     }
    ],
-   "flags": [
-    {
-     "kind": "privacy",
-     "sev": "low",
-     "text": "The rollback rewrites the previous bytes with .completeFileProtectionUntilFirstUserAuthentication whatever they were, and the failed write's archiveWriteOptions has already cleared (encrypted case) the PendingEncryptionLedger entry; if the previous file was plaintext pending encryption it is restored with the weaker protection class and no longer queued for re-encryption.",
-     "evidence": [
-      "Emuqu/Sources/Storage/Archive+Internal.swift:206",
-      "Emuqu/Sources/Storage/Archive+Internal.swift:256",
-      "Emuqu/Sources/Storage/Archive+PendingEncryption.swift:24",
-      "Emuqu/Sources/Storage/Archive+PendingEncryption.swift:28"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func writeArchiveBytes(_:to:format:sessionID:)": "ac70e10d77deab0d",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)": "f5384534cbdac20d",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
    }
   },
@@ -461,7 +501,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)": "de3b38dc99eee4a4",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)": "462da1c0710663cb",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
@@ -1095,10 +1135,10 @@
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)": "de3b38dc99eee4a4",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)": "462da1c0710663cb",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.dropFromIndex(_:)": "f45477c04cc44f43",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.entryById(_:)": "e7bc37418ad20f4e",
-    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.moveToTrash(_:id:)": "0772351f78b03bbb",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.moveToTrash(_:id:)": "627d66320754a09a",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
@@ -1136,10 +1176,10 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveDeletedIndex()": "e981eb22030b74fa",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveDeletedIndex()": "7c1e56b0b1092688",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "907008a128361c54",
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.forgetDeletionTime(_:)": "39da053f6ba75b92",
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.recordDeletionTime(_:)": "6bbc00cc0219c31c",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.forgetDeletionTime(_:)": "3edbd039ba1faad2",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.recordDeletionTime(_:)": "b4b8ee1b969013f0",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
    }
   },
@@ -1174,7 +1214,7 @@
   {
    "key": "func ArchiveStore.unmarkAsDeleted(_:)",
    "hash": "5bd81700dba2ea95",
-   "does": "Takes the lock; removes the tombstone, forgets the deletion time and saves deleted.json (throws). Used for trash restore and cross-device restore adoption.",
+   "does": "Takes the lock; removes the tombstone, forgets the deletion time and saves deleted.json (throws). Used for trash restore, cross-device restore adoption, and (through SessionArchive.forgetDeletedSession) forgetting a dismissed lost session.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.forgetDeletionTime(_:)",
@@ -1191,43 +1231,8 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveDeletedIndex()": "e981eb22030b74fa",
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.forgetDeletionTime(_:)": "39da053f6ba75b92"
-   }
-  },
-  {
-   "key": "func ArchiveStore.forgetDeletedSession(_:)",
-   "hash": "38306fdbaf91612a",
-   "does": "Takes the lock; removes the tombstone, forgets the deletion time and saves deleted.json (throws). Body identical to unmarkAsDeleted.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.forgetDeletionTime(_:)",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveDeletedIndex()"
-   ],
-   "reads": [
-    "mem:SessionArchive.deletedSessionIds"
-   ],
-   "writes": [
-    "mem:SessionArchive.deletedSessionIds",
-    "ud:archive.deletionTimes",
-    "file:<archiveDirectory>/deleted.json"
-   ],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "forgetDeletedSession has exactly the same body as unmarkAsDeleted; two names for one operation.",
-     "evidence": [
-      "Emuqu/Sources/Storage/Archive+Internal.swift:701",
-      "Emuqu/Sources/Storage/Archive+Internal.swift:710"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveDeletedIndex()": "e981eb22030b74fa",
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.forgetDeletionTime(_:)": "39da053f6ba75b92"
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveDeletedIndex()": "7c1e56b0b1092688",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.forgetDeletionTime(_:)": "3edbd039ba1faad2"
    }
   },
   {
@@ -1250,34 +1255,39 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveDeletedIndex()": "e981eb22030b74fa",
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.recordDeletionTime(_:)": "6bbc00cc0219c31c"
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveDeletedIndex()": "7c1e56b0b1092688",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.recordDeletionTime(_:)": "b4b8ee1b969013f0"
    }
   },
   {
    "key": "func ArchiveStore.deletionTime(of:)",
-   "hash": "6ae2d1a68bd36874",
-   "does": "Reads this device's recorded deletion time for the id from UserDefaults archive.deletionTimes (epoch seconds → Date), nil when none.",
+   "hash": "b3c87c22134a3518",
+   "does": "This device's recorded deletion time for the id: a change staged on deletionTimesQueue but not yet written wins (recorded → its time, forgotten → nil), else the UserDefaults archive.deletionTimes value (epoch seconds → Date), nil when none. A deletion recorded a moment ago is therefore seen at once.",
    "entry": null,
    "calls": [],
    "reads": [
+    "mem:ArchiveStore.unsavedDeletionTimes",
     "ud:archive.deletionTimes"
    ],
    "writes": [],
-   "branches": [],
-   "flags": [
+   "branches": [
     {
-     "kind": "race",
-     "sev": "low",
-     "text": "recordDeletionTime writes asynchronously on deletionTimesQueue, and deletionTime reads UserDefaults directly without syncing on that queue; a read right after delete/markAsDeleted can see nil, which CloudKit deletion handling treats as an undated deletion that loses to any restore.",
-     "evidence": [
-      "Emuqu/Sources/Storage/Archive+Internal.swift:757",
-      "Emuqu/Sources/Storage/Archive+Internal.swift:739",
-      "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift:174"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+2",
+     "cond": "staged recorded",
+     "effect": "its time"
+    },
+    {
+     "at": "+4",
+     "cond": "staged forgotten",
+     "effect": "nil"
+    },
+    {
+     "at": "+6",
+     "cond": "nothing staged",
+     "effect": "read UserDefaults"
     }
    ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -1302,43 +1312,85 @@
   },
   {
    "key": "func ArchiveStore.recordDeletionTime(_:)",
-   "hash": "96ef21d6365646be",
-   "does": "Captures now and asynchronously (serial queue, outside archiveLock) sets times[id] = epoch seconds in UserDefaults archive.deletionTimes.",
+   "hash": "12259bffc59f6baf",
+   "does": "Stages now as the id's deletion time (stageDeletionTime): visible to deletionTime(of:) immediately, written to UserDefaults archive.deletionTimes on the serial queue, outside archiveLock.",
    "entry": null,
-   "calls": [],
-   "reads": [
-    "ud:archive.deletionTimes"
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.stageDeletionTime(_:for:)"
    ],
+   "reads": [],
    "writes": [
+    "mem:ArchiveStore.unsavedDeletionTimes",
     "ud:archive.deletionTimes"
    ],
-   "branches": [
-    {
-     "at": "+3",
-     "cond": "no dictionary stored yet (?? [:])",
-     "effect": "start from an empty dictionary"
-    }
-   ],
+   "branches": [],
    "flags": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.stageDeletionTime(_:for:)": "4b007153c5b4acc5"
+   }
   },
   {
    "key": "func ArchiveStore.forgetDeletionTime(_:)",
-   "hash": "5e0fc386d3d99827",
-   "does": "Asynchronously removes the id from the UserDefaults archive.deletionTimes dictionary.",
+   "hash": "c22a2e9c123c6062",
+   "does": "Stages the removal of the id's deletion time (stageDeletionTime): deletionTime(of:) reads nil at once; the UserDefaults entry is removed on the serial queue.",
    "entry": null,
-   "calls": [],
-   "reads": [
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.stageDeletionTime(_:for:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:ArchiveStore.unsavedDeletionTimes",
     "ud:archive.deletionTimes"
    ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.stageDeletionTime(_:for:)": "4b007153c5b4acc5"
+   }
+  },
+  {
+   "key": "func ArchiveStore.stageDeletionTime(_:for:)",
+   "hash": "37aede9c06bf39c4",
+   "does": "Records the change in the unsavedDeletionTimes overlay under its lock, then queues persistDeletionTime on deletionTimesQueue.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.persistDeletionTime(_:for:)",
+    "ext:DispatchQueue.async"
+   ],
+   "reads": [],
    "writes": [
-    "ud:archive.deletionTimes"
+    "mem:ArchiveStore.unsavedDeletionTimes"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.persistDeletionTime(_:for:)": "36929811ef3ceb1b"
+   }
+  },
+  {
+   "key": "func ArchiveStore.persistDeletionTime(_:for:)",
+   "hash": "1b20fd06415a6272",
+   "does": "On deletionTimesQueue: applies the change to the UserDefaults archive.deletionTimes dictionary (set the epoch time or remove the id; an absent dictionary starts empty) and writes it back, then drops the overlay entry unless a newer change for the id was staged meanwhile.",
+   "entry": "Runs on ArchiveStore.deletionTimesQueue, queued by stageDeletionTime.",
+   "calls": [],
+   "reads": [
+    "ud:archive.deletionTimes",
+    "mem:ArchiveStore.unsavedDeletionTimes"
+   ],
+   "writes": [
+    "ud:archive.deletionTimes",
+    "mem:ArchiveStore.unsavedDeletionTimes"
    ],
    "branches": [
     {
      "at": "+2",
-     "cond": "no dictionary stored",
-     "effect": "return without writing"
+     "cond": "recorded / forgotten",
+     "effect": "set times[id] / remove it"
+    },
+    {
+     "at": "+8",
+     "cond": "overlay still holds this same change",
+     "effect": "remove it; a newer change stays"
     }
    ],
    "flags": [],
@@ -1360,12 +1412,12 @@
   },
   {
    "key": "func ArchiveStore.archiveBatch(_:)",
-   "hash": "ed6c02e7552e452d",
-   "does": "Takes the lock and archives a batch: each session goes through archiveOne (skip tombstoned/known/in-batch copies, merge into an existing copy/same-sleep entry, or write a new pretty-printed file); new entries are appended and the index saved once; posts per-id change notifications for merged sessions and one nil change notification. Returns new + updated count. On a mid-batch throw, indexes files already written and rethrows.",
+   "hash": "0b580be2c36d5fc6",
+   "does": "Takes the lock and archives a batch: each session goes through archiveOne (skip tombstoned/known/unmergeable in-batch copies, merge into an existing copy or same-sleep entry — one written earlier in the batch included —, or write a new pretty-printed file that joins the in-memory index at once); the index is saved once at the end; posts per-id change notifications for merged sessions and one nil change notification. Returns new + updated count. On a mid-batch throw (a write or a merge that failed), saves the index with the files already written and rethrows.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.archiveOne(_:into:)",
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.indexPartialBatch(_:)",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.savePartialBatch(_:)",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.postBatchChangeNotifications(_:)"
    ],
@@ -1384,48 +1436,51 @@
    ],
    "branches": [
     {
-     "at": "+6",
+     "at": "+5",
      "cond": "for each session",
      "effect": "archiveOne; a throw jumps to catch"
     },
     {
-     "at": "+9",
-     "cond": "catch: archiveOne threw (file write failure)",
-     "effect": "indexPartialBatch(newEntries) then rethrow; notifications are not posted"
+     "at": "+8",
+     "cond": "catch: archiveOne threw (file write or merge failure)",
+     "effect": "savePartialBatch(newEntries) then rethrow; notifications are not posted"
     },
     {
-     "at": "+13",
+     "at": "+12",
      "cond": "newEntries non-empty",
-     "effect": "append and saveIndex (throws; files stay written, in-memory index already appended); else skip save"
+     "effect": "saveIndex (throws; files stay written, in-memory index already holds them); else skip save"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "907008a128361c54",
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.archiveOne(_:into:)": "c1ef2413b91425dc",
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.indexPartialBatch(_:)": "f3066e355ba161a3",
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.postBatchChangeNotifications(_:)": "428ba17a9ce82508"
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.archiveOne(_:into:)": "f8d590bc33b366ee",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.postBatchChangeNotifications(_:)": "428ba17a9ce82508",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.savePartialBatch(_:)": "57f7dbd11652e0a9"
    }
   },
   {
-   "key": "func ArchiveStore.indexPartialBatch(_:)",
-   "hash": "e66488fb59a2e994",
-   "does": "Appends already-written batch entries to the index and tries to save it (error logged/swallowed by attempt).",
+   "key": "func ArchiveStore.savePartialBatch(_:)",
+   "hash": "40f8910750add8f9",
+   "does": "After a failed batch: when any new entry was written (they are already in the in-memory index), saves the index, logging a failure (attempt).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)"
    ],
-   "reads": [],
+   "reads": [
+    "mem:SessionArchive.index"
+   ],
    "writes": [
-    "mem:SessionArchive.index",
-    "file:<archiveDirectory>/index.json"
+    "file:<archiveDirectory>/index.json",
+    "mem:SessionArchive.sortedEntriesCache",
+    "mem:SessionArchive.sessionIdLookup"
    ],
    "branches": [
     {
      "at": "+1",
-     "cond": "newEntries empty",
-     "effect": "return; else append and save"
+     "cond": "no new entries",
+     "effect": "return"
     }
    ],
    "flags": [],
@@ -1435,9 +1490,25 @@
    }
   },
   {
+   "key": "func ArchiveStore.indexBatchEntry(_:into:)",
+   "hash": "68899781ad2fd58d",
+   "does": "Appends a batch-written entry to the in-memory index, drops the derived caches (sortedEntriesCache, sessionIdLookup) and records it in the batch outcome, so later sessions of the batch find it as a merge target.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:SessionArchive.index",
+    "mem:SessionArchive.sortedEntriesCache",
+    "mem:SessionArchive.sessionIdLookup"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
    "key": "func ArchiveStore.archiveOne(_:into:)",
-   "hash": "7116b04018e149a5",
-   "does": "One batch item: returns early for a tombstoned id or an already-indexed id; merges into an archived copy/same-sleep target when mergeTarget finds one; skips a copy of a recording written earlier in the batch; otherwise writes it and appends the new entry.",
+   "hash": "a37070841fc263f2",
+   "does": "One batch item: returns early for a tombstoned id or an already-indexed id (earlier batch entries included); merges into an archived copy/same-sleep target (mergeTarget searches the index, which already holds this batch's new entries) and rethrows a merge failure; skips an in-batch copy the merge rule does not pair (linked); otherwise writes it and indexes the new entry at once (indexBatchEntry).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+MergeTarget.swift::func ArchiveStore.mergeTarget(for:sameSleepGap:)",
@@ -1445,6 +1516,7 @@
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.mergeIntoExisting(_:entry:outcome:)",
     "Emuqu/Sources/Storage/Archive+MergeTarget.swift::func ArchiveStore.isCopy(_:of:)",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.writeBatchSession(_:)",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.indexBatchEntry(_:into:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
@@ -1455,6 +1527,8 @@
     "file:<archiveDirectory>/<uuid>.json",
     "ud:storage.pendingReencryption.sessionIDs",
     "mem:SessionArchive.index",
+    "mem:SessionArchive.sortedEntriesCache",
+    "mem:SessionArchive.sessionIdLookup",
     "file:<archiveDirectory>/index.json"
    ],
    "branches": [
@@ -1471,31 +1545,19 @@
     {
      "at": "+7",
      "cond": "mergeTarget(for:sameSleepGap:) found an entry",
-     "effect": "mergeIntoExisting and return"
+     "effect": "mergeIntoExisting (throws propagate) and return"
     },
     {
-     "at": "+12",
+     "at": "+13",
      "cond": "an entry written earlier in this batch overlaps with same type (isCopy)",
-     "effect": "skip; else writeBatchSession (throws propagate)"
+     "effect": "skip; else writeBatchSession (throws propagate) and indexBatchEntry"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "The doc says the batch uses _archive's merge decision including same-sleep overnight segments, but mergeTarget only searches archive.index; two same-sleep segments that both arrive in one batch are not merged (the in-batch check isCopy only catches overlapping copies), so both are written standalone where _archive would fold the second into the first.",
-     "evidence": [
-      "Emuqu/Sources/Storage/Archive+Internal.swift:840",
-      "Emuqu/Sources/Storage/Archive+Internal.swift:851",
-      "Emuqu/Sources/Storage/Archive+Internal.swift:856",
-      "Emuqu/Sources/Storage/Archive+MergeTarget.swift:23"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.mergeIntoExisting(_:entry:outcome:)": "2baab48890a52ce1",
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.writeBatchSession(_:)": "ada020290412e43d",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.indexBatchEntry(_:into:)": "05c2bbd1a7037aca",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.mergeIntoExisting(_:entry:outcome:)": "0136074978f8eef6",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.writeBatchSession(_:)": "702f05adf594231a",
     "Emuqu/Sources/Storage/Archive+MergeTarget.swift::func ArchiveStore.isCopy(_:of:)": "ecffb8e15c79f71a",
     "Emuqu/Sources/Storage/Archive+MergeTarget.swift::func ArchiveStore.mergeTarget(for:sameSleepGap:)": "3fdc38d069d40530",
     "Emuqu/Sources/Storage/Archive+MergeTarget.swift::func ArchiveStore.sameSleepGap(for:)": "63b49d2eb8660a66",
@@ -1504,8 +1566,8 @@
   },
   {
    "key": "func ArchiveStore.mergeIntoExisting(_:entry:outcome:)",
-   "hash": "1e5abfb2a676732b",
-   "does": "Loads the existing target session, merges the incoming data into it via SessionMerger; when anything changed re-archives the existing session (_archive saves the index itself) and records its id as updated. Any error is logged and the incoming session is dropped.",
+   "hash": "6cf624347e303da9",
+   "does": "Loads the existing target session, merges the incoming data into it via SessionMerger; when anything changed re-archives the existing session (_archive saves the index itself) and records its id as updated. A target that cannot be loaded (retrieve throws or misses) or re-archived is logged at warning and the error rethrown, ending the batch.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore._retrieve(_:)",
@@ -1526,35 +1588,22 @@
     {
      "at": "+4",
      "cond": "_retrieve returned nil",
-     "effect": "return (incoming session dropped)"
+     "effect": "throw ArchiveError.fileNotFound (rethrown below)"
     },
     {
-     "at": "+6",
+     "at": "+8",
      "cond": "mergeSessionData reported no change",
      "effect": "return without writing; not counted"
     },
     {
-     "at": "+9",
-     "cond": "catch: retrieve or _archive threw",
-     "effect": "log and swallow; incoming session dropped and archiveBatch still succeeds"
+     "at": "+11",
+     "cond": "catch: retrieve, lookup miss or _archive threw",
+     "effect": "log warning and rethrow"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "med",
-     "text": "A read/write failure on the merge target is logged at .info and swallowed: the imported session is neither written nor counted, archiveBatch returns success, and the import UI only sees a lower count with no error for the lost item.",
-     "evidence": [
-      "Emuqu/Sources/Storage/Archive+Internal.swift:874",
-      "Emuqu/Sources/Storage/Archive+Internal.swift:875",
-      "Emuqu/Sources/Storage/Archive+Internal.swift:803",
-      "Emuqu/Sources/Collection/RRCollector+Import.swift:52"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore._archive(_:skipSameNightMerge:)": "740d98b7c017d36a",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore._archive(_:skipSameNightMerge:)": "71b5c97dd70f4908",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore._retrieve(_:)": "6843baad12c58853",
     "Emuqu/Sources/Storage/Archive+MergeForwarding.swift::func SessionArchive.mergeSessionData(from:into:)": "176aeb8adb4f5aba",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
@@ -1562,14 +1611,13 @@
   },
   {
    "key": "func ArchiveStore.writeBatchSession(_:)",
-   "hash": "a40dd51d564f797e",
-   "does": "Encodes the session with SessionArchive.indexEncoder (prettyPrinted+sortedKeys), encrypting when possible, writes <uuid>.json with format-dependent protection (ledger updated), and returns an entry built by SessionArchiveEntry.make with the bytes-as-written hash.",
+   "hash": "60afc10bdc945dd1",
+   "does": "Encodes the session with SessionArchive.indexEncoder (prettyPrinted+sortedKeys), encrypting when possible, writes <uuid>.json through writeArchiveBytes (protection by format; the ledger follows only bytes that reached disk), and returns an entry built by SessionArchiveEntry.make with the bytes-as-written hash.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.encodeForDisk(_:encoder:onPlaintextFallback:)",
-    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchiveEntry.make(from:hash:filePath:overridingSessionId:recoveryScoreFallback:)",
-    "ext:Data.write"
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func writeArchiveBytes(_:to:format:sessionID:)",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchiveEntry.make(from:hash:filePath:overridingSessionId:recoveryScoreFallback:)"
    ],
    "reads": [],
    "writes": [
@@ -1580,7 +1628,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchiveEntry.make(from:hash:filePath:overridingSessionId:recoveryScoreFallback:)": "fc939f955bfe257a",
-    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)": "d9ad1255ee6ca7c4",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func writeArchiveBytes(_:to:format:sessionID:)": "ac70e10d77deab0d",
     "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.encodeForDisk(_:encoder:onPlaintextFallback:)": "2975e4eff5812cf9",
     "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.indexEncoder": "8a27621768860427",
     "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.SearchResultRoute.hash(into:)": "c7d7a73258ef0964"
