@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift",
- "hash": "f223b03cf912004c",
+ "hash": "7e69694591b70d4b",
  "role": "Derived/cross-referenced half of the workout.live.* fact namespace: trend metrics (HR drift, decoupling, splits, cadence drift, GAP), sport-wide and route-specific historical baselines, Daniels pace zones, today's readiness, a decimated recent-sample timeline, and a consolidated location bundle with cached reverse-geocoded road context.",
  "types": [
   "WorkoutLiveNamespace: extension — derived fact entries for the live-workout namespace",
@@ -14,7 +14,7 @@
   "mem:WorkoutLiveNamespace.workoutLiveTimelineSecondsDescription (static let)",
   "mem:WorkoutLiveNamespace.workoutLiveLocationBundleDescription (static let)"
  ],
- "toplevel": "Extension only; six static description/limit lets. Fact keys declared: workout.live.units_preference, hr_drift_percent, aerobic_decoupling_percent, reverse_split_delta_sec_per_km, cadence_drift_spm, grade_adjusted_pace_sec_per_km, historical_baseline, route_history_baseline, training_pace_zones, today_readiness, timeline($seconds), location_bundle. Route match cap of 20 is a literal at F1:191, scan limit 120 at F1:201.",
+ "toplevel": "Extension only; six static description/limit lets. Fact keys declared: workout.live.units_preference, hr_drift_percent, aerobic_decoupling_percent, reverse_split_delta_sec_per_km, cadence_drift_spm, grade_adjusted_pace_sec_per_km, historical_baseline, route_history_baseline, training_pace_zones, today_readiness, timeline($seconds), location_bundle. Route match cap of 20 is a literal at F1:191, scan limit 120 at F1:201. The timeline description marks hr optional (hr?).",
  "flags": [],
  "units": [
   {
@@ -708,13 +708,13 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSamples()": "8aeda0c52d6667c9",
+    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSamples()": "903bc0b6e3a3a86c",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.integer(_:)": "56674f46c6c5d9a6",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::var FactArgumentError.factValue": "e5a89b80263d0ea5",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "f86a5bc993a85c42",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "dea612c4e1df9c9b",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.decimated(_:)": "feadf39134849c47",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.timelineRecord(_:)": "658c92022c58bfe8",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.decimated(_:)": "3a37774c863b2c81",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.timelineRecord(_:)": "29c2f6e2bfbb50a7",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.windowedSamples(_:lookback:)": "5960a0c92ba520d4",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
@@ -740,8 +740,8 @@
   },
   {
    "key": "func WorkoutLiveNamespace.decimated(_:)",
-   "hash": "0904c53f3f30248c",
-   "does": "Keeps every stride-th sample where stride = max(1, count/120), yielding at most ~240 points (count/120 integer division means e.g. 239 samples → stride 1 → all 239 kept).",
+   "hash": "7ab2425be3bba7af",
+   "does": "Keeps every stride-th sample where stride = max(1, ceil(count/120)), so at most 120 points remain.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -753,18 +753,7 @@
      "effect": "keeps the sample; otherwise drops it"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Decimation uses stride = count/120 with integer division, so windows of 121-239 samples are not decimated at all and 240-359 give up to 180 points; the tool description promises '≤ 120 points'.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift:368",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift:390"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -817,18 +806,7 @@
      "effect": "adds power_w; each absent field is omitted"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "The timeline description lists `hr` as an always-present field (no '?') but the record omits hr when the sample has no heart rate.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift:377",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift:390"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "99b5dc9d71b51468",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "d9315eaf78873e8c",
@@ -887,9 +865,9 @@
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.missing(_:)": "f86a5bc993a85c42",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot": "dea612c4e1df9c9b",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.addRoadFields(_:road:)": "cb3c2af9cc5d89a9",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.liveAddressStatus(_:road:)": "5d6796959b43c768",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.liveAddressStatus(_:road:)": "c5af0dd8bc74a6ea",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.liveFixFields(_:)": "04be9d667993a0fb",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.liveRoadContext(_:)": "d66e1b56e07d12a3"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.liveRoadContext(_:)": "87206159bc524d2b"
    }
   },
   {
@@ -944,8 +922,8 @@
   },
   {
    "key": "func WorkoutLiveNamespace.liveRoadContext(_:)",
-   "hash": "4df9a6914ca0a9a3",
-   "does": "On the main actor (assumeIsolated), returns RoadGeocodingService.cachedIfCloseTo(current fix) — the cached road context only if within 100 m, and kicks a background refresh; with no full coordinate pair returns svc.current unvalidated.",
+   "hash": "a1d46cbd5f4705d6",
+   "does": "On the main actor (assumeIsolated), returns RoadGeocodingService.cachedIfCloseTo(current fix) — the cached road context only if within 100 m, kicking a background refresh; nil when the fix lacks latitude or longitude (no distance check possible).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.cachedIfCloseTo(_:maxDistanceMeters:)"
@@ -958,22 +936,10 @@
     {
      "at": "+3",
      "cond": "latitude or longitude missing",
-     "effect": "returns svc.current without any distance validation; else cachedIfCloseTo(CLLocation)"
+     "effect": "returns nil (address_status pending); else cachedIfCloseTo(CLLocation)"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "When only one of latitude/longitude is present (resolveWorkoutLiveLocationBundle accepts lat OR lon), the cached road context is returned without the 100 m distance check, so a street the user has left can be quoted.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift:408",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift:444",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift:445"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.cachedIfCloseTo(_:maxDistanceMeters:)": "0e8cad09a45265ed",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
@@ -1021,43 +987,25 @@
   },
   {
    "key": "func WorkoutLiveNamespace.liveAddressStatus(_:road:)",
-   "hash": "37eeee4c5e2d4253",
-   "does": "Computes address_status: 'pending' when no road context, 'ready' when (street or city) and cross_street present, 'partial_no_cross_street' when street or city present without cross street, else 'pending'.",
+   "hash": "921658bfbadb1a44",
+   "does": "Computes address_status: 'pending' without road context or without a street (a city alone included); 'ready' when street and cross_street are present; 'partial_no_cross_street' when a street is present without a cross street.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+5",
-     "cond": "road is nil",
+     "at": "+4",
+     "cond": "road nil or no street",
      "effect": "'pending'"
     },
     {
-     "at": "+6",
-     "cond": "hasRoad (street OR city) and cross_street present",
-     "effect": "'ready'"
-    },
-    {
-     "at": "+7",
-     "cond": "hasRoad without cross street",
-     "effect": "'partial_no_cross_street'; otherwise falls to 'pending'"
+     "at": "+5",
+     "cond": "cross_street present",
+     "effect": "'ready'; otherwise 'partial_no_cross_street'"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "hasRoad is street OR city, so a context with city + cross street but no street returns 'ready' / 'partial_no_cross_street'; the description tells the model 'ready' means street + cross-street both present and 'partial' means street present, so it may try to quote a street that is absent.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift:480",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift:482",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift:483",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift:490"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   }
  ],

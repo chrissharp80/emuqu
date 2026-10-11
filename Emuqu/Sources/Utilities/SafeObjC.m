@@ -6,6 +6,20 @@
 
 NSString * const FRSafeAudioEngineErrorDomain = @"FlowRecovery.SafeAudioEngine";
 
+// The one place an NSException becomes an NSError: description from the
+// exception's reason (else its name, else `fallback`), plus both raw fields.
+static NSError *_FRSafeErrorFromException(NSException *ex,
+                                          NSInteger code,
+                                          NSString *fallback) {
+    NSMutableDictionary *userInfo = [NSMutableDictionary dictionary];
+    userInfo[NSLocalizedDescriptionKey] = ex.reason ?: ex.name ?: fallback;
+    if (ex.name) { userInfo[@"NSExceptionName"] = ex.name; }
+    if (ex.reason) { userInfo[@"NSExceptionReason"] = ex.reason; }
+    return [NSError errorWithDomain:FRSafeAudioEngineErrorDomain
+                               code:code
+                           userInfo:userInfo];
+}
+
 BOOL FRSafeStartAudioEngine(AVAudioEngine *engine, NSError * _Nullable __autoreleasing * _Nullable outError) {
     if (engine == nil) {
         if (outError) {
@@ -15,24 +29,17 @@ BOOL FRSafeStartAudioEngine(AVAudioEngine *engine, NSError * _Nullable __autorel
         }
         return NO;
     }
+    // The return value alone decides success: by the Cocoa convention the
+    // error out-param means something only when the call returned NO.
+    NSError *startErr = nil;
     @try {
-        NSError *startErr = nil;
         BOOL ok = [engine startAndReturnError:&startErr];
-        if (!ok || startErr != nil) {
-            if (outError) { *outError = startErr; }
-            return NO;
-        }
-        return YES;
+        if (!ok && outError) { *outError = startErr; }
+        return ok;
     }
     @catch (NSException *ex) {
-        NSMutableDictionary *userInfo = [NSMutableDictionary dictionary];
-        userInfo[NSLocalizedDescriptionKey] = ex.reason ?: ex.name ?: @"AVAudioEngine raised NSException";
-        if (ex.name) { userInfo[@"NSExceptionName"] = ex.name; }
-        if (ex.reason) { userInfo[@"NSExceptionReason"] = ex.reason; }
         if (outError) {
-            *outError = [NSError errorWithDomain:FRSafeAudioEngineErrorDomain
-                                            code:-2
-                                        userInfo:userInfo];
+            *outError = _FRSafeErrorFromException(ex, -2, @"AVAudioEngine raised NSException");
         }
         return NO;
     }
@@ -57,14 +64,8 @@ BOOL FRSafeInstallTap(AVAudioInputNode *node,
         return YES;
     }
     @catch (NSException *ex) {
-        NSMutableDictionary *userInfo = [NSMutableDictionary dictionary];
-        userInfo[NSLocalizedDescriptionKey] = ex.reason ?: ex.name ?: @"installTap raised NSException";
-        if (ex.name) { userInfo[@"NSExceptionName"] = ex.name; }
-        if (ex.reason) { userInfo[@"NSExceptionReason"] = ex.reason; }
         if (outError) {
-            *outError = [NSError errorWithDomain:FRSafeAudioEngineErrorDomain
-                                            code:-11
-                                        userInfo:userInfo];
+            *outError = _FRSafeErrorFromException(ex, -11, @"installTap raised NSException");
         }
         return NO;
     }
@@ -85,32 +86,14 @@ BOOL FRSafePrepareAudioEngine(AVAudioEngine *engine,
         return YES;
     }
     @catch (NSException *ex) {
-        NSMutableDictionary *userInfo = [NSMutableDictionary dictionary];
-        userInfo[NSLocalizedDescriptionKey] = ex.reason ?: ex.name ?: @"prepare raised NSException";
-        if (ex.name) { userInfo[@"NSExceptionName"] = ex.name; }
-        if (ex.reason) { userInfo[@"NSExceptionReason"] = ex.reason; }
         if (outError) {
-            *outError = [NSError errorWithDomain:FRSafeAudioEngineErrorDomain
-                                            code:-21
-                                        userInfo:userInfo];
+            *outError = _FRSafeErrorFromException(ex, -21, @"prepare raised NSException");
         }
         return NO;
     }
 }
 
 // 2026-05-21 — Audit pass. Wrap every AVAudio NSException-prone call.
-
-static NSError *_FRSafeErrorFromException(NSException *ex,
-                                          NSInteger code,
-                                          NSString *fallback) {
-    NSMutableDictionary *userInfo = [NSMutableDictionary dictionary];
-    userInfo[NSLocalizedDescriptionKey] = ex.reason ?: ex.name ?: fallback;
-    if (ex.name) { userInfo[@"NSExceptionName"] = ex.name; }
-    if (ex.reason) { userInfo[@"NSExceptionReason"] = ex.reason; }
-    return [NSError errorWithDomain:FRSafeAudioEngineErrorDomain
-                               code:code
-                           userInfo:userInfo];
-}
 
 BOOL FRSafeRemoveTap(AVAudioInputNode *node,
                      AVAudioNodeBus bus,

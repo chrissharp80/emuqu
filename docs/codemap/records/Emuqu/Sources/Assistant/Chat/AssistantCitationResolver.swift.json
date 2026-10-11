@@ -19,25 +19,14 @@
  "units": [
   {
    "key": "let AssistantCitationResolver.dayKeyFormatter",
-   "hash": "94cdcf4b02de3e2a",
-   "does": "Lazily builds the shared yyyy-MM-dd DateFormatter with the current calendar and time zone at first use.",
+   "hash": "1a2ecd5e422b87c8",
+   "does": "Lazily builds the shared yyyy-MM-dd DateFormatter with the auto-updating calendar and time zone, so day keys follow a time-zone change after launch.",
    "entry": "static stored-property initializer",
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Calendar.current time zone is captured once per process; after a time-zone change the day keys for detected dates and archive entries can shift relative to what the user sees.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift:22",
-      "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift:23"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -86,10 +75,10 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "1f1571698d506b97",
-    "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::func AssistantCitationResolver.isAlreadyInsideLink(_:range:)": "27975fd1549c2409",
+    "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::func AssistantCitationResolver.isAlreadyInsideLink(_:range:)": "2bedaaca19b85ac3",
     "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::func AssistantCitationResolver.isTimeOnly(_:)": "fd79c9989af62edc",
     "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::func AssistantCitationResolver.sessionsByDay(_:)": "49c1aea3b0010c54",
-    "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::let AssistantCitationResolver.dayKeyFormatter": "4bf98ab984aa6efc",
+    "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::let AssistantCitationResolver.dayKeyFormatter": "d05e01c077abaca4",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74"
    }
@@ -120,20 +109,22 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::func AssistantCitationResolver.dayMap(_:)": "63c6ac7f461da1f9",
-    "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::func AssistantCitationResolver.entrySignature(_:)": "b9c773c69ca6e22f"
+    "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::func AssistantCitationResolver.entrySignature(_:)": "d798a16a126feec3"
    }
   },
   {
    "key": "func AssistantCitationResolver.entrySignature(_:)",
-   "hash": "1f709eb06900aca8",
-   "does": "Hashes entry count plus each entry's sessionId and displayDate in index order.",
+   "hash": "56eab57951411bbd",
+   "does": "Hashes the current time zone identifier, the entry count, and each entry's sessionId and displayDate in index order, so the cached day map is rebuilt when the zone the day keys are formed in changes.",
    "entry": null,
    "calls": [],
-   "reads": [],
+   "reads": [
+    "mem:TimeZone.current"
+   ],
    "writes": [],
    "branches": [
     {
-     "at": "+3",
+     "at": "+4",
      "cond": "for each entry",
      "effect": "combine id+displayDate"
     }
@@ -166,7 +157,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::let AssistantCitationResolver.dayKeyFormatter": "4bf98ab984aa6efc",
+    "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::let AssistantCitationResolver.dayKeyFormatter": "d05e01c077abaca4",
     "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate": "b7a08a3bb6301f41"
    }
   },
@@ -208,44 +199,88 @@
   },
   {
    "key": "func AssistantCitationResolver.isAlreadyInsideLink(_:range:)",
-   "hash": "176e870200257b87",
-   "does": "Heuristic: true when within 80 chars before the match there is a '[' with no ']' between it and the match.",
+   "hash": "09c626a511d32532",
+   "does": "True when the date already sits inside Markdown link syntax: in a link's text (isInsideLinkText) or in its target (isInsideLinkTarget). Bracketed prose that is not a link is not skipped.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::func AssistantCitationResolver.isInsideLinkText(_:range:)",
+    "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::func AssistantCitationResolver.isInsideLinkTarget(_:range:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "inside link text, else inside link target",
+     "effect": "true when either holds"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::func AssistantCitationResolver.isInsideLinkTarget(_:range:)": "b23f84e4bc5fbbf0",
+    "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::func AssistantCitationResolver.isInsideLinkText(_:range:)": "1c90bc833b11e94a"
+   }
+  },
+  {
+   "key": "func AssistantCitationResolver.isInsideLinkText(_:range:)",
+   "hash": "b6c0c867503f0868",
+   "does": "True when, within 80 characters before the date, there is a '[' with no ']' between it and the date, and after the date the next '](' comes with no '[' or ']' in between — i.e. the date is the text of a Markdown link.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+3",
+     "at": "+1",
      "cond": "cannot step back 80 chars",
      "effect": "start from string start"
     },
     {
-     "at": "+5",
-     "cond": "a '[' exists in the look-back prefix",
-     "effect": "check for ']' after it; else false"
+     "at": "+2",
+     "cond": "no '[' in the look-back, or a ']' after it",
+     "effect": "return false"
     },
     {
-     "at": "+7",
-     "cond": "no ']' between '[' and match",
-     "effect": "return true (treated as already linked); else false"
-    }
-   ],
-   "flags": [
+     "at": "+6",
+     "cond": "no '](' after the date",
+     "effect": "return false"
+    },
     {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Any unmatched '[' within 80 chars (e.g. bracketed prose '[note: Apr 12') suppresses the link, and dates inside link URLs are not detected as linked; documented as a crude heuristic.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift:135",
-      "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift:144"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+8",
+     "cond": "a bracket between the date and '](' ",
+     "effect": "false; else true"
     }
    ],
-   "deps": {
-    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.lowerBound": "42532e07486db197"
-   }
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AssistantCitationResolver.isInsideLinkTarget(_:range:)",
+   "hash": "789799a6bc75358c",
+   "does": "True when, within 200 characters before the date, there is a '](' with no ')' between it and the date — i.e. the date sits in a link's URL.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "cannot step back 200 chars",
+     "effect": "start from string start"
+    },
+    {
+     "at": "+2",
+     "cond": "no '](' in the look-back",
+     "effect": "return false"
+    },
+    {
+     "at": "+3",
+     "cond": "a ')' between '](' and the date",
+     "effect": "false; else true"
+    }
+   ],
+   "flags": [],
+   "deps": {}
   }
  ],
  "deps": {}

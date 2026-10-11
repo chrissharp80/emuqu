@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Collection/LivePaceEstimator.swift",
- "hash": "b2594fcda63100a7",
+ "hash": "57d58b48da39bd82",
  "role": "Value-type live speed/pace estimator for workouts: precedence foot pod > averaged GNSS Doppler > GPS distance window > pedometer window > displayed-distance window, with hold/decay between chunked distance updates.",
  "types": [
   "LivePaceEstimator: struct — estimator state",
@@ -89,7 +89,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.record(_:at:)": "4fb243c2016b8066",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.record(_:at:)": "465be51d2a85a685",
     "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "14fe5393356bdfc1",
     "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.estimate(_:)": "da523619063741da",
     "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.recordDoppler(_:)": "3d58ea85c044bb07"
@@ -222,8 +222,8 @@
   },
   {
    "key": "func LivePaceEstimator.DistanceWindow.record(_:at:)",
-   "hash": "0ba8f4ddc0d3c00a",
-   "does": "Appends a step when cumulative distance increases; clears history when distance goes backwards; prunes steps older than 30 s.",
+   "hash": "f0d19212794f160a",
+   "does": "Appends a step when the cumulative distance rises above the last reading (kept apart from the steps, so a distance unchanged through a stop that pruned every step is not a new step); clears history when distance goes backwards (source reset); prunes steps older than 30 s.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -236,34 +236,16 @@
     },
     {
      "at": "+2",
-     "cond": "meters < last step",
-     "effect": "clear all steps (source reset)"
+     "cond": "meters < last reading",
+     "effect": "clear all steps and the last reading (source reset)"
     },
     {
-     "at": "+3",
-     "cond": "meters > last ?? 0",
-     "effect": "append step (a reading of 0 with no history is ignored)"
-    },
-    {
-     "at": "+3",
-     "cond": "steps.last?.meters ?? 0",
-     "effect": "empty window compares against 0"
+     "at": "+6",
+     "cond": "meters > last reading",
+     "effect": "append step (a first reading of 0 is ignored)"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "After a stop longer than 30 s without a pause/reset, the last real step is pruned, and on the next tick the unchanged distance (> 0, compared to an empty window) is appended as a new 'step' though nothing advanced. That phantom step re-appears every 30 s and becomes the anchor when movement resumes, so the span includes standing time and the distance-window speed (indoor/pedometer/GPS-distance sources) under-reads for ~10 s after restarting.",
-     "evidence": [
-      "Emuqu/Sources/Collection/LivePaceEstimator.swift:196",
-      "Emuqu/Sources/Collection/LivePaceEstimator.swift:198",
-      "Emuqu/Sources/Collection/LivePaceEstimator.swift:199",
-      "Emuqu/Sources/Collection/LivePaceEstimator.swift:220"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {

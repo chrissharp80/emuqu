@@ -12,19 +12,7 @@
   "lastSpokenCue, isActive (private)"
  ],
  "toplevel": "Declares AVSpeechSynthesizerDelegate conformance and sets itself as delegate but implements no delegate methods.",
- "flags": [
-  {
-   "kind": "race",
-   "sev": "low",
-   "text": "stop() decides to deactivate (hasActiveClaims) and calls setActive(false) on the main actor, outside BackgroundAudioManager's transition queue; a workout cue that claims and activates on that queue between the check and the setActive(false) is cut off. BackgroundAudioManager.deactivateIfIdle exists exactly to serialize this for voice chat but the breathing guide does not use it.",
-   "evidence": [
-    "Emuqu/Sources/Collection/BreathingAudioManager.swift:120",
-    "Emuqu/Sources/Collection/BreathingAudioManager.swift:124",
-    "Emuqu/Sources/Collection/BackgroundAudioManager.swift:133"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "var BreathingAudioManager.isEnabled",
@@ -54,7 +42,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/BreathingAudioManager.swift::func BreathingAudioManager.start()": "4460902c1fa5d3a5",
-    "Emuqu/Sources/Collection/BreathingAudioManager.swift::func BreathingAudioManager.stop()": "30b25ccfb5ea2be6"
+    "Emuqu/Sources/Collection/BreathingAudioManager.swift::func BreathingAudioManager.stop()": "bbfa0b16f1f39e22"
    }
   },
   {
@@ -210,14 +198,14 @@
   },
   {
    "key": "func BreathingAudioManager.stop()",
-   "hash": "17570835f2286e85",
-   "does": "Marks inactive, stops speech immediately via FRSafeStopSpeaking, releases .breathingGuide claim and deactivates the session only when no other claimant remains.",
+   "hash": "59b6154a4d0125b3",
+   "does": "Marks inactive, stops speech immediately via FRSafeStopSpeaking, releases the .breathingGuide claim and asks BackgroundAudioManager.deactivateIfIdle to deactivate the session on its transition queue — only when no cue holds it and no other claimant remains — logging a deactivation error.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeStopSpeaking",
     "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.release(_:)",
-    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.hasActiveClaims()",
-    "ext:AVAudioSession.setActive",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.backgroundAudioManager",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.deactivateIfIdle(completion:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
@@ -228,23 +216,20 @@
    ],
    "branches": [
     {
-     "at": "+9",
-     "cond": "no coordinator claims remain",
-     "effect": "setActive(false, notifyOthers); otherwise leaves session active"
-    },
-    {
-     "at": "+12",
-     "cond": "deactivation throws",
-     "effect": "logged and swallowed"
+     "at": "+11",
+     "cond": "deactivateIfIdle reported an error (on the cue queue)",
+     "effect": "logged; nil (deactivated or had to stay up) does nothing"
     }
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.deactivateIfIdle(completion:)": "6b8bb1f63109f78c",
     "Emuqu/Sources/Collection/BreathingAudioManager.swift::let BreathingAudioManager.synthesizer": "58a5207252b45a36",
-    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.hasActiveClaims()": "2b1ef60dc554e6ae",
     "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.release(_:)": "00b2c416245f74ae",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.backgroundAudioManager": "a650b3abbfe836c8",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
     "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeStopSpeaking": "962b6642341b1aa4"
    }

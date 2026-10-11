@@ -3,9 +3,10 @@
 //  Emuqu
 //
 //  The readiness composite behind page 2 — how the number is arrived at,
-//  and what it is that helped or hurt it. Split out of HolisticDailyReport
-//  to keep that file under 1000 lines; the drawing code stays there and
-//  only the arithmetic lives here.
+//  and what it is that helped or hurt it — plus the two value types the
+//  pages draw (GlanceRow, ScoreContribution). Split out of
+//  HolisticDailyReport to keep that file under 1000 lines; the drawing code
+//  lives in HolisticDailyReport+Pages.swift.
 //
 
 import CoreLocation
@@ -75,15 +76,21 @@ extension HolisticDailyReport {
     }
 
     /// The app says "Go hard" only for an Excellent score (rounded composite
-    /// 90 or more) with no vitals penalty, no factor under 60, and HRV at or
-    /// above its baseline score of 72 (`ScoreBreakdown`'s strong-band
-    /// message), and only when the training advice gate finds the load
-    /// clear (`readinessTier`). Page 2's top tier follows the same rule, so
-    /// the PDF never prescribes a hard day the app's own verdict holds back.
+    /// 90 or more) with no vitals penalty, no baseline drift (the composite
+    /// at most 5 under the weighted factors), no scored factor under 60, and
+    /// HRV at or above its baseline score of 72 unless it is the only scored
+    /// factor (`ScoreBreakdownCopy.message`), and only when the training
+    /// advice gate finds the load clear (`readinessTier`). Page 2's top tier
+    /// follows the same rule, so the PDF never prescribes a hard day the
+    /// app's own verdict holds back.
     static func allowsGoHard(_ breakdown: RecoveryScoreCalculator.ScoreBreakdown) -> Bool {
-        guard breakdown.compositeScore.rounded() >= 90, breakdown.penalties.isEmpty else { return false }
-        if let hrv = breakdown.factors.first(where: { $0.label == "HRV" }), hrv.score < 72 { return false }
-        return breakdown.factors.allSatisfy { $0.score >= 60 }
+        guard breakdown.compositeScore.rounded() >= 90, breakdown.penalties.isEmpty,
+              breakdown.gapFromFactors <= 5 else { return false }
+        let scored = breakdown.factors.filter { $0.weight > 0 }
+        guard scored.allSatisfy({ $0.score >= 60 }) else { return false }
+        let others = scored.filter { $0.label != "HRV" }
+        if let hrv = scored.first(where: { $0.label == "HRV" }), hrv.score < 72, !others.isEmpty { return false }
+        return true
     }
 
     /// The shared training advice gate's read of the same live load the
@@ -98,12 +105,19 @@ extension HolisticDailyReport {
     /// when the report has one, else the frozen session load, the same
     /// precedence as `trainingLoadForReport`. The daily loop reads it too.
     func adviceGateLoad() -> TrainingAdviceGate.Load? {
-        .preferring(live: liveLoadSnapshot, frozen: workoutSession.trainingSnapshot ?? overnightSession?.trainingSnapshot)
+        Self.adviceGateLoad(live: liveLoadSnapshot, workoutSession: workoutSession, overnightSession: overnightSession)
+    }
+
+    static func adviceGateLoad(
+        live: TrainingLoadRegistry.TrainingLoad?, workoutSession: HRVSession, overnightSession: HRVSession?
+    ) -> TrainingAdviceGate.Load? {
+        .preferring(live: live, frozen: workoutSession.trainingSnapshot ?? overnightSession?.trainingSnapshot)
     }
 
     /// Legacy recompute for sessions without a frozen breakdown. Kept so old
     /// archives still render something instead of a blank section. New sessions
-    /// never hit this path.
+    /// never hit this path. With no breakdown there is no app verdict to
+    /// follow, so this path never offers the "go hard" tier.
     private func legacyReadinessScore() -> (value: Double, tier: String, contributions: [ScoreContribution]) {
         let bundle = LanguageManager.appBundle
         let contribs: [ScoreContribution] = [
@@ -114,7 +128,7 @@ extension HolisticDailyReport {
         ]
         // Weighted sum
         let total = contribs.reduce(0.0) { $0 + $1.score * $1.weight }
-        return (total, readinessTier(for: total, loadLevel: adviceLoad().level), contribs)
+        return (total, readinessTier(for: total, loadLevel: adviceLoad().level, goHardAllowed: false), contribs)
     }
 
     private func legacyHRVContribution(bundle: Bundle) -> ScoreContribution {
@@ -137,8 +151,9 @@ extension HolisticDailyReport {
         if let sleep = overnightSession?.sleepSnapshot {
             let dur = Double(sleep.nightSleepMinutes) / 60.0 // hours
             let durText = String(format: "%.1f", locale: LanguageManager.appLocale, dur)
-            // dur 7-8h = full credit; eff 85+ = full credit; unmeasured
-            // efficiency gets neutral half credit, as in the Sleep score.
+            // Duration scales 4 h → 0 to 7.5 h → 10; efficiency 65% → 0 to
+            // 95% → 10; unmeasured efficiency gets neutral half credit, as
+            // in the Sleep score.
             let durScore = min(10, max(0, (dur - 4) / 3.5 * 10))
             let effScore = sleep.measuredSleepEfficiency.map { min(10, max(0, ($0 - 65) / 30 * 10)) } ?? 5
             sleepScore = durScore * 0.5 + effScore * 0.5
@@ -175,29 +190,30 @@ extension HolisticDailyReport {
         return ScoreContribution(name: String(localized: "Cardiovascular response", bundle: bundle), score: cvScore, weight: 0.15, note: cvNote)
     }
 
-    /// Map 0–10 readiness to a training-prescription tier. Same bands and
-    /// the same load ceiling for both code paths so the verdict line is
-    /// consistent regardless of which composite source fired. When the gate
-    /// says to ease off (a sharp load increase or heavy accumulated fatigue)
-    /// the ceiling is moderate; when it holds the push (load above the usual
-    /// range, or monotonous training) there is no "go hard" tier.
-    /// `goHardAllowed` is the frozen breakdown's own verdict
-    /// (`allowsGoHard`); without it a score in the top band reads as Tier 2.
-    private func readinessTier(for value: Double, loadLevel: TrainingAdviceGate.LoadLevel, goHardAllowed: Bool = true) -> String {
+    /// Map 0–10 readiness to a training-prescription tier on the app's own
+    /// verdict ladder (`ScoreVerdict`, 90/75/60/45 on the rounded 0–100
+    /// score): Excellent → Tier 1 (or 2), Good → 2, Fair → 3, Pay attention
+    /// → 4, Low and below → 5. Same bands and load ceiling for both code
+    /// paths. When the gate says to ease off (a sharp load increase or heavy
+    /// accumulated fatigue) the ceiling is Tier 3; when it holds the push
+    /// (load above the usual range, or monotonous training) there is no
+    /// "go hard" tier. `goHardAllowed` is the frozen breakdown's own verdict
+    /// (`allowsGoHard`); without it an Excellent score reads as Tier 2.
+    private func readinessTier(for value: Double, loadLevel: TrainingAdviceGate.LoadLevel, goHardAllowed: Bool) -> String {
         let bundle = LanguageManager.appBundle
-        if loadLevel == .easier {
-            // Ceiling at Tier 3 ("moderate only") regardless of the
-            // underlying composite. The lower tiers still apply if the
-            // composite itself argues for them.
-            if value >= 5.5 { return String(localized: "Tier 3 — moderate only (load elevated)", bundle: bundle) }
-            if value >= 3.5 { return String(localized: "Tier 4 — easy aerobic", bundle: bundle) }
+        let elevated = String(localized: "Tier 3 — moderate only (load elevated)", bundle: bundle)
+        switch ScoreVerdict(score: value * 10) {
+        case .excellent where goHardAllowed && loadLevel == .clear:
+            return String(localized: "Tier 1 — go hard", bundle: bundle)
+        case .excellent, .good:
+            return loadLevel == .easier ? elevated : String(localized: "Tier 2 — quality OK", bundle: bundle)
+        case .fair:
+            return loadLevel == .easier ? elevated : String(localized: "Tier 3 — moderate only", bundle: bundle)
+        case .payAttention:
+            return String(localized: "Tier 4 — easy aerobic", bundle: bundle)
+        case .low, .veryLow:
             return String(localized: "Tier 5 — rest", bundle: bundle)
         }
-        if value >= 8.5, goHardAllowed, loadLevel == .clear { return String(localized: "Tier 1 — go hard", bundle: bundle) }
-        if value >= 7.0 { return String(localized: "Tier 2 — quality OK", bundle: bundle) }
-        if value >= 5.5 { return String(localized: "Tier 3 — moderate only", bundle: bundle) }
-        if value >= 3.5 { return String(localized: "Tier 4 — easy aerobic", bundle: bundle) }
-        return String(localized: "Tier 5 — rest", bundle: bundle)
     }
 
     func whatsHelpingPoints() -> [String] {
@@ -211,15 +227,24 @@ extension HolisticDailyReport {
            sleep.nightSleepMinutes >= 7 * 60 {
             out.append(String(localized: "Sleep was \(sleep.nightSleepMinutes / 60)h with \(Int(efficiency.rounded()))% efficiency — consolidated, restorative.", bundle: bundle))
         }
-        if let snap = trainingLoadForReport() {
-            if let acwr = snap.acuteChronicRatio, acwr >= 0.8, acwr < 1.3 {
-                out.append(String(localized: "ACWR \(String(format: "%.2f", locale: LanguageManager.appLocale, acwr)) — productive load band, sustainable volume.", bundle: bundle))
-            }
-            if snap.tsb > 5 { out.append(String(localized: "TSB \(String(format: "%+.1f", locale: LanguageManager.appLocale, snap.tsb)) — fresh, ready for quality work.", bundle: bundle)) }
-        }
+        out += helpingLoadPoints(bundle: bundle)
         if let one = workoutSession.workoutMetadata?.hrrSamples?.bestAtOneMinute, one.drop >= 18 {
             out.append(String(localized: "HRR \(one.drop) bpm — vagal recovery on point.", bundle: bundle))
         }
+        return out
+    }
+
+    /// Load lines for "what's helping". Only a load the advice gate finds
+    /// clear, on a chronic load it trusts, is called productive — never
+    /// beside a fatigue line in "what's hurting".
+    private func helpingLoadPoints(bundle: Bundle) -> [String] {
+        guard let snap = trainingLoadForReport() else { return [] }
+        var out: [String] = []
+        if let acwr = snap.acuteChronicRatio, acwr >= 0.8, acwr < 1.3, adviceLoad().reasons.isEmpty,
+           snap.ctl >= RecoveryScoreConstants.Readiness.ctlThreshold {
+            out.append(String(localized: "ACWR \(String(format: "%.2f", locale: LanguageManager.appLocale, acwr)) — productive load band, sustainable volume.", bundle: bundle))
+        }
+        if snap.tsb > 5 { out.append(String(localized: "TSB \(String(format: "%+.1f", locale: LanguageManager.appLocale, snap.tsb)) — fresh, ready for quality work.", bundle: bundle)) }
         return out
     }
 

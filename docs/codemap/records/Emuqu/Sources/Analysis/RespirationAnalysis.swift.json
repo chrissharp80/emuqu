@@ -1,26 +1,13 @@
 {
  "file": "Emuqu/Sources/Analysis/RespirationAnalysis.swift",
  "hash": "56aed55db9f5adc5",
- "role": "RR-interval-derived respiration rate: resamples RR at 4 Hz, Hann-windows, computes the power spectrum with a cached vDSP DFT and returns the 0.15-0.5 Hz peak as breaths/min.",
+ "role": "RR-interval-derived respiration rate: resamples RR at 4 Hz, mean-centres and Hann-windows the samples, zero-pads to a power of two, computes the power spectrum with a cached vDSP DFT and returns the 0.15-0.5 Hz peak as breaths/min.",
  "types": [
   "RespirationAnalyzer: enum — respiration-rate estimation"
  ],
  "state": [],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "broken",
-   "sev": "low",
-   "text": "The Hann window spans the zero-padded length rather than the data, so the tail of the real signal is cut abruptly at the start of the padding (not tapered), adding spectral leakage to the peak search.",
-   "evidence": [
-    "Emuqu/Sources/Analysis/RespirationAnalysis.swift:37",
-    "Emuqu/Sources/Analysis/RespirationAnalysis.swift:39",
-    "Emuqu/Sources/Analysis/RespirationAnalysis.swift:43",
-    "Emuqu/Sources/Analysis/RespirationAnalysis.swift:44"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "func RespirationAnalyzer.estimateRespirationRate(_:fs:)",
@@ -64,7 +51,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.meanRemovedHannWindow(_:)": "7fe59d17732ec545",
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.meanRemovedHannWindow(_:)": "370a51ed607d6998",
     "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.powerSpectrum(_:)": "3c92a4cd4af203c3",
     "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.resampleRR(_:fs:)": "342f29486d09ea7f",
     "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.respiratoryPeakFrequency(psd:fs:fftN:)": "f8a48fa7b2e5bb60"
@@ -72,8 +59,8 @@
   },
   {
    "key": "func RespirationAnalyzer.meanRemovedHannWindow(_:)",
-   "hash": "e948dce035e5ad72",
-   "does": "Mean-centres the series, zero-pads to the next power of two and multiplies by a Hann window of the padded length.",
+   "hash": "db0e065f83b6199e",
+   "does": "Mean-centres the series, multiplies it by a Hann window the length of the data (so the real signal tapers to zero at both ends), then zero-pads the windowed samples to the next power of two.",
    "entry": null,
    "calls": [
     "ext:Accelerate.vDSP_meanvD",

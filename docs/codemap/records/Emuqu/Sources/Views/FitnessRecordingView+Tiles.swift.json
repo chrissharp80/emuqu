@@ -1,16 +1,17 @@
 {
  "file": "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift",
- "hash": "f17b6f0d97e10d78",
+ "hash": "46a2883cc6e823c0",
  "role": "Extension of FitnessRecordingView with the metric tile grid, α1 physiology card, map card, derived label formatters, hold-to-end stop button and voice bar; plus the private StableMapCard map view.",
  "types": [
-  "FitnessRecordingView: extension — tiles, physiology, controls",
-  "StableMapCard: struct (private) — single persistent Map with overlay states and throttled camera framing"
+  "FitnessRecordingView: extension — tiles, physiology, controls; static α1 bar geometry alpha1BarMax (1.5) and the Hard/Threshold and Threshold/Easy cuts from HRVConstants.DFA",
+  "StableMapCard: struct (private) — single persistent Map over the live track with overlay states and throttled camera framing"
  ],
  "state": [
+  "static FitnessRecordingView.alpha1BarMax = 1.5, alpha1HardCut = 0.50/1.5, alpha1EasyCut = 0.75/1.5",
   "StableMapCard @State position: MapCameraPosition (.automatic)",
   "StableMapCard @State lastFramedCount"
  ],
- "toplevel": "",
+ "toplevel": "Static α1 bar constants derived from HRVConstants.DFA.alpha1AnaerobicThreshold/alpha1AerobicThreshold.",
  "flags": [],
  "units": [
   {
@@ -32,20 +33,20 @@
    "deps": {
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.bodyMetricTiles": "147bd508ba32a69e",
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.conditionalMetricTiles": "647a827ffa52ca9e",
-    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.coreMetricTiles": "67a6ef9edc0d6d71",
-    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.elapsedTile": "470ef33fe129d1d5",
-    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.liveTrendTiles": "7fa26f28e3d15001"
+    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.coreMetricTiles": "3db7887310b5da24",
+    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.elapsedTile": "ad8b23f883f2b7cc",
+    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.liveTrendTiles": "5b033ad4c2adc616"
    }
   },
   {
    "key": "var FitnessRecordingView.elapsedTile",
-   "hash": "005203ac0de4f312",
-   "does": "TimelineView ticking every 0.5 s that renders the Elapsed tile with formatDuration(elapsedInterval(at: context.date)).",
+   "hash": "58a7a86715d2b6f5",
+   "does": "TimelineView ticking every 0.5 s that renders the Elapsed tile with CoachReportGenerator.formatDuration(elapsedInterval(at: context.date)) (H:MM:SS / M:SS).",
    "entry": "TimelineView(.periodic by 0.5s) re-render",
    "calls": [
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func FitnessRecordingView.elapsedInterval(at:)",
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func FitnessRecordingView.metricTile(icon:label:value:caption:)",
-    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func FitnessRecordingView.formatDuration(_:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Sections.swift::func CoachReportGenerator.formatDuration(_:)",
     "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.labels"
    ],
    "reads": [
@@ -55,10 +56,10 @@
    "branches": [],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Sections.swift::func CoachReportGenerator.formatDuration(_:)": "b5a55eb1bbb8f892",
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func FitnessRecordingView.elapsedInterval(at:)": "252fda6e138b09bf",
-    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func FitnessRecordingView.formatDuration(_:)": "c44b746f96a002c8",
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func FitnessRecordingView.metricTile(icon:label:value:caption:)": "23dab4af2c89830b",
-    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.labels": "8c22ae1c36b13c91"
+    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.labels": "c81e3a2061e779fb"
    }
   },
   {
@@ -93,14 +94,13 @@
   },
   {
    "key": "var FitnessRecordingView.coreMetricTiles",
-   "hash": "7acdd63cf0bb961e",
-   "does": "Emits the Distance tile (icon location.fill for GPS sports, figure.walk otherwise; value distanceLabel, caption paceCaption) and the Pace tile (currentPaceLabel, caption avgPaceCaption).",
+   "hash": "29132f6240ba7940",
+   "does": "Emits the Distance tile (icon location.fill for GPS sports, figure.walk otherwise; value distanceLabel, no caption) and the Pace tile (currentPaceLabel, caption avgPaceCaption — the one place the average pace shows).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func FitnessRecordingView.metricTile(icon:label:value:caption:)",
     "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.usesGPS",
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.distanceLabel",
-    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.paceCaption",
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.currentPaceLabel",
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.avgPaceCaption",
     "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.labels"
@@ -120,8 +120,7 @@
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.avgPaceCaption": "0f111863f6699012",
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.currentPaceLabel": "e792b848d677a8a5",
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.distanceLabel": "cc8cf7c6411ad85f",
-    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.paceCaption": "39dafcbd4d5ac733",
-    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.labels": "8c22ae1c36b13c91",
+    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.labels": "c81e3a2061e779fb",
     "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.usesGPS": "b767a95d03ccf7e8"
    }
   },
@@ -156,7 +155,7 @@
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.cadenceCaption": "d4d1d6dab53a0fd2",
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.elevationLabel": "77c510acac32d5bb",
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.peakHRCaption": "a05767bc08ee9d0f",
-    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.labels": "8c22ae1c36b13c91"
+    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.labels": "c81e3a2061e779fb"
    }
   },
   {
@@ -195,7 +194,7 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func FitnessRecordingView.metricTile(icon:label:value:caption:)": "23dab4af2c89830b",
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.currentMETs": "6f3b89f858af7316",
-    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.labels": "8c22ae1c36b13c91",
+    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.labels": "c81e3a2061e779fb",
     "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.footPod": "daa7367400cb053a"
    }
   },
@@ -216,35 +215,24 @@
    "writes": [],
    "branches": [
     {
-     "at": "+8",
+     "at": "+1",
      "cond": "hrDriftPercent(samples) != nil",
      "effect": "true: drift tile rendered; false: omitted"
     },
     {
-     "at": "+13",
+     "at": "+6",
      "cond": "drift > 5",
      "effect": "true: caption labels.fatiguing; false: labels.stable"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "The same explanatory comment is duplicated verbatim as a doc comment (lines 105-109) and an inline comment (lines 112-117).",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift:105",
-      "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift:112"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.hrDriftPercent(samples:)": "9bfe7fd09d8324ea",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.samplesView": "da27f0b18ac388b1",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func FitnessRecordingView.metricTile(icon:label:value:caption:)": "23dab4af2c89830b",
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.decouplingTile": "cc3bebae044f1b41",
-    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.labels": "8c22ae1c36b13c91"
+    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.labels": "c81e3a2061e779fb"
    }
   },
   {
@@ -279,7 +267,7 @@
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.samplesView": "da27f0b18ac388b1",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func FitnessRecordingView.metricTile(icon:label:value:caption:)": "23dab4af2c89830b",
-    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.labels": "8c22ae1c36b13c91"
+    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.labels": "c81e3a2061e779fb"
    }
   },
   {
@@ -354,7 +342,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.alpha1IndicatorBar": "eff1d3164cd6a97e",
+    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.alpha1IndicatorBar": "529e7785e8d039b1",
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.alpha1Readout": "7340961755f1ca4c",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
     "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
@@ -419,9 +407,9 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.alpha1Caption": "e7372a7945f02540",
+    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.alpha1Caption": "50fd37156c9dabe3",
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.alpha1Label": "413c2ec71f4933b1",
-    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.labels": "8c22ae1c36b13c91",
+    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.labels": "c81e3a2061e779fb",
     "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
@@ -429,43 +417,59 @@
   },
   {
    "key": "var FitnessRecordingView.alpha1IndicatorBar",
-   "hash": "ede8c7726164fc1f",
-   "does": "GeometryReader-driven α1 bar (14 pt) with Hard / Threshold / Easy labels overlaid underneath at left, centre and right.",
+   "hash": "4d17cfca0470fa28",
+   "does": "GeometryReader-driven α1 bar (14 pt) with Hard / Threshold / Easy labels underneath, each centred under its colour band (alpha1BandLabels), the bands cut at the badge's 0.50 / 0.75 thresholds.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func FitnessRecordingView.alpha1BarLayers(width:)",
+    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func FitnessRecordingView.alpha1BandLabels(width:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func FitnessRecordingView.alpha1BandLabels(width:)": "f200d230f144457f",
+    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func FitnessRecordingView.alpha1BarLayers(width:)": "29c74737d0cd653c"
+   }
+  },
+  {
+   "key": "func FitnessRecordingView.alpha1BandLabels(width:)",
+   "hash": "38efbb2f6d9df2e2",
+   "does": "HStack of the Hard, Threshold and Easy labels with widths of their bands (0–0.50, 0.50–0.75, 0.75–1.5 of the 1.5 bar) so each sits centred under its band; 9 pt scaled, tertiary colour.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func FitnessRecordingView.alpha1BandLabel(_:width:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
     "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "The bar's colour stops and labels do not line up with the bands the badge uses. Four equal gradient stops over 0–1.5 put the 'Threshold' colour at α1 0.5 and 'Aerobic' at 1.0, not at the 0.5/0.75/1.0 boundaries the doc comment lists. The centred 'Threshold' label sits at α1 0.75, which is exactly where the badge switches to 'Easy' (LiveDFAAnalyzer.Band.display). So α1 ≈ 0.8 shows an 'Easy' badge with the dot next to 'Threshold'.",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift:233",
-      "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift:249",
-      "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift:265",
-      "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift:274",
-      "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift:126"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func FitnessRecordingView.alpha1BarLayers(width:)": "12abf4715592c1a1",
+    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func FitnessRecordingView.alpha1BandLabel(_:width:)": "9a6f1de36cace9ea",
     "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
    }
   },
   {
+   "key": "func FitnessRecordingView.alpha1BandLabel(_:width:)",
+   "hash": "ed74a2301fa490e6",
+   "does": "One band label: single line, shrinking to 60%, framed to the band's width (never negative).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
    "key": "func FitnessRecordingView.alpha1BarLayers(width:)",
-   "hash": "f1ebf8d1e410eb61",
-   "does": "Clamps dfa.currentAlpha1 to 0…1.5, maps it to an x offset (value/1.5 × width) and layers the band gradient plus the dot.",
+   "hash": "407ddbddb1e08503",
+   "does": "Clamps dfa.currentAlpha1 to 0…alpha1BarMax (1.5), maps it to an x offset (value/1.5 × width) and layers the band gradient plus the dot.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.alpha1BandGradient",
@@ -479,21 +483,23 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func FitnessRecordingView.alpha1Dot(dotX:total:)": "54570b5580da5b54",
-    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.alpha1BandGradient": "3250f178011751d7",
+    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.alpha1BandGradient": "94169897fba06351",
     "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8"
    }
   },
   {
    "key": "var FitnessRecordingView.alpha1BandGradient",
-   "hash": "f0328f4e4a5d6d5a",
-   "does": "4-stop left-to-right gradient (attention, caution, good, optimal at 0.7 opacity) clipped to an 8 pt capsule.",
+   "hash": "3adf864dff099d44",
+   "does": "Hard-edged band gradient clipped to an 8 pt capsule (0.7 opacity): attention over 0–0.50, caution over 0.50–0.75, then good shading to optimal over the Easy band 0.75–1.5 — the same cuts as LiveDFAAnalyzer.Band.display.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Views/FitnessRecordingView.swift::init FitnessRecordingView(recorder:onStop:)": "761d0c6e6caa3737"
+   }
   },
   {
    "key": "func FitnessRecordingView.alpha1Dot(dotX:total:)",
@@ -523,8 +529,8 @@
   },
   {
    "key": "var FitnessRecordingView.mapCard",
-   "hash": "e288f1d97a6f713b",
-   "does": "Builds StableMapCard from the recorder's live track coordinates and the location manager's last horizontal accuracy.",
+   "hash": "de7c68627bdd606b",
+   "does": "Builds StableMapCard from the recorder's live track array itself (no per-tick coordinate copy) and the location manager's last horizontal accuracy.",
    "entry": "Rendered from heavySubcards when usesGPS",
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.liveTrack",
@@ -536,17 +542,7 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Maps the whole liveTrack array to coordinates on every body evaluation (~1 Hz). This is O(track length) work each tick, and the polyline gets a new array each time.",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift:314"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.liveTrack": "924ba2b6224b866d",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.locationManager": "03a7a2365bd20f6a"
@@ -594,42 +590,6 @@
    "deps": {
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
     "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatElevation(meters:)": "e9541645225037ce",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
-    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.units": "18d07c7ab6b6fe4a"
-   }
-  },
-  {
-   "key": "var FitnessRecordingView.paceCaption",
-   "hash": "4aee5b0c21778750",
-   "does": "Average pace from elapsedSeconds/distanceMeters via UnitsPreference.formatPace(elapsedSec:distanceMeters:). That returns nil under 50 m or 10 s.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(elapsedSec:distanceMeters:)",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.distanceMeters"
-   ],
-   "reads": [
-    "ud:fitness.unitsPreference (App Group suite, legacy migration from standard)"
-   ],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "paceCaption (Distance tile caption) and avgPaceCaption (Pace tile caption) compute the same average pace. avgPaceCaption only adds an 'avg' prefix, so the grid shows the same number twice.",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift:329",
-      "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift:354"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.distanceMeters": "8f046be425d7cf41",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc",
-    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(elapsedSec:distanceMeters:)": "10aef8a5289537eb",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
     "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.units": "18d07c7ab6b6fe4a"
    }
@@ -834,43 +794,32 @@
      "effect": "true: returns the connect-strap message; false: switch on status"
     },
     {
-     "at": "+8",
+     "at": "+5",
      "cond": "status .warmup(fraction)",
      "effect": "'warming up — <Int(fraction*100)> % of 2-min window'"
     },
     {
-     "at": "+11",
+     "at": "+8",
      "cond": "status .stalled(silent)",
      "effect": "'strap silent for <s> s'"
     },
     {
-     "at": "+13",
+     "at": "+10",
      "cond": "status .fitFailed",
      "effect": "'fit failed — HR too flat for this window'"
     },
     {
-     "at": "+15",
+     "at": "+12",
      "cond": "status .tooManyArtifacts(fraction)",
      "effect": "'signal too noisy — <pct> % of beats corrected'"
     },
     {
-     "at": "+18",
+     "at": "+15",
      "cond": "status .ok",
      "effect": "returns alpha1BandCaption (nil when α1 is nil)"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "The doc comment (392-394) and inline comment (399-401) repeat the same text.",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift:392",
-      "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift:399"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.activeHRSource": "daaf8ce19213f55e",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
@@ -942,36 +891,6 @@
    }
   },
   {
-   "key": "func FitnessRecordingView.formatDuration(_:)",
-   "hash": "41d66afd070b40e2",
-   "does": "Formats seconds as H:MM:SS when ≥1 h, else M:SS (truncating fractions).",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+5",
-     "cond": "hours > 0",
-     "effect": "true: '%d:%02d:%02d'; false: '%d:%02d'"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same H:MM:SS / M:SS formatter as CoachReportGenerator.formatDuration(_: TimeInterval), which has an identical signature and body, and as WorkoutStatsCards.formatDuration(sec:).",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift:433",
-      "Emuqu/Sources/Analysis/CoachReportGenerator+Sections.swift:17",
-      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:23"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
-  },
-  {
    "key": "var FitnessRecordingView.isFinalizing",
    "hash": "7f5c2a182c0a9a6e",
    "does": "True when recorder.phase is .finalizing or .finished, false for .recording, .idle, .failed.",
@@ -1014,7 +933,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func FitnessRecordingView.withHoldGesture(_:)": "0b5bf1423b542861",
+    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func FitnessRecordingView.withHoldGesture(_:)": "2cbd43f76c0531cc",
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.stopButtonSurface": "a02cf9db3ae641e0"
    }
   },
@@ -1036,13 +955,37 @@
   },
   {
    "key": "func FitnessRecordingView.withHoldGesture(_:)",
-   "hash": "70152dfb5eb0763a",
-   "does": "Attaches a zero-distance DragGesture: on change it calls startHolding unless finalizing, and on end it calls cancelHolding. Also sets VoiceOver label/hint by finalizing state and an 'End workout now' accessibility action that calls onStop directly unless finalizing.",
-   "entry": "DragGesture onChanged/onEnded and VoiceOver custom action",
+   "hash": "e37a61ba2baa2d45",
+   "does": "Attaches a zero-distance DragGesture that only updates the @GestureState stopPressActive; onChange of it calls startHolding when a press begins and cancelHolding when it ends — including a cancelled gesture, since SwiftUI resets gesture state on cancellation — and onDisappear cancels any hold. Accessibility comes from withStopAccessibility.",
+   "entry": "DragGesture updating / stopPressActive change / onDisappear",
    "calls": [
-    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.isFinalizing",
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func FitnessRecordingView.startHolding()",
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func FitnessRecordingView.cancelHolding()",
+    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func FitnessRecordingView.withStopAccessibility(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "press began",
+     "effect": "startHolding (which itself answers a press while finalizing with a warning haptic); press ended/cancelled → cancelHolding"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func FitnessRecordingView.cancelHolding()": "f84151a8b9b6b4c9",
+    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func FitnessRecordingView.startHolding()": "6a5c9a64e966242b",
+    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func FitnessRecordingView.withStopAccessibility(_:)": "6626c735d888c098"
+   }
+  },
+  {
+   "key": "func FitnessRecordingView.withStopAccessibility(_:)",
+   "hash": "4de6495cd20caf9e",
+   "does": "VoiceOver label/hint by finalizing state and an 'End workout now' accessibility action that calls onStop directly unless finalizing.",
+   "entry": "VoiceOver custom action",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.isFinalizing",
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func FitnessRecordingView.formatHoldDuration(_:)",
     "closure:onStop — set by FitnessTabView.stateBody to FitnessTabView.stopAction(for:) → Task{ await recorder.stop() }",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
@@ -1051,58 +994,25 @@
    "writes": [],
    "branches": [
     {
-     "at": "+5",
-     "cond": "isFinalizing during drag change",
-     "effect": "true: return (no hold started; note startHolding's own warning-haptic path is therefore unreachable from here); false: startHolding()"
-    },
-    {
-     "at": "+10",
+     "at": "+2",
      "cond": "isFinalizing",
      "effect": "label 'Saving workout' vs 'End workout'"
     },
     {
-     "at": "+13",
+     "at": "+5",
      "cond": "isFinalizing",
-     "effect": "hint 'Saving in progress' vs 'Press and hold for 1.2 s…'"
+     "effect": "hint 'Saving in progress' vs 'Press and hold…'"
     },
     {
-     "at": "+17",
+     "at": "+9",
      "cond": "isFinalizing in accessibility action",
      "effect": "true: no-op; false: onStop() immediately"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "The gesture returns early while finalizing (line 484), so startHolding's isFinalizing branch (warning haptic, lines 587-591) never runs. A second hold while saving gets no feedback, although the comment at 582-584 promises a warning haptic.",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift:484",
-      "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift:587",
-      "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift:582"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "fragile",
-     "sev": "med",
-     "text": "cancelHolding runs only from the DragGesture's .onEnded. Nothing resets the hold on gesture cancellation: there is no @GestureState, no .onDisappear and no timer invalidation outside cancelHolding/advanceHold in either file. SwiftUI does not call onEnded for a cancelled gesture (for example a system interruption mid-press, or the view leaving the hierarchy). The repeating 50 ms timer on RunLoop.main then keeps filling holdProgress and calls completeHold → onStop() → recorder.stop(), ending the workout without a completed hold.",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift:487",
-      "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift:610",
-      "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift:614",
-      "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift:618",
-      "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift:624",
-      "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift:634"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func FitnessRecordingView.cancelHolding()": "f84151a8b9b6b4c9",
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func FitnessRecordingView.formatHoldDuration(_:)": "e11537b56c6d32d0",
-    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func FitnessRecordingView.startHolding()": "a965241379b42cf6",
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.isFinalizing": "0ead2b18e8516a33"
    }
   },
@@ -1258,12 +1168,12 @@
     {
      "at": "+1",
      "cond": "isHolding already",
-     "effect": "true: return (repeated DragGesture onChanged calls are no-ops)"
+     "effect": "true: return"
     },
     {
      "at": "+2",
      "cond": "isFinalizing",
-     "effect": "true: warning haptic, return (unreachable from the gesture, which pre-checks); false: begin hold"
+     "effect": "true: warning haptic once per press (the gesture calls this on press start), return; false: begin hold"
     }
    ],
    "flags": [],
@@ -1567,41 +1477,30 @@
   },
   {
    "key": "var StableMapCard.body",
-   "hash": "b7a87a424aae3f0c",
-   "does": "180 pt map card: a constant backdrop, then the waiting placeholder when there are no coordinates or the live map otherwise. Overlays the GPS accuracy badge and reframes the camera when the coordinate count changes.",
-   "entry": "SwiftUI body; .onChange(of: coordinates.count)",
+   "hash": "fa0bf9c846f371e7",
+   "does": "180 pt map card: a constant backdrop, then the waiting placeholder when the track is empty or the live map otherwise. Overlays the GPS accuracy badge; reframes the camera on appear and whenever the newest fix changes (its timestamp), so a track already present at mount and a replaced seed fix are framed too.",
+   "entry": "SwiftUI body; .onChange(of: track.last?.timestamp); .onAppear",
    "calls": [
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var StableMapCard.mapBackdrop",
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var StableMapCard.waitingForFixPlaceholder",
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var StableMapCard.liveRouteMap",
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var StableMapCard.gpsAccuracyBadge",
-    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func StableMapCard.reframe(to:)"
+    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func StableMapCard.reframe()"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+3",
-     "cond": "coordinates empty",
+     "cond": "track empty",
      "effect": "true: waitingForFixPlaceholder; false: liveRouteMap"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Map framing only runs from .onChange(of: coordinates.count), which does not fire for the initial value. When the card mounts with points already present (it mounts ~50 ms after start, and again after navigating away and back), the camera stays .automatic until the count changes.",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift:780",
-      "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift:762"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func StableMapCard.reframe(to:)": "b0c13e141628c421",
+    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func StableMapCard.reframe()": "05f043c09829b7a3",
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var StableMapCard.gpsAccuracyBadge": "15c68c0cefe41af0",
-    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var StableMapCard.liveRouteMap": "5361e9330df46a9c",
+    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var StableMapCard.liveRouteMap": "e80c24c69ee1852a",
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var StableMapCard.mapBackdrop": "81ac465f6303c824",
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var StableMapCard.waitingForFixPlaceholder": "11eb73143dd29bc6"
    }
@@ -1641,8 +1540,8 @@
   },
   {
    "key": "var StableMapCard.liveRouteMap",
-   "hash": "5e7cb7af8c884461",
-   "does": "Single Map bound to @State position. Draws a polyline once there are ≥2 coordinates and a marker at the latest point (primary tint with ≥2 points, sage with 1).",
+   "hash": "e06db4482c259768",
+   "does": "Maps the track to coordinates once, then a single Map bound to @State position: a polyline once there are ≥2 points and a marker at the latest point (primary tint with ≥2 points, sage with 1).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
@@ -1651,17 +1550,17 @@
    "writes": [],
    "branches": [
     {
-     "at": "+2",
+     "at": "+3",
      "cond": "coordinates.count >= 2",
      "effect": "true: MapPolyline drawn; false: none"
     },
     {
-     "at": "+6",
-     "cond": "coordinates.last exists",
-     "effect": "true: Marker at last point; false: none"
+     "at": "+7",
+     "cond": "last point exists",
+     "effect": "true: Marker at last point"
     },
     {
-     "at": "+8",
+     "at": "+9",
      "cond": "count >= 2",
      "effect": "marker tint primary vs sage"
     }
@@ -1698,66 +1597,50 @@
    }
   },
   {
-   "key": "func StableMapCard.reframe(to:)",
-   "hash": "ae9dca3384aaa0d7",
-   "does": "Recentres the camera on the first fix (200 m region), then on the whole-track bounding region whenever the track has grown by ≥10 points since the last framing.",
+   "key": "func StableMapCard.reframe()",
+   "hash": "3556d89083c15a77",
+   "does": "When the track is non-empty and shouldReframe says so, records the count and moves the camera: to the region around the whole track with ≥2 points, else a 200 m region on the single point.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func StableMapCard.shouldReframe(count:lastFramed:)",
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func StableMapCard.regionForTrack(_:)"
    ],
-   "reads": [],
-   "writes": [],
+   "reads": [
+    "mem:StableMapCard.lastFramedCount"
+   ],
+   "writes": [
+    "mem:StableMapCard.lastFramedCount",
+    "mem:StableMapCard.position"
+   ],
    "branches": [
     {
-     "at": "+1",
-     "cond": "newCount <= 0",
+     "at": "+2",
+     "cond": "empty track or no reframe due",
      "effect": "return"
     },
     {
-     "at": "+5",
-     "cond": "shouldFrame (first framing, +10 points, or newCount == 1)",
-     "effect": "false: return; true: record count and frame"
-    },
-    {
-     "at": "+7",
-     "cond": "newCount >= 2",
-     "effect": "true: region for whole track"
-    },
-    {
-     "at": "+9",
-     "cond": "else, last coordinate exists",
-     "effect": "200 m × 200 m region around it"
+     "at": "+4",
+     "cond": "≥2 points",
+     "effect": "region over the track; else 200 m around the one point"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "If the coordinate count ever drops below lastFramedCount (e.g. the track array is replaced), newCount − lastFramedCount is negative. Reframing then stops until the track grows 10 past the old high-water mark.",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift:846",
-      "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift:847"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "WorkoutLocationManager seeds the track with a rejected (inaccurate) fix and later replaces it with track = [location], so the count stays 1. onChange(of: coordinates.count) does not fire and the camera stays on the 200 m region around the seed, which the code says 'may sit hundreds of metres off'. The +10 rule then keeps it there until the track reaches 11 points (lastFramedCount = 1).",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift:780",
-      "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift:846",
-      "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift:847",
-      "Emuqu/Sources/Collection/WorkoutLocationManager.swift:328",
-      "Emuqu/Sources/Collection/WorkoutLocationManager.swift:331",
-      "Emuqu/Sources/Collection/WorkoutLocationManager.swift:333"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func StableMapCard.regionForTrack(_:)": "4cb989b21d0110f3"
+    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func StableMapCard.regionForTrack(_:)": "4cb989b21d0110f3",
+    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func StableMapCard.shouldReframe(count:lastFramed:)": "4f61087f7cd51e2e"
    }
+  },
+  {
+   "key": "func StableMapCard.shouldReframe(count:lastFramed:)",
+   "hash": "afcfb76b039d1339",
+   "does": "True for the first framing, a one-point track (each new fix — a seed replaced by a real one), a track that shrank below the last framed count, or one that grew by 10+ points since.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "func StableMapCard.regionForTrack(_:)",

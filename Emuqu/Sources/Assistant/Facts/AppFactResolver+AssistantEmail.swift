@@ -222,9 +222,15 @@ extension AssistantMemoryNamespace {
             ? settings.defaultRecoveryEmailRecipient
             : settings.defaultTrainingEmailRecipient)?
             .trimmingCharacters(in: .whitespaces) ?? ""
-        let categoryCC = (category == "recovery"
+        // Parsed before the emptiness check, as the view-side mailers do, so
+        // a whitespace-only or comma-only CC counts as not configured.
+        let categoryCC = ((category == "recovery"
             ? settings.defaultRecoveryEmailCC
-            : settings.defaultTrainingEmailCC) ?? ""
+            : settings.defaultTrainingEmailCC) ?? "")
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: ",")
         return (
             to: primary.isEmpty ? (settings.resolvedDefaultEmailRecipient ?? "") : primary,
             cc: categoryCC.isEmpty ? settings.resolvedDefaultEmailCC.joined(separator: ",") : categoryCC
@@ -313,7 +319,7 @@ extension AssistantMemoryNamespace {
     }
 
     private static let assistantEmailComposeDescription = """
-    [ACTION] Stage an email draft and present the user's mail composer. Use this when the user says 'email that' / 'email me this' / 'send this to my coach'. The draft is staged as a notification the chat UI catches; iOS presents \
+    [ACTION] Stage an email draft and present the user's mail composer. Use this when the user says 'email that' / 'email me this' / 'send this to my coach'. The draft is staged on the email bridge, which the app's root view observes; iOS presents \
     Apple's MFMailComposeViewController so the user can review, edit recipients, and tap Send (or Cancel). Emuqu never sends mail directly. Body must be plain text: the composer shows it exactly as written, so Markdown symbols appear literally. The user \
     configures TWO sets of default recipients in Settings → Profile — one for RECOVERY emails (morning report, HRV/sleep) and one for TRAINING emails (workouts, sessions). Pass the `category` argument \
     to pick which defaults to use. ADDRESS BOOK: the user can save contacts (`assistant.contacts.list`); pass NAMES (e.g. 'chris, coach') in to/cc and the resolver will look them up. Mix names + explicit addresses freely. If \

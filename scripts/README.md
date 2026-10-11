@@ -21,9 +21,11 @@ Environment variables:
 - `SCHEME` (default: `Emuqu`)
 - `PROJECT` (default: `Emuqu.xcodeproj`)
 - `RESULT_BUNDLE` (default: `build/TestResults.xcresult`)
-- `MIN_COVERAGE` (optional override; normally **unset** so the committed floors
-  in `.ci/min_coverage.txt`, `.ci/min_coverage_logic.txt` and
-  `.ci/min_coverage_views.txt` are the single source of truth)
+- `MIN_COVERAGE` (optional; may only **raise** the overall floor for a run — a
+  value below the committed floor is ignored. The committed floors in
+  `.ci/min_coverage.txt`, `.ci/min_coverage_logic.txt` and
+  `.ci/min_coverage_views.txt` are the source of truth, and a missing one is an
+  error)
 - `DESTINATION` (optional override, e.g. `id=<sim-id>`)
 - `MAX_TEST_WORKERS` (default: `3` — above three simulator clones this machine
   loses one per run to an `xctrunner` preflight failure)
@@ -42,10 +44,14 @@ Checks app line coverage from an `.xcresult` bundle and fails if below threshold
 
 ### `check_budget_monotonicity.sh`
 
-Fails any diff that **raises** a value in `.ci/*.txt`. Every debt gate is a
+Fails any diff that **loosens** a value in `.ci/*.txt` against the baseline: a
+ceiling that rises, a `min_*` floor that falls, or a budget that is deleted or
+no longer a number. Values may be whole or decimal (`min_coverage_views.txt` is
+43.5). A file that was not a number at the baseline (`scoring_constants_hash.txt`)
+is not a budget and is listed as not compared. Every debt gate is a
 `count > budget` comparison and every budget sits at its measured value, so the
 cheapest way to turn CI green is to edit the number rather than pay the debt.
-This is the pawl on the ratchet. A legitimate raise needs a commit trailer:
+This is the pawl on the ratchet. A legitimate loosening needs a commit trailer:
 
 ```
 budget-raise-ok: .ci/<file>.txt <why this budget legitimately grew>

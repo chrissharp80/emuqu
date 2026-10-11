@@ -36,12 +36,11 @@ final class Concept2Manager: NSObject, BLEPeripheralConnecting {
     // MARK: Published state
 
     private(set) var connectionState: ConnectionState = .disconnected
-    /// Distance rowed in this session, meters. Comes from the PM5 odometer
-    /// reset at session start.
+    /// Distance rowed in this workout, meters: the PM5's piece distance less
+    /// what it showed when the workout began, plus anything rowed before a
+    /// piece reset on the PM5 mid-workout (`ErgPieceCounter`). Before any
+    /// workout, the PM5's own piece distance.
     private(set) var distanceMeters: Double?
-    /// Current 500 m pace from the PM5 (seconds per 500 m). The PM5's native
-    /// unit — most rowers think in "split times" not in raw m/s.
-    private(set) var paceSecPer500m: Double?
     /// Stroke rate in strokes per minute.
     private(set) var strokeRateSPM: Double?
     /// Drag factor — proxy for fan damper resistance setting (typical 100–135).
@@ -50,16 +49,8 @@ final class Concept2Manager: NSObject, BLEPeripheralConnecting {
     /// (0x0036, see `strokeData(from:)`). Nil between pieces and when the
     /// reading is implausible. Named to match `FootPodManager` for the recorder.
     private(set) var instantaneousPowerWatts: Int?
-    /// Calories burned, as reported by the PM5 (uses its own model — we
-    /// pass through rather than re-derive).
-    ///
-    /// NOTE: not yet populated — always nil. Total Calories lives in
-    /// Additional Status 2 (0x0033), which this manager does not subscribe
-    /// to; 0x0036 carries only a per-stroke calorie RATE (cal/hr), not a
-    /// total. Left in place because finalize (WorkoutRecorder+Lifecycle)
-    /// reads it; wire up 0x0033 to populate it for real.
-    private(set) var caloriesBurned: Int?
-    /// Total stroke count this piece, from Additional Stroke Data (0x0036).
+    /// Strokes taken in this workout, from Additional Stroke Data (0x0036),
+    /// counted the same way as `distanceMeters`.
     private(set) var strokeCount: Int?
 
     private(set) var knownDevices: [KnownErg] = []
@@ -107,6 +98,9 @@ final class Concept2Manager: NSObject, BLEPeripheralConnecting {
     @ObservationIgnored private var generalDataChar: CBCharacteristic?
     @ObservationIgnored private var additionalDataChar: CBCharacteristic?
     @ObservationIgnored private var strokeDataChar: CBCharacteristic?
+    /// The PM5's piece counters turned into this workout's totals.
+    @ObservationIgnored private var pieceDistance = ErgPieceCounter<Double>()
+    @ObservationIgnored private var pieceStrokes = ErgPieceCounter<Int>()
     var pendingReconnectId: String?
     @ObservationIgnored private var scanTimeoutTimer: Timer?
 
@@ -146,8 +140,16 @@ final class Concept2Manager: NSObject, BLEPeripheralConnecting {
         )
         scanTimeoutTimer?.invalidate()
         scanTimeoutTimer = Timer.scheduledTimer(withTimeInterval: 20, repeats: false) { [weak self] _ in
-            Task { @MainActor in self?.stopScanning() }
+            Task { @MainActor in self?.endTimedOutScan() }
         }
+    }
+
+    /// The erg a parked reconnect was scanning for did not appear, so the
+    /// reconnect ends with the scan; left parked, a later unrelated scan or
+    /// Bluetooth power-on attached it outside any workout.
+    private func endTimedOutScan() {
+        pendingReconnectId = nil
+        stopScanning()
     }
 
     func stopScanning() {
@@ -163,11 +165,32 @@ final class Concept2Manager: NSObject, BLEPeripheralConnecting {
         connect(deviceId: last.id)
     }
 
-    /// Called at a workout's start and stop. At the stop, a reconnect still
-    /// waiting for the sensor is cancelled.
+    /// Called at a workout's start and stop. At the start, the PM5's piece
+    /// counters are zeroed for the workout (what the PM5 shows now, or its
+    /// first reading when the erg is not connected yet). At the stop, a
+    /// reconnect still waiting for the sensor — a connect in flight or an id
+    /// parked while Bluetooth was off — is cancelled.
     func holdLinkForWorkout(_ holds: Bool) {
         workoutHoldsLink = holds
-        if !holds, expectsLink, connectionState == .connecting { disconnect() }
+        if holds {
+            beginPieceCounting()
+            return
+        }
+        guard expectsLink else { return }
+        pendingReconnectId = nil
+        if connectionState == .connecting { disconnect() }
+    }
+
+    /// Zeroes the piece counters for a workout starting now. A connected erg
+    /// that has reported reads 0 from here; otherwise nothing is shown until
+    /// it reports, so a previous workout's totals (kept through a drop) never
+    /// open this one.
+    private func beginPieceCounting() {
+        let linkIsUp = connectionState == .connected
+        pieceDistance.beginWorkout(linkIsUp: linkIsUp)
+        pieceStrokes.beginWorkout(linkIsUp: linkIsUp)
+        distanceMeters = linkIsUp ? distanceMeters.map { _ in 0 } : nil
+        strokeCount = linkIsUp ? strokeCount.map { _ in 0 } : nil
     }
 
     func disconnect() {
@@ -192,19 +215,23 @@ final class Concept2Manager: NSObject, BLEPeripheralConnecting {
         central.connect(peripheral, options: nil)
     }
 
-    private func cleanupAfterDisconnect() {
+    /// `keepingPiece` is a drop mid-workout: the PM5 keeps counting the piece
+    /// while the link is down, so the workout's distance, stroke count and
+    /// drag factor stand until it is back. Cleared, they handed live rowing
+    /// distance to GPS and the pedometer (which read about zero on an erg),
+    /// and a workout stopped during the drop saved no strokes or drag factor.
+    private func cleanupAfterDisconnect(keepingPiece: Bool = false) {
         activePeripheral = nil
         generalDataChar = nil
         additionalDataChar = nil
         strokeDataChar = nil
-        distanceMeters = nil
-        paceSecPer500m = nil
         strokeRateSPM = nil
         instantaneousPowerWatts = nil
-        dragFactor = nil
-        caloriesBurned = nil
-        strokeCount = nil
         connectionState = .disconnected
+        guard !keepingPiece else { return }
+        distanceMeters = nil
+        dragFactor = nil
+        strokeCount = nil
     }
 
     private func rememberDevice(peripheral: CBPeripheral) {
@@ -255,12 +282,10 @@ extension Concept2Manager: CBCentralManagerDelegate {
     /// the erg is parked for `.poweredOn` and the piece's distance is kept.
     @MainActor
     private func dropForPowerOff() {
-        let distance = distanceMeters
         let parkedId = expectsLink && workoutHoldsLink ? activePeripheral?.identifier.uuidString : nil
-        cleanupAfterDisconnect()
+        cleanupAfterDisconnect(keepingPiece: parkedId != nil)
         guard let parkedId else { return }
         pendingReconnectId = parkedId
-        distanceMeters = distance
     }
 
     nonisolated func centralManager(
@@ -297,22 +322,32 @@ extension Concept2Manager: CBCentralManagerDelegate {
         }
     }
 
-    nonisolated func centralManager(_ central: CBCentralManager, didFailToConnect _: CBPeripheral, error _: Error?) {
+    nonisolated func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error _: Error?) {
         Task { @MainActor in
-            self.connectionState = .disconnected
+            let midWorkout = self.expectsLink && self.workoutHoldsLink
+            self.cleanupAfterDisconnect(keepingPiece: midWorkout)
             self.lastStatusLine = String(localized: "Connection failed", bundle: LanguageManager.appBundle)
+            if midWorkout { self.retryConnect(peripheral) }
+        }
+    }
+
+    /// A reconnect that failed mid-workout is asked for again after a short
+    /// pause (a failure can come back at once, so not in a tight loop);
+    /// before, the first failure ended erg data for the rest of the workout.
+    @MainActor
+    private func retryConnect(_ peripheral: CBPeripheral) {
+        Task { @MainActor [weak self] in
+            await sleepQuietly(2_000_000_000, context: "Concept2 reconnect after a failed connect")
+            guard let self, self.expectsLink, self.workoutHoldsLink, self.connectionState == .disconnected else { return }
+            self.attach(peripheral: peripheral)
         }
     }
 
     nonisolated func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error _: Error?) {
         Task { @MainActor in
-            let distance = self.distanceMeters
-            self.cleanupAfterDisconnect()
-            guard self.expectsLink, self.workoutHoldsLink else { return }
-            // The PM5 keeps counting the piece while the link is down.
-            // Clearing it handed live rowing distance to GPS and the
-            // pedometer, which read about zero on an erg.
-            self.distanceMeters = distance
+            let midWorkout = self.expectsLink && self.workoutHoldsLink
+            self.cleanupAfterDisconnect(keepingPiece: midWorkout)
+            guard midWorkout else { return }
             self.attach(peripheral: peripheral)
         }
     }
@@ -398,14 +433,15 @@ extension Concept2Manager: CBPeripheralDelegate {
         let bytes = [UInt8](data)
         guard bytes.count >= 19 else { return }
         let distRaw = UInt32(bytes[3]) | (UInt32(bytes[4]) << 8) | (UInt32(bytes[5]) << 16)
-        distanceMeters = Double(distRaw) * 0.1
+        distanceMeters = pieceDistance.total(forRaw: Double(distRaw) * 0.1)
         dragFactor = Int(bytes[18])
     }
 
-    /// Additional Status (0x0032). Length varies; we read the first
-    /// few well-defined fields used by the live UI:
+    /// Additional Status (0x0032). Length varies; only the stroke rate is
+    /// read (the recorder derives split pace from moving time and distance).
+    /// Layout:
     ///   bytes 0–2   Elapsed Time (u24, 0.01 s)
-    ///   bytes 3–4   Speed (u16, 0.001 m/s)         → derive split pace
+    ///   bytes 3–4   Speed (u16, 0.001 m/s)
     ///   byte  5     Stroke Rate (u8, strokes/min)
     ///   byte  6     Heart Rate (u8) — present only if the PM5 has a paired strap
     ///   bytes 7–8   Current Pace (u16, 0.01 s per 500 m)
@@ -419,15 +455,10 @@ extension Concept2Manager: CBPeripheralDelegate {
     @MainActor
     private func parseAdditionalData(data: Data) {
         let bytes = [UInt8](data)
-        // Need indices 0…8 below (bytes[8] is read for the pace u16). A
-        // `>= 8` guard admits an 8-byte packet — "Length varies" per
-        // the erg spec — and traps on bytes[8] mid-row.
-        guard bytes.count >= 9 else { return }
+        // Index 5 is the last one read; "Length varies" per the erg spec.
+        guard bytes.count >= 6 else { return }
         let strokeRate = bytes[5]
         strokeRateSPM = strokeRate > 0 ? Double(strokeRate) : nil
-        let paceRaw = UInt16(bytes[7]) | (UInt16(bytes[8]) << 8)
-        let paceSec = Double(paceRaw) * 0.01
-        paceSecPer500m = paceSec > 0 ? paceSec : nil
     }
 
     /// What one Additional Stroke Data packet says.
@@ -468,6 +499,47 @@ extension Concept2Manager: CBPeripheralDelegate {
     private func applyStrokeData(_ stroke: StrokeData?) {
         guard let stroke else { return }
         instantaneousPowerWatts = stroke.powerWatts
-        strokeCount = stroke.strokeCount
+        strokeCount = pieceStrokes.total(forRaw: stroke.strokeCount)
+    }
+}
+
+/// One PM5 piece counter (distance, stroke count) as this workout's total.
+///
+/// The PM5 counts from its own piece start, not the app's workout: metres
+/// rowed before the workout began are in its first reading, and resetting the
+/// piece on the PM5 mid-workout sends it back to zero. This subtracts what the
+/// PM5 showed when the workout began and carries what was rowed before a
+/// reset. Before any workout it passes the PM5's value through.
+struct ErgPieceCounter<Value: AdditiveArithmetic & Comparable> {
+    /// The raw value this stretch of the workout counts from; nil before any
+    /// workout.
+    private var segmentStart: Value?
+    /// What earlier stretches (before a PM5 reset) added up to.
+    private var carried: Value = .zero
+    private var lastRaw: Value?
+    private var awaitingBaseline = false
+
+    /// The workout starts now. With the erg connected, its last reading is
+    /// zero; otherwise its first reading once it connects is.
+    mutating func beginWorkout(linkIsUp: Bool) {
+        carried = .zero
+        awaitingBaseline = !linkIsUp || lastRaw == nil
+        segmentStart = awaitingBaseline ? nil : lastRaw
+    }
+
+    /// This workout's total for a raw PM5 reading.
+    mutating func total(forRaw raw: Value) -> Value {
+        if awaitingBaseline {
+            segmentStart = raw
+            lastRaw = raw
+            awaitingBaseline = false
+        }
+        if let last = lastRaw, let start = segmentStart, raw < last {
+            carried += last - start
+            segmentStart = .zero
+        }
+        lastRaw = raw
+        guard let start = segmentStart else { return raw }
+        return carried + (raw - start)
     }
 }

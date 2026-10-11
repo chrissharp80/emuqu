@@ -89,12 +89,16 @@ struct SensorManagementSheet: View {
         }
     }
 
+    /// While a connection attempt is running, scanning is refused, so the
+    /// only action offered is cancelling the attempt.
     @ViewBuilder
     private var stateDrivenPolarButtons: some View {
         if polarManager.connectionState == .connected {
             disconnectPolarButton
         } else if polarManager.connectionState == .scanning {
             stopScanningPolarButton
+        } else if polarManager.connectionState == .connecting {
+            cancelConnectionPolarButton
         } else if !polarManager.knownDevices.isEmpty {
             reconnectButton2
             pairAnotherButton3
@@ -109,6 +113,16 @@ struct SensorManagementSheet: View {
         } label: {
             Label(String(localized: "Disconnect", bundle: LanguageManager.appBundle), systemImage: "xmark.circle")
         }
+    }
+
+    private var cancelConnectionPolarButton: some View {
+        Button(role: .destructive) {
+            polarManager.cancelConnection()
+        } label: {
+            Label(String(localized: "Cancel", bundle: LanguageManager.appBundle), systemImage: "xmark.circle")
+        }
+        .accessibilityLabel(String(localized: "Cancel connection", bundle: LanguageManager.appBundle))
+        .accessibilityHint(String(localized: "Stop trying to connect to the Polar device", bundle: LanguageManager.appBundle))
     }
 
     private var stopScanningPolarButton: some View {
@@ -128,19 +142,7 @@ struct SensorManagementSheet: View {
     }
 
     private func discoveredDeviceButton(_ device: PolarManager.DiscoveredDevice) -> some View {
-        Button {
-            polarManager.connect(deviceId: device.id)
-        } label: {
-            HStack {
-                Image(systemName: "antenna.radiowaves.left.and.right")
-                    .foregroundStyle(AppTheme.terracotta)
-                Text(device.name)
-                Spacer()
-                Text(String(localized: "Tap to pair", bundle: LanguageManager.appBundle))
-                    .font(.caption)
-                    .foregroundStyle(AppTheme.textSecondary)
-            }
-        }
+        DiscoveredSensorButton(name: device.name) { polarManager.connect(deviceId: device.id) }
     }
 
     /// Known devices list
@@ -161,14 +163,25 @@ struct SensorManagementSheet: View {
                 .font(.caption)
                 .foregroundStyle(AppTheme.textSecondary)
         }
-        // Swipe to forget: removes the strap from the paired list.
+        // Swipe to forget: removes the strap from the paired list, and drops
+        // the link first when it is the strap connected now, so nothing stays
+        // connected to a strap the list no longer shows.
         .swipeActions {
             Button(role: .destructive) {
-                polarManager.removeKnownDevice(id: device.id)
+                forget(device)
             } label: {
                 Label(String(localized: "Forget", bundle: LanguageManager.appBundle), systemImage: "trash")
             }
         }
+    }
+
+    private func forget(_ device: PolarManager.KnownDevice) {
+        if polarManager.connectionState == .connected, polarManager.connectedDeviceId == device.id {
+            polarManager.disconnect()
+        } else if polarManager.connectionState == .connecting, polarManager.pendingDeviceId == device.id {
+            polarManager.cancelConnection()
+        }
+        polarManager.removeKnownDevice(id: device.id)
     }
 
     private var reconnectButton2: some View {
@@ -293,198 +306,166 @@ struct SensorManagementSheet: View {
     }
 }
 
-// MARK: - Foot pod row (status + reconnect / pair)
+// MARK: - Foot pod and PM5 rows
 
+/// The foot pod's row: its manager's state, read into the shared row.
 private struct FootPodRow: View {
     @Environment(\.dependencies) var dependencies
     private var manager: FootPodManager { dependencies.collection.footPodManager }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            statusRowForFootPod
-            HStack(spacing: 8) {
-                stateDrivenButtonsForFootPod
-                Spacer()
-            }
-            discoveredFootPods
-        }
+        AccessorySensorRow(content: content, actions: actions)
     }
 
-    /// What the scan found. The manager only auto-connects to a pod it
-    /// already knows, so a first pod is paired by tapping it here.
-    @ViewBuilder
-    private var discoveredFootPods: some View {
-        if manager.connectionState == .scanning {
-            discoveredFootPodRows
-        }
+    private var content: AccessorySensorRow.Content {
+        AccessorySensorRow.Content(
+            icon: "shoeprints.fill",
+            title: manager.knownDevices.first?.name ?? String(localized: "Foot Pod / Bike Trainer", bundle: LanguageManager.appBundle),
+            statusLine: manager.lastStatusLine,
+            link: AccessorySensorRow.Link(manager.connectionState),
+            hasKnownDevice: !manager.knownDevices.isEmpty,
+            discovered: manager.discoveredDevices.map { AccessorySensorRow.Device(id: $0.id, name: $0.name) }
+        )
     }
 
-    private var discoveredFootPodRows: some View {
-        ForEach(manager.discoveredDevices) { discoveredButton($0) }
-    }
-
-    private func discoveredButton(_ device: FootPodManager.DiscoveredFootPod) -> some View {
-        DiscoveredSensorButton(name: device.name) { manager.connect(deviceId: device.id) }
-    }
-
-    private var statusRowForFootPod: some View {
-        HStack {
-            Image(systemName: "shoeprints.fill")
-                .foregroundStyle(color)
-                .frame(width: 28)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.body)
-                Text(manager.lastStatusLine)
-                    .font(.caption)
-                    .foregroundStyle(AppTheme.textSecondary)
-            }
-            Spacer()
-            statusBadgeForFootPod
-        }
-    }
-
-    private var statusBadgeForFootPod: some View {
-        Text(badge)
-            .font(.caption2.weight(.semibold))
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .background(Capsule().fill(color.opacity(0.18)))
-            .foregroundStyle(color)
-    }
-
-    @ViewBuilder
-    private var stateDrivenButtonsForFootPod: some View {
-        if manager.connectionState == .connected {
-            disconnectButton2
-        } else if manager.connectionState == .scanning {
-            stopScanningButton2
-        } else if !manager.knownDevices.isEmpty {
-            theyPairedButton
-            pairAnotherButton2
-        } else {
-            pairButton2
-        }
-    }
-
-    private var disconnectButton2: some View {
-        Button(role: .destructive) {
-            manager.disconnect()
-        } label: {
-            Label(String(localized: "Disconnect", bundle: LanguageManager.appBundle), systemImage: "xmark.circle")
-        }
-    }
-
-    private var stopScanningButton2: some View {
-        Button(role: .destructive) {
-            manager.stopScanning()
-        } label: {
-            Label(String(localized: "Stop scanning", bundle: LanguageManager.appBundle), systemImage: "stop.circle")
-        }
-    }
-
-    private var theyPairedButton: some View {
-        // Same pair-another pattern as the Polar
-        // section above. Reconnect + "Pair another" so users
-        // aren't permanently locked to the first foot pod
-        // they paired.
-        Button {
-            manager.reconnectLast()
-        } label: {
-            Label(String(localized: "Reconnect", bundle: LanguageManager.appBundle), systemImage: "arrow.clockwise")
-        }
-    }
-
-    private var pairAnotherButton2: some View {
-        Button {
-            manager.startScanning()
-        } label: {
-            Label(String(localized: "Pair another", bundle: LanguageManager.appBundle), systemImage: "magnifyingglass")
-        }
-    }
-
-    private var pairButton2: some View {
-        Button {
-            manager.startScanning()
-        } label: {
-            Label(String(localized: "Pair", bundle: LanguageManager.appBundle), systemImage: "magnifyingglass")
-        }
-    }
-
-    private var title: String {
-        manager.knownDevices.first?.name ?? String(localized: "Foot Pod / Bike Trainer", bundle: LanguageManager.appBundle)
-    }
-
-    private var color: Color {
-        switch manager.connectionState {
-        case .connected: return .green
-        case .connecting, .scanning: return .blue
-        case .disconnected:
-            return manager.knownDevices.isEmpty ? .gray : .orange
-        }
-    }
-
-    private var badge: String {
-        switch manager.connectionState {
-        case .connected: return String(localized: "Connected", bundle: LanguageManager.appBundle)
-        case .connecting: return String(localized: "Connecting", bundle: LanguageManager.appBundle)
-        case .scanning: return String(localized: "Scanning", bundle: LanguageManager.appBundle)
-        case .disconnected: return manager.knownDevices.isEmpty ? String(localized: "Not paired", bundle: LanguageManager.appBundle) : String(localized: "Off", bundle: LanguageManager.appBundle)
-        }
+    private var actions: AccessorySensorRow.Actions {
+        let manager = manager
+        return AccessorySensorRow.Actions(
+            disconnect: { manager.disconnect() },
+            stopScanning: { manager.stopScanning() },
+            reconnect: { manager.reconnectLast() },
+            startScanning: { manager.startScanning() },
+            connect: { manager.connect(deviceId: $0) }
+        )
     }
 }
 
-// MARK: - PM5 row (status + reconnect / pair)
-
+/// The Concept2 PM5's row: its manager's state, read into the shared row.
 private struct PM5Row: View {
     @Environment(\.dependencies) var dependencies
     private var manager: Concept2Manager { dependencies.collection.concept2Manager }
+
+    var body: some View {
+        AccessorySensorRow(content: content, actions: actions)
+    }
+
+    private var content: AccessorySensorRow.Content {
+        AccessorySensorRow.Content(
+            icon: "figure.rower",
+            title: manager.knownDevices.first?.name ?? String(localized: "Concept2 PM5", bundle: LanguageManager.appBundle),
+            statusLine: manager.lastStatusLine,
+            link: AccessorySensorRow.Link(manager.connectionState),
+            hasKnownDevice: !manager.knownDevices.isEmpty,
+            discovered: manager.discoveredDevices.map { AccessorySensorRow.Device(id: $0.id, name: $0.name) }
+        )
+    }
+
+    private var actions: AccessorySensorRow.Actions {
+        let manager = manager
+        return AccessorySensorRow.Actions(
+            disconnect: { manager.disconnect() },
+            stopScanning: { manager.stopScanning() },
+            reconnect: { manager.reconnectLast() },
+            startScanning: { manager.startScanning() },
+            connect: { manager.connect(deviceId: $0) }
+        )
+    }
+}
+
+/// One BLE accessory (foot pod / bike trainer, PM5): status row, badge,
+/// buttons that change with the link state, and what a scan found. The
+/// manager only auto-connects to a device it already knows, so a first one
+/// is paired by tapping it in the scan results. With a known device the row
+/// offers Reconnect AND "Pair another", so the user is never locked to the
+/// first device they paired.
+private struct AccessorySensorRow: View {
+    enum Link {
+        case disconnected, scanning, connecting, connected
+
+        init(_ state: FootPodManager.ConnectionState) {
+            switch state {
+            case .disconnected: self = .disconnected
+            case .scanning: self = .scanning
+            case .connecting: self = .connecting
+            case .connected: self = .connected
+            }
+        }
+
+        init(_ state: Concept2Manager.ConnectionState) {
+            switch state {
+            case .disconnected: self = .disconnected
+            case .scanning: self = .scanning
+            case .connecting: self = .connecting
+            case .connected: self = .connected
+            }
+        }
+    }
+
+    struct Device: Identifiable {
+        let id: String
+        let name: String
+    }
+
+    struct Content {
+        let icon: String
+        let title: String
+        let statusLine: String
+        let link: Link
+        let hasKnownDevice: Bool
+        let discovered: [Device]
+    }
+
+    struct Actions {
+        let disconnect: () -> Void
+        let stopScanning: () -> Void
+        let reconnect: () -> Void
+        let startScanning: () -> Void
+        let connect: (String) -> Void
+    }
+
+    let content: Content
+    let actions: Actions
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            statusRowForRower
+            statusRow
             HStack(spacing: 8) {
-                stateDrivenButtonsForRower
+                stateDrivenButtons
                 Spacer()
             }
-            discoveredErgs
+            discoveredRows
         }
     }
 
-    /// What the scan found. The manager only auto-connects to the erg it
-    /// already knows, and remembers one only after a connect, so a first
-    /// PM5 is paired by tapping it here.
     @ViewBuilder
-    private var discoveredErgs: some View {
-        if manager.connectionState == .scanning {
-            discoveredErgRows
+    private var discoveredRows: some View {
+        if content.link == .scanning {
+            ForEach(content.discovered) { discoveredButton($0) }
         }
     }
 
-    private var discoveredErgRows: some View {
-        ForEach(manager.discoveredDevices) { discoveredButton($0) }
+    private func discoveredButton(_ device: Device) -> some View {
+        DiscoveredSensorButton(name: device.name) { actions.connect(device.id) }
     }
 
-    private func discoveredButton(_ device: Concept2Manager.DiscoveredErg) -> some View {
-        DiscoveredSensorButton(name: device.name) { manager.connect(deviceId: device.id) }
-    }
-
-    private var statusRowForRower: some View {
+    private var statusRow: some View {
         HStack {
-            Image(systemName: "figure.rower")
+            Image(systemName: content.icon)
                 .foregroundStyle(color)
                 .frame(width: 28)
             VStack(alignment: .leading, spacing: 2) {
-                Text(title)
+                Text(content.title)
                     .font(.body)
-                Text(manager.lastStatusLine)
+                Text(content.statusLine)
                     .font(.caption)
                     .foregroundStyle(AppTheme.textSecondary)
             }
             Spacer()
-            statusBadgeForRower
+            statusBadge
         }
     }
 
-    private var statusBadgeForRower: some View {
+    private var statusBadge: some View {
         Text(badge)
             .font(.caption2.weight(.semibold))
             .padding(.horizontal, 8)
@@ -494,12 +475,12 @@ private struct PM5Row: View {
     }
 
     @ViewBuilder
-    private var stateDrivenButtonsForRower: some View {
-        if manager.connectionState == .connected {
+    private var stateDrivenButtons: some View {
+        if content.link == .connected {
             disconnectButton
-        } else if manager.connectionState == .scanning {
+        } else if content.link == .scanning {
             stopScanningButton
-        } else if !manager.knownDevices.isEmpty {
+        } else if content.hasKnownDevice {
             reconnectButton
             pairAnotherButton
         } else {
@@ -508,72 +489,60 @@ private struct PM5Row: View {
     }
 
     private var disconnectButton: some View {
-        Button(role: .destructive) {
-            manager.disconnect()
-        } label: {
+        Button(role: .destructive, action: actions.disconnect) {
             Label(String(localized: "Disconnect", bundle: LanguageManager.appBundle), systemImage: "xmark.circle")
         }
     }
 
     private var stopScanningButton: some View {
-        Button(role: .destructive) {
-            manager.stopScanning()
-        } label: {
+        Button(role: .destructive, action: actions.stopScanning) {
             Label(String(localized: "Stop scanning", bundle: LanguageManager.appBundle), systemImage: "stop.circle")
         }
     }
 
     private var reconnectButton: some View {
-        // Same pair-another pattern.
-        Button {
-            manager.reconnectLast()
-        } label: {
+        Button(action: actions.reconnect) {
             Label(String(localized: "Reconnect", bundle: LanguageManager.appBundle), systemImage: "arrow.clockwise")
         }
     }
 
     private var pairAnotherButton: some View {
-        Button {
-            manager.startScanning()
-        } label: {
+        Button(action: actions.startScanning) {
             Label(String(localized: "Pair another", bundle: LanguageManager.appBundle), systemImage: "magnifyingglass")
         }
     }
 
     private var pairButton: some View {
-        Button {
-            manager.startScanning()
-        } label: {
+        Button(action: actions.startScanning) {
             Label(String(localized: "Pair", bundle: LanguageManager.appBundle), systemImage: "magnifyingglass")
         }
     }
 
-    private var title: String {
-        manager.knownDevices.first?.name ?? String(localized: "Concept2 PM5", bundle: LanguageManager.appBundle)
-    }
-
     private var color: Color {
-        switch manager.connectionState {
+        switch content.link {
         case .connected: return .green
         case .connecting, .scanning: return .blue
-        case .disconnected:
-            return manager.knownDevices.isEmpty ? .gray : .orange
+        case .disconnected: return content.hasKnownDevice ? .orange : .gray
         }
     }
 
     private var badge: String {
-        switch manager.connectionState {
+        switch content.link {
         case .connected: return String(localized: "Connected", bundle: LanguageManager.appBundle)
         case .connecting: return String(localized: "Connecting", bundle: LanguageManager.appBundle)
         case .scanning: return String(localized: "Scanning", bundle: LanguageManager.appBundle)
-        case .disconnected: return manager.knownDevices.isEmpty ? String(localized: "Not paired", bundle: LanguageManager.appBundle) : String(localized: "Off", bundle: LanguageManager.appBundle)
+        case .disconnected:
+            return content.hasKnownDevice
+                ? String(localized: "Off", bundle: LanguageManager.appBundle)
+                : String(localized: "Not paired", bundle: LanguageManager.appBundle)
         }
     }
 }
 
 // MARK: - Discovered sensor button
 
-/// One device a scan found, as the Polar list shows it: tap to pair.
+/// One device a scan found: tap to pair. The Polar, foot pod and PM5 scan
+/// results all use it.
 private struct DiscoveredSensorButton: View {
     let name: String
     let onTap: () -> Void

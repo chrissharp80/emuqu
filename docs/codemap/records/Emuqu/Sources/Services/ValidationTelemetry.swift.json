@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Services/ValidationTelemetry.swift",
- "hash": "0cff6553f0a03d98",
+ "hash": "685b773c46d87074",
  "role": "Local-only UserDefaults counters for the v2 dashboard rollout (dashboard opens, chip drill-ins, trajectory visits, mode activations, methodology views), shown in Diagnostics.",
  "types": [
   "ValidationTelemetry: final class (@Observable, @MainActor) — rollout counters",
@@ -11,27 +11,15 @@
  "state": [
   "mem:ValidationTelemetry.shared",
   "ud:telemetry.dashboardOpens",
-  "ud:telemetry.lastDashboardOpenAt",
+  "ud:telemetry.lastDashboardOpenAt (retired: no longer written, removed by reset)",
   "ud:telemetry.chipDrillInsByKey",
   "ud:telemetry.trajectoryVisits",
-  "ud:telemetry.lastTrajectoryVisit",
+  "ud:telemetry.lastTrajectoryVisit (retired: no longer written, removed by reset)",
   "ud:telemetry.modeActivationsByKind",
   "ud:telemetry.methodologyViews"
  ],
- "toplevel": "",
- "flags": [
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "telemetry.lastDashboardOpenAt and telemetry.lastTrajectoryVisit timestamps are written on every event but never read (only removed by reset).",
-   "evidence": [
-    "Emuqu/Sources/Services/ValidationTelemetry.swift:50",
-    "Emuqu/Sources/Services/ValidationTelemetry.swift:71",
-    "Emuqu/Sources/Services/ValidationTelemetry.swift:117"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "Type doc points the reset at Settings → Advanced → Diagnostics → Usage counts → Reset usage counts. Keys.retiredTimestamps lists the two last-event timestamp keys earlier builds wrote; only reset removes them.",
+ "flags": [],
  "units": [
   {
    "key": "init ValidationTelemetry(defaults:)",
@@ -64,14 +52,13 @@
   },
   {
    "key": "func ValidationTelemetry.recordDashboardOpen()",
-   "hash": "50e93be8d896524c",
-   "does": "Increments dashboardOpens and stores it plus a last-open epoch timestamp. Called from DashboardV2View.",
+   "hash": "8b2a437f27b1372e",
+   "does": "Increments dashboardOpens and stores it. Called from DashboardV2View.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [
-    "ud:telemetry.dashboardOpens",
-    "ud:telemetry.lastDashboardOpenAt"
+    "ud:telemetry.dashboardOpens"
    ],
    "branches": [],
    "flags": [
@@ -118,14 +105,13 @@
   },
   {
    "key": "func ValidationTelemetry.recordTrajectoryVisit()",
-   "hash": "73e34787983c7eb4",
-   "does": "Increments trajectoryVisits and stores it plus a timestamp. Called from LoadTrajectoryLoader.",
+   "hash": "608603d8e8005cc9",
+   "does": "Increments trajectoryVisits and stores it. Called from LoadTrajectoryLoader.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [
-    "ud:telemetry.trajectoryVisits",
-    "ud:telemetry.lastTrajectoryVisit"
+    "ud:telemetry.trajectoryVisits"
    ],
    "branches": [],
    "flags": [],
@@ -193,8 +179,8 @@
   },
   {
    "key": "func ValidationTelemetry.reset()",
-   "hash": "146befe72f2eae7f",
-   "does": "Zeroes all counters and removes all seven keys. Wired to Diagnostics reset.",
+   "hash": "b98ff9da0a9a9b7d",
+   "does": "Zeroes all counters and removes the five counter keys plus the two retired timestamp keys (Keys.retiredTimestamps). Wired to Diagnostics → Usage counts → Reset usage counts.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -210,22 +196,11 @@
    "branches": [
     {
      "at": "+6",
-     "cond": "for each of the seven keys",
+     "cond": "for each of the five counter keys and two retired keys",
      "effect": "removeObject(forKey:)"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Type doc says reset is at 'Settings → Advanced → Diagnostics → Reset telemetry'; the button is 'Reset usage counts' in the Diagnostics usage-counts section.",
-     "evidence": [
-      "Emuqu/Sources/Services/ValidationTelemetry.swift:11",
-      "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift:334"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {}
   }
  ],

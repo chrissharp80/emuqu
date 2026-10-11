@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Collection/RecordingPhase.swift",
  "hash": "88a3e55a0d5f0d54",
- "role": "Enum state machine of the collector recording lifecycle (idle, streaming(target), overnightStreaming, deviceRecording, paused(id), analyzing, awaitingAcceptance) with helpers and a description used in logs and the persisted recording state.",
+ "role": "Enum state machine of the collector recording lifecycle (idle, streaming(target), overnightStreaming, deviceRecording, paused(id), analyzing, awaitingAcceptance) with a description used in logs and the persisted recording state; the doc lists the transitions the code makes.",
  "types": [
   "RecordingPhase: enum — recording lifecycle state, Equatable, CustomStringConvertible"
  ],
@@ -9,61 +9,6 @@
  "toplevel": "",
  "flags": [],
  "units": [
-  {
-   "key": "var RecordingPhase.isRecording",
-   "hash": "de1995de126ce388",
-   "does": "True for .streaming, .overnightStreaming and .deviceRecording; false otherwise.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "case streaming/overnightStreaming/deviceRecording",
-     "effect": "true"
-    },
-    {
-     "at": "+4",
-     "cond": "default",
-     "effect": "false"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No caller anywhere in the repo, app or tests (grep '[Pp]hase?.isRecording' finds none).",
-     "evidence": [
-      "Emuqu/Sources/Collection/RecordingPhase.swift:22"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
-  },
-  {
-   "key": "var RecordingPhase.isActive",
-   "hash": "aebcfc1a8e1fe4e2",
-   "does": "True when the phase is not .idle.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No caller in the repo, app or tests; other '.isActive' hits are TrialPolicy/audio session types.",
-     "evidence": [
-      "Emuqu/Sources/Collection/RecordingPhase.swift:31"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
-  },
   {
    "key": "var RecordingPhase.description",
    "hash": "7dbe0d4bbabc03a6",

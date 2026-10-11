@@ -1,10 +1,10 @@
 {
  "file": "Emuqu/Sources/Analysis/LiveReadiness.swift",
- "hash": "66814b8431f57c9d",
+ "hash": "8142c45f44cce191",
  "role": "Pure value type computing the dashboard hero's live training readiness from the frozen morning recovery score plus live training metrics, with narrative headline/loop-card copy; also WorkoutDescriptor (marquee workout phrase) and its localized copy table.",
  "types": [
-  "LiveReadiness: struct — live readiness result + headline/loopCardText",
-  "LiveReadiness.InterpolatedLoad: struct — morning→live interpolated ATL/CTL/ACR + freshness anchor",
+  "LiveReadiness: struct — live readiness result (score, morning recovery, morning-anchor readiness, drift flags) + headline/loopCardText",
+  "LiveReadiness.InterpolatedLoad: struct — morning→live interpolated ATL/CTL/ACR + freshness anchor + the frozen morning ATL/CTL",
   "WorkoutDescriptor: struct — type/duration/intensity/TRIMP of today's main workout",
   "WorkoutDescriptorCopy: enum — NarrativeLanguage translations of descriptor words"
  ],
@@ -12,40 +12,19 @@
   "mem:WorkoutDescriptor.maxNarrativeDurationMinutes=360 (private static)"
  ],
  "toplevel": "Memberwise inits only; no globals.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "med",
-   "text": "recentWorkoutLoads is documented as a 72h lookback so fatigue 'decays smoothly across midnight rather than cliffing when todayTrimp resets', but compute only passes it when live.todayTrimp > 0; on a day with no workout yet the acute-fatigue term is todayTrimp*0.35 = 0, so last night's workout fatigue drops to zero at midnight — the cliff the doc says is removed.",
-   "evidence": [
-    "Emuqu/Sources/Analysis/LiveReadiness.swift:81",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift:233",
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift:49",
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift:163"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Comment says the today-branch mirrors RecoveryDashboardView.computeTrainingReadiness, which does not exist anywhere in the repo.",
-   "evidence": [
-    "Emuqu/Sources/Analysis/LiveReadiness.swift:154"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)",
-   "hash": "99af39a4e8a3f443",
-   "does": "Entry: computes LiveReadiness from the morning recovery score (0-100), the morning HRVSession and live TrainingMetrics. Hours since morning anchor on session end/start/now; without metrics returns the morning score unchanged; with metrics interpolates ATL/CTL, passes 72h workout loads only if todayTrimp > 0, and runs the readiness model. Called by MorningResultsViewModel.swift:329 and DashboardV2View.swift:205.",
+   "hash": "1e7b629942a36a9c",
+   "does": "Entry: computes LiveReadiness from the morning recovery score (0-100), the morning HRVSession and live TrainingMetrics. Hours since morning anchor on session end/start/now; without metrics returns the morning score unchanged; with metrics interpolates ATL/CTL, takes the workout loads since the start of the morning reading's calendar day (workouts before it are carried by the frozen morning ATL, so they get no acute-fatigue term on any day; later ones keep decaying across midnight until the next reading), and runs the readiness model. Called by MorningResultsViewModel.todayReadiness and DashboardV2View.liveReadiness.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningOnly(recoveryScore:hoursSinceMorning:)",
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.interpolatedLoad(morningSession:live:hoursSinceMorning:)",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.recentWorkoutLoads(from:now:)",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.readiness(recoveryScore:hoursSinceMorning:live:interpolated:recentLoads:now:)"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.workoutLoads(from:since:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.readiness(recoveryScore:hoursSinceMorning:live:interpolated:recentLoads:now:)",
+    "ext:Calendar.startOfDay(for:)"
    ],
    "reads": [],
    "writes": [],
@@ -59,30 +38,9 @@
      "at": "+8",
      "cond": "liveMetrics nil",
      "effect": "return morningOnly (score == recoveryScore, no drift)"
-    },
-    {
-     "at": "+18",
-     "cond": "live.todayTrimp > 0",
-     "effect": "recentLoads = 72h WorkoutLoads; else nil, so acute fatigue falls back to todayTrimp*0.35 = 0 (yesterday's workout contributes no acute fatigue)"
     }
    ],
    "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "As soon as todayTrimp > 0 (even a 5-min walk), recentLoads switches from nil to every workout in the last 72 h, including yesterday's, which the 7-day ATL already carries. The comment at 77-80 says that double count is what the gate avoids. Example: a 200-TRIMP run 20 h ago adds 200*exp(-20/24)*0.30 ≈ 26 to effectiveLoad the moment any workout is logged today, so readiness steps down by much more than the new workout's own load. LiveReadinessTests only asserts rest >= active - 1, so this step passes.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/LiveReadiness.swift:77",
-      "Emuqu/Sources/Analysis/LiveReadiness.swift:81",
-      "Emuqu/Sources/Analysis/LiveReadiness.swift:236",
-      "Emuqu/Sources/Analysis/LiveReadiness.swift:241",
-      "Emuqu/Sources/Analysis/ReadinessScoring.swift:156",
-      "Emuqu/Sources/Analysis/ReadinessScoring.swift:161",
-      "EmuquTests/LiveReadinessTests.swift:164",
-      "EmuquTests/LiveReadinessTests.swift:177"
-     ],
-     "found": "second read"
-    },
     {
      "kind": "duplicate",
      "sev": "low",
@@ -96,20 +54,22 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.interpolatedLoad(morningSession:live:hoursSinceMorning:)": "a268de40200cac36",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningOnly(recoveryScore:hoursSinceMorning:)": "00db02b971ecf34f",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.readiness(recoveryScore:hoursSinceMorning:live:interpolated:recentLoads:now:)": "9738da9ea0818aa6",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.recentWorkoutLoads(from:now:)": "09392256797550a2"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.interpolatedLoad(morningSession:live:hoursSinceMorning:)": "9177220142f1a5bd",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningOnly(recoveryScore:hoursSinceMorning:)": "8667949d1f70f899",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.readiness(recoveryScore:hoursSinceMorning:live:interpolated:recentLoads:now:)": "64819d6a737c3eda",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.workoutLoads(from:since:now:)": "5be6152f2133c2ea",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
    }
   },
   {
    "key": "func LiveReadiness.readiness(recoveryScore:hoursSinceMorning:live:interpolated:recentLoads:now:)",
-   "hash": "34158c4b6b153203",
-   "does": "Runs RecoveryScoreCalculator.calculateReadiness on the interpolated load and builds the result: raw acute fatigue, ACR, gate load, pulled-down / lifted flags (>=3 point difference) and today's primary workout.",
+   "hash": "5112af7eb0a8fde2",
+   "does": "Runs RecoveryScoreCalculator.calculateReadiness on the interpolated load and the given workout loads, computes morningReadiness (the model at the frozen morning snapshot with no training) and builds the result: raw acute fatigue (ReadinessScoring.rawAcuteFatigue), ACR, gate load, pulled-down / lifted flags (score at least 3 points below / above morningReadiness, so a model-vs-recovery gap already present at the reading does not set them) and today's primary workout.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.computeRawAcuteFatigue(todayTrimp:recentLoads:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningReadiness(recoveryScore:interpolated:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.rawAcuteFatigue(todayTrimp:recentWorkoutLoads:)",
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.gateLoad(interpolated:live:now:)",
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.todayPrimary(from:now:)"
    ],
@@ -124,36 +84,20 @@
      "effect": "pick from live.recentWorkouts (still filtered to today by todayPrimary); else todayWorkouts"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "pulledDownByTodaysTraining and liftedByRecovery only test whether score and recoveryScore differ by at least 3. They do not check training or elapsed time. The readiness model differs from the recovery score even at hour 0 on a rest day. Example: recovery 60, CTL 40, ATL 30 (snapshot = live) gives ratio 0.75 → 85.9, modulated to 60 + 25.9*0.55 = 74.2. liftedByRecovery is then true right after the morning reading, and the headline says 'Fatigue is dissipating through the day — readiness is up about 14 from this morning'. The doc at 34-40 says these flags mean today's training or dissipation since morning.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/LiveReadiness.swift:34",
-      "Emuqu/Sources/Analysis/LiveReadiness.swift:38",
-      "Emuqu/Sources/Analysis/LiveReadiness.swift:108",
-      "Emuqu/Sources/Analysis/LiveReadiness.swift:109",
-      "Emuqu/Sources/Analysis/LiveReadiness.swift:205",
-      "Emuqu/Sources/Analysis/ReadinessScoring.swift:184",
-      "Emuqu/Sources/Analysis/ReadinessScoring.swift:313",
-      "Emuqu/Sources/Analysis/ReadinessScoring.swift:314"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.computeRawAcuteFatigue(todayTrimp:recentLoads:)": "4e589efe236e197c",
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.gateLoad(interpolated:live:now:)": "dbe0742e4ba67153",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningReadiness(recoveryScore:interpolated:)": "39b7dcf4fc1e9db9",
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.todayPrimary(from:now:)": "9fd2ee2afbbf8c94",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.rawAcuteFatigue(todayTrimp:recentWorkoutLoads:)": "c683041167634eaa",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa",
     "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
    }
   },
   {
    "key": "func LiveReadiness.morningOnly(recoveryScore:hoursSinceMorning:)",
-   "hash": "676fb1edbad8b77c",
-   "does": "Returns a LiveReadiness equal to the morning recovery score with zero load fields and no advice load.",
+   "hash": "e94fce6a4e540224",
+   "does": "Returns a LiveReadiness whose score, morningRecovery and morningReadiness all equal the morning recovery score, with zero load fields, no advice load and both drift flags false.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -180,16 +124,38 @@
    }
   },
   {
+   "key": "func LiveReadiness.morningReadiness(recoveryScore:interpolated:)",
+   "hash": "5cd08373100816ee",
+   "does": "Readiness at the morning anchor: RecoveryScoreCalculator.calculateReadiness with the frozen morning ATL/CTL (InterpolatedLoad.morningATL/morningCTL), todayTrimp 0, no workout loads, morningATL = ATL (no freshness bonus) and ACR = ATL/CTL — the same inputs ReanalysisService.computeFrozenReadiness freezes. Equals the live score at hour 0 when nothing was trained since the anchor.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "morning CTL > 0",
+     "effect": "ACR = ATL/CTL; else nil (no ACWR penalty)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa"
+   }
+  },
+  {
    "key": "func LiveReadiness.interpolatedLoad(morningSession:live:hoursSinceMorning:)",
-   "hash": "b69402b3625d31fb",
-   "does": "Interpolates ATL and CTL linearly from the session's frozen training snapshot (or analysisResult.trainingContext) to live values by hours/24 (clamped 0..1), computes ACR, and picks morning ATL as freshness anchor unless a full day has passed.",
+   "hash": "e760e9d395ae6592",
+   "does": "Interpolates ATL and CTL linearly from the session's frozen training snapshot (or analysisResult.trainingContext) to live values by hours/24 (clamped 0..1), computes ACR, picks morning ATL as freshness anchor unless a full day has passed, and carries the frozen morning ATL/CTL for morningReadiness.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+5",
+     "at": "+6",
      "cond": "trainingSnapshot nil (?? fallback)",
      "effect": "use analysisResult.trainingContext; both nil → morningContext nil"
     },
@@ -234,8 +200,8 @@
   },
   {
    "key": "var LiveReadiness.headline",
-   "hash": "64fdec583a8544ce",
-   "does": "Headline sentence in NarrativeLanguage: names today's primary workout when readiness was pulled down, a generic 'recent training' line when pulled down without one, a 'fatigue dissipating' line when lifted, else the stock readiness message for score/10 with the advice load.",
+   "hash": "f083d34828f269a6",
+   "does": "Headline sentence in NarrativeLanguage: names today's primary workout when readiness was pulled down, a generic 'recent training' line when pulled down without one, a 'fatigue dissipating' line when lifted (drop/lift measured from morningReadiness), else the stock readiness message for score/10 with the advice load.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/LiveReadiness.swift::var WorkoutDescriptor.phrase",
@@ -263,19 +229,9 @@
      "effect": "'Fatigue is dissipating...up about N'; else ReadinessScoring.readinessMessage"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Comment says a pull-down without a today workout is yesterday's training 'decaying out via the 24h acute-fatigue term', but compute passes no workout loads when todayTrimp == 0, so that term is 0 on such days; the drop comes from ACWR penalty or recovery modulation instead.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/LiveReadiness.swift:200",
-      "Emuqu/Sources/Analysis/LiveReadiness.swift:81"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningReadiness(recoveryScore:interpolated:)": "39b7dcf4fc1e9db9",
     "Emuqu/Sources/Analysis/LiveReadiness.swift::var WorkoutDescriptor.phrase": "27d5529f8df02124",
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessMessage(for:load:)": "11a51846fa10aee7",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
@@ -353,33 +309,34 @@
    }
   },
   {
-   "key": "func LiveReadiness.computeRawAcuteFatigue(todayTrimp:recentLoads:)",
-   "hash": "35acc44a31542555",
-   "does": "Raw acute fatigue for the panel: sum of trimp*exp(-hoursAgo/24) over recent loads, or todayTrimp when none.",
+   "key": "func LiveReadiness.workoutLoads(from:since:now:)",
+   "hash": "b362ad9825016bf8",
+   "does": "recentWorkoutLoads(from:now:) (72 h, positive load) narrowed to workouts whose hoursAgo is at most the hours since `anchor` (the start of the morning reading's day); nil when none remain.",
    "entry": null,
-   "calls": [],
-   "reads": [],
+   "calls": [
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.recentWorkoutLoads(from:now:)"
+   ],
+   "reads": [
+    "mem:WorkoutLoadRestingHR.lastAppleValue",
+    "mem:SettingsManager.settingsSnapshot (via userScaledLoad)"
+   ],
    "writes": [],
    "branches": [
     {
-     "at": "+4",
-     "cond": "recentLoads nil or empty",
-     "effect": "return todayTrimp (undecayed)"
-    }
-   ],
-   "flags": [
+     "at": "+6",
+     "cond": "recentWorkoutLoads nil",
+     "effect": "empty list"
+    },
     {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Re-implements the raw-sum half of ReadinessScoring.computeAcuteFatigue (same tau, same formula) instead of sharing it.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/LiveReadiness.swift:263",
-      "Emuqu/Sources/Analysis/ReadinessScoring.swift:158"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+7",
+     "cond": "no load on or after the anchor",
+     "effect": "return nil; else the filtered loads"
     }
    ],
-   "deps": {}
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.recentWorkoutLoads(from:now:)": "09392256797550a2"
+   }
   },
   {
    "key": "var WorkoutDescriptor.phrase",
@@ -398,7 +355,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.intensityWord(for:)": "28604ff2abf17c07",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.intensityWord(for:)": "fed959549d338e09",
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.typeLabel(for:)": "c3253d96ae9c9089",
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.activity(_:)": "c846ec7c0f8921fb",
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.intensity(_:)": "03b90942a0e14fdd",
@@ -433,7 +390,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.intensityWord(for:)": "28604ff2abf17c07",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.intensityWord(for:)": "fed959549d338e09",
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.typeLabel(for:)": "c3253d96ae9c9089",
     "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var HealthKitManager.WorkoutSummary.userScaledLoad": "919b0c34f3cd4748",
     "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
@@ -542,18 +499,7 @@
      "effect": "'hard'; else 'very hard'"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Comment says the boundaries match ReadinessExplainView.todayTrainingTint 'so the colour and the word always agree', but the tint buckets total todayTrimp while the word buckets only the primary workout's TRIMP; with two workouts they disagree.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/LiveReadiness.swift:360",
-      "Emuqu/Sources/Views/ReadinessExplainView.swift:183"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {

@@ -60,13 +60,14 @@ extension MainTabView {
     }
 
     /// One trailing reload at the end of the 50 ms window; further requests in
-    /// the window ride on it.
+    /// the window ride on it. Tracked by its own flag, so it never clears (or
+    /// is blocked by) the in-flight load's trailing-reload request.
     func scheduleDebouncedDashboardReload() {
-        guard !dashboardReloadPending else { return }
-        dashboardReloadPending = true
+        guard !dashboardReloadDebounceScheduled else { return }
+        dashboardReloadDebounceScheduled = true
         Task {
             await sleepQuietly(50_000_000, context: "dashboard reload debounce")
-            dashboardReloadPending = false
+            dashboardReloadDebounceScheduled = false
             reloadDashboardSessions()
         }
     }
@@ -196,26 +197,6 @@ extension MainTabView {
         dependencies.assistant.assistantInbox.requestOpen()
     }
 
-    func deleteSession(_ session: HRVSession) {
-        do {
-            try collector.archive.delete(session.id)
-            collector.notifyArchiveChanged()
-            // Sync deletion to iCloud
-            Task { await dependencies.storage.cloudKitSyncManager.uploadDeletion(session.id) }
-        } catch {
-            debugLog("Failed to delete session: \(error)")
-        }
-    }
-
-    func updateTags(session: HRVSession, tags: [ReadingTag], notes: String?) {
-        do {
-            try collector.archive.updateTags(session.id, tags: tags, notes: notes)
-            collector.notifyArchiveChanged()
-        } catch {
-            debugLog("Failed to update tags: \(error)")
-        }
-    }
-
     func reanalyzeSession(_ session: HRVSession, method: WindowSelectionMethod) async -> HRVSession? {
         // ReanalysisService calls `onArchiveChanged` which bumps
         // `RRCollector.archiveVersion`. Dashboard, TrendView, and the
@@ -270,7 +251,7 @@ extension MainTabView {
         Task.detached(priority: .userInitiated) {
             let outcome = await Self.renderReport(
                 kind: kind,
-                inputs: Self.withFullSessions(inputs),
+                inputs: Self.withFullSessions(inputs, kind: kind),
                 liveLoadSnapshot: await TrainingLoadRegistry.liveRefreshed()
             )
             await MainActor.run { finishReportPreparation(outcome) }

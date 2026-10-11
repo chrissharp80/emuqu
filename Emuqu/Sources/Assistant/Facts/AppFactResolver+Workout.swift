@@ -32,6 +32,21 @@ struct WorkoutNamespace: FactNamespaceResolver {
         return entry.flatMap { archive.retrieveLightweightOrLog($0.sessionId) }
     }
 
+    /// The answer when `sessionByDate(iso)` finds nothing: a malformed
+    /// date is the caller's error, a workout that is indexed for the day
+    /// but cannot be read is a read failure, and only otherwise did the
+    /// user not work out that day.
+    func noWorkout(on iso: String) -> FactValue {
+        guard let target = FactLocalDay.formatter().date(from: iso) else {
+            return .missing(reason: .invalidParameter, detail: "expected yyyy-MM-dd, got '\(iso)'")
+        }
+        let cal = Calendar.current
+        guard workoutEntries().contains(where: { cal.isDate($0.date, inSameDayAs: target) }) else {
+            return .missing(reason: .notRecorded, detail: "no workout on \(iso)")
+        }
+        return .missing(reason: .internalError, detail: "the workout on \(iso) is in the archive index but couldn't be read")
+    }
+
     func sessionByOrdinal(_ n: Int) -> HRVSession? {
         let entries = workoutEntries()
         guard n >= 0, n < entries.count else { return nil }
@@ -49,7 +64,8 @@ struct WorkoutNamespace: FactNamespaceResolver {
 
     /// Workouts in the period named by `raw`. Same vocabulary as
     /// `walks.list($period)` etc. (`PeriodParser`) so the AI doesn't have
-    /// to learn two different period grammars.
+    /// to learn two different period grammars. An unknown period gives [];
+    /// callers reject it first with `PeriodParser.invalidPeriod`.
     func entriesInPeriod(_ raw: String) -> [SessionArchiveEntry] {
         guard let interval = PeriodParser.interval(for: raw) else { return [] }
         return workoutEntries().filter { interval.containsBeforeEnd($0.date) }
@@ -163,7 +179,8 @@ struct WorkoutNamespace: FactNamespaceResolver {
                 """,
             availability: { self.workoutAvailability() },
             resolve: { param, tail in
-                SessionNamespace.resolveSessionField(self.sessionByDate(param), tail: tail)
+                guard let session = self.sessionByDate(param) else { return self.noWorkout(on: param) }
+                return SessionNamespace.resolveSessionField(session, tail: tail)
             }
         )
     }
@@ -179,6 +196,7 @@ struct WorkoutNamespace: FactNamespaceResolver {
             """,
             availability: { self.workoutAvailability() },
             resolve: { param, _ in
+                if let invalid = PeriodParser.invalidPeriod(param) { return invalid }
                 let sessions = self.entriesInPeriod(param).compactMap { self.archive.retrieveLightweightOrLog($0.sessionId) }
                 if sessions.isEmpty {
                     return .missing(reason: .notRecorded, detail: "no workouts in \(param)")
@@ -195,7 +213,7 @@ struct WorkoutNamespace: FactNamespaceResolver {
             description: "How many workouts the user did in the period. Cheap; call this first when you only need a count or to gate a list call. Period vocabulary same as workout.list.",
             availability: { self.workoutAvailability() },
             resolve: { param, _ in
-                .integer(self.entriesInPeriod(param).count)
+                PeriodParser.invalidPeriod(param) ?? FactValue.integer(self.entriesInPeriod(param).count)
             }
         )
     }
@@ -211,6 +229,7 @@ struct WorkoutNamespace: FactNamespaceResolver {
     }
 
     private func resolveWorkoutRecentPeriod(_ param: String) -> FactValue {
+        if let invalid = PeriodParser.invalidPeriod(param) { return invalid }
         let sessions = self.entriesInPeriod(param).compactMap { self.archive.retrieveLightweightOrLog($0.sessionId) }
         if sessions.isEmpty {
             return .missing(reason: .notRecorded, detail: "no workouts in \(param)")
@@ -267,9 +286,16 @@ struct WorkoutNamespace: FactNamespaceResolver {
             .map { .record(["sport": .string($0.key), "count": .integer($0.value)]) }
     }
 
+    /// Hardest = highest heart-rate TRIMP, among the workouts that have one;
+    /// without any, there is no basis to call one the hardest.
     private func addHardestWorkout(_ record: inout [String: FactValue], sessions: [HRVSession]) {
-        let hardest = sessions.max { ($0.workoutMetadata?.luciaTRIMP ?? 0) < ($1.workoutMetadata?.luciaTRIMP ?? 0) }
-        guard let h = hardest else { return }
+        let hardest = sessions
+            .filter { $0.workoutMetadata?.luciaTRIMP != nil }
+            .max { ($0.workoutMetadata?.luciaTRIMP ?? 0) < ($1.workoutMetadata?.luciaTRIMP ?? 0) }
+        guard let h = hardest else {
+            record["hardest_workout"] = .missing(reason: .notRecorded, detail: "no workout in the period has heart-rate TRIMP")
+            return
+        }
         record["hardest_workout"] = .record([
             "date": .string(FactValue.localISO8601(h.startDate)),
             "sport": .from(h.workoutMetadata?.sport.displayName),
@@ -315,9 +341,7 @@ struct WorkoutNamespace: FactNamespaceResolver {
             description: "1-minute heart rate recovery drop (bpm) for a workout on a given date. Best-of-provenance (strap > Watch > HealthKit).",
             availability: { self.workoutAvailability() },
             resolve: { param, _ in
-                guard let session = self.sessionByDate(param) else {
-                    return .missing(reason: .notRecorded, detail: "no workout on \(param)")
-                }
+                guard let session = self.sessionByDate(param) else { return self.noWorkout(on: param) }
                 guard let drop = session.workoutMetadata?.hrrSamples?.bestAtOneMinute?.drop else {
                     return .missing(reason: .notRecorded, detail: "no 1-min HRR sample captured")
                 }
@@ -333,9 +357,7 @@ struct WorkoutNamespace: FactNamespaceResolver {
             description: "2-minute heart rate recovery drop (bpm) for a workout on a given date.",
             availability: { self.workoutAvailability() },
             resolve: { param, _ in
-                guard let session = self.sessionByDate(param) else {
-                    return .missing(reason: .notRecorded, detail: "no workout on \(param)")
-                }
+                guard let session = self.sessionByDate(param) else { return self.noWorkout(on: param) }
                 guard let drop = session.workoutMetadata?.hrrSamples?.bestAtTwoMinutes?.drop else {
                     return .missing(reason: .notRecorded, detail: "no 2-min HRR sample captured")
                 }
@@ -348,12 +370,10 @@ struct WorkoutNamespace: FactNamespaceResolver {
         .parameterized(
             pattern: "workout.power.avg.by_date($date)",
             paramExample: "2026-04-21",
-            description: "Average power (watts) for a workout on a given date. Requires a connected power-capable foot pod.",
+            description: "Average power (watts) for a workout on a given date. Recorded when a power source was connected: a power-capable foot pod, a Concept2 PM5 rower or an FTMS bike trainer.",
             availability: { self.workoutAvailability() },
             resolve: { param, _ in
-                guard let session = self.sessionByDate(param) else {
-                    return .missing(reason: .notRecorded, detail: "no workout on \(param)")
-                }
+                guard let session = self.sessionByDate(param) else { return self.noWorkout(on: param) }
                 return .from(session.workoutMetadata?.averagePowerWatts, detail: "no power data captured")
             }
         )
@@ -366,9 +386,7 @@ struct WorkoutNamespace: FactNamespaceResolver {
             description: "Normalized power (watts) for a workout on a given date — 4th-root-mean-4th-power smoothing, TrainingPeaks convention.",
             availability: { self.workoutAvailability() },
             resolve: { param, _ in
-                guard let session = self.sessionByDate(param) else {
-                    return .missing(reason: .notRecorded, detail: "no workout on \(param)")
-                }
+                guard let session = self.sessionByDate(param) else { return self.noWorkout(on: param) }
                 return .from(session.workoutMetadata?.normalizedPowerWatts, detail: "no power data captured")
             }
         )
@@ -381,9 +399,7 @@ struct WorkoutNamespace: FactNamespaceResolver {
             description: "Peak instantaneous power (watts) observed during a workout on a given date.",
             availability: { self.workoutAvailability() },
             resolve: { param, _ in
-                guard let session = self.sessionByDate(param) else {
-                    return .missing(reason: .notRecorded, detail: "no workout on \(param)")
-                }
+                guard let session = self.sessionByDate(param) else { return self.noWorkout(on: param) }
                 return .from(session.workoutMetadata?.peakPowerWatts, detail: "no power data captured")
             }
         )
@@ -396,10 +412,9 @@ struct WorkoutNamespace: FactNamespaceResolver {
             description: "Power-based training load for a workout on a given date: (NP/FTP)² × duration_hours × 100, Coggan's power model. 100 = 1 hour at FTP. Requires the user to have set their FTP for the workout's sport.",
             availability: { self.workoutAvailability() },
             resolve: { param, _ in
-                guard let session = self.sessionByDate(param) else {
-                    return .missing(reason: .notRecorded, detail: "no workout on \(param)")
-                }
-                return .from(session.workoutMetadata?.powerTSS, detail: "FTP not set for this workout's sport — power-based training load skipped")
+                guard let session = self.sessionByDate(param) else { return self.noWorkout(on: param) }
+                return session.workoutMetadata?.powerTSS.map(FactValue.double)
+                    ?? Self.ftpMetricMissing(session.workoutMetadata, skipped: "power-based training load")
             }
         )
     }
@@ -411,12 +426,20 @@ struct WorkoutNamespace: FactNamespaceResolver {
             description: "Intensity Factor (IF) for a workout on a given date. NP / FTP. 1.00 = at-threshold for the duration; > 1.05 sustained is unsustainable; < 0.75 is recovery / endurance pace.",
             availability: { self.workoutAvailability() },
             resolve: { param, _ in
-                guard let session = self.sessionByDate(param) else {
-                    return .missing(reason: .notRecorded, detail: "no workout on \(param)")
-                }
-                return .from(session.workoutMetadata?.intensityFactor, detail: "FTP not set for this workout's sport")
+                guard let session = self.sessionByDate(param) else { return self.noWorkout(on: param) }
+                return session.workoutMetadata?.intensityFactor.map(FactValue.double)
+                    ?? Self.ftpMetricMissing(session.workoutMetadata, skipped: "intensity factor")
             }
         )
+    }
+
+    /// Why an FTP-based figure is absent: no power was recorded, or the
+    /// workout's sport has no FTP (not set, or a sport without one).
+    private static func ftpMetricMissing(_ meta: WorkoutMetadata?, skipped: String) -> FactValue {
+        guard meta?.normalizedPowerWatts != nil else {
+            return .missing(reason: .notRecorded, detail: "no power data captured")
+        }
+        return .missing(reason: .notRecorded, detail: "no FTP for this workout's sport (not set, or the sport has none) — \(skipped) skipped")
     }
 
     private var workoutPowerVariabilityByDateDateEntry: FactEntry {
@@ -426,9 +449,7 @@ struct WorkoutNamespace: FactNamespaceResolver {
             description: "Variability Index (VI) for a workout on a given date. NP / Avg Power. ~1.00 = perfectly steady (TT, flat course); > 1.10 = real surges (intervals, rolling terrain). Tells the user whether their NP came from a steady push or from spikes.",
             availability: { self.workoutAvailability() },
             resolve: { param, _ in
-                guard let session = self.sessionByDate(param) else {
-                    return .missing(reason: .notRecorded, detail: "no workout on \(param)")
-                }
+                guard let session = self.sessionByDate(param) else { return self.noWorkout(on: param) }
                 return .from(session.workoutMetadata?.variabilityIndex, detail: "no power data captured")
             }
         )

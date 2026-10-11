@@ -107,7 +107,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.withAutoScroll(_:proxy:)": "ff074b025aad0dc1",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.withAutoScroll(_:proxy:)": "3a1df4430a25b85c",
     "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.withScrollReporting(_:)": "6b57a0609d5e3459",
     "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.transcript": "6f892b798379aa91"
    }
@@ -148,26 +148,35 @@
   },
   {
    "key": "func AssistantChatView.withAutoScroll(_:proxy:)",
-   "hash": "8d2a7b1849913efb",
-   "does": "Attaches scroll triggers: last-turn text change → throttled streamed scroll; turn count change and tab re-tap signal → animated jump to bottom; voice state change → scrollForVoiceState; viewport height change → scrollForViewportResize; .task scrolls to 'bottom' and pins on first appear.",
+   "hash": "a180b61210bf91d5",
+   "does": "Attaches scroll triggers: last-turn text change → throttled streamed scroll; turn count change and tab re-tap signal → animated jump to bottom; voice state change → scrollForVoiceState; viewport height change → scrollForViewportResize; .task scrolls to 'bottom' and pins on first appear. When a stream ends (isStreaming → false) scrollAfterStreamEnds catches up a tail the throttle skipped.",
    "entry": "onChange observers + .task on appear",
    "calls": [
     "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.scrollForStreamedToken(_:)",
     "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.jumpToBottom(_:)",
     "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.scrollForVoiceState(_:)",
     "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.scrollForViewportResize(_:)",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voice"
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voice",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.scrollAfterStreamEnds(_:)"
    ],
    "reads": [
     "mem:AssistantViewModel.turns",
-    "mem:VoiceConversationController.state"
+    "mem:VoiceConversationController.state",
+    "mem:AssistantViewModel.isStreaming"
    ],
    "writes": [],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "isStreaming turned false",
+     "effect": "scrollAfterStreamEnds"
+    }
+   ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.jumpToBottom(_:)": "10369ec743169785",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.scrollForStreamedToken(_:)": "d98fdda37371eeb3",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.scrollAfterStreamEnds(_:)": "c24146d2cc243a3e",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.scrollForStreamedToken(_:)": "0fbcb4874b7bda43",
     "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.scrollForViewportResize(_:)": "1a56ee15df18fca1",
     "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.scrollForVoiceState(_:)": "3bf34f2240becc7e",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "7a67d165d99e9732",
@@ -212,17 +221,25 @@
      "effect": "scrolls and updates timestamp; else return (throttled)"
     }
    ],
-   "flags": [
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AssistantChatView.scrollAfterStreamEnds(_:)",
+   "hash": "bfa88bee894c5016",
+   "does": "When pinned to the bottom, stamps lastStreamingScrollAt and scrolls (no animation) to 'bottom', so the final streamed text dropped by the 250 ms throttle becomes visible.",
+   "entry": "onChange(of: viewModel.isStreaming) to false",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
     {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Throttle drops the final token update when it arrives <250 ms after the previous scroll and no later text change follows, so the tail of a streamed reply can stay below the fold until turn count/viewport changes.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift:128"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+1",
+     "cond": "isPinnedToBottom",
+     "effect": "scroll; else return"
     }
    ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -370,15 +387,15 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.chatBubble(_:isLast:)": "2baf8fbbd695fcc7",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.chatBubble(_:isLast:)": "81789b5af0a6d18b",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "7a67d165d99e9732",
     "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "1f6afb21d0621d1d"
    }
   },
   {
    "key": "func AssistantChatView.chatBubble(_:isLast:)",
-   "hash": "6a658bf854db110d",
-   "does": "Builds an equatable ChatBubble wired to remember (UserFactsStore.add via viewModel.remember), copy, regenerate (only for the last non-localOnly assistant turn while not streaming), email and share; id = turn.id.",
+   "hash": "083efbf80dae7ff3",
+   "does": "Builds an equatable ChatBubble wired to remember (UserFactsStore.add via viewModel.remember), copy, regenerate (only for the last non-localOnly assistant turn while not streaming), email and share; Remember and Copy take displayedText (phonetic markup stripped); id = turn.id.",
    "entry": "SwiftUI view body evaluation; closures fire from bubble context menu",
    "calls": [
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::init ChatBubble(turn:onRemember:onCopy:onRegenerate:onSendEmail:onShare:)",
@@ -387,7 +404,8 @@
     "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.copyToPasteboard(_:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.regenerateLast()",
     "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.presentEmail(for:)",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.presentShare(for:)"
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.presentShare(for:)",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.displayedText(of:)"
    ],
    "reads": [
     "mem:AssistantViewModel.isStreaming"
@@ -406,19 +424,6 @@
    ],
    "flags": [
     {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Remember, Copy, Email and Share pass raw turn.text, which still contains the [[word|IPA]] phonetic markup and Markdown that the bubble strips for display (ChatBubble.renderedText uses PhoneticOverrides.stripForDisplay); copied/shared/remembered text can contain IPA hints the user never saw.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift:252",
-      "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift:253",
-      "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift:555",
-      "Emuqu/Sources/Assistant/Views/ChatBubble.swift:369",
-      "Emuqu/Sources/Assistant/PhoneticOverrides.swift:118"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
      "kind": "data-loss",
      "sev": "low",
      "text": "'Remember this' stores the whole bubble text as one fact with no confirmation; UserFactsStore.add caps the list at 25 and silently drops the oldest facts when the cap is exceeded, so remembering a reply can evict a user-entered fact without notice.",
@@ -431,11 +436,12 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.regenerateLast()": "47a75c0ec9eb6663",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.regenerateLast()": "4f93eee07886188a",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.remember(_:)": "506c19f0da1fa572",
     "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.copyToPasteboard(_:)": "8aebc966c499b0a4",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.presentEmail(for:)": "0b56146faf03d1b4",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.presentShare(for:)": "ad3d72388685edbb",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.displayedText(of:)": "091715524425980c",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.presentEmail(for:)": "9de0ec21b5de8935",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.presentShare(for:)": "d675619e77c9df1f",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "7a67d165d99e9732",
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::init ChatBubble(turn:onRemember:onCopy:onRegenerate:onSendEmail:onShare:)": "a91ce7f4e9fc268c"
    }
@@ -469,6 +475,22 @@
     "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.explainCaptureBlock()": "08ddad3878a88e34",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
     "Emuqu/Sources/Views/Utilities/PasteboardWriter.swift::func PasteboardWriter.copy(_:)": "2f4d0808edab28a1"
+   }
+  },
+  {
+   "key": "func AssistantChatView.displayedText(of:)",
+   "hash": "7e8e4bedcd2e9cde",
+   "does": "Static: a turn's text with [[word|IPA]] phonetic markup stripped (PhoneticOverrides.stripForDisplay) — what its bubble shows; used for Remember, Copy, Email and Share.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.stripForDisplay(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.stripForDisplay(_:)": "119339496bdd7dc0"
    }
   },
   {
@@ -530,7 +552,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.conversationEmptyState": "cd4a294fd699ece5",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.conversationEmptyState": "2fbbbb536b0b5363",
     "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.inputMode": "c5d8f59d7156e2ea"
    }
   },
@@ -558,72 +580,52 @@
   },
   {
    "key": "var AssistantChatView.conversationEmptyState",
-   "hash": "1c669790bde1a252",
-   "does": "Reads the live workout snapshot from LiveWorkoutBroker at render time and shows icon (figure.run vs sparkles), workout-aware title/body and the last error.",
+   "hash": "2d000402e9bb87ff",
+   "does": "A TimelineView refreshing every 5 s that re-reads the live workout snapshot from LiveWorkoutBroker (not observable) and renders conversationEmptyStateContent, so starting or ending a workout while the empty chat is on screen updates it.",
    "entry": "SwiftUI view body evaluation",
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.liveWorkoutBroker",
     "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSnapshot()",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.workoutAwareTitle(for:)",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.workoutAwareBody(for:)",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.emptyStateError"
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.conversationEmptyStateContent(_:)",
+    "ext:TimelineView(.periodic)"
    ],
    "reads": [
     "mem:LiveWorkoutBroker.state.snapshot"
    ],
    "writes": [],
-   "branches": [
-    {
-     "at": "+3",
-     "cond": "a live workout snapshot exists (non-stale)",
-     "effect": "'figure.run' icon; else 'sparkles'"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "LiveWorkoutBroker is a lock-protected non-observable store, so the empty state only re-reads it when something else re-renders the view; starting or ending a workout while the empty chat is on screen leaves the old title/body.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift:341",
-      "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift:85"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "branches": [],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSnapshot()": "a50b1a67daa97277",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.workoutAwareBody(for:)": "d14bb601e5d10a7b",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.workoutAwareTitle(for:)": "8837da199cf33004",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.emptyStateError": "ba270e8d1d7d1d61",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.conversationEmptyStateContent(_:)": "d26483f1f0a6ed05",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.liveWorkoutBroker": "e05e91154e3e8f2d",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.liveWorkoutBroker": "e05e91154e3e8f2d"
    }
   },
   {
-   "key": "var AssistantChatView.emptyStateError",
-   "hash": "07071e3072bb71c2",
-   "does": "Shows viewModel.errorMessage in red under the empty state when set.",
-   "entry": "SwiftUI view body evaluation",
+   "key": "func AssistantChatView.conversationEmptyStateContent(_:)",
+   "hash": "3adab633831f50d7",
+   "does": "Empty-state column for a given live workout snapshot: icon (figure.run vs sparkles), workout-aware title and body. Errors are shown by errorBanner, not here.",
+   "entry": "SwiftUI view body evaluation (TimelineView content)",
    "calls": [
-    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel"
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.workoutAwareTitle(for:)",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.workoutAwareBody(for:)"
    ],
-   "reads": [
-    "mem:AssistantViewModel.errorMessage"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+2",
-     "cond": "errorMessage non-nil",
-     "effect": "red caption text; else nothing"
+     "cond": "a live workout snapshot exists",
+     "effect": "'figure.run' icon; else 'sparkles'"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "7a67d165d99e9732"
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.workoutAwareBody(for:)": "d787d70db9b6a611",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.workoutAwareTitle(for:)": "8837da199cf33004",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059"
    }
   },
   {
@@ -654,14 +656,15 @@
   },
   {
    "key": "func AssistantChatView.workoutAwareBody(for:)",
-   "hash": "322bb0ae7a0c5937",
-   "does": "Empty-state body: emptyStateBody without a workout; with one, 'Ask about pace, HR, α1, splits — anything live (<HR bpm · peak · distance>). Tap a suggestion below or type a question.'",
+   "hash": "83608c6ffb2d6f1e",
+   "does": "Empty-state body: emptyStateBody without a workout or with Apple Intelligence selected (no text field to type into); otherwise 'Ask about pace, HR, α1, splits — anything live (<HR bpm · peak · distance>). Tap a suggestion below or type a question.'",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.emptyStateBody",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved",
-    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)"
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.isAppleActive"
    ],
    "reads": [
     "mem:UnitsPreferenceStore.current"
@@ -670,8 +673,8 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "live snapshot non-nil",
-     "effect": "continues; nil → emptyStateBody"
+     "cond": "live snapshot non-nil AND not Apple active",
+     "effect": "continues; else emptyStateBody"
     },
     {
      "at": "+5",
@@ -694,21 +697,10 @@
      "effect": "no parenthetical; else ' (a · b · c)'"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "The workout body always says 'or type a question', but with Apple Intelligence active ChatInputBar shows no text field (appleOnlyComposerHint); emptyStateBody handles the Apple case, this branch does not.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift:391",
-      "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift:125",
-      "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift:456"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.emptyStateBody": "b1b5a5db635644dd",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.isAppleActive": "66091d72f801824b",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.peakHR": "6e06787e1d321c6d",
     "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "a36dafa82ad91f58",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
@@ -737,20 +729,9 @@
      "effect": "banner shown; else nothing"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "With an empty transcript the same errorMessage renders twice: in emptyStateError under the empty state and in this banner.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift:362",
-      "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift:408",
-      "Emuqu/Sources/Assistant/Views/AssistantChatView.swift:101"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorMessage(from:)": "bc3a2c0e8f35a1b9",
     "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.errorText(_:)": "780d72c50e637c36",
     "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.dismissErrorButton": "4be8c8cf82058ee8",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "7a67d165d99e9732",
@@ -969,7 +950,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(prefab:)": "2f45fc298f1c27b1",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "9b3d0ecd257813a4",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "d5db8fac7d0f3243",
     "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.isAppleActive": "66091d72f801824b",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "7a67d165d99e9732"
    }
@@ -995,8 +976,8 @@
   },
   {
    "key": "func AssistantChatView.presentEmail(for:)",
-   "hash": "0e65b6720ca776e6",
-   "does": "Unless the screen is captured, stores the forwarding body in perMessageEmailText and presents the per-message email sheet.",
+   "hash": "195664d11572bb4f",
+   "does": "Unless the screen is captured, sets perMessageEmailItem to a ShareableText with the forwarding body, presenting the per-message email sheet (.sheet(item:)).",
    "entry": "bubble menu 'Send email'",
    "calls": [
     "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.explainCaptureBlock()",
@@ -1009,20 +990,20 @@
     {
      "at": "+1",
      "cond": "UIScreen.main.isCaptured",
-     "effect": "explainCaptureBlock and return; else sets text + presented flag"
+     "effect": "explainCaptureBlock and return; else sets the item"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d",
     "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.explainCaptureBlock()": "08ddad3878a88e34",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.forwardingBody(for:)": "c1a3a605f463c25c"
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.forwardingBody(for:)": "07b2499ca3c148a7"
    }
   },
   {
    "key": "func AssistantChatView.presentShare(for:)",
-   "hash": "130a3520502326d3",
-   "does": "Unless the screen is captured, builds the forwarding body and, when non-blank, sets perMessageShareItem to present the share sheet.",
+   "hash": "41b48826c603a24f",
+   "does": "Unless the screen is captured, and when the turn has text, sets perMessageShareItem to the forwarding body to present the share sheet.",
    "entry": "bubble menu 'Share'",
    "calls": [
     "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.explainCaptureBlock()",
@@ -1038,36 +1019,26 @@
      "effect": "explainCaptureBlock and return"
     },
     {
-     "at": "+3",
-     "cond": "forwarding body is blank",
+     "at": "+2",
+     "cond": "turn text is blank",
      "effect": "return without sharing; else share item set"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "forwardingBody always prefixes a non-empty attribution line, so the blank-body guard can never trigger (even for an empty turn).",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift:544",
-      "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift:555"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d",
     "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.explainCaptureBlock()": "08ddad3878a88e34",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.forwardingBody(for:)": "c1a3a605f463c25c",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.body": "bd1e892aa0f11050"
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.forwardingBody(for:)": "07b2499ca3c148a7"
    }
   },
   {
    "key": "func AssistantChatView.forwardingBody(for:)",
-   "hash": "df0e065b882667d3",
-   "does": "Returns '<attribution>\\n\\n<turn.text>' where attribution is 'From Flo (Emuqu):' for assistant turns and 'From me (via Emuqu):' for user turns.",
+   "hash": "40d74b3be19b1b8f",
+   "does": "Returns '<attribution>\\n\\n<displayed text>' (phonetic markup stripped) where attribution is 'From Flo (Emuqu):' for assistant turns and 'From me (via Emuqu):' for user turns.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.displayedText(of:)"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
@@ -1084,6 +1055,7 @@
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.displayedText(of:)": "091715524425980c",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   }

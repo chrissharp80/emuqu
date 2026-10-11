@@ -28,27 +28,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "AnalysisSummaryCache keeps ONE summary+fingerprint per session id (set overwrites entries[id]/fingerprints[id]). ContextBuilder caches the assistant's English summary under the same id with a fingerprint that hashes NarrativeLanguage.isEnglish=true, replacing the display-language summary MorningResultsViewModel stored (isEnglish=false). CitationQuickView is opened from an assistant reply, i.e. after ContextBuilder ran, so for the session the assistant summarised (the latest one) its fingerprint never matches and the Analysis section shows the 'Open this session from History' fallback instead of the summary, for every app language. ARCHITECTURE.md:880-883 says entries are keyed by session AND fingerprint and are read by CitationQuickView, which the single-slot store contradicts.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift:34",
-      "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift:52",
-      "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift:69",
-      "Emuqu/Sources/Assistant/Context/ContextBuilder.swift:181",
-      "Emuqu/Sources/Assistant/Context/ContextBuilder.swift:197",
-      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:266",
-      "Emuqu/Sources/Assistant/Views/CitationQuickView.swift:16",
-      "docs/ARCHITECTURE.md:880"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift::func AnalysisSummaryCache.fingerprint(for:)": "a4476dba8f515d35",
-    "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift::func AnalysisSummaryCache.get(forSessionId:matching:)": "c6a3e36e5c6f1a2a",
+    "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift::func AnalysisSummaryCache.fingerprint(for:)": "beff482da77d0197",
+    "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift::func AnalysisSummaryCache.get(forSessionId:matching:)": "41364e8de54dfbe5",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.analysisSummaryCache": "e99dd75f34be3634"
    }
@@ -73,7 +56,7 @@
     "Emuqu/Sources/Assistant/Views/CitationQuickView.swift::var CitationQuickView.analysisSection": "abe78e40b530267e",
     "Emuqu/Sources/Assistant/Views/CitationQuickView.swift::var CitationQuickView.headerSection": "481f6ecf9c73b08e",
     "Emuqu/Sources/Assistant/Views/CitationQuickView.swift::var CitationQuickView.sleepSection": "39cbe2a177cf3db2",
-    "Emuqu/Sources/Assistant/Views/CitationQuickView.swift::var CitationQuickView.summarySection": "1281eb5d68232c92",
+    "Emuqu/Sources/Assistant/Views/CitationQuickView.swift::var CitationQuickView.summarySection": "67f6b6a7d3249dcc",
     "Emuqu/Sources/Assistant/Views/CitationQuickView.swift::var CitationQuickView.trainingSection": "8fec43acc001797d",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
@@ -291,23 +274,10 @@
      "effect": "renders summaryFields; else renders the fallback caption 'Open this session from History (Dashboard → Recent → View all) to compute its full analysis.' — also shown when only an English (assistant) summary exists for the session, since its fingerprint differs"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "Fallback caption at line 138 is what the user sees for the latest session after any chat turn: the assistant's English summary overwrote the display-language entry in the single-slot AnalysisSummaryCache, so cachedSummary (fingerprint with isEnglish=false) is nil. Opening the session from History re-caches the display summary, and the next assistant turn overwrites it again.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Views/CitationQuickView.swift:130",
-      "Emuqu/Sources/Assistant/Views/CitationQuickView.swift:138",
-      "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift:52",
-      "Emuqu/Sources/Assistant/Context/ContextBuilder.swift:197"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Views/CitationQuickView.swift::func CitationQuickView.summaryFields(_:)": "9f3b64454ed8cde6",
-    "Emuqu/Sources/Assistant/Views/CitationQuickView.swift::var CitationQuickView.cachedSummary": "1ddfc45046f80469",
+    "Emuqu/Sources/Assistant/Views/CitationQuickView.swift::var CitationQuickView.cachedSummary": "9f5cd61c302bdd9a",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },

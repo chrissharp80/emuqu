@@ -1,4 +1,4 @@
-# `EmuquWatch Watch App` (7 files, 2,716 lines that ship)
+# `EmuquWatch Watch App` (the watchOS app's own Swift files)
 # was outside every SwiftLint run. Proven by injecting a `force_cast` into
 # WatchApp.swift and watching `make lint` stay green. It reports 0
 # violations today, so including it costs nothing and closes the hole.
@@ -152,7 +152,7 @@ custom_rules:
   # The ⚠️ in RRCollector+Forwarders.swift, made
   # enforceable.
   #
-  # That file holds 20 pass-through properties whose only job is to let
+  # That file holds the pass-through properties whose only job is to let
   # non-view code write `self.isOvernightStreaming` instead of naming the
   # sub-object. Its header warns, in prose, that reading one of them from a
   # SwiftUI view produces STALE UI: they are plain computed properties, so
@@ -172,7 +172,9 @@ custom_rules:
   #     if streamingLifecycle.isOvernightStreaming { … }
   collector_forwarder_in_view:
     name: "RRCollector forwarder read from a view"
-    regex: '\bcollector\s*\.\s*(baselineDeviation|collectedPoints|currentSession|deviceRefinement|isCollecting|isDeviceFetchInProgress|isOvernightStreaming|isPaused|isStreamingMode|lastError|morningStatus|needsAcceptance|pausedBeatCount|pausedSession|recordingPhase|recoveryWindow|sleepDataVersion|streamingElapsedSeconds|streamingTargetSeconds|verificationResult)\b'
-    included: ".*/Sources/Views/.*"
+    regex: '\bcollector\s*\.\s*(baselineDeviation|collectedPoints|currentSession|isCollecting|isDeviceFetchInProgress|isOvernightStreaming|isPaused|isStreamingMode|lastError|morningStatus|needsAcceptance|pausedBeatCount|pausedSession|recordingPhase|recoveryWindow|sleepDataVersion|streamingElapsedSeconds|streamingTargetSeconds|verificationResult)\b'
+    # Every SwiftUI view: the Views folder, the assistant's views, and the
+    # one view outside both. A new view in another folder needs adding here.
+    included: '.*/Sources/(Views|Assistant/Views)/.*|.*/Sources/Export/ReportSectionPicker\.swift'
     message: "Reading an RRCollector forwarder from a view establishes no observation and renders stale. Observe the sub-object (SessionState / StreamingLifecycle / MorningCoordination / DeviceStatus / ArchiveSignal) instead."
     severity: error

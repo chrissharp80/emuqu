@@ -51,7 +51,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)": "2ec956267d8ac7b2",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)": "77db942b7880f4ff",
     "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValues(from:separator:rrColumn:)": "3c594bf03d246328",
     "Emuqu/Sources/Import/RRDataImporter+JSON.swift::func RRDataImporter.parseStructuredJSON(_:)": "cddf771210d536dd",
     "Emuqu/Sources/Import/RRDataImporter+JSON.swift::func RRDataImporter.rrMilliseconds(in:)": "02f03c75378f2ad9",
@@ -94,7 +94,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)": "2ec956267d8ac7b2",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)": "77db942b7880f4ff",
     "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.storableRR(_:)": "e0c94e632ecbf772"
    }
   },
@@ -162,13 +162,13 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/RRDataImporter+JSON.swift::func RRDataImporter.numericArray(_:)": "4007df47694bbb64"
+    "Emuqu/Sources/Import/RRDataImporter+JSON.swift::func RRDataImporter.numericArray(_:)": "89c6ab2873a71c3d"
    }
   },
   {
    "key": "func RRDataImporter.numericArray(_:)",
-   "hash": "5e344e75b72cee2d",
-   "does": "[Double] values are converted (seconds if <10) and filtered to 1-30000 ms; [Int] values filtered without conversion; nil otherwise.",
+   "hash": "66f653bcf0846abb",
+   "does": "Reads the value as [Double] (JSONSerialization NSNumbers bridge to Double for integers and fractions alike), converts each by magnitude (seconds if <10, rounded ms) and keeps 1-30000 ms; nil when it is not a numeric array.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)",
@@ -180,24 +180,12 @@
     {
      "at": "+1",
      "cond": "value casts to [Double]",
-     "effect": "convert + filter; otherwise try [Int] (nil if neither)"
+     "effect": "convert + filter; otherwise nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "Arrays from JSONSerialization hold NSNumber, and an NSNumber holding an integer bridges successfully to Double, so `value as? [Double]` succeeds for integer arrays too and the `[Int]` branch at 74 runs only for numbers not exactly representable as Double; integer arrays therefore go through convertToMilliseconds (values < 10 x1000), contrary to the comment that an Int array is already milliseconds.",
-     "evidence": [
-      "Emuqu/Sources/Import/RRDataImporter+JSON.swift:70",
-      "Emuqu/Sources/Import/RRDataImporter+JSON.swift:73",
-      "Emuqu/Sources/Import/RRDataImporter+JSON.swift:74"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)": "2ec956267d8ac7b2",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)": "77db942b7880f4ff",
     "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.storableRR(_:)": "e0c94e632ecbf772"
    }
   }

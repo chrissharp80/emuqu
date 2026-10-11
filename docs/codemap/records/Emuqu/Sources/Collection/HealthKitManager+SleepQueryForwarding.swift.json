@@ -55,7 +55,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.fetchLastNightSleep(relativeTo:)": "451a9d8f0855f173",
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.fetchLastNightSleep(relativeTo:)": "f6c963e1b144e225",
     "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::var HealthKitManager.sleepQueries": "b71f40faaccbddbd"
    }
   },
@@ -78,7 +78,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)": "0838ad87e9693fbc",
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)": "8ec2a1030ad9d884",
     "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::var HealthKitManager.sleepQueries": "b71f40faaccbddbd"
    }
   },
@@ -99,38 +99,6 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.fetchDaytimeNapMinutes(nightAnchoredAt:)": "2816636397311714",
-    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::var HealthKitManager.sleepQueries": "b71f40faaccbddbd"
-   }
-  },
-  {
-   "key": "func HealthKitManager.findAdditionalSleepRange(after:before:)",
-   "hash": "89ad0ba7e973c291",
-   "does": "Forwards findAdditionalSleepRange(after:before:) to SleepHealthQueries; exists only to satisfy HealthKitServiceProtocol.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::var HealthKitManager.sleepQueries",
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.findAdditionalSleepRange(after:before:)"
-   ],
-   "reads": [
-    "hk:sleepAnalysis"
-   ],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Protocol witness with no caller anywhere in app or tests (grep 'findAdditionalSleepRange(' finds only declarations and the mock).",
-     "evidence": [
-      "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift:41",
-      "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift:108",
-      "EmuquTests/Mocks/MockHealthKitService.swift:156"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.findAdditionalSleepRange(after:before:)": "b526a91234da549a",
     "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::var HealthKitManager.sleepQueries": "b71f40faaccbddbd"
    }
   },

@@ -79,9 +79,8 @@ enum SessionRecoveryMath {
         childSeries: RRSeries,
         parentBeatCount: Int
     ) -> Bool {
-        guard childSeries.points.count > parentBeatCount else { return false }
         let boundaryIdx = parentBeatCount
-        guard boundaryIdx < childSeries.points.count, boundaryIdx > 0 else { return false }
+        guard boundaryIdx > 0, childSeries.points.count > boundaryIdx else { return false }
         let beforeBoundary = childSeries.points[boundaryIdx - 1].t_ms
         let afterBoundary = childSeries.points[boundaryIdx].t_ms
         return afterBoundary < beforeBoundary / 2

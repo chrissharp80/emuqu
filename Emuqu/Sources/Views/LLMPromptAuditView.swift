@@ -41,7 +41,9 @@ struct LLMPromptAuditView: View {
         Section {
             clearAuditLogButton
         } footer: {
-            Text("Kept in memory only (the last 10 turns) and cleared when the app quits. Prompts can contain personal health data (sleep, HRV, locations, notes) — share carefully.", bundle: LanguageManager.appBundle)
+            // One entry per request to the provider: a turn that calls tools
+            // sends one per round, so it can fill several of the ten.
+            Text("Kept in memory only (the last 10 requests to the AI; a turn that uses tools makes several) and cleared when the app quits. Prompts can contain personal health data (sleep, HRV, locations, notes) — share carefully.", bundle: LanguageManager.appBundle)
         }
     }
 
@@ -263,11 +265,12 @@ private struct LLMPromptAuditDetailView: View {
     }
 
     /// The shared file stays in English: it is a diagnostic report for
-    /// whoever triages it, not screen copy.
+    /// whoever triages it, not screen copy. The send time is ISO 8601, so
+    /// it reads the same whatever the device's locale.
     private var shareHeaderLines: [String] {
         var lines: [String] = []
         lines.append("# AI prompt audit — \(entry.provider) (\(entry.model))")
-        lines.append("Sent: \(entry.sentAt.formatted(date: .abbreviated, time: .standard))")
+        lines.append("Sent: \(entry.sentAt.ISO8601Format())")
         if let usage = entry.usage {
             lines.append("Tokens — in:\(usage.inputTokens) cached:\(usage.cachedReadTokens) create:\(usage.cacheCreateTokens) out:\(usage.outputTokens)")
         }

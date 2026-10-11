@@ -25,10 +25,10 @@ import Foundation
 ///   out of it when that metric is not measured, so on a tick an absent
 ///   heart rate, pace, α1, cadence or target zone means "none", not
 ///   "unchanged".
-/// - A `startWorkout` message is refused in display-only mode even though iOS
-///   also gates it, because a stale build or a downstream bug reaching this
-///   path triggers Apple Health's "Record a workout" offer for a workout the
-///   Watch does not own.
+/// - A `startWorkout` message is refused in display-only mode, where the
+///   Watch's workout session follows the iPhone's `isRecording` alone (iOS
+///   does not send the message in that mode), so a stray one cannot start a
+///   session while the iPhone is not recording.
 ///
 /// ## Isolation
 ///
@@ -391,11 +391,140 @@ extension WatchMessageDecoding {
 
     /// Whether a `startWorkout` command should actually start a session.
     ///
-    /// Refused in display-only mode. iOS gates this too, so reaching here with
-    /// `displayOnlyMode == true` means a stale build or a downstream bug —
-    /// and honouring it would trigger Apple Health's "Record a workout" offer
-    /// for a workout the Watch does not own.
+    /// Refused in display-only mode. There the Watch's keep-alive session is
+    /// started and stopped by the iPhone's `isRecording` alone
+    /// (`WatchSessionManager.driveKeepAliveSession`), which starts it for every
+    /// recording workout in either mode, and iOS does not send `startWorkout`
+    /// at all. Reaching here in that mode means a stale iOS build or a bug, and
+    /// refusing it keeps such a message from starting a session while the
+    /// iPhone is not recording. In legacy mode the message starts the session
+    /// as soon as iOS asks, ahead of the first recording tick.
     nonisolated static func shouldStartWorkout(for command: Command, displayOnlyMode: Bool) -> Bool {
         command == .startWorkout && !displayOnlyMode
+    }
+}
+
+// MARK: - Message ordering and queued intents
+
+extension WatchMessageDecoding {
+
+    /// How far ahead of this Watch's clock the newest applied send time may
+    /// lie before it is taken to come from an iPhone clock that has since
+    /// stepped back (a manual time change, an NTP correction). The Watch takes
+    /// its time from the paired iPhone, so in normal use the two agree to well
+    /// under this.
+    nonisolated static let maxSendTimeLead: TimeInterval = 60
+
+    /// Whether a message the iPhone sent at `sentAt` (seconds since 1970) is
+    /// to be applied, given the newest send time already applied. The iPhone
+    /// sends on three channels that arrive in no set order, so one sent
+    /// before the newest applied is stale and dropped whole. A newest send
+    /// time more than `maxSendTimeLead` ahead of `now` no longer orders
+    /// anything: the iPhone's clock went back, and without this every later
+    /// message would be dropped until the clock caught up.
+    nonisolated static func isCurrent(sentAt: Double, newestApplied: Double, now: Double) -> Bool {
+        sentAt >= newestApplied || newestApplied > now + maxSendTimeLead
+    }
+
+    /// The `type` of a Watch End request.
+    nonisolated static let stopIntentType = "stopWorkoutFromWatch"
+
+    /// True when queuing a request of `payloadType` would replace a queued End
+    /// the iPhone may still act on: `pending` (the context this Watch last
+    /// queued) is an End that has not expired at `now`, the new request is not
+    /// another End, and the iPhone was last known to be recording. Once the
+    /// iPhone has reported the workout stopped, the End has done its job and
+    /// nothing is held back for it.
+    nonisolated static func wouldDisplaceQueuedStop(
+        payloadType: String?, pending: [String: Any], phoneRecording: Bool, now: Double
+    ) -> Bool {
+        guard phoneRecording,
+              pending["type"] as? String == stopIntentType,
+              payloadType != stopIntentType,
+              let expiresAt = pending["expiresAt"] as? Double else { return false }
+        return expiresAt > now
+    }
+}
+
+// MARK: - Heart-rate zone
+
+extension WatchMessageDecoding {
+
+    /// The heart-rate zone (1–5) for a percentage of the user's max heart
+    /// rate, on the iPhone's `HRZone.classify` buckets: 50–60, 60–70, 70–80,
+    /// 80–90 and 90 % and over. Nil below 50 %, which is no zone at all.
+    nonisolated static func heartRateZone(percentOfMax pct: Int) -> Int? {
+        switch pct {
+        case ..<50: nil
+        case 50 ..< 60: 1
+        case 60 ..< 70: 2
+        case 70 ..< 80: 3
+        case 80 ..< 90: 4
+        default: 5
+        }
+    }
+}
+
+// MARK: - Strap heart-rate packets
+
+extension WatchMessageDecoding {
+
+    /// One Heart Rate Measurement (characteristic 2A37) notification from a
+    /// strap paired to the Watch.
+    nonisolated struct StrapMeasurement: Equatable, Sendable {
+        /// Nil when the packet carries no real beat: a sensor that reports
+        /// contact and has lost it, or a rate of 0. Shown, either would read
+        /// as a live "0".
+        let heartRate: Int?
+        /// Whole milliseconds, in the packet's order.
+        let rrMillis: [Double]
+    }
+
+    /// Decodes a 2A37 packet as the iPhone's `HeartRateMeasurement.parse`
+    /// does, so a workout fed by the Watch's strap path gets the intervals the
+    /// phone's own path would: each 1/1024 s interval is rounded to whole
+    /// milliseconds exactly as there, and the intervals of a packet with no
+    /// usable rate are kept. Nil for a packet too short for what its flags
+    /// declare.
+    ///
+    /// Layout
+    ///   • byte 0  : flags — bit 0 rate width (0 = uint8, 1 = uint16),
+    ///               bit 1 sensor contact detected, bit 2 contact supported,
+    ///               bit 3 energy expended present, bit 4 RR present
+    ///   • the rate, 1 or 2 bytes little-endian
+    ///   • energy expended, 2 bytes, when flagged (unused)
+    ///   • RR intervals, 2 bytes each little-endian, in 1/1024 s, when flagged
+    nonisolated static func strapMeasurement(_ data: Data) -> StrapMeasurement? {
+        let bytes = [UInt8](data)
+        guard let flags = bytes.first else { return nil }
+        let wide = flags & 0b0000_0001 != 0
+        guard bytes.count >= (wide ? 3 : 2) else { return nil }
+        let rate = wide ? Int(bytes[1]) | (Int(bytes[2]) << 8) : Int(bytes[1])
+        var offset = wide ? 3 : 2
+        if flags & 0b0000_1000 != 0 {
+            guard offset + 2 <= bytes.count else { return nil }
+            offset += 2
+        }
+        let rr = flags & 0b0001_0000 != 0 ? rrMillis(in: bytes, from: offset) : []
+        let realBeat = rate > 0 && !lostContact(flags)
+        return StrapMeasurement(heartRate: realBeat ? rate : nil, rrMillis: rr)
+    }
+
+    /// Contact is supported (bit 2) but not detected (bit 1).
+    nonisolated private static func lostContact(_ flags: UInt8) -> Bool {
+        flags & 0b0000_0100 != 0 && flags & 0b0000_0010 == 0
+    }
+
+    /// Each 1/1024 s interval in whole milliseconds, rounded as the iPhone's
+    /// parser (and the Polar SDK before it) rounds.
+    nonisolated private static func rrMillis(in bytes: [UInt8], from start: Int) -> [Double] {
+        var result: [Double] = []
+        var offset = start
+        while offset + 1 < bytes.count {
+            let raw = Int(bytes[offset]) | (Int(bytes[offset + 1]) << 8)
+            result.append(Double((Float(raw) / 1024.0 * 1000.0).rounded()))
+            offset += 2
+        }
+        return result
     }
 }

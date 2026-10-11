@@ -5,7 +5,7 @@
  "types": [
   "HeatAcclimationCache: final class @Observable @MainActor — singleton status store",
   "HeatAcclimationCache.Status: enum — computing/ready/noOutdoorWorkouts/noRecordedWeather",
-  "HeatAcclimationCache.Readout: struct Codable — level, band, stimulus, counts, adaptedWBGT, daysToTarget",
+  "HeatAcclimationCache.Readout: struct Codable — level, band, stimulus, counts, adaptedWBGT, daysToTarget, hasHeatExposure",
   "HeatAcclimationCache.WorkoutForHeat: struct — date, minutes, optional weather"
  ],
  "state": [
@@ -19,20 +19,7 @@
   "maxAgeSec = 300"
  ],
  "toplevel": "status initial value .computing; shared instance created lazily on first access.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Type doc says Apple Health outdoor workouts 'add no exposure because they reach this cache without weather', but mergingHealthKitWorkouts carries weather read from the HKWorkout metadata (HealthKitManager+Heat.swift:55), so Watch workouts with weather metadata do add exposure.",
-   "evidence": [
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift:12",
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift:274",
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift:286",
-    "Emuqu/Sources/Collection/HealthKitManager+Heat.swift:55"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "var HeatAcclimationCache.current",
@@ -78,7 +65,7 @@
   {
    "key": "func HeatAcclimationCache.clearPersistedData()",
    "hash": "476e698a65dcec2e",
-   "does": "Removes the persisted readout and the two legacy coordinate keys from standard UserDefaults (called on 'Delete All My Data' and when the user turns heat tracking off). Does not reset the in-memory status.",
+   "does": "Removes the persisted readout and the two legacy coordinate keys from standard UserDefaults (called on 'Delete All My Data' and when the user turns heat tracking off). Does not reset the in-memory status; an in-flight refresh no longer writes the readout back once tracking is off (cacheIfSettled), and clear() also resets this instance.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -109,6 +96,26 @@
     }
    ],
    "deps": {}
+  },
+  {
+   "key": "func HeatAcclimationCache.clear()",
+   "hash": "ceb6f06f4985f975",
+   "does": "Instance-wide clear: cancels the refresh task, resets status to .computing and lastUpdated to nil, then clearPersistedData().",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.clearPersistedData()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:HeatAcclimationCache.status",
+    "mem:HeatAcclimationCache.lastUpdated",
+    "ud:FlowRecovery.heat.lastReadout"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.clearPersistedData()": "4a4dfd84e0fa8a6e"
+   }
   },
   {
    "key": "func HeatAcclimationCache.persistReadout(_:)",
@@ -167,32 +174,9 @@
    "deps": {}
   },
   {
-   "key": "var HeatAcclimationCache.Readout.hasData",
-   "hash": "7d840753a59480fc",
-   "does": "True when at least one outdoor workout with recorded weather was attributed.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Readout.hasData has no reader anywhere in the repo (grep of Emuqu and EmuquTests finds only the declaration; every other hasData hit is an unrelated Availability/struct field). The card decides what to render from status and hasHeatExposure (HeatAcclimationCard.swift:279).",
-     "evidence": [
-      "Emuqu/Sources/Analysis/HeatAcclimationCache.swift:104",
-      "Emuqu/Sources/Views/HeatAcclimationCard.swift:279"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {}
-  },
-  {
    "key": "init HeatAcclimationCache(archive:)",
-   "hash": "84b7a0e48d11f1af",
-   "does": "Stores the archive (default the app session archive), seeds status from the persisted readout when present, and registers an archive-changed observer that invalidates the cache.",
+   "hash": "b24176ca76dc2529",
+   "does": "Stores the archive (default the app session archive), seeds status from the persisted readout when tracking is on and one exists, and registers an archive-changed observer that invalidates the cache.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.loadPersistedReadout()",
@@ -200,7 +184,8 @@
     "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.invalidate()",
     "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.trackingEnabled"
    ],
    "reads": [
     "ud:FlowRecovery.heat.lastReadout",
@@ -211,26 +196,17 @@
    ],
    "branches": [
     {
-     "at": "+6",
-     "cond": "a persisted readout exists",
+     "at": "+8",
+     "cond": "tracking on and a persisted readout exists",
      "effect": "status = .ready(saved) (lastUpdated stays nil); else status stays .computing"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "The persisted readout is loaded regardless of heatTrackingEnabled; correctness relies on clearPersistedData having run when tracking was turned off.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/HeatAcclimationCache.swift:116"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.invalidate()": "4f24385603346fd6",
     "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.loadPersistedReadout()": "48f6b2e298daae55",
     "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.makeArchiveObserver(_:)": "515f98457d5daf23",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.trackingEnabled": "405c8d72e8a5a787",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive": "2c8002649ba22b7f",
@@ -285,8 +261,8 @@
   },
   {
    "key": "func HeatAcclimationCache.refresh()",
-   "hash": "f98d9f99b31c59c3",
-   "does": "If tracking is enabled and the cached ready result is older than 5 min (or absent), and no refresh is running, launches a Task that computes the status, publishes it and caches it.",
+   "hash": "42d8f85d365b9131",
+   "does": "If tracking is enabled, the last settled compute is older than 5 min (or none), and no refresh is running, launches a Task that computes the status and, unless cancelled meanwhile, publishes and caches it.",
    "entry": "HeatAcclimationCard .task.",
    "calls": [
     "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.trackingEnabled",
@@ -308,8 +284,8 @@
     },
     {
      "at": "+2",
-     "cond": "lastUpdated set, < 300 s old, and status is .ready",
-     "effect": "returns (fresh); otherwise continues — non-ready statuses (.noOutdoorWorkouts/.noRecordedWeather) are recomputed on every call even though cacheIfSettled stamped lastUpdated"
+     "cond": "lastUpdated set and < 300 s old (any settled status)",
+     "effect": "returns (fresh)"
     },
     {
      "at": "+5",
@@ -320,33 +296,28 @@
      "at": "+8",
      "cond": "self still alive in task",
      "effect": "false: task ends; true: computes"
-    }
-   ],
-   "flags": [
+    },
     {
-     "kind": "hack",
-     "sev": "low",
-     "text": "cacheIfSettled stamps lastUpdated for .noOutdoorWorkouts/.noRecordedWeather ('settled'), but refresh's freshness check also requires case .ready, so those statuses re-run the 180-day archive decode + HealthKit query on every card appearance.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/HeatAcclimationCache.swift:151",
-      "Emuqu/Sources/Analysis/HeatAcclimationCache.swift:172"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+10",
+     "cond": "task cancelled (clear())",
+     "effect": "result dropped"
     }
    ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.cacheIfSettled(_:)": "8425c4d1583a9c8c",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.cacheIfSettled(_:)": "ef039a4bac97272d",
     "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.computeStatus()": "607b434724fc305d",
     "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.trackingEnabled": "405c8d72e8a5a787"
    }
   },
   {
    "key": "func HeatAcclimationCache.cacheIfSettled(_:)",
-   "hash": "3acdb0da15e0ad7f",
-   "does": "Records the compute time for every settled status, persists ready readouts, clears lastUpdated for .computing.",
+   "hash": "0ae81108e75b5e07",
+   "does": "Stamps lastUpdated for every computed (settled) status; persists a ready readout only while tracking is on, so a compute finishing after opt-out does not write it back.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.persistReadout(_:)"
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.persistReadout(_:)",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.trackingEnabled"
    ],
    "reads": [],
    "writes": [
@@ -356,46 +327,25 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "case .ready(readout)",
-     "effect": "lastUpdated = now and persist readout"
-    },
-    {
-     "at": "+5",
-     "cond": "case .noOutdoorWorkouts, .noRecordedWeather",
-     "effect": "lastUpdated = now (not persisted)"
-    },
-    {
-     "at": "+7",
-     "cond": "case .computing",
-     "effect": "lastUpdated = nil (computeStatus never returns it, so unreachable)"
+     "cond": "ready readout and tracking on",
+     "effect": "persist readout"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "computeStatus never returns .computing, so this case cannot run.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/HeatAcclimationCache.swift:174",
-      "Emuqu/Sources/Analysis/HeatAcclimationCache.swift:204"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.persistReadout(_:)": "3193619252c10cbd"
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.persistReadout(_:)": "3193619252c10cbd",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.trackingEnabled": "405c8d72e8a5a787"
    }
   },
   {
    "key": "func HeatAcclimationCache.currentAwaitingRefresh()",
-   "hash": "53c72de94beb6d12",
-   "does": "Assistant path: nil when tracking is off; returns the ready readout if < 5 min old; otherwise computes inline (ignoring any in-flight refreshTask), publishes and caches, returning the ready readout or nil.",
+   "hash": "75ffb83cb7c7d415",
+   "does": "Assistant path: nil when tracking is off; otherwise calls refresh() (which starts a compute when stale, or leaves the running one) and awaits the shared refreshTask, then returns the ready readout or nil — one compute even when the card refreshes at the same time.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.trackingEnabled",
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.current",
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.computeStatus()",
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.cacheIfSettled(_:)"
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.refresh()",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.current"
    ],
    "reads": [
     "mem:HeatAcclimationCache.status",
@@ -406,31 +356,14 @@
    ],
    "branches": [
     {
-     "at": "+3",
+     "at": "+5",
      "cond": "trackingEnabled",
      "effect": "false: nil"
-    },
-    {
-     "at": "+4",
-     "cond": "current readout exists and lastUpdated < 300 s old",
-     "effect": "returns it; else recomputes"
     }
    ],
-   "flags": [
-    {
-     "kind": "race",
-     "sev": "low",
-     "text": "Does not check or join refreshTask: a card refresh and an assistant question at the same time run two full computes and both write status.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/HeatAcclimationCache.swift:154",
-      "Emuqu/Sources/Analysis/HeatAcclimationCache.swift:188"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.cacheIfSettled(_:)": "8425c4d1583a9c8c",
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.computeStatus()": "607b434724fc305d",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.refresh()": "108c7be4282d1bc3",
     "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.current": "3e4384fddefe26f1",
     "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.trackingEnabled": "405c8d72e8a5a787"
    }
@@ -496,7 +429,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.workoutForHeat(_:)": "f9cc261109f8a139",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.workoutForHeat(_:)": "09545022d3fdb7da",
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.usesGPS": "e1e254fffc25bef1",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
@@ -505,8 +438,24 @@
   },
   {
    "key": "func HeatAcclimationCache.workoutForHeat(_:)",
-   "hash": "602da65c0d85f4ae",
-   "does": "Maps a session to (startDate, wall-clock minutes start→end, weatherSnapshot).",
+   "hash": "6c07ba9911401b64",
+   "does": "Maps a session to (startDate, active minutes from activeMinutes, weatherSnapshot).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.activeMinutes(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.activeMinutes(of:)": "746dba75cbf93dbd"
+   }
+  },
+  {
+   "key": "func HeatAcclimationCache.activeMinutes(of:)",
+   "hash": "4b492c9ffe9e0ec7",
+   "does": "Moving minutes of a session: the largest sample offsetSec (the recorder's moving-time counter, pauses excluded) / 60; the start→end span when there are no samples (0 without an end).",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -514,8 +463,8 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "session.endDate ?? startDate",
-     "effect": "missing end gives 0 minutes (then below the 15-min stimulus floor)"
+     "cond": "session has samples",
+     "effect": "moving time; else wall-clock span"
     }
    ],
    "flags": [],
@@ -654,37 +603,24 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.dailyStimulus(_:)": "f6dd4f2856515bad",
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::init HeatAcclimationCache(archive:)": "74ca64419bd499f1"
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::init HeatAcclimationCache(archive:)": "d7c63d5183bc8a4f"
    }
   },
   {
    "key": "func HeatAcclimationCache.exposure(from:weather:)",
-   "hash": "bc627da3b4f72402",
-   "does": "Converts a session and its weather snapshot to an Exposure using wall-clock start→end minutes (used by the workout post-summary heat card).",
+   "hash": "7e9523cf5c59cb1b",
+   "does": "Converts a session and its weather snapshot to an Exposure using activeMinutes (used by the workout post-summary heat card).",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.activeMinutes(of:)"
+   ],
    "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+4",
-     "cond": "session.endDate ?? startDate",
-     "effect": "no end → 0 minutes"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same minutes computation as workoutForHeat (lines 239-242); two copies of the session→duration rule.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/HeatAcclimationCache.swift:340",
-      "Emuqu/Sources/Analysis/HeatAcclimationCache.swift:239"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.activeMinutes(of:)": "746dba75cbf93dbd"
+   }
   }
  ],
  "deps": {}

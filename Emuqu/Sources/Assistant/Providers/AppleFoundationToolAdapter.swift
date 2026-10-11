@@ -84,10 +84,10 @@ import Foundation
         }
     }
 
-    /// Build an array of Apple-compatible tools from the cross-provider
-    /// `[ToolSpec]` catalog + per-tool handler map. Returns nil when
-    /// FoundationModels isn't available (iOS < 26) so the caller can
-    /// fall through to the existing toolless code path.
+    /// Build Apple-compatible tools from the cross-provider `[ToolSpec]`
+    /// catalog + per-tool handler map. Exists only where FoundationModels
+    /// does (iOS 26+): without it this enum is compiled out and the caller
+    /// takes the toolless code path.
     @available(iOS 26, *)
     enum AppleToolCatalog {
         /// Convert a `ToolSpec` + handler into an Apple `Tool` instance.

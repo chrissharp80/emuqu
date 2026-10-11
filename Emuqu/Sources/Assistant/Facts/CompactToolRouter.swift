@@ -78,15 +78,6 @@ struct CompactToolRouter {
         return out
     }
 
-    /// Stable hash of the schema for cache-stability diagnostics.
-    static func schemaHash(registry: FactResolverRegistry) -> String {
-        let specs = schema(registry: registry)
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.sortedKeys]
-        guard let data = attempt("compactToolRouter.specs.encode", { try encoder.encode(specs) }) else { return "unknown" }
-        return FactResolverRegistry.sha256Hex(data)
-    }
-
     // MARK: - Dispatch
 
     /// Resolve a compact tool call. For action tools we forward to the
@@ -98,9 +89,15 @@ struct CompactToolRouter {
     /// production callers (AssistantViewModel's tool loop and
     /// AppleToolDispatcher) are async.
     ///
-    /// Read-tool results pass through the registry's rate limiter, 80 KB
-    /// size cap and time budget (`gatedReadResult`), the same gates the
-    /// registry applies to its own tool path.
+    /// Read-tool results pass through the registry's rate limiter and 80 KB
+    /// size cap and are logged when slow (`gatedReadResult`), the same gates
+    /// the registry applies to its own tool path; neither path discards a
+    /// slow result.
+    ///
+    /// Only the tools this router advertises run: an action outside
+    /// `allowedActionNames`, or a per-entry tool name, is refused even if a
+    /// provider emits it, so the schema's allow-list is also the dispatch
+    /// allow-list.
     func resolveTool(name: String, argsJSON: String) async -> FactValue {
         // 1. Try the read-tool router first.
         let startedAt = Date()
@@ -108,8 +105,10 @@ struct CompactToolRouter {
             let elapsed = Date().timeIntervalSince(startedAt)
             return registry.gatedReadResult(toolName: name, argsJSON: argsJSON, value: value, elapsed: elapsed)
         }
-        // 2. Action tools (and any underlying-key tools that legacy
-        //    callers still rely on) flow through the registry.
+        // 2. Allowed action tools flow through the registry.
+        guard Self.allowedActionNames.contains(name) else {
+            return .missing(reason: .invalidParameter, detail: "unknown tool '\(name)'")
+        }
         return await registry.resolveTool(name: name, argsJSON: argsJSON)
     }
 
@@ -126,7 +125,7 @@ struct CompactToolRouter {
     /// just-in-time fetch. Byte-stable across sends → safe in the cached prefix.
     static func capabilityIndex() -> String {
         let lines = readTools().map { spec -> String in
-            let purpose = spec.description.components(separatedBy: ". ").first ?? spec.description
+            let purpose = spec.description.range(of: ". ").map { String(spec.description[..<$0.lowerBound]) } ?? spec.description
             let capped = purpose.count > 170 ? String(purpose.prefix(170)) + "…" : purpose
             return "- \(spec.name): \(capped)"
         }
@@ -311,7 +310,7 @@ struct CompactToolRouter {
         [
             // 13. get_training_load
             spec("get_training_load", """
-                Training load + trajectory (ATL/CTL/TSB/TRIMP/ACWR). `which`: 'snapshot' (default — current values), 'trajectory' (the Load & Trajectory verdict: building/detraining/high-strain, ramp band + rate, form descriptor, monotony/strain), 'by_date', \
+                Training load + trajectory (ATL/CTL/TSB/TRIMP/ACWR). `which`: 'snapshot' (current values), 'trajectory' (the Load & Trajectory verdict: building/detraining/high-strain, ramp band + rate, form descriptor, monotony/strain), 'by_date', \
                 'recent', 'this_week', 'last_4_weeks', 'by_sport', 'recovery_hours_needed', 'days_until_fresh', 'days_until_atl_converges', 'projected_tsb', 'race_predictions', 'sport_baseline', 'pace_zones'. Pass `date`, `period`, `sport`, `daily_trimp`, \
                 or `params` as needed.
                 """, [
@@ -476,7 +475,7 @@ struct CompactToolRouter {
     /// Returns nil if the tool isn't a compact read tool. Returns a
     /// FactValue otherwise (which may itself be `.missing` for bad args).
     private func resolveReadTool(name: String, argsJSON: String) async -> FactValue? {
-        let args = parseArgs(argsJSON)
+        let args = FactResolverRegistry.stringArgs(fromJSON: argsJSON)
         if let resolver = uniformReadResolvers[name] {
             return await resolver(args)
         }

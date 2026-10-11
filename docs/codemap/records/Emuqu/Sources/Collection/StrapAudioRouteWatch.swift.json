@@ -63,17 +63,18 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/StrapAudioRouteWatch.swift::func StrapAudioRouteWatch.describeRoute(_:)": "d57cf45a80aa5b52",
-    "Emuqu/Sources/Collection/StrapAudioRouteWatch.swift::func StrapAudioRouteWatch.log(reasonRaw:previous:manager:)": "bbfa189bc3cd7914"
+    "Emuqu/Sources/Collection/StrapAudioRouteWatch.swift::func StrapAudioRouteWatch.log(reasonRaw:previous:manager:)": "5746300d35478d4c"
    }
   },
   {
    "key": "func StrapAudioRouteWatch.log(reasonRaw:previous:manager:)",
-   "hash": "0a616057a2e0aa9a",
-   "does": "Logs reason, previous and current route when the strap is streaming or connected; silent otherwise.",
+   "hash": "c6a0686705064212",
+   "does": "Logs reason, previous and current route, with whether the strap is streaming and whether it is linked, when the strap is streaming or connected; silent otherwise.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/StrapAudioRouteWatch.swift::func StrapAudioRouteWatch.reasonName(_:)",
-    "Emuqu/Sources/Collection/StrapAudioRouteWatch.swift::func StrapAudioRouteWatch.describeRoute(_:)"
+    "Emuqu/Sources/Collection/StrapAudioRouteWatch.swift::func StrapAudioRouteWatch.describeRoute(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
     "mem:PolarManager.isStreaming",
@@ -87,19 +88,7 @@
      "effect": "logs; else returns"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Doc says silent unless the strap is live/streaming and the log line says 'during streaming', but the guard also fires when merely connected and not streaming.",
-     "evidence": [
-      "Emuqu/Sources/Collection/StrapAudioRouteWatch.swift:41",
-      "Emuqu/Sources/Collection/StrapAudioRouteWatch.swift:45",
-      "Emuqu/Sources/Collection/StrapAudioRouteWatch.swift:47"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
     "Emuqu/Sources/Collection/StrapAudioRouteWatch.swift::func StrapAudioRouteWatch.describeRoute(_:)": "d57cf45a80aa5b52",

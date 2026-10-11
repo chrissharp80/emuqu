@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Services/SurroundingsPOIService.swift",
- "hash": "866604cf98b736ad",
+ "hash": "5f8f28d6218c4ce8",
  "role": "Singleton MKLocalSearch wrapper for the AI 'what's around me' tool: five category searches in parallel, merged nearest-first, with a 60 s/75 m cache of fully successful results.",
  "types": [
   "SurroundingsPOIService: class — POI search",
@@ -12,7 +12,7 @@
  ],
  "state": [
   "mem:SurroundingsPOIService.shared",
-  "mem:SurroundingsPOIService.cacheStorage (OSAllocatedUnfairLock<CacheEntry?>)",
+  "mem:SurroundingsPOIService.cacheStorage (OSAllocatedUnfairLock<CacheEntry?>, keyed by place, radius and per-category count)",
   "constants: cacheMaxAgeSec 60, cacheMaxDriftMeters 75"
  ],
  "toplevel": "",
@@ -48,20 +48,7 @@
      "effect": "nil (no filter)"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Header promises food incl. convenience stores and medical incl. urgent care; the filters contain neither.",
-     "evidence": [
-      "Emuqu/Sources/Services/SurroundingsPOIService.swift:18",
-      "Emuqu/Sources/Services/SurroundingsPOIService.swift:20",
-      "Emuqu/Sources/Services/SurroundingsPOIService.swift:61",
-      "Emuqu/Sources/Services/SurroundingsPOIService.swift:63"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -115,40 +102,14 @@
    "deps": {}
   },
   {
-   "key": "func SurroundingsPOIService.search(near:radiusMeters:topPerCategory:)",
-   "hash": "d61b445a16319130",
-   "does": "Convenience wrapper returning only the POIs of searchWithStatus.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Services/SurroundingsPOIService.swift::func SurroundingsPOIService.searchWithStatus(near:radiusMeters:topPerCategory:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No callers: the only consumer (AppFactResolver+LiveCoaching.swift:258) calls searchWithStatus; grep '.search(near' finds only TrailDiscoveryService uses.",
-     "evidence": [
-      "Emuqu/Sources/Services/SurroundingsPOIService.swift:121",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift:258"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Services/SurroundingsPOIService.swift::func SurroundingsPOIService.searchWithStatus(near:radiusMeters:topPerCategory:)": "2e673438062d9b58"
-   }
-  },
-  {
    "key": "func SurroundingsPOIService.searchWithStatus(near:radiusMeters:topPerCategory:)",
-   "hash": "9ded4740b452fde8",
-   "does": "Returns the cached POIs when fresh (<60 s) and within 75 m; otherwise searches all five categories in a 2×radius box and caches the result only when no category failed.",
+   "hash": "55e6ad72da93e4d5",
+   "does": "Returns the cached POIs when fresh (<60 s), within 75 m and searched with the same radius and per-category count; otherwise searches all five categories in a 2×radius box and caches the result (remember) only when no category failed. The only search entry point.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/SurroundingsPOIService.swift::func SurroundingsPOIService.cachedPOIs(near:)",
-    "Emuqu/Sources/Services/SurroundingsPOIService.swift::func SurroundingsPOIService.allCategories(in:from:radiusMeters:topPerCategory:)"
+    "Emuqu/Sources/Services/SurroundingsPOIService.swift::func SurroundingsPOIService.cachedPOIs(near:radiusMeters:topPerCategory:)",
+    "Emuqu/Sources/Services/SurroundingsPOIService.swift::func SurroundingsPOIService.allCategories(in:from:radiusMeters:topPerCategory:)",
+    "Emuqu/Sources/Services/SurroundingsPOIService.swift::func SurroundingsPOIService.remember(_:at:radiusMeters:topPerCategory:)"
    ],
    "reads": [
     "mem:SurroundingsPOIService.cacheStorage"
@@ -163,52 +124,63 @@
      "effect": "return cached POIs with no failed categories"
     },
     {
-     "at": "+17",
+     "at": "+19",
      "cond": "some category failed",
      "effect": "return result without caching"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "The cache key ignores radiusMeters and topPerCategory, so a call with different parameters within 60 s/75 m gets results for the earlier parameters. The single caller always passes 500 / 3 today.",
-     "evidence": [
-      "Emuqu/Sources/Services/SurroundingsPOIService.swift:134",
-      "Emuqu/Sources/Services/SurroundingsPOIService.swift:157"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/SurroundingsPOIService.swift::func SurroundingsPOIService.allCategories(in:from:radiusMeters:topPerCategory:)": "2d9fcc5cff1a6d37",
-    "Emuqu/Sources/Services/SurroundingsPOIService.swift::func SurroundingsPOIService.cachedPOIs(near:)": "85668e7ad715d0f1"
+    "Emuqu/Sources/Services/SurroundingsPOIService.swift::func SurroundingsPOIService.cachedPOIs(near:radiusMeters:topPerCategory:)": "39986a35c6b44666",
+    "Emuqu/Sources/Services/SurroundingsPOIService.swift::func SurroundingsPOIService.remember(_:at:radiusMeters:topPerCategory:)": "39ffc49203523c06"
    }
   },
   {
-   "key": "func SurroundingsPOIService.cachedPOIs(near:)",
-   "hash": "bf23c550f1284b81",
-   "does": "Reads the cache snapshot under the lock; returns its POIs if <60 s old and within 75 m of the query, else nil.",
+   "key": "func SurroundingsPOIService.remember(_:at:radiusMeters:topPerCategory:)",
+   "hash": "27e1cc84fd5fb6f0",
+   "does": "Stores a complete result with its time, coordinate, radius and per-category count in the locked cache.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "ext:OSAllocatedUnfairLock.withLock"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SurroundingsPOIService.cacheStorage"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SurroundingsPOIService.cachedPOIs(near:radiusMeters:topPerCategory:)",
+   "hash": "6343bc5da51dd0c0",
+   "does": "Snapshot of the cache under the lock; returns its POIs when it was searched with the same radius and per-category count, is under 60 s old and was captured within 75 m of coord; else nil.",
+   "entry": null,
+   "calls": [
+    "ext:OSAllocatedUnfairLock.withLock",
+    "ext:CLLocation.distance(from:)"
+   ],
    "reads": [
     "mem:SurroundingsPOIService.cacheStorage"
    ],
    "writes": [],
    "branches": [
     {
-     "at": "+1",
-     "cond": "no snapshot or older than 60 s",
-     "effect": "return nil"
+     "at": "+3",
+     "cond": "entry exists, same parameters, fresh",
+     "effect": "false: nil"
     },
     {
-     "at": "+5",
+     "at": "+8",
      "cond": "drift <= 75 m",
-     "effect": "return POIs; else nil"
+     "effect": "POIs; else nil"
     }
    ],
    "flags": [],
-   "deps": {}
+   "deps": {
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.coord(_:_:)": "5de21e5d99655fdb"
+   }
   },
   {
    "key": "func SurroundingsPOIService.allCategories(in:from:radiusMeters:topPerCategory:)",
@@ -291,7 +263,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/SurroundingsPOIService.swift::func SurroundingsPOIService.poi(_:category:from:radiusMeters:)": "0bf4ef78a2b228e8",
-    "Emuqu/Sources/Services/SurroundingsPOIService.swift::var SurroundingsPOIService.Category.pointOfInterestCategories": "ca7206e0267dd48e",
+    "Emuqu/Sources/Services/SurroundingsPOIService.swift::var SurroundingsPOIService.Category.pointOfInterestCategories": "f9d3742b916778e5",
     "Emuqu/Sources/Services/SurroundingsPOIService.swift::var SurroundingsPOIService.Category.searchTerm": "cce0812e4f5d64b6",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }

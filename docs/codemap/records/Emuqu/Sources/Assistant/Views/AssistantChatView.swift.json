@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Assistant/Views/AssistantChatView.swift",
- "hash": "ad1d062df1c7c1e8",
+ "hash": "6365f9253250f993",
  "role": "The Flo chat screen (AssistantChatView) embedded by CoachHomeV2View: NavigationStack with top bar, transcript, voice status pill, notices, error banner and input bar; toolbar menu (export/refresh/report/clear) and voice toggle; sheets for citations, disclaimer, provider consent, per-message email/share, export and Settings → Flo; link-scheme filtering. Also declares View.disableWritingToolsIfAvailable.",
  "types": [
   "AssistantChatView: struct View — chat tab",
@@ -11,25 +11,10 @@
   "var scrollToBottomSignal: UUID (line 17), var title (default 'Assistant', line 20)",
   "@State floSettingsPresented, showClearConfirm, disclaimerPresented, reportMailUnavailable, citationSession (lines 26-33)",
   "@State isPinnedToBottom, chatViewportHeight, lastStreamingScrollAt (lines 46-53)",
-  "@State perMessageEmailText, perMessageEmailPresented, perMessageShareItem, exportShareURL (lines 57-83)",
-  "hardcoded developer report address chrissharp80@gmail.com in alert copy (line 125)"
+  "@State perMessageEmailItem (ShareableText?), perMessageShareItem, exportShareURL"
  ],
  "toplevel": "No global code. ShareableText gets a fresh UUID id per instance. View extension applies writingToolsBehavior(.disabled) on iOS 18+.",
- "flags": [
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "The 'Report response' no-mail alert text with the hardcoded address chrissharp80@gmail.com and the report-open-with-fallback logic are duplicated between AssistantChatView and ChatBubble.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift:122-126",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift:170-174",
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift:152-156",
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift:197-201",
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift:217"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "var AssistantChatView.viewModel",
@@ -72,37 +57,6 @@
    }
   },
   {
-   "key": "var AssistantChatView.emailBridge",
-   "hash": "373af9220a66b67e",
-   "does": "Returns dependencies.assistant.assistantEmailBridge.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantEmailBridge"
-   ],
-   "reads": [
-    "mem:AssistantEmailBridge"
-   ],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "The private emailBridge accessor is never read in AssistantChatView (grep 'emailBridge' in Assistant/Views finds only its declaration and a comment at line 308); the email-bridge sheet lives at app root.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Views/AssistantChatView.swift:24",
-      "Emuqu/Sources/Assistant/Views/AssistantChatView.swift:308"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantEmailBridge": "d420fad2b679bd13"
-   }
-  },
-  {
    "key": "var AssistantChatView.voice",
    "hash": "3358bc9966a6773d",
    "does": "Returns dependencies.assistant.voiceConversationController.",
@@ -142,8 +96,8 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.onChatAppear()": "fdf6e504a778a098",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.withChatChrome(_:)": "de8c5ead8db6065e",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.withChatSheets(_:)": "ad7d9355dd2bcc5a",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.withChatChrome(_:)": "5a73644f49ace372",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.withChatSheets(_:)": "00bc21178aa7f0ae",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.chatStack": "a06c298ceb670ca5",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.keyboardPerfSignpost": "a1807dd53a6f5ed4",
@@ -170,7 +124,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.chatInputBar": "5f0860a9c05e349e",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.errorBanner": "05faf202a834a8ed",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.errorBanner": "2f59e100457ccdb8",
     "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.messages": "386409170722e795",
     "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.topBar": "a246431192569bd2",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.disclaimerPendingBanner": "6d1e305892d97ae3",
@@ -180,14 +134,15 @@
   },
   {
    "key": "func AssistantChatView.withChatChrome(_:)",
-   "hash": "1a72226d19412a06",
-   "does": "Adds nav title, toolbar, 'Clear conversation?' alert (Clear → viewModel.clearConversation), 'Report response' no-mail alert, and overrides openURL with handleAssistantURL.",
+   "hash": "e50fc89ab308bdbd",
+   "does": "Adds nav title, toolbar, 'Clear conversation?' alert (Clear → viewModel.clearConversation), the shared no-mail report alert (reportMailUnavailableAlert), and overrides openURL with handleAssistantURL.",
    "entry": "SwiftUI view body evaluation; alert button taps; openURL from tapped links in bubbles",
    "calls": [
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.chatToolbar",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.clearConversation()",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.handleAssistantURL(_:)"
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.handleAssistantURL(_:)",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func View.reportMailUnavailableAlert(isPresented:)"
    ],
    "reads": [],
    "writes": [
@@ -197,10 +152,11 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.clearConversation()": "5e42d4696fead99a",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.clearConversation()": "710d4ecd5b2ff279",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.handleAssistantURL(_:)": "149b78e1b8bc5bb3",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.chatToolbar": "96a4741eb8c36e5d",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "7a67d165d99e9732",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func View.reportMailUnavailableAlert(isPresented:)": "8ded708bdcfe557a",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },
@@ -239,7 +195,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.clearConversationButton": "f56e7630db580261",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.exportChatButton": "1bf1fb3b64a112ff",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.exportChatButton": "c9060280ba9b27d0",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.refreshDataContextButton": "199ff0789d8e4034",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.reportSpokenCoachingButton": "87f0195bd208ba02",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
@@ -270,7 +226,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.openReport(_:)": "e3c22416f31f3e6f",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voice": "fa61a702fe44b576",
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatBubble.reportURL(quoting:)": "2c65387c9189a71d",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatBubble.reportURL(quoting:)": "041452b1d4549fed",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },
@@ -414,15 +370,15 @@
   },
   {
    "key": "func AssistantChatView.withChatSheets(_:)",
-   "hash": "e87874c7a6100559",
-   "does": "Attaches sheets: citation quick view, disclaimer, provider consent, per-message email, per-message share, export share, and Settings → Flo (onDismiss → registry.keysChanged).",
+   "hash": "975799cd0bacbf97",
+   "does": "Attaches sheets: citation quick view, disclaimer, provider consent, per-message email (.sheet(item: perMessageEmailItem)), per-message share, export share, and Settings → Flo (onDismiss → registry.keysChanged).",
    "entry": "sheet presentation driven by @State / bindings; onDismiss",
    "calls": [
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.citationSheet(_:)",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.disclaimerSheet",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.pendingConsentBinding",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.consentSheet(_:)",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.perMessageEmailSheet",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.perMessageEmailSheet(body:)",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.exportShareBinding",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.floSettingsSheet",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.registry",
@@ -436,11 +392,11 @@
     "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.keysChanged()": "54aa3690150b5924",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.citationSheet(_:)": "1f98ed0fdc2a30b3",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.consentSheet(_:)": "960911ddd149c198",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.perMessageEmailSheet(body:)": "7a5c2ff8f02ae27b",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.disclaimerSheet": "ee831911a044914d",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.exportShareBinding": "58d307e02dbb25e1",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.exportShareBinding": "bf091dd6613147fe",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.floSettingsSheet": "b198fa120756b00f",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.pendingConsentBinding": "16c057a6605b5b15",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.perMessageEmailSheet": "062ba7c2801d7b5b",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.registry": "12ca201943e746b3"
    }
   },
@@ -548,7 +504,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.cancelPendingConsent()": "4e8bf5d94076021f",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.cancelPendingConsent()": "173cc89e4c60aee3",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "7a67d165d99e9732"
    }
   },
@@ -570,56 +526,33 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.acknowledgeConsentAndContinue()": "211227661735407f",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.cancelPendingConsent()": "4e8bf5d94076021f",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.acknowledgeConsentAndContinue()": "d3dc6cf96faa22b0",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.cancelPendingConsent()": "173cc89e4c60aee3",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "7a67d165d99e9732"
    }
   },
   {
-   "key": "var AssistantChatView.perMessageEmailSheet",
-   "hash": "e2462aa19e824006",
-   "does": "When perMessageEmailText is set, MailComposerView with subject 'Note from Emuqu', that body, To from settings.resolvedDefaultEmailRecipient and CC from resolvedDefaultEmailCC; dismissal clears the text. Renders nothing when the text is nil.",
-   "entry": "sheet content (isPresented: perMessageEmailPresented)",
+   "key": "func AssistantChatView.perMessageEmailSheet(body:)",
+   "hash": "cc342816bfc77b48",
+   "does": "Mail composer for one message's forwarding body, pre-filled with the user's default To/Cc recipients; its dismissal nils perMessageEmailItem. Presented with .sheet(item:), so it never opens without its text.",
+   "entry": ".sheet(item: $perMessageEmailItem) content",
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailRecipient",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailCC"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailCC",
+    "ext:MailComposerView (memberwise init)"
    ],
    "reads": [
     "file:user_settings.json (default email recipient/CC settings)"
    ],
    "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "perMessageEmailText non-nil",
-     "effect": "composer shown; nil → empty sheet"
-    },
-    {
-     "at": "+10",
-     "cond": "resolvedDefaultEmailRecipient non-nil",
-     "effect": "To = [it]; ?? → [] when no default"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "med",
-     "text": "The per-message email sheet uses exactly the String? + Bool pair (perMessageEmailText + perMessageEmailPresented) that the comment on ShareableText says produces an empty 'dark screen' sheet when the bool flip is seen before the text, and onDismiss nils the text while the sheet is still dismissing; only the share path was converted to .sheet(item:).",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Views/AssistantChatView.swift:57-66",
-      "Emuqu/Sources/Assistant/Views/AssistantChatView.swift:236",
-      "Emuqu/Sources/Assistant/Views/AssistantChatView.swift:320",
-      "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift:537-538"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "branches": [],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.body": "bd1e892aa0f11050",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailCC": "94f7651b9cad60c1",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailRecipient": "659b64b5b07e9608",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailCC": "9fa516b2dcf25514",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailRecipient": "1a3b52db4e9c1356",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb"
@@ -627,15 +560,27 @@
   },
   {
    "key": "var AssistantChatView.exportShareBinding",
-   "hash": "859a6dd89fb5df91",
-   "does": "Binding<ExportShareURL?> over exportShareURL; setting nil clears it so the next export writes a fresh file.",
+   "hash": "5ed096e8f969555c",
+   "does": "Binding<ExportShareURL?> over exportShareURL; when the share sheet sets it to nil (closed), clears the URL and deletes the chat export files from tmp (AssistantViewModel.removeChatExports).",
    "entry": ".sheet(item:) binding",
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.removeChatExports()"
+   ],
    "reads": [],
-   "writes": [],
-   "branches": [],
+   "writes": [
+    "file:<tmp>/EmuquChat-*.md (deleted on close)"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "set to nil",
+     "effect": "removeChatExports"
+    }
+   ],
    "flags": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.removeChatExports()": "ead02054f06d2c04"
+   }
   },
   {
    "key": "func AssistantChatView.onChatAppear()",
@@ -748,44 +693,31 @@
   },
   {
    "key": "var AssistantChatView.exportChatButton",
-   "hash": "bc77d8988d614308",
-   "does": "Menu 'Export chat' button: on tap calls viewModel.exportConversation() (writes EmuquChat-<ts>.md to tmp) and stores the URL, presenting the share sheet when non-nil.",
+   "hash": "1ab9fde378623ff8",
+   "does": "Menu 'Export chat' button, disabled for an empty chat: on tap calls viewModel.exportConversation() (replaces any earlier export in tmp) and stores the URL, presenting the share sheet; a nil URL (write failed) sets viewModel.errorMessage 'Export failed'.",
    "entry": "menu tap",
    "calls": [
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.exportConversation()"
    ],
-   "reads": [],
-   "writes": [
-    "file:tmp/EmuquChat-<timestamp>.md"
+   "reads": [
+    "mem:AssistantViewModel.turns"
    ],
-   "branches": [],
-   "flags": [
+   "writes": [
+    "file:tmp/EmuquChat-<timestamp>.md",
+    "mem:AssistantViewModel.errorMessage"
+   ],
+   "branches": [
     {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "exportConversation returns nil for an empty chat or a write failure; exportShareURL stays nil and the Export tap does nothing visible.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Views/AssistantChatView.swift:423",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:619-633"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "privacy",
-     "sev": "low",
-     "text": "Each export writes a new EmuquChat-<timestamp>.md with the full health chat to the temporary directory; nothing deletes it after the share sheet closes (the binding only nils the URL) and Clear conversation does not remove it, so copies persist until OS tmp cleanup or Delete All My Data (DataPurgeService purges temporaryDirectory).",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Views/AssistantChatView.swift:350",
-      "Emuqu/Sources/Assistant/Views/AssistantChatView.swift:423",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:621-624",
-      "Emuqu/Sources/Services/DataPurgeService.swift:430"
-     ],
-     "found": "second read"
+     "at": "+15",
+     "cond": "exportConversation returned nil",
+     "effect": "errorMessage = 'Export failed'"
     }
    ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.exportConversation()": "00f49a276b0cbc26",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorMessage(from:)": "bc3a2c0e8f35a1b9",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.exportConversation()": "ec5fda2982825a79",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "7a67d165d99e9732",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
@@ -898,7 +830,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voice": "fa61a702fe44b576",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.stop()": "6da990bdd4545968",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.stop()": "b1ec5dbd5132a84f",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
    }

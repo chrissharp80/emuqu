@@ -9,16 +9,6 @@
  "toplevel": "No stored state; all members are computed views or methods using the page's @State (refreshToken, newFactText, showClearFactsConfirm, tavilyKeyDraft, tavilyKeyShown, tavilyKeySaveFailed) declared in AIAssistantSettingsPage.swift.",
  "flags": [
   {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Medical-guard status row says the guard 'Refuses AFib / arrhythmia / symptom queries before any provider call', while the Disclosure section on the same page says Emuqu 'points you to a clinician'; the two descriptions of the same guard differ.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift:649",
-    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift:667"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
    "kind": "untested",
    "sev": "low",
    "text": "No UI or unit test references AIAssistantSettingsPage; the Tavily save/remove flow and the web-search auto-disable are untested.",
@@ -331,7 +321,7 @@
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.routingMode(_:)": "8a8722554b9cf157",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.displayName": "01f7b50221806224",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::func AIAssistantSettingsPage.routingCaption(_:)": "6d5c57c288d81b0a",
-    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.noCloudProviderNotice": "b41c161f38835f9d",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.noCloudProviderNotice": "abe1d7c98a82f865",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.routingModePicker": "34951f4d91951498",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.registry": "25dc37377e33fd79",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.settingsManager": "09c37075dd6f7438",
@@ -378,11 +368,11 @@
   },
   {
    "key": "var AIAssistantSettingsPage.noCloudProviderNotice",
-   "hash": "68849bf8d4a0e0e6",
-   "does": "Info row 'No cloud model is set up, so every mode answers on Apple Intelligence' shown when mode is not Manual and TierProviderMapper.hasCloudProvider is false.",
+   "hash": "566111c079d48fa8",
+   "does": "Info row 'No cloud model is set up, so every mode answers on Apple Intelligence' shown when the mode is not Manual and no cloud model may take a turn (anyCloudMayAnswer: none available, switched on and consented).",
    "entry": "SwiftUI view-builder evaluated during AIAssistantSettingsPage.body (via settingsList)",
    "calls": [
-    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.hasCloudProvider(in:)",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.anyCloudMayAnswer",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.noCloudProviderText"
    ],
    "reads": [
@@ -392,7 +382,7 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "routingMode != .manual && !hasCloudProvider",
+     "cond": "routingMode != .manual && !anyCloudMayAnswer",
      "effect": "true: shows notice; false: nothing"
     }
    ],
@@ -400,7 +390,7 @@
     {
      "kind": "broken",
      "sev": "med",
-     "text": "The notice relies on hasCloudProvider, which is true for any enabled cloud key regardless of consent or whether tier routing can use it (only Grok/DeepSeek). Users with only a Claude/OpenAI/Gemini key, or an unconsented Grok/DeepSeek key, are not told that Auto/Deep answer on Apple.",
+     "text": "Users whose only consented cloud is not Grok or DeepSeek (e.g. Claude) are not told that Auto and Deep still answer on Apple Intelligence (voice and actions go to that cloud, so the 'every mode answers on Apple' notice is correctly hidden, and no other notice says it). The unconsented-key case is fixed; this part needs a new localized string.",
      "evidence": [
       "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift:188",
       "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift:116",
@@ -411,10 +401,36 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.routingMode(_:)": "8a8722554b9cf157",
-    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.hasCloudProvider(in:)": "b1ae168df841c9d3",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.anyCloudMayAnswer": "f72812a77aa9a2b0",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.noCloudProviderText": "bdbcd4005f21bde6",
-    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.registry": "25dc37377e33fd79",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.settingsManager": "09c37075dd6f7438"
+   }
+  },
+  {
+   "key": "var AIAssistantSettingsPage.anyCloudMayAnswer",
+   "hash": "1a6aaf85c5e51a30",
+   "does": "True when some non-Apple provider is available (keyed), switched on in Settings and has data-sharing consent — i.e. routing may hand it a turn while Apple Intelligence is selected.",
+   "entry": "SwiftUI view-builder evaluated during AIAssistantSettingsPage.body (via noCloudProviderNotice)",
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.providerConsentTracker",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)"
+   ],
+   "reads": [
+    "mem:ProviderRegistry.allProviders",
+    "kc:AI provider API keys (isAvailable)",
+    "mem:ProviderConsentTracker.acknowledgedProviders"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "b36a2b8ea48a5e61",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)": "4d1d71f3bef78e55",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::var ProviderRegistry.allProviders": "ac9ddbe514f8e580",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.registry": "25dc37377e33fd79",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.providerConsentTracker": "b6e12f3eff34e013"
    }
   },
   {
@@ -689,7 +705,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasServiceKey(for:)": "31dbad94c3cc4e39",
-    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::func AIAssistantSettingsPage.removeTavilyKey()": "240f89e1e1f2c686",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::func AIAssistantSettingsPage.removeTavilyKey()": "4d911a8975d87287",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.apiKeyStore": "9563ff5ba87e76de"
@@ -697,13 +713,14 @@
   },
   {
    "key": "func AIAssistantSettingsPage.removeTavilyKey()",
-   "hash": "040338a9f0a0dde3",
-   "does": "Deletes the Tavily key; if no search route remains (no Anthropic key either) sets enableWebSearch false; bumps refreshToken. The removeServiceKey Bool result is ignored.",
+   "hash": "9a3aaf9097bd48f3",
+   "does": "Deletes the Tavily key, logging a warning when the Keychain delete fails (the key then stays and the page keeps showing it); if no search route remains turns enableWebSearch off; bumps refreshToken.",
    "entry": "Remove key button action",
    "calls": [
     "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.removeServiceKey(for:)",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.canSearchWeb",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.apiKeyStore"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.apiKeyStore",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
    "writes": [
@@ -712,29 +729,24 @@
    ],
    "branches": [
     {
-     "at": "+4",
-     "cond": "!canSearchWeb after removal",
-     "effect": "true: turns web search off; false (Anthropic key present): leaves it on"
-    }
-   ],
-   "flags": [
+     "at": "+1",
+     "cond": "removeServiceKey returned false",
+     "effect": "log warning"
+    },
     {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "removeServiceKey's Bool result is discarded; if SecItemDelete fails the key stays and the page shows no error (unlike the save path's tavilyKeySaveFailed caption).",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift:339",
-      "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift:186"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+6",
+     "cond": "!canSearchWeb after removal",
+     "effect": "true: turns web search off; false (a key still present): leaves it on"
     }
    ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.removeServiceKey(for:)": "c95d4492f9c3354a",
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.removeServiceKey(for:)": "02f11f72d254bc81",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.canSearchWeb": "028c83db16059828",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.settingsManager": "09c37075dd6f7438",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.apiKeyStore": "9563ff5ba87e76de"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.apiKeyStore": "9563ff5ba87e76de",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
@@ -909,7 +921,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::func AIAssistantSettingsPage.forgetFacts(at:)": "7db9c37cf579bc15",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::func AIAssistantSettingsPage.forgetFacts(at:)": "f4ac55a700cbaf58",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::func AIAssistantSettingsPage.rememberedFactRow(_:)": "ba281e9f853609b9",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.facts": "fcbf317d2a557ec8"
    }
@@ -930,8 +942,8 @@
   },
   {
    "key": "func AIAssistantSettingsPage.forgetFacts(at:)",
-   "hash": "08943917b90631ba",
-   "does": "onDelete handler: for each index removes facts.facts[i] by id (persisting each time).",
+   "hash": "1518954644164e67",
+   "does": "onDelete handler: resolves every offset to its fact id first, then removes each fact by id (persisting each time), so a multi-row delete hits the right facts.",
    "entry": "SwiftUI .onDelete",
    "calls": [
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.remove(_:)"
@@ -944,24 +956,12 @@
    ],
    "branches": [
     {
-     "at": "+1",
-     "cond": "for i in indexSet",
-     "effect": "removes the fact currently at index i, re-reading the mutated array each iteration"
+     "at": "+2",
+     "cond": "for each id",
+     "effect": "remove it"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Indexes into facts.facts after each removal has shifted the array, so a multi-index IndexSet would delete the wrong facts or index out of range. Only swipe-delete (single index) is reachable today; the page has no EditButton.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift:452",
-      "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift:453",
-      "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift:176"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.remove(_:)": "a1d2e06cffd32051",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.facts": "fcbf317d2a557ec8"
@@ -1199,16 +1199,17 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.speechRecognizerPicker": "cc679b16ee9fe1d1",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.speechRecognizerPicker": "a296102c716615e1",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },
   {
    "key": "var AIAssistantSettingsPage.speechRecognizerPicker",
-   "hash": "b5fb7a50cc2ed82e",
-   "does": "Inline Picker bound to settings.preferredSTTProvider listing only STTProviderKind cases that support the app language.",
+   "hash": "791a3752d08a995b",
+   "does": "Inline Picker bound to effectiveSTTSelection, listing only STTProviderKind cases that support the app language; a stored preference the language rules out shows as Apple Speech selected.",
    "entry": "SwiftUI view-builder evaluated during AIAssistantSettingsPage.body (via settingsList)",
    "calls": [
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.effectiveSTTSelection",
     "Emuqu/Sources/Assistant/Chat/STTProvider.swift::func STTProviderKind.supports(languageCode:)",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.appLanguageCode",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::func AIAssistantSettingsPage.sttOptionLabel(_:)",
@@ -1221,24 +1222,36 @@
     "mem:SettingsManager.settings.preferredSTTProvider (persisted by SettingsManager)"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "If the stored preferredSTTProvider (e.g. WhisperKit) is filtered out because the app language is not English, the inline Picker's selection has no matching tag, so no option shows as selected while the setting still holds the hidden value.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift:578",
-      "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift:579"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/STTProvider.swift::func STTProviderKind.supports(languageCode:)": "4ce002f5bf1c8c6e",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::func AIAssistantSettingsPage.sttOptionLabel(_:)": "b2606c1a58cbb2a6",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.appLanguageCode": "d34d16d6391f78ff",
-    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.settingsManager": "09c37075dd6f7438",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.effectiveSTTSelection": "48995b8a2a76be35",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var AIAssistantSettingsPage.effectiveSTTSelection",
+   "hash": "0374169979f6b98b",
+   "does": "Binding for the recognizer picker: reads STTProviderKind.effective(preferred: settings.preferredSTTProvider, languageCode: app language) and writes a pick straight to settings.preferredSTTProvider.",
+   "entry": "SwiftUI Picker selection binding",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/STTProvider.swift::func STTProviderKind.effective(preferred:languageCode:)",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.appLanguageCode"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.preferredSTTProvider"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings.preferredSTTProvider (persisted by SettingsManager)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/STTProvider.swift::func STTProviderKind.effective(preferred:languageCode:)": "3f0e7550bc0a4074",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.appLanguageCode": "d34d16d6391f78ff",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.settingsManager": "09c37075dd6f7438"
    }
   },
   {
@@ -1310,7 +1323,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.medicalGuardStatusRow": "d5fcddd7d98251bc",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.medicalGuardStatusRow": "ef07cad8ecd074dc",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.providerFlagToggleList": "5a005d9999b00eb9"
    }
   },
@@ -1351,7 +1364,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::func AIAssistantSettingsPage.providerFlagToggleLabel(_:)": "d7fe43794a622faa",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::func AIAssistantSettingsPage.bindingFor(flag:)": "6d79ab08d5b80831",
-    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.providerFlagToggles": "f5d4d90723f222b5"
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.providerFlagToggles": "7b07ee2d70d5723a"
    }
   },
   {
@@ -1370,8 +1383,37 @@
   },
   {
    "key": "var AIAssistantSettingsPage.medicalGuardStatusRow",
-   "hash": "6a6d980c79121336",
-   "does": "Static read-only 'Medical-query guard: Active' row with a green shield.",
+   "hash": "8b467f3d2c89239f",
+   "does": "Shows the read-only 'Medical-query guard: Active' row (medicalGuardActiveRow) only while FeatureFlags.medicalGuardEnabled — the flag the send path gates on — is on; nothing when it is off.",
+   "entry": "SwiftUI view-builder evaluated during AIAssistantSettingsPage.body (via settingsList)",
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.featureFlags",
+    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.value(for:)",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.medicalGuardActiveRow"
+   ],
+   "reads": [
+    "ud:FeatureFlags medicalGuardEnabled (app group)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "medicalGuardEnabled",
+     "effect": "active row; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.medicalGuardActiveRow": "6f4559a5dda1d36b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.featureFlags": "947ed76de6bc632b",
+    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.value(for:)": "a2781a86fccf2cac"
+   }
+  },
+  {
+   "key": "var AIAssistantSettingsPage.medicalGuardActiveRow",
+   "hash": "654fc6719a2b1694",
+   "does": "Static 'Medical-query guard' row with a green shield and the caption 'Active. Refuses AFib / arrhythmia / symptom queries before any provider call.'",
    "entry": "SwiftUI view-builder evaluated during AIAssistantSettingsPage.body (via settingsList)",
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
@@ -1379,20 +1421,7 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "hack",
-     "sev": "low",
-     "text": "The 'Medical-query guard: Active' row is hard-coded and never reads FeatureFlags .medicalGuardEnabled, which is the flag the send path actually gates on. If that app-group key were stored false, the row would still show a green 'Active'.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift:644",
-      "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift:649",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:418",
-      "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift:442"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.body": "c670446f7d3203ee",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"

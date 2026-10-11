@@ -1,52 +1,23 @@
 {
  "file": "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift",
- "hash": "0ff5c7a88dd89cff",
+ "hash": "40833fb7d4824973",
  "role": "Actionable-steps half of AnalysisSummaryGenerator: post-exercise replacement steps, push gating (HRV signals + TrainingAdviceGate load), trend/training-load/score-band steps, morning-feeling divergence and per-tag advice; plus PostExerciseCopy and FeelingCopy sentence enums.",
  "types": [
   "AnalysisSummaryGenerator: extension — actionable steps",
+  "AnalysisSummaryGenerator.StepThresholds: enum (private) — the steps' own cut points (post-exercise drop 15 / TRIMP 20, high relative HRV 15% at score 70, feeling score 65, unstable-window efficiency 90, session readiness 30/50)",
   "AnalysisSummaryGenerator.PushGates: struct — signals deciding whether push advice is safe",
   "AnalysisSummaryGenerator.HRVSignals: struct — raw autonomic signals",
   "PostExerciseCopy: enum — readiness-band sentences after a workout",
   "FeelingCopy: enum — morning-feeling / tag advice sentences"
  ],
  "state": [],
- "toplevel": "No top-level code beyond the type declarations. Magic gates inline: post-exercise when readiness < score-15 and todayTrimp >= 20 (line 31); high relative HRV push when rmssdPct > 15 and score >= 70 (174); feeling divergence hrvGood = score >= 65 (372); sleep efficiency >= 90 (218, 309); readiness <30/<50 session bands (440-441).",
- "flags": [
-  {
-   "kind": "duplicate",
-   "sev": "med",
-   "text": "Push/blocked advice is emitted twice for the same night: appendTrendSteps (rmssdPct > 15, score >= 70) appends 'This is a great day to push yourself…' or a blocked reason, and appendScoreSteps (score >= 80) appends 'Great day for high-intensity training…' or appendBlockedPushReason's near-identical blocked reason (e.g. two different cumulative-load sentences, or loadHoldReason twice), so the steps list repeats the same verdict.",
-   "evidence": [
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift:175",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift:186",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift:199",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift:201",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift:243",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift:259",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift:292",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift:294"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "hack",
-   "sev": "low",
-   "text": "Several inline magic thresholds (15-point readiness gap, TRIMP 20, rmssdPct 15, score 70, feeling score 65, efficiency 90, readiness 30/50) instead of named constants beside HRVThresholds.",
-   "evidence": [
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift:31",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift:174",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift:372",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift:218",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift:440"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "No top-level code beyond the type declarations. The steps' own thresholds are named in StepThresholds; shared ones come from HRVThresholds.",
+ "flags": [],
  "units": [
   {
    "key": "var AnalysisSummaryGenerator.actionableSteps",
-   "hash": "8b240ffbd00ea276",
-   "does": "Steps list: if currentReadiness exists, headlineScore >= 60, readiness < score-15 and todayTrimp >= 20 → post-exercise steps only; else trend steps, training-load steps, score-band steps, then feeling steps inserted at the top.",
+   "hash": "fd20ced21d2358ea",
+   "does": "Steps list: if currentReadiness exists, headlineScore >= 60, readiness < score − StepThresholds.postExerciseReadinessDrop (15) and todayTrimp >= postExerciseMinTrimp (20) → post-exercise steps only; else trend steps, training-load steps, score-band steps, then feeling steps inserted at the top.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.headlineScore",
@@ -70,13 +41,31 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.headlineScore": "ae7af921e8c3faaa",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendFeelingSteps(_:score:)": "cd2ade312d108738",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.headlineScore": "10743c82fc14b619",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendFeelingSteps(_:score:)": "425afe54c9be8221",
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendScoreSteps(_:score:gates:)": "abd179367ca72b17",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendTrainingLoadSteps(_:)": "7ed4ff103cae048b",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendTrendSteps(_:score:gates:)": "b885bc089b570c9e",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendTrainingLoadSteps(_:)": "53315461eecb103b",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendTrendSteps(_:score:gates:)": "7c21520511d975ac",
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.postExerciseSteps(readiness:recoveryScore:)": "81a2d0ef7130228e",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.pushGates()": "502f63ffec1c3c5b"
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.pushGates()": "23b94896471561c8"
+   }
+  },
+  {
+   "key": "var AnalysisSummaryGenerator.PushGates.capsAtModerate",
+   "hash": "084f02bffd7f13d0",
+   "does": "True when anything keeps the advice at moderate rather than high intensity: cumulativeLoadElevated, a loadHoldReason, no strong vagal tone, a fatigue signal or short sleep.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var AnalysisSummaryGenerator.PushGates.cumulativeLoadElevated",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var AnalysisSummaryGenerator.PushGates.loadHoldReason"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var AnalysisSummaryGenerator.PushGates.cumulativeLoadElevated": "e82f0f5f158e7ff2",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var AnalysisSummaryGenerator.PushGates.loadHoldReason": "42fb8595f76d2389"
    }
   },
   {
@@ -122,8 +111,8 @@
   },
   {
    "key": "func AnalysisSummaryGenerator.pushGates()",
-   "hash": "3dbcb8d89e2b30a8",
-   "does": "Builds PushGates: HRV signals, advice load assessment, and shouldNotPush = short sleep or unstable window or fatigue or sympathetic dominance or not consolidated or load level != clear.",
+   "hash": "cecbe4ba7beb4301",
+   "does": "Builds PushGates: HRV signals, advice load assessment, and shouldNotPush = short sleep or unstable window or fatigue or raised LF/HF or not consolidated or load level != clear.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.hrvSignals()",
@@ -145,7 +134,7 @@
     "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isGoodSleep": "77fddba22b4b8546",
     "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isShortSleep": "d971dbe731a9e976",
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.adviceLoad()": "a647728d081f7223",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.hrvSignals()": "ce9bee155903fdf1",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.hrvSignals()": "aee03ef2c6e2df2b",
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var AnalysisSummaryGenerator.isConsolidatedWindow": "b05e1ffbf0baebc1",
     "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183",
@@ -174,8 +163,8 @@
   },
   {
    "key": "func AnalysisSummaryGenerator.hrvSignals()",
-   "hash": "93df13db3beb7625",
-   "does": "Computes RMSSD, stress/LF-HF/DFA (defaulted), window HR CV (default 0), strong vagal tone (pNN50 > 25 and RMSSD >= 40), unstable window (CV > 0.08), fatigue (DFA > 1.35 with strong tone, else > 1.2), sympathetic dominance (LF/HF > 3.0 only without strong tone).",
+   "hash": "11faf869f5757a31",
+   "does": "Computes RMSSD, stress/LF-HF/DFA (defaulted), window HR CV (default 0), strong vagal tone (pNN50 > 25 and RMSSD >= 40), unstable window (CV > 0.08), fatigue (DFA > 1.35 with strong tone, else > 1.2), raised LF/HF (LF/HF > 3.0 only without strong tone; a position of the ratio, not a sympathetic measure).",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -209,10 +198,21 @@
     {
      "at": "+9",
      "cond": "hasStrongVagalTone (?:)",
-     "effect": "sympathetic dominance forced false; else lfhf > 3.0"
+     "effect": "raised LF/HF forced false; else lfhf > 3.0"
     }
    ],
-   "flags": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "A missing stress index, LF/HF or DFA α1 becomes 150 / 1.0 / 1.0, values that never raise a gate, so a night without those markers is pushed as freely as one whose markers were measured and settled.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift:154",
+      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift:155",
+      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift:156"
+     ]
+    }
+   ],
    "deps": {
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb"
@@ -246,8 +246,8 @@
   },
   {
    "key": "func AnalysisSummaryGenerator.appendTrendSteps(_:score:gates:)",
-   "hash": "450a2d9cd35fb636",
-   "does": "Trend steps (needs stats): improving-trend line when trend7Day > 0; high-relative-HRV steps when rmssd > 15% above avg and score >= 70; 'what changed' line when trend7Day < 0.",
+   "hash": "ffd8d0a677cd0d9b",
+   "does": "Trend steps (needs stats): improving-trend line when trend7Day > 0; high-relative-HRV blocked reason when rmssd > 15% above avg and 70 <= score < 80 (from 80 the score steps give the push or its reason, so it is not said twice); 'what changed' line when trend7Day < 0.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendHighRelativeHRVSteps(_:gates:)",
@@ -270,46 +270,42 @@
      "effect": "append improving-routine line"
     },
     {
-     "at": "+12",
-     "cond": "rmssdPct > 15 and score >= 70",
+     "at": "+15",
+     "cond": "rmssdPct > 15 and 70 <= score < scoreWellRecovered (80)",
      "effect": "appendHighRelativeHRVSteps"
     },
     {
-     "at": "+16",
+     "at": "+20",
      "cond": "trend7Day < 0",
      "effect": "append 'Consider what changed' line"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendHighRelativeHRVSteps(_:gates:)": "98708d68d45102f2",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendHighRelativeHRVSteps(_:gates:)": "d0a6bc5fa10e6940",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
    }
   },
   {
    "key": "func AnalysisSummaryGenerator.appendHighRelativeHRVSteps(_:gates:)",
-   "hash": "04d56976390ddee8",
-   "does": "Appends 'great day to push yourself' when no gate blocks, else the blocked reason.",
+   "hash": "81fb7ead45a25159",
+   "does": "Below a well-recovered score: appends the blocked reason (appendHighHRVBlockedReason) when a gate blocks the push, else nothing. Never offers a push (TrainingAdviceGate.allowsPush needs score >= 80).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendHighHRVBlockedReason(_:gates:)",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendHighHRVBlockedReason(_:gates:)"
    ],
-   "reads": [
-    "mem:NarrativeLanguage.isEnglish"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+1",
      "cond": "!gates.shouldNotPush",
-     "effect": "push sentence; else appendHighHRVBlockedReason"
+     "effect": "return without a step; else appendHighHRVBlockedReason"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendHighHRVBlockedReason(_:gates:)": "827e5eee8b8531fe",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendHighHRVBlockedReason(_:gates:)": "827e5eee8b8531fe"
    }
   },
   {
@@ -341,7 +337,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendHighHRVTodayReason(_:gates:)": "936d03ac0e0cc1f1",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendHighHRVTodayReason(_:gates:)": "bb5c728bf7b3ff55",
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var AnalysisSummaryGenerator.PushGates.cumulativeLoadElevated": "e82f0f5f158e7ff2",
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var AnalysisSummaryGenerator.PushGates.loadHoldReason": "42fb8595f76d2389",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
@@ -349,8 +345,8 @@
   },
   {
    "key": "func AnalysisSummaryGenerator.appendHighHRVTodayReason(_:gates:)",
-   "hash": "33753488b25b4d06",
-   "does": "Today-only blocked reason: not consolidated with no other signal → 'pattern wasn't sustained'; short sleep; unstable window (efficiency >= 90 → 'moderate to high intensity should be fine', else moderate); fatigue; sympathetic dominance.",
+   "hash": "8ceb788350ca1867",
+   "does": "Today-only blocked reason: not consolidated with no other signal → 'pattern wasn't sustained'; short sleep; unstable window (efficiency >= 90 → 'moderate to high intensity should be fine', else moderate); fatigue; raised LF/HF → the ratio is above its usual resting range (breathing / gentle walk).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
@@ -362,7 +358,7 @@
    "branches": [
     {
      "at": "+4",
-     "cond": "!consolidated and no unstable/fatigue/sympathetic/short sleep",
+     "cond": "!consolidated and no unstable/fatigue/raised-LF/HF/short sleep",
      "effect": "not-sustained sentence"
     },
     {
@@ -387,23 +383,27 @@
     },
     {
      "at": "+16",
-     "cond": "hasSympatheticDominance",
-     "effect": "'nervous system is still activated'; else nothing appended"
+     "cond": "hasRaisedLFHF",
+     "effect": "'LF/HF ratio is above its usual resting range' sentence; else nothing appended"
     }
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isShortSleep": "d971dbe731a9e976",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5",
     "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.isConsolidated(_:)": "8f7224c0359ecb0f"
    }
   },
   {
    "key": "func AnalysisSummaryGenerator.appendTrainingLoadSteps(_:)",
-   "hash": "62d33a8452c4dfa5",
-   "does": "Frozen training context steps: ACR < 0.8 → add movement; else CTL and ATL below ctlThreshold → 20-minute walk.",
+   "hash": "3f89d6387795ead3",
+   "does": "Low-load steps from loadReading (live snapshot first, else frozen context — the push gate's source): ctl-qualified ACR < 0.8 → add movement; else ctl and atl both below ctlThreshold → 20-minute walk.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.loadReading",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.LoadReading.qualifiedACWR",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.LoadReading.isVeryLowActivity"
    ],
    "reads": [
     "mem:NarrativeLanguage.isEnglish"
@@ -411,41 +411,27 @@
    "writes": [],
    "branches": [
     {
-     "at": "+2",
-     "cond": "trainingContext nil → result.trainingContext ('??'); both nil",
+     "at": "+1",
+     "cond": "loadReading nil",
      "effect": "no step"
     },
     {
      "at": "+2",
-     "cond": "context present",
-     "effect": "check ACR"
-    },
-    {
-     "at": "+3",
-     "cond": "acr present and < 0.8",
+     "cond": "qualified ACR present and < 0.8",
      "effect": "low-load step"
     },
     {
-     "at": "+5",
-     "cond": "ctl and atl < ctlThreshold",
+     "at": "+4",
+     "cond": "isVeryLowActivity",
      "effect": "walk step; else none"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Reads the frozen context, not liveLoadSnapshot, so 'Your training load is low — try adding a walk' can show alongside a live-load hold from the push gate.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift:232",
-      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift:159"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5",
-    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.LoadReading.isVeryLowActivity": "5b1bcb70f6de95c1",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.LoadReading.qualifiedACWR": "ad522612766ac35d",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.loadReading": "ddd01d7f070cf614",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
    }
   },
   {
@@ -513,19 +499,18 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendCapacityWithoutReadinessSteps(_:gates:)": "774d7f78cca1d639",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendCapacityWithoutReadinessSteps(_:gates:)": "4c963e21dee06516",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
    }
   },
   {
    "key": "func AnalysisSummaryGenerator.appendCapacityWithoutReadinessSteps(_:gates:)",
-   "hash": "d23a0f420a3b18fd",
-   "does": "Appends the blocked-push reason, then 'Consider moderate activity' when load elevated/held, no strong vagal tone, fatigue or short sleep.",
+   "hash": "9959232cb8c92602",
+   "does": "Appends the blocked-push reason, then 'Consider moderate activity' when gates.capsAtModerate (load elevated/held, no strong vagal tone, fatigue or short sleep). The unstable-window reason it may follow offers moderate-to-high intensity only when nothing caps it, so the two agree.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendBlockedPushReason(_:gates:)",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var AnalysisSummaryGenerator.PushGates.cumulativeLoadElevated",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var AnalysisSummaryGenerator.PushGates.loadHoldReason",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var AnalysisSummaryGenerator.PushGates.capsAtModerate",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
    ],
    "reads": [
@@ -535,39 +520,27 @@
    "branches": [
     {
      "at": "+8",
-     "cond": "any of cumulativeLoadElevated, loadHoldReason, !strongVagalTone, fatigue, shortSleep",
+     "cond": "gates.capsAtModerate",
      "effect": "append moderate-activity line; else none"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "With an unstable window, sleep efficiency >= 90 and weak vagal tone, appendUnstableWindowStep says 'you're in good shape for moderate to high intensity' and this then appends 'Consider moderate activity rather than high intensity' — contradictory steps in one list.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift:310",
-      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift:275",
-      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift:277"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendBlockedPushReason(_:gates:)": "2ac6b1e1f3ae704b",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var AnalysisSummaryGenerator.PushGates.cumulativeLoadElevated": "e82f0f5f158e7ff2",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var AnalysisSummaryGenerator.PushGates.loadHoldReason": "42fb8595f76d2389",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendBlockedPushReason(_:gates:)": "f9b7742794a818c0",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var AnalysisSummaryGenerator.PushGates.capsAtModerate": "165ac2b68b3156ae",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
    }
   },
   {
    "key": "func AnalysisSummaryGenerator.appendBlockedPushReason(_:gates:)",
-   "hash": "1afe021a2da70f99",
-   "does": "Blocked-push reason for well-recovered scores: cumulative load; load hold reason; not consolidated (no unstable/fatigue/sympathetic); short sleep; unstable window step; fatigue; sympathetic dominance.",
+   "hash": "32b28176f557ebcf",
+   "does": "Blocked-push reason for well-recovered scores: cumulative load; load hold reason; not consolidated (no unstable/fatigue/raised LF/HF/short sleep); short sleep; unstable window step (told whether the advice is capped at moderate); fatigue; raised LF/HF (ratio above its usual resting range).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var AnalysisSummaryGenerator.PushGates.cumulativeLoadElevated",
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var AnalysisSummaryGenerator.PushGates.loadHoldReason",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendUnstableWindowStep(_:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var AnalysisSummaryGenerator.PushGates.capsAtModerate",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendUnstableWindowStep(_:capsAtModerate:)",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
    ],
    "reads": [
@@ -587,8 +560,8 @@
     },
     {
      "at": "+8",
-     "cond": "!consolidated and no unstable/fatigue/sympathetic",
-     "effect": "'pattern wasn't held long enough' (short sleep not excluded here, unlike line 213)"
+     "cond": "!consolidated and no unstable/fatigue/raised-LF/HF/short sleep",
+     "effect": "'pattern wasn't held long enough' (same order as appendHighHRVTodayReason)"
     },
     {
      "at": "+10",
@@ -598,7 +571,7 @@
     {
      "at": "+12",
      "cond": "hasUnstableWindow",
-     "effect": "appendUnstableWindowStep"
+     "effect": "appendUnstableWindowStep(capsAtModerate:)"
     },
     {
      "at": "+14",
@@ -607,24 +580,15 @@
     },
     {
      "at": "+16",
-     "cond": "hasSympatheticDominance",
-     "effect": "'elevated LF/HF ratio — nervous system still activated'; else nothing"
+     "cond": "hasRaisedLFHF",
+     "effect": "'LF/HF ratio is above its usual resting range' sentence; else nothing"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Ordering differs from appendHighHRVTodayReason: here a short-sleep, unconsolidated night gets 'pattern wasn't held long enough' (line 295 omits !isShortSleep) while line 213 gives the short-sleep reason for the same signals.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift:295",
-      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift:213"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendUnstableWindowStep(_:)": "796b2b022087123a",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isShortSleep": "d971dbe731a9e976",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendUnstableWindowStep(_:capsAtModerate:)": "b6ae3c2f578c8549",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var AnalysisSummaryGenerator.PushGates.capsAtModerate": "165ac2b68b3156ae",
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var AnalysisSummaryGenerator.PushGates.cumulativeLoadElevated": "e82f0f5f158e7ff2",
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var AnalysisSummaryGenerator.PushGates.loadHoldReason": "42fb8595f76d2389",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5",
@@ -632,9 +596,9 @@
    }
   },
   {
-   "key": "func AnalysisSummaryGenerator.appendUnstableWindowStep(_:)",
-   "hash": "838b138d279ca012",
-   "does": "Unstable-window step: efficiency >= 90 → good shape for moderate to high intensity; else not fully consolidated.",
+   "key": "func AnalysisSummaryGenerator.appendUnstableWindowStep(_:capsAtModerate:)",
+   "hash": "3c5e0528b61d3a13",
+   "does": "Unstable-window step: sleep efficiency >= 90 (nil treated as 0) and not capped at moderate → 'good shape for moderate to high intensity'; otherwise 'recovery wasn't fully consolidated'.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
@@ -646,17 +610,13 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "sleepEfficiency nil ('?? 0')",
-     "effect": "treated as 0 → not-consolidated sentence"
-    },
-    {
-     "at": "+1",
-     "cond": "efficiency >= 90",
-     "effect": "moderate-to-high sentence; else not-consolidated sentence"
+     "cond": "sleepEfficiency >= 90 and !capsAtModerate",
+     "effect": "moderate-to-high sentence; else not-fully-consolidated sentence"
     }
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var AnalysisSummaryGenerator.PushGates.capsAtModerate": "165ac2b68b3156ae",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
    }
   },
@@ -681,6 +641,7 @@
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isShortSleep": "d971dbe731a9e976",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
    }
   },
@@ -720,6 +681,8 @@
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isFragmented": "9be0a2ac3cd93216",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isShortSleep": "d971dbe731a9e976",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
    }
   },
@@ -754,13 +717,15 @@
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isFragmented": "9be0a2ac3cd93216",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isShortSleep": "d971dbe731a9e976",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
    }
   },
   {
    "key": "func AnalysisSummaryGenerator.appendFeelingSteps(_:score:)",
-   "hash": "aec575ff9e39e17d",
-   "does": "Morning-feeling divergence: feeling <= 2 → tag/generic feel-bad advice inserted at the top; feeling >= 4 with score < 65 → feel-good-HRV-low line at top.",
+   "hash": "a49fb2969838d575",
+   "does": "Morning-feeling divergence: feeling <= 2 → tag/generic feel-bad advice inserted at the top; feeling >= 4 with score < StepThresholds.feelingHRVGoodScore (65) → feel-good-HRV-low line at top.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.feelBadAdvice(hrvGood:tags:feeling:)",
@@ -940,7 +905,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isShortSleep": "d971dbe731a9e976",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.sessionCostSteps(readiness:label:)": "14e8607dd5b6e145",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.sessionCostSteps(readiness:label:)": "84262c7ff71bfcc7",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)": "18aa103b513d602d",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.readinessLabel(for:)": "c5615f21a0aefc6d",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183",
@@ -950,8 +915,8 @@
   },
   {
    "key": "func AnalysisSummaryGenerator.sessionCostSteps(readiness:label:)",
-   "hash": "e39f3f0e4ca262ed",
-   "does": "By readiness: <30 heavy-session steps, <50 moderate-session steps, else light-session copy.",
+   "hash": "c84499a183e83660",
+   "does": "By readiness: < heavySessionReadiness (30) heavy-session steps, < moderateSessionReadiness (50) moderate-session steps, else light-session copy.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.heavySessionSteps(label:)",
@@ -976,7 +941,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.heavySessionSteps(label:)": "21b370d469d1a24a",
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.moderateSessionSteps()": "36e5c4d85a135d22",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func PostExerciseCopy.lightSession(label:)": "c163d86e52710350"
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func PostExerciseCopy.lightSession(label:)": "29ac6aea48a97534"
    }
   },
   {
@@ -1074,8 +1039,8 @@
   },
   {
    "key": "func PostExerciseCopy.lightSession(label:)",
-   "hash": "ebf0a74cb38af541",
-   "does": "Light-session pair: 'used some capacity — readiness is now <band>' by English label, plus 'a light session later is possible'.",
+   "hash": "f4112a4c7c658625",
+   "does": "Light-session pair: 'used some capacity — readiness is now ready' for label 'Ready', else the 'moderate' sentence (readiness >= 50 only yields Ready or Moderate), plus 'a light session later is possible'.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
@@ -1086,42 +1051,12 @@
    "writes": [],
    "branches": [
     {
-     "at": "+2",
-     "cond": "'Ready'",
-     "effect": "ready"
-    },
-    {
-     "at": "+3",
-     "cond": "'Moderate'",
-     "effect": "moderate"
-    },
-    {
-     "at": "+4",
-     "cond": "'Fatigued'",
-     "effect": "fatigued"
-    },
-    {
-     "at": "+5",
-     "cond": "default",
-     "effect": "rest"
+     "at": "+1",
+     "cond": "label == 'Ready'",
+     "effect": "ready sentence; else moderate sentence"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "Only reached from sessionCostSteps when readiness >= 50 (toTenScale >= 5.0), where readinessLabel is 'Ready' (>= 7.0) or 'Moderate' (>= 4.5); the Fatigued and default (Rest) cases cannot occur in production.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift:441",
-      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift:442",
-      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift:490",
-      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift:491",
-      "Emuqu/Sources/Analysis/ReadinessScoring.swift:335",
-      "Emuqu/Sources/Utilities/Constants+RecoveryScore.swift:208"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
    }

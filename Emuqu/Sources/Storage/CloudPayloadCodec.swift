@@ -1,5 +1,6 @@
 import CryptoKit
 import Foundation
+import os
 import Security
 
 /// The single envelope format for everything written to iCloud.
@@ -205,13 +206,27 @@ enum CloudPayloadCodec {
     /// Only genuine absence permits creating one. A Keychain that refuses the
     /// read (locked, entitlement problem) is not a first run, and a key minted
     /// over that failure would seal backups no other device can open.
+    ///
+    /// Creation is serialized and re-checks under the lock: two first writers
+    /// (settings push, session push, live backup) would otherwise each add a
+    /// key under its own account. The usual path, a key already stored, takes
+    /// no lock.
     private static func writingKey() throws -> SymmetricKey {
-        let keys = try storedKeys()
-        if let account = primaryAccount(among: keys.map(\.account)),
-           let primary = keys.first(where: { $0.account == account }) {
-            return primary.key
+        if let primary = try primaryKey() { return primary }
+        return try keyCreation.withLock { _ in
+            if let primary = try primaryKey() { return primary }
+            return try create()
         }
-        return try create()
+    }
+
+    /// Serializes `create()` against concurrent first writers.
+    private static let keyCreation = OSAllocatedUnfairLock()
+
+    /// The stored key under `primaryAccount`, or nil when there is none.
+    private static func primaryKey() throws -> SymmetricKey? {
+        let keys = try storedKeys()
+        guard let account = primaryAccount(among: keys.map(\.account)) else { return nil }
+        return keys.first(where: { $0.account == account })?.key
     }
 
     /// Which stored key every device writes with.

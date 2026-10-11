@@ -61,7 +61,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift::func PatternCauseDetector.calculateDayOfWeekImpact(in:)": "ec239381fb9d9973",
+    "Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift::func PatternCauseDetector.calculateDayOfWeekImpact(in:)": "279fc75aab6e8ba2",
     "Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift::func WeekdayPatternCopy.explanation(weekday:percent:)": "0dfdf2ccd61b0a10",
     "Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift::func WeekdayPatternCopy.title(weekday:)": "74acec09e212124e",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)": "e447648b612c9e97",
@@ -70,12 +70,13 @@
   },
   {
    "key": "func PatternCauseDetector.calculateDayOfWeekImpact(in:)",
-   "hash": "dde8cbd9f172961f",
-   "does": "Using >= 14 reliable overnight sessions, groups RMSSD by start-date weekday; needs >= 3 weekdays with >= 2 readings and >= 2 readings on tonight's weekday; impact = (overall − today)/overall.",
+   "hash": "fffad4fb799ffb34",
+   "does": "Using >= 14 reliable overnight sessions, groups RMSSD by the weekday of the morning each night ends on (morningWeekday: start + 12 h); needs >= 3 weekdays with >= 2 readings and >= 2 readings on tonight's morning weekday; impact = (overall − today)/overall.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates",
-    "Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift::func PatternCauseDetector.rmssdByWeekday(_:calendar:)"
+    "Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift::func PatternCauseDetector.rmssdByWeekday(_:calendar:)",
+    "Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift::func PatternCauseDetector.morningWeekday(of:calendar:)"
    ],
    "reads": [],
    "writes": [],
@@ -96,32 +97,34 @@
      "effect": "nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Weekday is taken from session.startDate, so the same kind of night is filed under different weekdays depending on whether recording started before or after midnight (23:30 Sunday vs 00:30 Monday), diluting/mislabelling the pattern; the explanation then says 'lower on <weekday>'.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift:55",
-      "Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift:69"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift::func PatternCauseDetector.rmssdByWeekday(_:calendar:)": "e08f018210674fc1",
+    "Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift::func PatternCauseDetector.morningWeekday(of:calendar:)": "b4d0b8a019e91697",
+    "Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift::func PatternCauseDetector.rmssdByWeekday(_:calendar:)": "afd718fca03fdc7b",
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.recentSessions(limit:)": "21d596f047675431",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f"
    }
   },
   {
+   "key": "func PatternCauseDetector.morningWeekday(of:calendar:)",
+   "hash": "597b9302b25ac93b",
+   "does": "Calendar weekday (1 = Sunday) of session.startDate + 12 h: the morning a night ends on, so recordings begun just before or just after midnight file under the same weekday.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
    "key": "func PatternCauseDetector.rmssdByWeekday(_:calendar:)",
-   "hash": "6b356372b21925c1",
-   "does": "Maps each session with an RMSSD to its Calendar weekday bucket.",
+   "hash": "2abcce59cd67e6e1",
+   "does": "Maps each session with an RMSSD to the weekday bucket of the morning it ends on (morningWeekday).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.rmssd"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.rmssd",
+    "Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift::func PatternCauseDetector.morningWeekday(of:calendar:)"
    ],
    "reads": [],
    "writes": [],
@@ -139,6 +142,7 @@
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift::func PatternCauseDetector.morningWeekday(of:calendar:)": "b4d0b8a019e91697",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.rmssd": "64652e57c90f256a"
    }
   },

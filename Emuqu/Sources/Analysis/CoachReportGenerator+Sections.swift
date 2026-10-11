@@ -6,12 +6,12 @@ import Foundation
 // built from. `formatDistance` is also used by the workout recovery service.
 
 extension CoachReportGenerator {
+    /// `UnitsPreference.formatDistance(meters:)` (`.auto` resolved against the
+    /// locale, number and unit in the app language), or "—" without a
+    /// positive distance.
     static func formatDistance(_ meters: Double?, units: UnitsPreference) -> String {
         guard let m = meters, m > 0 else { return "—" }
-        if units == .imperial {
-            return String(format: "%.2f mi", locale: LanguageManager.appLocale, m / 1609.344)
-        }
-        return String(format: "%.2f km", locale: LanguageManager.appLocale, m / 1_000)
+        return units.formatDistance(meters: m)
     }
 
     static func formatDuration(_ seconds: TimeInterval) -> String {

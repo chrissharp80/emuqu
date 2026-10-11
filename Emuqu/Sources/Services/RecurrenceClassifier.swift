@@ -39,8 +39,13 @@ import Foundation
 //      (default 75 m).
 //
 //   4. **Cluster** when ≥2 historical trails match the current
-//      shape. Surface the median duration + path length so the AI
-//      can say "you usually finish this in 47 min."
+//      shape. Mid-walk only the route walked so far can be compared,
+//      and two routes that leave the same start the same way both
+//      match it, so the matches are narrowed to the largest group
+//      whose WHOLE routes also match each other; a cluster is only
+//      reported when that group still has ≥2 trails. Surface its
+//      median duration + path length so the AI can say "you usually
+//      finish this in 47 min."
 //
 // **What we deliberately don't do**:
 //   - No DTW. Pair-wise distance on resampled signatures is O(N)
@@ -133,8 +138,24 @@ enum RecurrenceClassifier {
         let scored = scoreCandidates(
             candidates, against: currentSignature, walkedMeters: current.walkedTrailLengthMeters()
         )
-        guard scored.count >= minimumClusterSize else { return nil }
-        return clusterMatch(scored, current: current)
+        let cluster = coherentCluster(scored)
+        guard cluster.count >= minimumClusterSize else { return nil }
+        return clusterMatch(cluster, current: current)
+    }
+
+    /// The largest group of matched trails whose full routes match each
+    /// other (same signature test, over the whole trail). Prefix matches of
+    /// two different routes that share a start fall into separate groups, so
+    /// the medians describe one route, not a mix.
+    private static func coherentCluster(_ scored: [ScoredTrail]) -> [ScoredTrail] {
+        let fullSignatures = scored.map { signature(for: $0.trail) }
+        let groups = fullSignatures.indices.map { index in
+            fullSignatures.indices.filter { other in
+                averagePerPointDistance(fullSignatures[index], fullSignatures[other]) <= matchThresholdMeters
+            }
+        }
+        let largest = groups.max { $0.count < $1.count } ?? []
+        return largest.map { scored[$0] }
     }
 
     /// Archived trails that start from the same coarse origin bucket. The

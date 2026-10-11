@@ -1,25 +1,28 @@
 import SwiftUI
 
 /// Curated key-stats grid for the post-workout summary — a direct replacement
-/// for the previous 15-row dense vertical table. Six tiles, each a
-/// big-value-on-top / small-label-below pair, laid out as a 3×2 grid.
+/// for the previous 15-row dense vertical table. Up to six tiles, each a
+/// big-value-on-top / small-label-below pair, three to a row.
 ///
-/// The six shown are the ones you actually want at a glance: peak HR,
-/// elevation gain, TRIMP (internal training load), hrTSS (TSS-normalized
-/// training stress), best split pace, and average HR. All the secondary
-/// aggregates (normalized power, peak power, max speed, RMSSD, METs,
-/// calories, cadence average) still live in the detailed cards below.
+/// The card renders the `stats` its caller assembles; the summary adds a tile
+/// only for a metric the workout recorded (average and peak HR, elevation
+/// gain, the training load, the HR load beside a power load, best split), so
+/// the grid shrinks to what exists, and the card is not drawn when nothing
+/// does.
 ///
 /// Design matches the morning cards: bold-rounded number + caption label +
 /// consistent padding + `cornerRadius(16)`.
 struct WorkoutKeyStatsCard: View {
+    /// Identified by its label (one tile per metric), so a rebuilt array
+    /// keeps the same identities and the grid diffs instead of recreating
+    /// every tile.
     struct Stat: Identifiable {
-        let id = UUID()
         let label: String
         let value: String
         let sub: String?
         let icon: String
         let tint: Color
+        var id: String { label }
     }
 
     let stats: [Stat]
@@ -38,7 +41,12 @@ struct WorkoutKeyStatsCard: View {
         }
     }
 
+    @ViewBuilder
     var body: some View {
+        if !stats.isEmpty { card }
+    }
+
+    private var card: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(String(localized: "AT A GLANCE", bundle: LanguageManager.appBundle))
                 .font(.caption.weight(.bold))

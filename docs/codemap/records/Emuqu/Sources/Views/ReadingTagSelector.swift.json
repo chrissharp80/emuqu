@@ -40,39 +40,43 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ReadingTagSelector.swift::var ReadingTagSelector.tagChipRow": "5f900a10f9f3c4d2"
+    "Emuqu/Sources/Views/ReadingTagSelector.swift::var ReadingTagSelector.tagChipRow": "375020b99ac3ecbe"
    }
   },
   {
    "key": "var ReadingTagSelector.tagChipRow",
-   "hash": "b1a5dfd17ee93027",
-   "does": "One chip per ReadingTag.systemTags then the More button.",
+   "hash": "652a425abdf52cf1",
+   "does": "One chip per stripTags (system tags, then any selected custom tag) then the More button.",
    "entry": "SwiftUI view-body evaluation",
    "calls": [
-    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.systemTags",
+    "Emuqu/Sources/Views/ReadingTagSelector.swift::var ReadingTagSelector.stripTags",
     "Emuqu/Sources/Views/ReadingTagSelector.swift::func ReadingTagSelector.chip(for:)",
     "Emuqu/Sources/Views/ReadingTagSelector.swift::var ReadingTagSelector.moreTagsButton"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "The strip renders only ReadingTag.systemTags, but the 'More' picker offers systemTags + customTags into the same selectedTags; a custom tag selected there is never shown as selected in the strip.",
-     "evidence": [
-      "Emuqu/Sources/Views/ReadingTagSelector.swift:36",
-      "Emuqu/Sources/Views/RecordView.swift:160",
-      "Emuqu/Sources/Models/UserSettings+Model.swift:870"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.systemTags": "825e2f48504e4c5e",
     "Emuqu/Sources/Views/ReadingTagSelector.swift::func ReadingTagSelector.chip(for:)": "7b05b8c9406b83d0",
-    "Emuqu/Sources/Views/ReadingTagSelector.swift::var ReadingTagSelector.moreTagsButton": "aa2c53bbfdbae3dd"
+    "Emuqu/Sources/Views/ReadingTagSelector.swift::var ReadingTagSelector.moreTagsButton": "aa2c53bbfdbae3dd",
+    "Emuqu/Sources/Views/ReadingTagSelector.swift::var ReadingTagSelector.stripTags": "48f1d9865e6bec83"
+   }
+  },
+  {
+   "key": "var ReadingTagSelector.stripTags",
+   "hash": "17832deb7c28727f",
+   "does": "ReadingTag.systemTags followed by every selected tag whose id is not a system tag's (a custom tag picked under More), sorted by name, so each selection shows as selected in the strip.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.systemTags"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.systemTags": "825e2f48504e4c5e"
    }
   },
   {

@@ -5,7 +5,7 @@
  "types": [
   "DetectedCause: struct — one candidate cause",
   "DetectedCause.CauseConfidence: enum String — English raw pattern-match labels (badge colour key) + localized label",
-  "CauseDetectionContext: struct — inputs to every strategy",
+  "CauseDetectionContext: struct — inputs to every strategy (plus currentHR and isGoodSleep derived from them)",
   "CauseDetectionStrategy: protocol — detectCauses(in:)",
   "CauseDetector: class — aggregates Positive, Severe, TagBased, Sleep, MetricBased, Pattern strategies",
   "DetectedCause: extension — toProbableCause()"
@@ -100,32 +100,6 @@
    "deps": {}
   },
   {
-   "key": "var CauseDetectionContext.isShortSleep",
-   "hash": "2d0d9d291150490d",
-   "does": "Forwards sleepInput.isShortSleep.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isShortSleep"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "CauseDetectionContext.isShortSleep is never read (grep finds only AnalysisSleepInput / other structs' isShortSleep uses).",
-     "evidence": [
-      "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift:87"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isShortSleep": "d971dbe731a9e976"
-   }
-  },
-  {
    "key": "var CauseDetectionContext.isGoodSleep",
    "hash": "1750c4cda8cf1550",
    "does": "Forwards sleepInput.isGoodSleep (used by MetricBased sleep-debt check).",
@@ -139,32 +113,6 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isGoodSleep": "77fddba22b4b8546"
-   }
-  },
-  {
-   "key": "var CauseDetectionContext.isFragmented",
-   "hash": "f8b65cc1abc2a1d7",
-   "does": "Forwards sleepInput.isFragmented.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isFragmented"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "CauseDetectionContext.isFragmented is never read anywhere in app or tests.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift:95"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isFragmented": "9be0a2ac3cd93216"
    }
   },
   {
@@ -203,24 +151,13 @@
   {
    "key": "init CauseDetector(strategies:)",
    "hash": "6ae452f60238bf70",
-   "does": "Init with custom strategies.",
-   "entry": null,
+   "does": "Init with custom strategies — the test seam (CauseDetectorTests.testDetectorWithCustomStrategies); the app uses init().",
+   "entry": "XCTest (CauseDetectorTests) only, by design.",
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "init(strategies:) has no app caller; its only caller is testDetectorWithCustomStrategies.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift:124",
-      "EmuquTests/CauseDetectorTests.swift:97"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -248,7 +185,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.isGoodReading(rmssd:stress:lfhf:dfa:)": "f75be3d3da4a805f",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.isGoodReading(rmssd:)": "a553c84c2cc0efa5",
     "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::func CauseDetector.detectPositiveCausesOnly(in:limit:)": "21de0eeadfe1ad1f"
    }
   },

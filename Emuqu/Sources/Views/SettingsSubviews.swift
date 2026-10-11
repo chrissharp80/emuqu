@@ -92,8 +92,6 @@ struct DebugLogView: View {
 struct CrashLogView: View {
     @Environment(\.dependencies) var dependencies
     @State private var crashLog: String = ""
-    @State private var showingShareSheet = false
-    @State private var exportURL: URL?
     @State private var showingClearConfirm = false
     @Environment(\.dismiss) private var dismiss
 
@@ -106,11 +104,6 @@ struct CrashLogView: View {
         .zenFormBackground()
         .navigationTitle(String(localized: "Crash Report", bundle: LanguageManager.appBundle))
         .task { await loadCrashLog() }
-        .sheet(isPresented: $showingShareSheet) {
-            if let url = exportURL {
-                ShareSheet(activityItems: [url])
-            }
-        }
         .alert(String(localized: "Delete Crash Report?", bundle: LanguageManager.appBundle), isPresented: $showingClearConfirm) {
             deleteCrashAlertActions
         } message: {
@@ -157,13 +150,10 @@ struct CrashLogView: View {
         }
     }
 
+    /// `ShareLink` opens the system sheet at once; the scrubbed copy is
+    /// written off the main thread only when a destination asks for it.
     private var shareCrashButton: some View {
-        Button {
-            if let url = dependencies.app.crashLogManager.exportCrashLog() {
-                exportURL = url
-                showingShareSheet = true
-            }
-        } label: {
+        ShareLink(item: CrashReportExport(manager: dependencies.app.crashLogManager), preview: CrashReportExport.preview) {
             Label(String(localized: "Share Crash Report", bundle: LanguageManager.appBundle), systemImage: "square.and.arrow.up")
         }
     }
@@ -189,17 +179,34 @@ struct CrashLogView: View {
     }
 }
 
+/// The previous crash report, handed to `ShareLink` as something to build
+/// (see `DiagnosticLogExport` for why not a `ShareSheet` in a `.sheet`).
+/// A report that is gone or cannot be written fails the transfer, so the
+/// share sheet says so instead of the tap doing nothing.
+struct CrashReportExport: Transferable {
+    let manager: CrashLogManager
+
+    static var preview: SharePreview<Never, Never> {
+        SharePreview(String(localized: "Share Crash Report", bundle: LanguageManager.appBundle))
+    }
+
+    static var transferRepresentation: some TransferRepresentation {
+        FileRepresentation(exportedContentType: .plainText) { export in
+            guard let url = export.manager.exportCrashLog() else {
+                throw CocoaError(.fileWriteUnknown)
+            }
+            return SentTransferredFile(url)
+        }
+    }
+}
+
 // MARK: - Error Catalog View
 
 @MainActor
 struct ErrorCatalogView: View {
     @Environment(\.dependencies) var dependencies
     var logger: DebugLogger { dependencies.app.debugLogger }
-    @State private var showingExport = false
-    @State private var exportURL: URL?
     @State private var showingClearConfirm = false
-    @State private var errorCount = 0
-    @State private var isExporting = false
 
     @ViewBuilder
     var body: some View {
@@ -215,20 +222,15 @@ struct ErrorCatalogView: View {
         } message: {
             Text(String(localized: "This will permanently delete all \(logger.errorCatalog.count) error records.", bundle: LanguageManager.appBundle))
         }
-        .sheet(isPresented: $showingExport) {
-            if let url = exportURL {
-                ShareSheet(activityItems: [url])
-            }
-        }
     }
 
     @ViewBuilder
     private var clearErrorsAlertActions: some View {
         Button(String(localized: "Cancel", bundle: LanguageManager.appBundle), role: .cancel) {}
         Button(String(localized: "Clear \(logger.errorCatalog.count) Errors", bundle: LanguageManager.appBundle), role: .destructive) {
-            errorCount = logger.errorCatalog.count
+            let cleared = logger.errorCatalog.count
             dependencies.app.debugLogger.clearErrorCatalog()
-            debugLog("[ErrorCatalog] Cleared \(errorCount) errors")
+            debugLog("[ErrorCatalog] Cleared \(cleared) errors")
         }
     }
 
@@ -319,58 +321,44 @@ struct ErrorCatalogView: View {
         ToolbarItem(placement: .primaryAction) { exportErrorsButton }
     }
 
+    /// `ShareLink` opens the system sheet at once; the scrubbed catalog is
+    /// built and written off the main thread only when a destination asks.
     @ViewBuilder
     private var exportErrorsButton: some View {
         if !logger.errorCatalog.isEmpty {
-            Button(action: exportErrorCatalog) { exportErrorsLabel }
-                .disabled(isExporting)
+            ShareLink(item: ErrorCatalogExport(logger: logger), preview: ErrorCatalogExport.preview) {
+                Image(systemName: "square.and.arrow.up")
+            }
+        }
+    }
+}
+
+/// The error catalog, handed to `ShareLink` as something to build. The
+/// PHI-scrubbed text (`DebugLogger.exportErrorCatalog`) is written to one
+/// fixed temporary file, replaced on every export, so copies do not pile up
+/// in tmp.
+struct ErrorCatalogExport: Transferable {
+    let logger: DebugLogger
+
+    static var preview: SharePreview<Never, Never> {
+        SharePreview(String(localized: "Error Catalog", bundle: LanguageManager.appBundle))
+    }
+
+    static var transferRepresentation: some TransferRepresentation {
+        FileRepresentation(exportedContentType: .plainText) { export in
+            let content = await export.logger.exportErrorCatalog()
+            let url = try writeExport(content)
+            return SentTransferredFile(url)
         }
     }
 
-    /// The export is built and written on a background task so the main thread
-    /// never blocks on file I/O. The previous synchronous write froze the UI and
-    /// made subsequent share taps fail with "Failed to request default share
-    /// mode" from iOS.
-    private func exportErrorCatalog() {
-        guard !isExporting else { return }
-        isExporting = true
-        let content = logger.exportErrorCatalog()
-        let fileName = "hrv_error_catalog_\(Int(Date().timeIntervalSince1970)).txt"
-        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
-        Task.detached(priority: .userInitiated) {
-            let written = Self.writeExport(content, to: tempURL)
-            await MainActor.run { finishErrorExport(written ? tempURL : nil) }
-        }
-    }
-
-    /// false when the catalog could not be encoded or the write failed; the
-    /// reason is logged, and the caller simply does not present a share sheet.
-    nonisolated private static func writeExport(_ content: String, to url: URL) -> Bool {
-        guard let data = content.data(using: .utf8) else { return false }
-        do {
-            try data.write(to: url, options: .atomic)
-            return true
-        } catch {
-            debugLog("[ErrorCatalog] Failed to write export file: \(error)")
-            return false
-        }
-    }
-
-    @MainActor
-    private func finishErrorExport(_ url: URL?) {
-        isExporting = false
-        guard let url else { return }
-        exportURL = url
-        showingExport = true
-    }
-
-    @ViewBuilder
-    private var exportErrorsLabel: some View {
-        if isExporting {
-            ProgressView().scaleEffect(0.8)
-        } else {
-            Image(systemName: "square.and.arrow.up")
-        }
+    /// Writes `content` over the previous export; throws when it cannot be
+    /// encoded or written, which fails the transfer.
+    private static func writeExport(_ content: String) throws -> URL {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("Emuqu_Error_Catalog.txt")
+        guard let data = content.data(using: .utf8) else { throw CocoaError(.fileWriteInapplicableStringEncoding) }
+        try data.write(to: url, options: .atomic)
+        return url
     }
 }
 
@@ -380,6 +368,9 @@ struct AddTagSheet: View {
     @Binding var tagName: String
     @Binding var tagColor: Color
     let onSave: () -> Void
+    /// Names already shown by a tag; Save is refused for any of them,
+    /// compared trimmed and case-insensitively.
+    var existingTagNames: [String] = []
     @Environment(\.dismiss) private var dismiss
 
     private let presetColors: [Color] = [
@@ -487,8 +478,15 @@ struct AddTagSheet: View {
                 onSave()
                 dismiss()
             }
-            .disabled(tagName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .disabled(!canSave)
         }
+    }
+
+    /// A name with something in it once trimmed, and not one a tag already has.
+    private var canSave: Bool {
+        let trimmed = tagName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return false }
+        return !existingTagNames.contains { $0.trimmingCharacters(in: .whitespacesAndNewlines).caseInsensitiveCompare(trimmed) == .orderedSame }
     }
 }
 

@@ -37,18 +37,21 @@ enum PulledSnapshotBackfillQueue {
     }
 
     /// Move ids Health had nothing for to the back, dropping any that have
-    /// now missed `maxAttempts` times.
+    /// now missed `maxAttempts` times. Only ids still queued are moved: one
+    /// removed while the pass was suspended (Delete All My Data sweeping
+    /// UserDefaults) must not be written back.
     static func deferring(_ ids: [UUID]) {
-        guard !ids.isEmpty else { return }
+        let queue = stored()
+        let deferred = Set(ids).intersection(queue)
+        guard !deferred.isEmpty else { return }
         var attempts = storedAttempts()
         var retry: [UUID] = []
-        for id in ids {
+        for id in ids where deferred.contains(id) {
             let count = (attempts[id.uuidString] ?? 0) + 1
             attempts[id.uuidString] = count < maxAttempts ? count : nil
             if count < maxAttempts { retry.append(id) }
         }
-        let deferred = Set(ids)
-        save(stored().filter { !deferred.contains($0) } + retry)
+        save(queue.filter { !deferred.contains($0) } + retry)
         UserDefaults.standard.set(attempts, forKey: attemptsKey)
     }
 

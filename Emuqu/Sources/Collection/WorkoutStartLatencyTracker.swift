@@ -8,7 +8,16 @@ import Foundation
 //   tap              — user pressed Start in WorkoutPreflightView
 //   start.entry      — WorkoutRecorder.start() body began
 //   start.phaseFlip  — lifecycle.phase = .recording
-//   announce.fire    — announceStart() actually ran on the main actor
+//   announce.fire    — the announce Task was queued: stamped synchronously
+//                      in start() right after the phase flip, so it stays
+//                      comparable to older logs; how long that Task then
+//                      waited for the main actor is logged separately by
+//                      `queueStartAnnouncement`
+//
+// A tap belongs to the next start only: a start that throws clears it
+// (`recordStartAbandoned`), and a tap older than `tapMatchWindowSeconds`
+// when a start begins (a preflight that never reached start, then a Watch
+// start much later) is dropped rather than measured against.
 //
 // A clean run logs three sub-100 ms gaps. A bad run shows one of the gaps
 // in seconds, and the next investigation can target that span.
@@ -33,8 +42,16 @@ final class WorkoutStartLatencyTracker {
         debugLog("[StartLatency] tap")
     }
 
+    /// Longest tap → start gap still taken as one start.
+    private static let tapMatchWindowSeconds: TimeInterval = 60
+
     func recordStartEntry() {
         guard let tapAt else { return }
+        guard Date().timeIntervalSince(tapAt) <= Self.tapMatchWindowSeconds else {
+            debugLog("[StartLatency] tap is older than \(Int(Self.tapMatchWindowSeconds)) s — not this start's, not measured")
+            clear()
+            return
+        }
         startEntryAt = Date()
         let ms = Int(Date().timeIntervalSince(tapAt) * 1000)
         let level: DebugLogger.LogLevel = ms > 500 ? .warning : .info
@@ -69,8 +86,18 @@ final class WorkoutStartLatencyTracker {
         let totalMs = Int(Date().timeIntervalSince(tapAt) * 1000)
         let level: DebugLogger.LogLevel = totalMs > 500 ? .warning : .info
         debugLog("[StartLatency] tap → start() returned: \(totalMs) ms", level: level)
-        self.tapAt = nil
-        self.startEntryAt = nil
-        self.phaseFlipAt = nil
+        clear()
+    }
+
+    /// `start()` threw: the tap and stamps are this failed start's, so a
+    /// later start (a Watch start records no tap) is not measured from them.
+    func recordStartAbandoned() {
+        clear()
+    }
+
+    private func clear() {
+        tapAt = nil
+        startEntryAt = nil
+        phaseFlipAt = nil
     }
 }

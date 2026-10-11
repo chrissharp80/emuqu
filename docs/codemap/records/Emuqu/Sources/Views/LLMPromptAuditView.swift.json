@@ -74,7 +74,7 @@
    "deps": {
     "Emuqu/Sources/Views/LLMPromptAuditView.swift::func LLMPromptAuditView.entrySection(_:)": "46f7c3c4465f5d24",
     "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditView.audit": "d1482d762d05eca5",
-    "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditView.clearAuditSection": "0e370b53ac4806d3",
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditView.clearAuditSection": "0e947018d35aad39",
     "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditView.emptyAuditSection": "3bbb9a59a61fe817"
    }
   },
@@ -95,8 +95,8 @@
   },
   {
    "key": "var LLMPromptAuditView.clearAuditSection",
-   "hash": "823ca5ea7ee8e37f",
-   "does": "Section with clearAuditLogButton and a footer stating entries are kept in memory only (last 10 turns), cleared on quit, and may contain health data.",
+   "hash": "e97c1ccfce90a10c",
+   "does": "Section with clearAuditLogButton and a footer stating entries are kept in memory only (the last 10 requests to the AI; a tool-using turn makes several), cleared on quit, and may contain health data.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditView.clearAuditLogButton"
@@ -108,11 +108,10 @@
     {
      "kind": "spec-mismatch",
      "sev": "low",
-     "text": "Footer says the log keeps 'the last 10 turns', but LLMRequestAudit records one entry per provider request and AssistantViewModel records one per tool-loop round (consumeStreamRound → recordPromptAudit), so a single tool-using turn can occupy several of the 10 slots and older turns drop sooner than stated.",
+     "text": "The corrected footer ('the last 10 requests to the AI; a turn that uses tools makes several') has no Localizable.xcstrings entry yet (catalog handoff from fix batch b22): non-English languages show it in English and the old 'last 10 turns' key is an orphan until the catalog is updated.",
      "evidence": [
-      "Emuqu/Sources/Views/LLMPromptAuditView.swift:44",
-      "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift:28",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift:194"
+      "Emuqu/Sources/Views/LLMPromptAuditView.swift:46",
+      "Emuqu/Localizable.xcstrings"
      ],
      "found": "first read, upheld on second"
     }
@@ -539,13 +538,13 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditDetailView.shareBodyLines": "a15c02bf96442d63",
-    "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditDetailView.shareHeaderLines": "0d840bae4a024a34"
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditDetailView.shareHeaderLines": "1f70e65bd4dc3ac4"
    }
   },
   {
    "key": "var LLMPromptAuditDetailView.shareHeaderLines",
-   "hash": "110cfdbcfaaec103",
-   "does": "Header lines: '# AI prompt audit — provider (model)', 'Sent: …', optional token line and optional error line.",
+   "hash": "2ad17c554858006f",
+   "does": "Header lines: '# AI prompt audit — provider (model)', 'Sent: <ISO 8601 time>' (locale-independent, so the shared file stays English), optional token line and optional error line.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -564,16 +563,6 @@
    ],
    "flags": [
     {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "The comment says the shared file stays in English, but the 'Sent:' date uses Date.formatted(date:time:) with the device's current locale, so month names and time format follow the user's locale.",
-     "evidence": [
-      "Emuqu/Sources/Views/LLMPromptAuditView.swift:265",
-      "Emuqu/Sources/Views/LLMPromptAuditView.swift:270"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
      "kind": "unreachable-branch",
      "sev": "low",
      "text": "'Error:' share line is never appended: LLMRequestAudit.setError has no caller, so errorDescription is always nil.",
@@ -585,9 +574,7 @@
      "found": "second read"
     }
    ],
-   "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
-   }
+   "deps": {}
   },
   {
    "key": "var LLMPromptAuditDetailView.shareBodyLines",

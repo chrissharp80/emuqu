@@ -86,6 +86,7 @@ extension AssistantChatView {
             .onChange(of: scrollToBottomSignal) { _, _ in jumpToBottom(proxy) }
             .onChange(of: voice.state) { _, _ in scrollForVoiceState(proxy) }
             .onChange(of: chatViewportHeight) { _, _ in scrollForViewportResize(proxy) }
+            .onChange(of: viewModel.isStreaming) { _, streaming in if !streaming { scrollAfterStreamEnds(proxy) } }
             .task {
                 // First time this view appears (or returns after being discarded)
                 // — land at the bottom so the user sees the latest exchange.
@@ -127,6 +128,15 @@ extension AssistantChatView {
         let now = Date()
         guard now.timeIntervalSince(lastStreamingScrollAt) >= 0.25 else { return }
         lastStreamingScrollAt = now
+        proxy.scrollTo("bottom", anchor: .bottom)
+    }
+
+    /// The stream's last text update can land inside the 250 ms throttle and
+    /// be skipped; when the stream ends, catch the tail up (still only while
+    /// pinned to the bottom).
+    private func scrollAfterStreamEnds(_ proxy: ScrollViewProxy) {
+        guard isPinnedToBottom else { return }
+        lastStreamingScrollAt = Date()
         proxy.scrollTo("bottom", anchor: .bottom)
     }
 
@@ -246,11 +256,15 @@ extension AssistantChatView {
     /// churns (keyboard focus, voice state, scroll
     /// preference callbacks) — the single biggest
     /// contributor to "lag when I tap into the chat."
+    ///
+    /// Remember, Copy, Email and Share take the text as displayed
+    /// (`displayedText`), without the `[[word|IPA]]` pronunciation hints the
+    /// bubble strips.
     private func chatBubble(_ turn: ChatTurn, isLast: Bool) -> some View {
         ChatBubble(
             turn: turn,
-            onRemember: { viewModel.remember(turn.text) },
-            onCopy: { copyToPasteboard(turn.text) },
+            onRemember: { viewModel.remember(Self.displayedText(of: turn)) },
+            onCopy: { copyToPasteboard(Self.displayedText(of: turn)) },
             onRegenerate: (turn.role == .assistant && isLast && !turn.localOnly && !viewModel.isStreaming)
                 ? { viewModel.regenerateLast() }
                 : nil,
@@ -288,6 +302,11 @@ extension AssistantChatView {
         // stays here; the `.localOnly` + expiry policy is about HOW and lives in
         // `PasteboardWriter`.
         PasteboardWriter.copy(text)
+    }
+
+    /// A turn's text without phonetic markup — what its bubble shows.
+    static func displayedText(of turn: ChatTurn) -> String {
+        PhoneticOverrides.stripForDisplay(turn.text)
     }
 
     /// Typing indicator while waiting for the first token of the
@@ -337,9 +356,18 @@ extension AssistantChatView {
     /// — broker.currentSnapshot() is a lock-protected read, no
     /// disk / network. When no workout is active the original
     /// copy is preserved.
+    ///
+    /// The broker isn't observable, so a periodic timeline re-reads it every
+    /// few seconds: starting or ending a workout while the empty chat is on
+    /// screen updates the copy. Errors show in `errorBanner`, not here.
     private var conversationEmptyState: some View {
-        let liveWorkout = dependencies.assistant.liveWorkoutBroker.currentSnapshot()
-        return VStack(spacing: 16) {
+        TimelineView(.periodic(from: .now, by: 5)) { _ in
+            conversationEmptyStateContent(dependencies.assistant.liveWorkoutBroker.currentSnapshot())
+        }
+    }
+
+    private func conversationEmptyStateContent(_ liveWorkout: AssistantContext.LiveWorkoutSnapshot?) -> some View {
+        VStack(spacing: 16) {
             Image(systemName: liveWorkout != nil ? "figure.run" : "sparkles")
                 .scaledFont(size: 44)
                 .foregroundStyle(Color.accentColor)
@@ -350,22 +378,8 @@ extension AssistantChatView {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
-            emptyStateError
         }
         .frame(maxWidth: .infinity)
-    }
-
-    /// The last error, shown under the empty state so a failure that happens
-    /// before any turn exists is still visible.
-    @ViewBuilder
-    private var emptyStateError: some View {
-        if let error = viewModel.errorMessage {
-            Text(error)
-                .font(.caption)
-                .foregroundStyle(.red)
-                .padding(.horizontal, 32)
-                .multilineTextAlignment(.center)
-        }
     }
 
     func workoutAwareTitle(for live: AssistantContext.LiveWorkoutSnapshot?) -> String {
@@ -377,8 +391,11 @@ extension AssistantChatView {
         return String(localized: "\(mins) min into your \(live.sport)", bundle: LanguageManager.appBundle)
     }
 
+    /// The live-stats line invites typing, so it is used only when there is
+    /// a text field: with Apple Intelligence selected (suggestions only) the
+    /// plain empty-state line stands, under the workout-aware title.
     func workoutAwareBody(for live: AssistantContext.LiveWorkoutSnapshot?) -> String {
-        guard let live else {
+        guard let live, !isAppleActive else {
             return emptyStateBody
         }
         var parts: [String] = []
@@ -399,10 +416,9 @@ extension AssistantChatView {
     /// impossible to miss.
     /// Persistent error banner sitting between the transcript and
     /// the input bar. Shows the last error in red, with a Dismiss
-    /// button so the user can clear it once seen. The empty-state
-    /// rendering still shows errors too (for users who hit a problem
-    /// before any successful turn), but this banner is what catches
-    /// the silent-failure case where the user has prior history.
+    /// button so the user can clear it once seen. It shows with or without
+    /// history, so it is the one place an error appears (the empty state
+    /// no longer repeats it).
     @ViewBuilder
     var errorBanner: some View {
         if let error = viewModel.errorMessage, !error.isEmpty {
@@ -534,15 +550,15 @@ extension AssistantChatView {
     /// saved default recipients when set. Skipped on screen-capture.
     fileprivate func presentEmail(for turn: ChatTurn) {
         if UIScreen.main.isCaptured { explainCaptureBlock(); return }
-        perMessageEmailText = forwardingBody(for: turn)
-        perMessageEmailPresented = true
+        perMessageEmailItem = ShareableText(body: forwardingBody(for: turn))
     }
 
+    /// Nothing to share for a turn with no text (the attribution line alone
+    /// is not a message).
     fileprivate func presentShare(for turn: ChatTurn) {
         if UIScreen.main.isCaptured { explainCaptureBlock(); return }
-        let body = forwardingBody(for: turn)
-        guard !body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        perMessageShareItem = ShareableText(body: body)
+        guard !turn.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        perMessageShareItem = ShareableText(body: forwardingBody(for: turn))
     }
 
     func forwardingBody(for turn: ChatTurn) -> String {
@@ -552,6 +568,6 @@ extension AssistantChatView {
             case .user: return String(localized: "From me (via Emuqu):", bundle: LanguageManager.appBundle)
             }
         }()
-        return "\(attribution)\n\n\(turn.text)"
+        return "\(attribution)\n\n\(Self.displayedText(of: turn))"
     }
 }

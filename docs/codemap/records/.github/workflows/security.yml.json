@@ -4,7 +4,7 @@
  "role": "Manual security workflow: CodeQL SAST over the Swift code and a dependency-review diff between two refs.",
  "types": [],
  "state": [
-  "permissions contents: read (jobs elevate)",
+  "permissions contents: read (codeql job elevates; dependency-review stays contents: read)",
   "concurrency group security-<workflow>-<ref>, cancel-in-progress"
  ],
  "toplevel": "Trigger: workflow_dispatch only, inputs base-ref/head-ref. Two independent jobs. No schedule, so neither scan runs unless dispatched.",
@@ -108,11 +108,12 @@
   },
   {
    "key": "job dependency-review",
-   "hash": "b475f07bb35e148a",
-   "does": "ubuntu job \"Dependency review\" (timeout 15, pull-requests: write): checkout then dependency-review-action between two refs.",
+   "hash": "596d6f2a63b8134d",
+   "does": "ubuntu job \"Dependency review\" (timeout 15, permissions contents: read only): full-history checkout, a guard that fails unless base and head resolve to different commits, then dependency-review-action between the two refs.",
    "entry": "GitHub Actions job; workflow_dispatch only.",
    "calls": [
     ".github/workflows/security.yml::step dependency-review/Checkout",
+    ".github/workflows/security.yml::step dependency-review/Refuse an empty comparison",
     ".github/workflows/security.yml::step dependency-review/Review dependencies"
    ],
    "reads": [],
@@ -120,14 +121,15 @@
    "branches": [],
    "flags": [],
    "deps": {
-    ".github/workflows/security.yml::step dependency-review/Checkout": "05431691dd46723d",
-    ".github/workflows/security.yml::step dependency-review/Review dependencies": "2ad042b1c466a046"
+    ".github/workflows/security.yml::step dependency-review/Checkout": "9da0953536fabfa0",
+    ".github/workflows/security.yml::step dependency-review/Refuse an empty comparison": "aa30258b3369e71a",
+    ".github/workflows/security.yml::step dependency-review/Review dependencies": "07daac0754c5d09e"
    }
   },
   {
    "key": "step dependency-review/Checkout",
-   "hash": "9327ffe2a86f8ef0",
-   "does": "actions/checkout (depth 1).",
+   "hash": "8c99ed15e62f8b46",
+   "does": "actions/checkout with fetch-depth 0, so the next step can resolve both refs.",
    "entry": "Step of security.yml dependency-review job",
    "calls": [
     "ext:actions/checkout"
@@ -139,9 +141,56 @@
    "deps": {}
   },
   {
+   "key": "step dependency-review/Refuse an empty comparison",
+   "hash": "2e0d25c78be70470",
+   "does": "Resolves BASE_REF (inputs.base-ref or the default branch) and HEAD_REF (inputs.head-ref or github.sha) to commits, trying the ref as given and then origin/<ref>. Fails if either does not resolve, or if both are the same commit (the review would compare nothing and report success), telling the user to dispatch with base-ref set to an earlier tag or SHA; otherwise prints the two commits.",
+   "entry": "Step of security.yml dependency-review job (workflow_dispatch only); a failing step fails the job and skips the review.",
+   "calls": [
+    "ext:git rev-parse"
+   ],
+   "reads": [
+    "git:refs (local branches, tags, origin/*)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "inputs.base-ref empty",
+     "effect": "BASE_REF = repository default branch"
+    },
+    {
+     "at": "+3",
+     "cond": "inputs.head-ref empty",
+     "effect": "HEAD_REF = dispatched commit sha"
+    },
+    {
+     "at": "+8",
+     "cond": "ref does not resolve as given",
+     "effect": "resolve() tries origin/<ref>; fails if that does not resolve either"
+    },
+    {
+     "at": "+10",
+     "cond": "BASE_REF does not resolve",
+     "effect": "error to stderr, exit 1"
+    },
+    {
+     "at": "+14",
+     "cond": "HEAD_REF does not resolve",
+     "effect": "error to stderr, exit 1"
+    },
+    {
+     "at": "+18",
+     "cond": "base and head are the same commit",
+     "effect": "explains the empty comparison, exit 1"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
    "key": "step dependency-review/Review dependencies",
-   "hash": "a1f3f52261ac5c43",
-   "does": "actions/dependency-review-action v5.0.0 (SHA-pinned) comparing base-ref (input or default branch) to head-ref (input or github.sha); fails on high/critical advisories or GPL-2.0/GPL-3.0/AGPL-3.0/LGPL-3.0 licences; PR comment on failure (no PR exists on dispatch).",
+   "hash": "cada29e8a2111f2b",
+   "does": "actions/dependency-review-action v5.0.0 (SHA-pinned) comparing base-ref (input or default branch) to head-ref (input or github.sha), the same two refs the previous step proved distinct; fails on high/critical advisories or GPL-2.0/GPL-3.0/AGPL-3.0/LGPL-3.0 licences. Posts no PR comment (none exists on dispatch).",
    "entry": "Step of security.yml dependency-review job",
    "calls": [
     "ext:actions/dependency-review-action"
@@ -162,20 +211,7 @@
      "effect": "head = dispatched commit sha"
     }
    ],
-   "flags": [
-    {
-     "kind": "hack",
-     "sev": "low",
-     "text": "With no inputs and dispatched from the default branch, base and head are the same commit, so the review diffs nothing and reports success; the comment acknowledges \"an empty result is not a clean scan\" but the step still goes green. `pull-requests: write` and comment-summary-in-pr have no effect on a dispatch-only workflow.",
-     "evidence": [
-      ".github/workflows/security.yml:93-95",
-      ".github/workflows/security.yml:106-108",
-      ".github/workflows/security.yml:114-115",
-      ".github/workflows/security.yml:120"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   }
  ],

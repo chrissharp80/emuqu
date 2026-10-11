@@ -10,19 +10,7 @@
   "archive: persisted inside WorkoutMetadata.analysisSnapshot (key analysisSnapshot)"
  ],
  "toplevel": "Codable is synthesized from the stored lets (all optional except schemaVersion), so an older snapshot missing a new optional field decodes it as nil; a snapshot missing schemaVersion fails to decode and WorkoutMetadata.init(from:) propagates the throw. narrativeLanguage default parameter evaluates LanguageManager.appLocale.identifier at each call.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Header says the CSV/PDF exporters read the cached snapshot and the narrative comment says the in-app card and 'the PDF's executive-summary page agree verbatim'; no exporter or PDF code reads analysisSnapshot or howYouDidNarrative (grep: only the builder, FitnessPostSummaryView+Feeling, AppFactResolver, WorkoutRecorder+Lifecycle, WorkoutRecoveryService, WorkoutMetadata).",
-   "evidence": [
-    "Emuqu/Sources/Models/WorkoutAnalysisSnapshot.swift:13",
-    "Emuqu/Sources/Models/WorkoutAnalysisSnapshot.swift:91",
-    "Emuqu/Sources/Analysis/CSVExporter.swift:93"
-   ],
-   "found": "second read"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "var WorkoutAnalysisSnapshot.needsRebuild",
@@ -41,29 +29,6 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
    }
-  },
-  {
-   "key": "var WorkoutAnalysisSnapshot.displayNarrative",
-   "hash": "71b33d71a2a8c463",
-   "does": "Returns the first non-empty of howYouDidNarrative, heroNarrative, else nil.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "displayNarrative has no reader in the repo (grep finds only its declaration, tests included); FitnessPostSummaryView+Feeling.generateSessionAnalysis reads howYouDidNarrative directly and falls back to legacyGenerateSessionAnalysis, not to heroNarrative.",
-     "evidence": [
-      "Emuqu/Sources/Models/WorkoutAnalysisSnapshot.swift:110",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:189"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
   },
   {
    "key": "init WorkoutAnalysisSnapshot(schemaVersion:alpha1Mean:alpha1Max:alpha1Min:secondsBelowAT1:secondsBetweenAT1AT2:secondsAboveAT2:firstAT1CrossingOffsetSec:firstAT1CrossingHR:dominantAlpha1BandRaw:hrZoneSeconds:dominantHRZone:dominantHRZonePercent:fastestSplitIndex:fastestSplitPaceSecPerKm:slowestSplitIndex:slowestSplitPaceSecPerKm:movingTimeSec:movingTimePercent:vamMetersPerHour:calorieRatePerHour:estimatedTotalCalories:strideLengthMeters:powerHRRatio:gradeAdjustedPaceSecPerKm:relativeEffortLabel:howYouDidNarrative:heroNarrative:narrativeLanguage:)",

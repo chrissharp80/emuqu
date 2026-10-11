@@ -12,7 +12,7 @@
   {
    "kind": "hack",
    "sev": "low",
-   "text": "Every section factory takes scrollToTopToken and settingsManager, but scrollToTopToken is never used anywhere in the file and settingsManager is only used by reportsSettingsPageEntry (via dataSourcesEntries); the parameters are threaded through for nothing.",
+   "text": "entries(scrollToTopToken:settingsManager:) still takes scrollToTopToken, which nothing uses; the parameter stays only because SettingsView.refreshSearchEntries passes it (the section factories no longer take it).",
    "evidence": [
     "Emuqu/Sources/Views/SettingsSearchIndex.swift:62",
     "Emuqu/Sources/Views/SettingsSearchIndex.swift:74",
@@ -30,27 +30,14 @@
  "units": [
   {
    "key": "var SettingsSearchEntry.id",
-   "hash": "2d0e89b22c320b75",
-   "does": "Returns `title` as the Identifiable id, so ForEach rows are stable across catalogue rebuilds.",
+   "hash": "c2a67f4ec792c8fc",
+   "does": "Returns \"<systemImage>|<title>\" as the Identifiable id: stable across catalogue rebuilds, and unique in every language because every entry has its own SF Symbol.",
    "entry": "Identifiable.id witness read by SwiftUI ForEach over search results in SettingsView",
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Doc comment says the id is derived from the (English) title and that titles are unique, but title is the localized String(localized:) value, so the id changes per language and uniqueness of the translated titles is not enforced anywhere; two entries whose translations coincide would share an id in ForEach.",
-     "evidence": [
-      "Emuqu/Sources/Views/SettingsSearchIndex.swift:12",
-      "Emuqu/Sources/Views/SettingsSearchIndex.swift:17",
-      "Emuqu/Sources/Views/SettingsSearchIndex.swift:18",
-      "Emuqu/Sources/Views/SettingsSearchIndex.swift:81"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -85,18 +72,18 @@
   },
   {
    "key": "func SettingsSearchIndex.entries(scrollToTopToken:settingsManager:)",
-   "hash": "06071c5bc273f80a",
-   "does": "Concatenates the eight section factories (Identity & Profile, Data & Sources, Recovery & Training, Flo, Notifications, Appearance, Advanced, Help & About) into one [SettingsSearchEntry] of 26 entries. Called by SettingsView.buildSearchCatalogueIfNeeded on appear and after a language change.",
+   "hash": "e99f535f187b7f61",
+   "does": "Concatenates the eight section factories (Identity & Profile, Data & Sources, Recovery & Training, Flo, Notifications, Appearance, Advanced, Help & About) into one [SettingsSearchEntry] of 26 entries. scrollToTopToken is ignored (kept for SettingsView's call); settingsManager goes only to the Data & Sources factory.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.identityProfileEntries(scrollToTopToken:settingsManager:)",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.dataSourcesEntries(scrollToTopToken:settingsManager:)",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.recoveryTrainingEntries(scrollToTopToken:settingsManager:)",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.floMainAiEntries(scrollToTopToken:settingsManager:)",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.notificationsEntries(scrollToTopToken:settingsManager:)",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.appearanceEntries(scrollToTopToken:settingsManager:)",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.advancedEntries(scrollToTopToken:settingsManager:)",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.helpAboutEntries(scrollToTopToken:settingsManager:)"
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.identityProfileEntries()",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.dataSourcesEntries(settingsManager:)",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.recoveryTrainingEntries()",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.floMainAiEntries()",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.notificationsEntries()",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.appearanceEntries()",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.advancedEntries()",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.helpAboutEntries()"
    ],
    "reads": [],
    "writes": [],
@@ -115,25 +102,23 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.advancedEntries(scrollToTopToken:settingsManager:)": "797cb1cff3fa9b94",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.appearanceEntries(scrollToTopToken:settingsManager:)": "a0de44cded581c1b",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.dataSourcesEntries(scrollToTopToken:settingsManager:)": "68e31495f562dea0",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.floMainAiEntries(scrollToTopToken:settingsManager:)": "9f7c97f8f3cb7704",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.helpAboutEntries(scrollToTopToken:settingsManager:)": "59425f8f0def363b",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.identityProfileEntries(scrollToTopToken:settingsManager:)": "10ce1967cbe75a6c",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.notificationsEntries(scrollToTopToken:settingsManager:)": "54c32016af5658b6",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.recoveryTrainingEntries(scrollToTopToken:settingsManager:)": "a6a97cfe09eb1504"
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.advancedEntries()": "66c1f51b166c0caa",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.appearanceEntries()": "d101c43e2a2f04a0",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.dataSourcesEntries(settingsManager:)": "17a7d162a5ed95c3",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.floMainAiEntries()": "ecac6c7745fd4bb3",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.helpAboutEntries()": "6bd71544e3a5f031",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.identityProfileEntries()": "7e0aa6fba8861840",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.notificationsEntries()": "78f575efa0982299",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.recoveryTrainingEntries()": "250ba93c6b587539"
    }
   },
   {
-   "key": "func SettingsSearchIndex.identityProfileEntries(scrollToTopToken:settingsManager:)",
-   "hash": "6fef2546b9e0532a",
-   "does": "Builds two entries: Profile (→ ProfileSettingsPage) and Biometrics (→ BiometricsSettingsPage) with localized title/subtitle and English aliases. Parameters are unused.",
+   "key": "func SettingsSearchIndex.identityProfileEntries()",
+   "hash": "a9a8b42318fee83e",
+   "does": "Search entries for the Identity & Profile section of Settings.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
-    "closure:destination AnyView(ProfileSettingsPage()) / AnyView(BiometricsSettingsPage()), invoked by SettingsView.navigationDestination"
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)"
    ],
    "reads": [],
    "writes": [],
@@ -145,9 +130,9 @@
    }
   },
   {
-   "key": "func SettingsSearchIndex.dataSourcesEntries(scrollToTopToken:settingsManager:)",
-   "hash": "20a9464d3a3fc5ed",
-   "does": "Returns [Wearables, iCloud & Data, Reports] entries; passes settingsManager only to the Reports entry; scrollToTopToken unused.",
+   "key": "func SettingsSearchIndex.dataSourcesEntries(settingsManager:)",
+   "hash": "508836371a24d785",
+   "does": "Search entries for the Data & Sources section: Wearables, iCloud & Data and Reports (which needs settingsManager).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.wearablesSettingsPageEntry()",
@@ -222,9 +207,9 @@
    }
   },
   {
-   "key": "func SettingsSearchIndex.recoveryTrainingEntries(scrollToTopToken:settingsManager:)",
-   "hash": "e7c9314e9cf2497e",
-   "does": "Returns [Sleep, Training, Modes, Tags, My Routes] entries; both parameters unused.",
+   "key": "func SettingsSearchIndex.recoveryTrainingEntries()",
+   "hash": "b6a7aa26ff248afe",
+   "does": "Search entries for the Recovery & Training section of Settings.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.sleepSettingsPageEntry()",
@@ -341,14 +326,12 @@
    }
   },
   {
-   "key": "func SettingsSearchIndex.floMainAiEntries(scrollToTopToken:settingsManager:)",
-   "hash": "927190c50fd354fe",
-   "does": "Returns a single Flo entry (aliases ai/assistant/coach/claude/chatgpt/gemini/grok/deepseek/memory/tavily/byok/api key) → AnyView(AIAssistantSettingsPage()); parameters unused.",
+   "key": "func SettingsSearchIndex.floMainAiEntries()",
+   "hash": "340561bb75fa727c",
+   "does": "Search entries for the Flo / AI section of Settings.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
-    "closure:destination AnyView(AIAssistantSettingsPage())"
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)"
    ],
    "reads": [],
    "writes": [],
@@ -360,14 +343,12 @@
    }
   },
   {
-   "key": "func SettingsSearchIndex.notificationsEntries(scrollToTopToken:settingsManager:)",
-   "hash": "37f008f235f0bc6d",
-   "does": "Returns Notifications (→ NotificationsSettingsPage) and Permissions (→ PermissionsSettingsPage) entries; parameters unused.",
+   "key": "func SettingsSearchIndex.notificationsEntries()",
+   "hash": "baf9f46f9be7eac4",
+   "does": "Search entries for the Notifications section of Settings.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
-    "closure:destination AnyView(NotificationsSettingsPage()) / AnyView(PermissionsSettingsPage())"
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)"
    ],
    "reads": [],
    "writes": [],
@@ -379,9 +360,9 @@
    }
   },
   {
-   "key": "func SettingsSearchIndex.appearanceEntries(scrollToTopToken:settingsManager:)",
-   "hash": "5659e02a35cd8309",
-   "does": "Returns [Appearance, Performance & Battery, Language] entries; parameters unused.",
+   "key": "func SettingsSearchIndex.appearanceEntries()",
+   "hash": "616f46259e96d1cd",
+   "does": "Search entries for the Appearance section of Settings.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.appearancePageEntry()",
@@ -456,15 +437,13 @@
    }
   },
   {
-   "key": "func SettingsSearchIndex.advancedEntries(scrollToTopToken:settingsManager:)",
-   "hash": "dc09763b1d3665b5",
-   "does": "Returns Advanced Data Controls (→ AdvancedDataControlsPage), Troubleshooting (→ TroubleshootingPage) and the Sample data entry; parameters unused.",
+   "key": "func SettingsSearchIndex.advancedEntries()",
+   "hash": "28a917cb71486275",
+   "does": "Search entries for the Advanced section of Settings.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
     "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.sampleDataEntry()",
-    "closure:destination AnyView(AdvancedDataControlsPage()) / AnyView(TroubleshootingPage())"
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)"
    ],
    "reads": [],
    "writes": [],
@@ -496,9 +475,9 @@
    }
   },
   {
-   "key": "func SettingsSearchIndex.helpAboutEntries(scrollToTopToken:settingsManager:)",
-   "hash": "702bad6e8827a024",
-   "does": "Returns helpEntries() + legalEntries(); parameters unused.",
+   "key": "func SettingsSearchIndex.helpAboutEntries()",
+   "hash": "638b2df91ec2e2b7",
+   "does": "Search entries for the Help & About section of Settings.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.helpEntries()",

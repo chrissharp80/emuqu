@@ -30,9 +30,9 @@ import SwiftUI
 ///
 /// This file is allowlisted in the build-time copy linter
 /// (`Tools/copy_linter/prohibited_terms.json`) because the verbatim text
-/// includes the prohibited terms in their negated forms ("does not
-/// diagnose," "we are not FDA-approved"). Those negations are the entire
-/// point of the page.
+/// includes prohibited terms in their negated forms ("not a medical
+/// device," "does not predict injury, diagnose any condition"). Those
+/// negations are the entire point of the page.
 struct RecoveryMethodologyView: View {
     @Environment(\.dependencies) var dependencies
     var body: some View {
@@ -217,6 +217,9 @@ struct RecoveryMethodologyView: View {
             "Foster (1998). Monitoring training in athletes with reference to overtraining syndrome. Medicine & Science in Sports & Exercise 30(7):1164-1168. (Monotony / strain)",
             "Impellizzeri, Tenan, Kempton, Novak, Coutts (2020). Acute:chronic workload ratio: conceptual issues and fundamental pitfalls. IJSPP 15(6):907-913.",
             "Impellizzeri, Woodcock, Coutts, Fanchini, McCall, Vigotsky (2021). What role do chronic workloads play in the acute to chronic workload ratio? Sports Medicine 51:581-592.",
+            "Lolli, Batterham, Hawkins, Kelly, Strudwick, Thorpe, Gregson, Atkinson (2019). Mathematical coupling causes spurious correlation within the conventional acute-to-chronic workload ratio calculations. British Journal of Sports Medicine 53(15):921-922.",
+            "Gabbett (2016). The training-injury prevention paradox: should athletes be training smarter and harder? British Journal of Sports Medicine 50(5):273-280.",
+            "Task Force of the European Society of Cardiology and the North American Society of Pacing and Electrophysiology (1996). Heart rate variability: standards of measurement, physiological interpretation and clinical use. Circulation 93(5):1043-1065.",
             "Doherty, Baldwin, Lambe, Burke, Altini (2025). Composite scoring across 14 commercial wearables: a systematic review. Translational Exercise Biomedicine 2(2):128-144."
         ])
 

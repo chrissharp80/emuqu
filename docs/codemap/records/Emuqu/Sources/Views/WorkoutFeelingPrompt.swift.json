@@ -1,14 +1,15 @@
 {
  "file": "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift",
- "hash": "87e22143d06c1561",
+ "hash": "59b3822dabed739a",
  "role": "Post-workout subjective feeling capture: a 1-5 emoji prompt with auto-commit/optional note, a compact tappable badge for a saved feeling, and the workout feeling label/phrase lookup.",
  "types": [
   "WorkoutFeelingPrompt: struct View — 5-point emoji prompt; calls onSelect(feeling, note?) or onSkip",
   "WorkoutFeelingBadge: struct View — committed-feeling badge, tappable to edit",
-  "WorkoutFeelingDisplay: enum — emoji/colour (forwarded to MorningFeelingDisplay), localized label and 'Felt …' phrase"
+  "WorkoutFeelingDisplay: enum — emoji/colour (forwarded to MorningFeelingDisplay), localized label and 'Felt …' phrase",
+  "FeelingAutoCommit: struct ViewModifier — 1 s auto-commit of a bound Int? via .task(id:); View.feelingAutoCommit(_:commit:) applies it"
  ],
  "state": [
-  "@State selected: Int?, noteText: String, pendingCommit: DispatchWorkItem? (WorkoutFeelingPrompt)",
+  "@State selected: Int?, noteText: String, autoCommitValue: Int? (WorkoutFeelingPrompt; the 3-5 rating waiting out its second)",
   "@FocusState noteFocused",
   "static feelings: [(value, emoji)] 1..5"
  ],
@@ -35,15 +36,17 @@
   },
   {
    "key": "var WorkoutFeelingPrompt.body",
-   "hash": "0caffbf4fddbc9cb",
-   "does": "Card stack of header, emoji scale, optional note field and actions; on appear pre-selects existing feeling/note.",
+   "hash": "c1f67d43f3951dac",
+   "does": "Card stack of header, emoji scale, optional note field and actions; on appear pre-selects existing feeling/note; feelingAutoCommit on autoCommitValue calls onSelect(value, nil) one second after a 3-5 pick.",
    "entry": "SwiftUI body; .onAppear on first display (FitnessPostSummaryView+Feeling.swift:22, StateSnapshotTests).",
    "calls": [
     "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingPrompt.feelingPromptHeader",
     "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingPrompt.feelingScale",
     "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingPrompt.feelingNoteField",
     "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingPrompt.feelingActions",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground",
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::func View.feelingAutoCommit(_:commit:)",
+    "closure:onSelect set by FitnessPostSummaryView+Feeling.swift:23 (Task saveWorkoutFeeling → archive write)"
    ],
    "reads": [],
    "writes": [],
@@ -62,6 +65,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::func View.feelingAutoCommit(_:commit:)": "4053b4068e9d30ad",
     "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingPrompt.feelingActions": "7f4d2fd531e063fa",
     "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingPrompt.feelingNoteField": "6860713b3f6d75f8",
     "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingPrompt.feelingPromptHeader": "934c68440bb45b1a",
@@ -123,7 +127,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::func WorkoutFeelingPrompt.feelingLabel(_:)": "eb51ba2d40d2d1f9",
-    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::func WorkoutFeelingPrompt.tapFeeling(_:)": "e853a2f33f5c4b38"
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::func WorkoutFeelingPrompt.tapFeeling(_:)": "62d96920ceefa064"
    }
   },
   {
@@ -186,13 +190,13 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingPrompt.saveFeelingButton": "8142be678b526845",
-    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingPrompt.skipFeelingButton": "5023c8454b7bd2cc"
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingPrompt.skipFeelingButton": "a71773a74ee13198"
    }
   },
   {
    "key": "var WorkoutFeelingPrompt.skipFeelingButton",
-   "hash": "d4cba3dce3548043",
-   "does": "Button cancelling any pending auto-commit then calling onSkip; label 'Skip' or 'Cancel' when editing.",
+   "hash": "7fabe529a773f54c",
+   "does": "Button clearing autoCommitValue (cancels a waiting auto-commit) then calling onSkip; label 'Skip' or 'Cancel' when editing.",
    "entry": "Button tap.",
    "calls": [
     "closure:onSkip set by FitnessPostSummaryView+Feeling.swift:27 (skipFeeling → feelingEditing=false)",
@@ -200,7 +204,9 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
-   "writes": [],
+   "writes": [
+    "mem:WorkoutFeelingPrompt.autoCommitValue"
+   ],
    "branches": [
     {
      "at": "+5",
@@ -252,7 +258,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.terracottaText": "6a18b5025ee3e850",
-    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::func WorkoutFeelingPrompt.commitExplicit()": "47a2aad3d72ca3d2",
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::func WorkoutFeelingPrompt.commitExplicit()": "733c005469de1353",
     "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingPrompt.showNote": "7a3cdf869f9f1007"
    }
   },
@@ -293,77 +299,48 @@
   },
   {
    "key": "func WorkoutFeelingPrompt.tapFeeling(_:)",
-   "hash": "750cdc21803ec069",
-   "does": "Selects the tapped feeling (animated). For 3-5 clears the note and schedules onSelect(value,nil) after 1 s on main queue, cancelling any prior pending commit; for 1-2 only cancels the pending commit and waits for Save.",
+   "hash": "2e511c7270eef4c8",
+   "does": "Selects the tapped feeling (animated); for 3-5 clears the note and sets autoCommitValue (the FeelingAutoCommit modifier commits it after 1 s; a different face restarts the wait); for 1-2 clears autoCommitValue so nothing auto-commits and the note + Save appear.",
    "entry": null,
-   "calls": [
-    "closure:onSelect set by FitnessPostSummaryView+Feeling.swift:23 (Task saveWorkoutFeeling → archive write)",
-    "ext:DispatchQueue.main.asyncAfter"
-   ],
+   "calls": [],
    "reads": [],
    "writes": [
-    "archive:HRVSession.workoutMetadata.workoutFeeling (via onSelect)"
+    "mem:WorkoutFeelingPrompt.selected",
+    "mem:WorkoutFeelingPrompt.noteText",
+    "mem:WorkoutFeelingPrompt.autoCommitValue"
    ],
    "branches": [
     {
-     "at": "+3",
+     "at": "+4",
      "cond": "value >= 3",
-     "effect": "noteText cleared; else note kept"
-    },
-    {
-     "at": "+8",
-     "cond": "value >= 3",
-     "effect": "schedule 1 s DispatchWorkItem calling onSelect(value,nil); else no commit"
+     "effect": "clear noteText; autoCommitValue = value (else nil)"
     }
    ],
    "flags": [
     {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "The 1 s DispatchWorkItem is not cancelled on disappear; if the summary is dismissed within the second the rating is still saved after the view is gone.",
-     "evidence": [
-      "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift:197",
-      "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift:201"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
      "kind": "duplicate",
      "sev": "low",
-     "text": "Same 1 s DispatchWorkItem auto-commit / cancel-on-retap logic as MorningFeelingPrompt.tapFeeling; two copies to keep in step.",
+     "text": "Same 1 s auto-commit / cancel-on-retap logic as MorningFeelingPrompt.tapFeeling, which still uses its own DispatchWorkItem instead of the shared FeelingAutoCommit modifier; two copies to keep in step.",
      "evidence": [
       "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift:188",
       "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift:231"
      ],
      "found": "second read"
-    },
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Header says a 3-5 auto-commit is 'cancellable by re-tapping', but re-tapping the same 3-5 face cancels and immediately reschedules the commit; only tapping 1-2 or Skip/Cancel stops it.",
-     "evidence": [
-      "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift:18",
-      "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift:195",
-      "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift:196"
-     ],
-     "found": "second read"
     }
    ],
-   "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d"
-   }
+   "deps": {}
   },
   {
    "key": "func WorkoutFeelingPrompt.commitExplicit()",
-   "hash": "c53240a77ac67c31",
-   "does": "Cancels pending auto-commit and, if a feeling is selected, calls onSelect(value, trimmed note or nil).",
+   "hash": "73ba0aeca86a267c",
+   "does": "Clears autoCommitValue and, if a feeling is selected, calls onSelect(value, trimmed note or nil).",
    "entry": null,
    "calls": [
     "closure:onSelect set by FitnessPostSummaryView+Feeling.swift:23"
    ],
    "reads": [],
    "writes": [
-    "archive:HRVSession.workoutMetadata.workoutFeeling/workoutFeelingNote (via onSelect)"
+    "mem:WorkoutFeelingPrompt.autoCommitValue"
    ],
    "branches": [
     {
@@ -390,6 +367,68 @@
     }
    ],
    "deps": {}
+  },
+  {
+   "key": "func FeelingAutoCommit.body(content:)",
+   "hash": "ad3009da0fe20b7e",
+   "does": "Attaches .task(id: value) running commitAfterDelay, so a new value restarts it and nil or the view leaving cancels it.",
+   "entry": "SwiftUI ViewModifier body",
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::func FeelingAutoCommit.commitAfterDelay()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::func FeelingAutoCommit.commitAfterDelay()": "050b5eec66e51519"
+   }
+  },
+  {
+   "key": "func FeelingAutoCommit.commitAfterDelay()",
+   "hash": "079777a92317d441",
+   "does": "With a pending value, sleeps 1 s; if not cancelled clears the binding and calls commit(value).",
+   "entry": ".task(id:) from FeelingAutoCommit.body",
+   "calls": [
+    "ext:Task.sleep(for:)",
+    "closure:commit (caller-supplied)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:binding value (cleared)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "value nil",
+     "effect": "return"
+    },
+    {
+     "at": "+4",
+     "cond": "sleep throws (cancelled: new value, cleared, or view gone)",
+     "effect": "return without committing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
+   }
+  },
+  {
+   "key": "func View.feelingAutoCommit(_:commit:)",
+   "hash": "1985cdfc1e93c2c3",
+   "does": "Applies the FeelingAutoCommit modifier.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::func FeelingAutoCommit.body(content:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::func FeelingAutoCommit.body(content:)": "ff8d267cbbfd020d"
+   }
   },
   {
    "key": "var WorkoutFeelingBadge.body",

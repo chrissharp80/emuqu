@@ -63,9 +63,18 @@ extension RRDataImporter {
     static func rrColumnIndex(inHeaderLine line: String, separator: Character) -> Int? {
         let headers = line.split(separator: separator)
             .map { String($0).lowercased().trimmingCharacters(in: .whitespaces) }
-        return headers.firstIndex {
-            $0.contains("rr") || $0.contains("ibi") || $0 == "ms" || $0 == "interval"
-        }
+        return headers.firstIndex(where: namesRRColumn)
+    }
+
+    /// Whether a lowercased header names the RR column: one of its words is
+    /// "rr" or "ibi", or starts with one ("rr_ms", "RR interval (ms)",
+    /// "rrms", "IBI"), or the whole header is "ms" or "interval". Whole
+    /// words, so "current_hr", "error" or "correction" do not match just
+    /// because they contain the letters "rr".
+    private static func namesRRColumn(_ header: String) -> Bool {
+        let words = header.split { !$0.isLetter && !$0.isNumber }
+        return words.contains { $0.hasPrefix("rr") || $0.hasPrefix("ibi") }
+            || header == "ms" || header == "interval"
     }
 
     /// Picks the RR value out of one already-split data row, or nil to skip it.
@@ -132,6 +141,26 @@ extension RRDataImporter {
         return HRVConstants.RRInterval.isValid(converted) ? converted : nil
     }
 
+    /// The file's records: its lines, except that a newline inside a quoted
+    /// field (an Elite HRV Notes or Tags value) stays in its record instead
+    /// of splitting it in two.
+    func csvRecords(_ content: String) -> [String] {
+        var records: [String] = []
+        var current = ""
+        var inQuotes = false
+        for char in content {
+            if char == "\"" { inQuotes.toggle() }
+            if char.isNewline, !inQuotes {
+                records.append(current)
+                current = ""
+            } else {
+                current.append(char)
+            }
+        }
+        records.append(current)
+        return records
+    }
+
     func parseCSVLine(_ line: String) -> [String] {
         var result: [String] = []
         var current = ""
@@ -163,7 +192,9 @@ extension RRDataImporter {
         // which traps at runtime on NaN/Infinity or a magnitude beyond Int's
         // range. Non-finite → 0 (below the minimum RR, so isValid rejects it);
         // out-of-Int-range → clamped to Int bounds (also rejected by isValid).
-        let ms: Double = value < 10 ? value * 1000 : value
+        // Rounded, not truncated: 1.005 s is 1004.999… ms in binary floating
+        // point, and truncating would lose a millisecond.
+        let ms: Double = (value < 10 ? value * 1000 : value).rounded()
         guard ms.isFinite else { return 0 }
         if ms >= Double(Int.max) { return Int.max }
         if ms <= Double(Int.min) { return Int.min }

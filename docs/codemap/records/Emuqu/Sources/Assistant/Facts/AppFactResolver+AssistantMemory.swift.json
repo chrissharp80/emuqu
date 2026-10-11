@@ -1,15 +1,16 @@
 {
  "file": "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift",
- "hash": "a04f889a6a2939cb",
+ "hash": "c01a1a843d67bbbf",
  "role": "Declares AssistantMemoryNamespace (namespace 'assistant'): fact/action entries over UserFactsStore (assistant.memory.*), AssistantArtifactStore (assistant.artifacts.*), and the user-quote gate helpers shared with the contacts/email actions.",
  "types": [
   "AssistantMemoryNamespace: struct (FactNamespaceResolver) — 'assistant' namespace for memory facts, artifacts, contacts, email compose"
  ],
  "state": [
   "let namespace = 'assistant'",
-  "static let assistantMemoryAddDescription (line 126)",
-  "static let assistantArtifactsListDescription (line 290)",
-  "static let assistantArtifactsAddDescription (line 355)"
+  "static let assistantMemoryAddDescription",
+  "static let maxFactLength = 160",
+  "static let assistantArtifactsListDescription",
+  "static let assistantArtifactsAddDescription (requires user_quote)"
  ],
  "toplevel": "Struct conformance to FactNamespaceResolver; registered by AppFactResolverFactory.registerAppNamespaces (AppFactResolver.swift:219). Static description strings only.",
  "flags": [],
@@ -44,12 +45,12 @@
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::var AssistantMemoryNamespace.assistantContactsAddEntry": "ee634566ba9ed6fe",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::var AssistantMemoryNamespace.assistantContactsListEntry": "085d3ddc9bb29bab",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::var AssistantMemoryNamespace.assistantContactsRemoveEntry": "118a9694622d966c",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::var AssistantMemoryNamespace.assistantEmailComposeEntry": "a7e2a1a40a55733f",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::var AssistantMemoryNamespace.assistantArtifactsAddEntry": "c85983a74b73d1fd",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::var AssistantMemoryNamespace.assistantEmailComposeEntry": "93af31ae915f4960",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::var AssistantMemoryNamespace.assistantArtifactsAddEntry": "c3f7bfd9b5d7c5fd",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::var AssistantMemoryNamespace.assistantArtifactsCountEntry": "f92952cd80a8a59f",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::var AssistantMemoryNamespace.assistantArtifactsListAllEntry": "c9a78b008dcf4538",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::var AssistantMemoryNamespace.assistantArtifactsListEntry": "cf06b086e2feb0b4",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::var AssistantMemoryNamespace.assistantArtifactsUpdateStatusEntry": "37dd6adc133f1d3c",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::var AssistantMemoryNamespace.assistantArtifactsUpdateStatusEntry": "2fafd10716bbedeb",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::var AssistantMemoryNamespace.assistantMemoryAddEntry": "f816b01d2a42a81b",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::var AssistantMemoryNamespace.assistantMemoryAutoExtractEnabledEntry": "6836dda5f2f3792c",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::var AssistantMemoryNamespace.assistantMemoryClearEntry": "7e1a069c6e296c48",
@@ -158,15 +159,15 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.resolveAssistantMemoryAdd(_:)": "a62c2a8cd11837ea",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.resolveAssistantMemoryAdd(_:)": "fd0b04129566c734",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)": "cc67ad9762ace28b",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::init ActionParam(_:_:required:)": "d7adb1b41654ff54"
    }
   },
   {
    "key": "func AssistantMemoryNamespace.resolveAssistantMemoryAdd(_:)",
-   "hash": "794c312d27a86549",
-   "does": "Requires non-empty text; when auto-memory is off requires user_quote in the latest user message; then calls UserFactsStore.add(text) (dedup on normalized key, FIFO cap 25, persisted) and returns {added:true,text}.",
+   "hash": "0d6c392b7daafb0b",
+   "does": "Requires non-empty text of at most 160 characters; when auto-memory is off requires user_quote in the latest user message; then stores it via storeFact, which reports whether it was added and which oldest facts were evicted.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
@@ -174,7 +175,7 @@
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::var UserFactsStore.autoExtractEnabled",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.latestUserMessageContains(_:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.userRequestRequired(_:)",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.storeFact(_:)",
     "ext:MainActor.assumeIsolated"
    ],
    "reads": [
@@ -189,44 +190,63 @@
     {
      "at": "+1",
      "cond": "text present and non-empty after trim",
-     "effect": "continues; else returns missing invalidParameter 'text required'"
+     "effect": "continues; else missing invalidParameter 'text required'"
     },
     {
-     "at": "+7",
+     "at": "+4",
+     "cond": "text longer than 160 characters",
+     "effect": "missing invalidParameter asking for a shorter fact"
+    },
+    {
+     "at": "+10",
      "cond": "auto-memory on OR user_quote found in latest user message",
-     "effect": "adds the fact; else returns userRequestRequired('save a memory fact while auto-memory is off')"
+     "effect": "storeFact; else userRequestRequired('save a memory fact while auto-memory is off')"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Always reports {added:true} even when UserFactsStore.add silently drops the text as a normalized duplicate (UserFactsStore.swift:139) — the AI tells the user a fact was saved when nothing changed; adding a 26th fact also silently evicts the oldest fact without reporting it.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift:117",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift:120",
-      "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift:139",
-      "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift:141"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Tool description tells the model text is limited to ≤160 chars, but neither this resolver nor UserFactsStore.add enforces any length, so arbitrarily long text rides in every system prompt.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift:130",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift:108",
-      "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift:134"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "771ed72e2ca4a97f",
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::var UserFactsStore.autoExtractEnabled": "c3cdef82c8d1a811",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.latestUserMessageContains(_:)": "e14cfc2abc4d9911",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.storeFact(_:)": "3a86d651ce084422",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.userRequestRequired(_:)": "d5c9480c0d5819d4",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.userFactsStore": "4dcd8eac0def2920"
+   }
+  },
+  {
+   "key": "func AssistantMemoryNamespace.storeFact(_:)",
+   "hash": "74c694d7a86f9dd7",
+   "does": "On the main actor: calls UserFactsStore.add(text) and compares fact ids before and after; returns {added:false, text, note 'already saved'} when the store kept an existing same-text fact, else {added:true, text} plus evicted_oldest (texts of facts dropped by the 25-fact cap) when any.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.userFactsStore",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)",
+    "ext:MainActor.assumeIsolated"
+   ],
+   "reads": [
+    "mem:UserFactsStore.facts"
+   ],
+   "writes": [
+    "mem:UserFactsStore.facts",
+    "file:AppGroup/Assistant/user_facts.json (UserFactsStore)"
+   ],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "no new fact id after add",
+     "effect": "added:false record"
+    },
+    {
+     "at": "+13",
+     "cond": "facts evicted",
+     "effect": "add evicted_oldest list"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "771ed72e2ca4a97f",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.userFactsStore": "4dcd8eac0def2920"
@@ -518,21 +538,21 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.resolveAssistantArtifactsList()": "6d82479a0c7a6d1e",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.resolveAssistantArtifactsList()": "8cb2d0cdbd3e2935",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
    }
   },
   {
    "key": "func AssistantMemoryNamespace.resolveAssistantArtifactsList()",
-   "hash": "ae446d3efa751ece",
-   "does": "Lists open artifacts (AssistantArtifactStore.list(includeResolved:false), newest first) as records {id,kind,status,body,created_at,updated_at}; .missing(notRecorded,'no open artifacts') when none.",
+   "hash": "fd3133071d0d378b",
+   "does": "Lists open artifacts (AssistantArtifactStore.list(includeResolved:false), newest first) via artifactRecords; .missing(notRecorded,'no open artifacts') when none.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantArtifactStore",
     "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.list(kind:includeResolved:)",
-    "ext:MainActor.assumeIsolated",
-    "ext:ISO8601DateFormatter"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.artifactRecords(_:)",
+    "ext:MainActor.assumeIsolated"
    ],
    "reads": [
     "file:AppGroup/Assistant/artifacts.json (AssistantArtifactStore)",
@@ -549,10 +569,25 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.list(kind:includeResolved:)": "fb7077c9a942d6f5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.artifactRecords(_:)": "59552833a6075bc6",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantArtifactStore": "d64367ce8192abba"
    }
+  },
+  {
+   "key": "func AssistantMemoryNamespace.artifactRecords(_:)",
+   "hash": "b0af2ccd4a4808b9",
+   "does": "Maps artifacts to a list of records {id, kind, status, body, created_at, updated_at} (ISO 8601 internet date-time).",
+   "entry": null,
+   "calls": [
+    "ext:ISO8601DateFormatter"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "var AssistantMemoryNamespace.assistantArtifactsListAllEntry",
@@ -568,21 +603,21 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.resolveAssistantArtifactsListAll()": "34a1214330b53a2a",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.resolveAssistantArtifactsListAll()": "29bcdf262630d67e",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
    }
   },
   {
    "key": "func AssistantMemoryNamespace.resolveAssistantArtifactsListAll()",
-   "hash": "bc25ea33ba86066b",
-   "does": "Lists every artifact including resolved/shipped/archived as records {id,kind,status,body,created_at,updated_at}; .missing(notRecorded,'no artifacts') when none.",
+   "hash": "626c0d3c46ebcf6c",
+   "does": "Lists every artifact including resolved/shipped/archived via artifactRecords; .missing(notRecorded,'no artifacts') when none.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantArtifactStore",
     "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.list(kind:includeResolved:)",
-    "ext:MainActor.assumeIsolated",
-    "ext:ISO8601DateFormatter"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.artifactRecords(_:)",
+    "ext:MainActor.assumeIsolated"
    ],
    "reads": [
     "file:AppGroup/Assistant/artifacts.json (AssistantArtifactStore)",
@@ -596,20 +631,10 @@
      "effect": "returns missing notRecorded; else the list"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Record-mapping closure is a verbatim copy of resolveAssistantArtifactsList's (lines 278-287 vs 313-322); only the includeResolved flag and the empty-detail text differ.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift:278",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift:313"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.list(kind:includeResolved:)": "fb7077c9a942d6f5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.artifactRecords(_:)": "59552833a6075bc6",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantArtifactStore": "d64367ce8192abba"
@@ -617,8 +642,8 @@
   },
   {
    "key": "var AssistantMemoryNamespace.assistantArtifactsAddEntry",
-   "hash": "fdaf722a81b4c7a3",
-   "does": "Action entry `assistant.artifacts.add` (params kind, body) executing resolveAssistantArtifactsAdd.",
+   "hash": "ebac48a7e5fb0e67",
+   "does": "Action entry `assistant.artifacts.add` (params kind, body, user_quote) executing resolveAssistantArtifactsAdd.",
    "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)",
@@ -629,23 +654,27 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.resolveAssistantArtifactsAdd(_:)": "578959e12516bd61",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.resolveAssistantArtifactsAdd(_:)": "d9bbc969bd737b38",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)": "cc67ad9762ace28b",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::init ActionParam(_:_:required:)": "d7adb1b41654ff54"
    }
   },
   {
    "key": "func AssistantMemoryNamespace.resolveAssistantArtifactsAdd(_:)",
-   "hash": "498198e2988ff4ba",
-   "does": "Validates kind ∈ {bug,feature,decision,note} and non-empty body, appends a new open artifact to AssistantArtifactStore (persisted to artifacts.json) and returns {id,kind,status,body,created:true}.",
+   "hash": "5723129f2885b369",
+   "does": "Validates kind ∈ {bug,feature,decision,note} and non-empty body, requires user_quote to appear in the latest user message, appends a new open artifact to AssistantArtifactStore and returns {id,kind,status,body,created:true}.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.latestUserMessageContains(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.userRequestRequired(_:)",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantArtifactStore",
     "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.add(kind:body:)",
     "ext:MainActor.assumeIsolated"
    ],
-   "reads": [],
+   "reads": [
+    "mem:AssistantViewModel.turns"
+   ],
    "writes": [
     "file:AppGroup/Assistant/artifacts.json (AssistantArtifactStore)",
     "mem:AssistantArtifactStore.artifacts"
@@ -653,31 +682,25 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "kind present and a valid Kind raw value",
-     "effect": "continues; else returns missing invalidParameter listing kinds"
+     "cond": "kind present and valid",
+     "effect": "continues; else missing invalidParameter listing kinds"
     },
     {
      "at": "+4",
-     "cond": "body present and non-empty after trim",
-     "effect": "adds; else returns missing invalidParameter 'body required'"
-    }
-   ],
-   "flags": [
+     "cond": "body non-empty after trim",
+     "effect": "continues; else missing invalidParameter 'body required'"
+    },
     {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Unlike assistant.memory.add/remove/clear and contacts.add/remove, artifacts.add and update_status have no user_quote gate, so an instruction the model reads in a tool result (web page, email) can create or resolve persistent artifacts without the user asking.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift:336",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift:372",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift:114",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift:194"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+7",
+     "cond": "user_quote not in the latest user message",
+     "effect": "userRequestRequired('save an artifact'); else add"
     }
    ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.add(kind:body:)": "ea2e101083258b9d",
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.add(kind:body:)": "7dc1db4425fa7809",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.latestUserMessageContains(_:)": "e14cfc2abc4d9911",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.userRequestRequired(_:)": "d5c9480c0d5819d4",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantArtifactStore": "d64367ce8192abba"
@@ -685,8 +708,8 @@
   },
   {
    "key": "var AssistantMemoryNamespace.assistantArtifactsUpdateStatusEntry",
-   "hash": "de4d036e4ea28d49",
-   "does": "Action entry `assistant.artifacts.update_status` (params id, status) executing resolveAssistantArtifactsUpdateStatus.",
+   "hash": "a29d9e1f7a236daa",
+   "does": "Action entry `assistant.artifacts.update_status` (params id, status, user_quote) executing resolveAssistantArtifactsUpdateStatus.",
    "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)",
@@ -697,24 +720,27 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.resolveAssistantArtifactsUpdateStatus(_:)": "de1c91e7395a78eb",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.resolveAssistantArtifactsUpdateStatus(_:)": "023f84a032c2f3f6",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)": "cc67ad9762ace28b",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::init ActionParam(_:_:required:)": "d7adb1b41654ff54"
    }
   },
   {
    "key": "func AssistantMemoryNamespace.resolveAssistantArtifactsUpdateStatus(_:)",
-   "hash": "8629da7df5c5fb7a",
-   "does": "Parses id UUID and status ∈ {open,resolved,shipped,archived}, calls AssistantArtifactStore.updateStatus (sets status + updatedAt, persists) and returns {id,status,updated:true} or .missing(notRecorded) when no such id.",
+   "hash": "564560c66b1f1817",
+   "does": "Parses id UUID and status ∈ {open,resolved,shipped,archived}, requires user_quote to appear in the latest user message, calls AssistantArtifactStore.updateStatus and returns {id,status,updated:true} or .missing(notRecorded) when no such id.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.latestUserMessageContains(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.userRequestRequired(_:)",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantArtifactStore",
     "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.updateStatus(id:status:)",
     "ext:MainActor.assumeIsolated"
    ],
    "reads": [
-    "mem:AssistantArtifactStore.artifacts"
+    "mem:AssistantArtifactStore.artifacts",
+    "mem:AssistantViewModel.turns"
    ],
    "writes": [
     "file:AppGroup/Assistant/artifacts.json (AssistantArtifactStore)",
@@ -723,23 +749,30 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "id present and valid UUID",
-     "effect": "continues; else missing invalidParameter 'id must be a UUID'"
+     "cond": "id valid UUID",
+     "effect": "continues; else missing invalidParameter"
     },
     {
      "at": "+4",
-     "cond": "status present and valid Status raw value",
-     "effect": "continues; else missing invalidParameter listing statuses"
+     "cond": "status valid",
+     "effect": "continues; else missing invalidParameter"
     },
     {
-     "at": "+10",
+     "at": "+7",
+     "cond": "user_quote not in the latest user message",
+     "effect": "userRequestRequired(\"change an artifact's status\")"
+    },
+    {
+     "at": "+13",
      "cond": "updateStatus found the artifact",
-     "effect": "returns updated record; else missing notRecorded 'no artifact with id …'"
+     "effect": "returns updated record; else missing notRecorded"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.updateStatus(id:status:)": "6a821e774d250e79",
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.updateStatus(id:status:)": "52d271d45b599e3f",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.latestUserMessageContains(_:)": "e14cfc2abc4d9911",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.userRequestRequired(_:)": "d5c9480c0d5819d4",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantArtifactStore": "d64367ce8192abba"

@@ -3,8 +3,9 @@ import Foundation
 /// User-declared physiological constraint for ambient coaching.
 ///
 /// The user pre-sets one or more thresholds before starting a workout
-/// ("don't let HR exceed 135 bpm for >30s", "stay above zone 2 power", "keep
-/// pace slower than 9:00/mi"), then puts the phone away with their podcast
+/// ("keep HR under 135", "over 90% of FTP", "every 20 minutes", "5 miles";
+/// `parsePlainText` lists every phrasing it accepts), then puts the phone away
+/// with their podcast
 /// or audiobook. The voice coach stays silent — the audio session mixes with
 /// other audio, so the audiobook keeps playing — until a threshold is
 /// breached past its `debounceSec`. At that point the coach speaks the cue
@@ -136,6 +137,11 @@ struct WorkoutThreshold: Codable, Identifiable, Equatable, Hashable {
         )
     }
 
+    /// Cooldown that makes a cue fire once per workout: about 11.6 days,
+    /// longer than any recording, so after the first cue the breach (which
+    /// stays true once a distance or time is passed) never re-arms.
+    static let oneShotCooldownSec = 999_999
+
     /// A one-shot milestone: fires once when passed, then never again.
     private static func milestone(
         metric: Metric,
@@ -147,7 +153,7 @@ struct WorkoutThreshold: Codable, Identifiable, Equatable, Hashable {
             condition: .greaterThan,
             value: value,
             debounceSec: 0,
-            cooldownSec: 999_999,
+            cooldownSec: oneShotCooldownSec,
             userCue: cue
         )
     }
@@ -232,8 +238,12 @@ struct WorkoutThreshold: Codable, Identifiable, Equatable, Hashable {
         )
     }
 
-    /// "5 miles", "1 km", "800 meters"
+    /// "5 miles", "1 km", "800 meters". "Every 5 km" is not accepted: a
+    /// distance cue fires once (its repeat is a cooldown in seconds, which
+    /// cannot express "each 5 km"), so it is rejected rather than saved as a
+    /// one-off the user did not ask for.
     private static func parseDistance(_ text: CueText) -> WorkoutThreshold? {
+        guard !text.mentions(.every) else { return nil }
         let units = [(text.words(.miles), 1609.344), (text.words(.kilometers), 1_000.0), (text.words(.meters), 1.0)]
         let parts = captures(number + #"\s*("# + units.map(\.0).joined(separator: "|") + ")", in: text.raw)
         guard parts.count >= 3, let n = value(parts[1]) else { return nil }
@@ -242,8 +252,9 @@ struct WorkoutThreshold: Codable, Identifiable, Equatable, Hashable {
     }
 
     /// "10k" run shorthand, matched separately so it cannot collide with the
-    /// metres case above.
+    /// metres case above. Like `parseDistance`, rejects "every 10k".
     private static func parseKShorthand(_ text: CueText) -> WorkoutThreshold? {
+        guard !text.mentions(.every) else { return nil }
         let parts = captures(#"(\d+)\s*k\b(?!m)"#, in: text.raw)
         guard parts.count >= 2, let n = Double(parts[1]) else { return nil }
         return milestone(metric: .distanceMeters, value: n * 1_000, cue: text.cue)
@@ -270,8 +281,12 @@ struct WorkoutThreshold: Codable, Identifiable, Equatable, Hashable {
         )
     }
 
-    /// "8 percent grade", "10%", "more than 6 percent"
+    /// "8 percent grade", "10%", "more than 6 percent". A percentage of heart
+    /// rate ("over 90% of max HR") is not a grade and is not supported as a
+    /// heart-rate cue either, so it is rejected instead of being saved as a
+    /// grade cue that never fires.
     private static func parseGrade(_ text: CueText) -> WorkoutThreshold? {
+        guard !text.mentions(.heartRate), !text.mentions(.beatsPerMinute) else { return nil }
         let parts = captures(number + #"\s*"# + text.words(.percent), in: text.raw)
         guard parts.count >= 2, let n = value(parts[1]) else { return nil }
         return WorkoutThreshold(
@@ -305,9 +320,9 @@ struct WorkoutThreshold: Codable, Identifiable, Equatable, Hashable {
     ///   "HR over 135" / "under 90 bpm"   → heartRateBPM
     ///   "over 90% of FTP"               → powerPercentFTP
     ///   "1000 feet of climb" / "climb 300 meters" → elevationGainMeters
-    ///   "8 percent" / "10%" grade        → gradePercent
+    ///   "8 percent" / "10%" grade        → gradePercent (not with a heart-rate word)
     ///   "30 minutes" / "1 hr 30 min"    → elapsedSec ("every 20 minutes" repeats)
-    ///   "5 miles" / "1 km"              → distanceMeters
+    ///   "5 miles" / "1 km"              → distanceMeters (once; "every 5 km" is rejected)
     ///   "10k"                           → distanceMeters
     /// "keep / stay under" sets a ceiling (warns above), "stay above" a floor.
     ///

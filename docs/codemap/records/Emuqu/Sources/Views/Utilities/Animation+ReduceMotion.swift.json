@@ -1,45 +1,32 @@
 {
- "file": "Emuqu/Sources/Views/Utilities/Animation+ReduceMotion.swift",
- "hash": "1586d7da2aea734d",
- "role": "Animation.zenInterface helper that returns nil (instant change) under Reduce Motion.",
- "types": [
-  "Animation: extension — zenInterface(_:reduceMotion:)"
- ],
- "state": [],
- "toplevel": "Header comment (lines 5-12) states interactive transitions must not animate without consulting Reduce Motion; only 1 production call site (GetMeBackView.swift:448) uses this helper.",
- "flags": [],
- "units": [
-  {
-   "key": "func Animation.zenInterface(_:reduceMotion:)",
-   "hash": "16acaaf799bf975b",
-   "does": "Returns nil when reduceMotion is true, else the given animation.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
+  "file": "Emuqu/Sources/Views/Utilities/Animation+ReduceMotion.swift",
+  "hash": "1586d7da2aea734d",
+  "role": "Animation.zenInterface helper that returns nil (instant change) under Reduce Motion.",
+  "types": [
+    "Animation: extension — zenInterface(_:reduceMotion:)"
+  ],
+  "state": [],
+  "toplevel": "Header comment (lines 5-12) states interactive transitions must not animate without consulting Reduce Motion; only 1 production call site (GetMeBackView.swift:448) uses this helper.",
+  "flags": [],
+  "units": [
     {
-     "at": "+1",
-     "cond": "reduceMotion",
-     "effect": "nil (apply instantly); else animation"
+      "key": "func Animation.zenInterface(_:reduceMotion:)",
+      "hash": "16acaaf799bf975b",
+      "does": "Returns nil when reduceMotion is true, else the given animation.",
+      "entry": null,
+      "calls": [],
+      "reads": [],
+      "writes": [],
+      "branches": [
+        {
+          "at": "+1",
+          "cond": "reduceMotion",
+          "effect": "nil (apply instantly); else animation"
+        }
+      ],
+      "flags": [],
+      "deps": {}
     }
-   ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Header says interactive transitions must go through this helper, but it has one caller (GetMeBackView.swift:448); e.g. ToastBanner and the Zen button styles animate without consulting Reduce Motion.",
-     "evidence": [
-      "Emuqu/Sources/Views/Utilities/Animation+ReduceMotion.swift:5",
-      "Emuqu/Sources/Views/GetMeBackView.swift:448",
-      "Emuqu/Sources/Views/ToastBanner.swift:59",
-      "Emuqu/Sources/Views/Theme.swift:644"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {}
-  }
- ],
- "deps": {}
+  ],
+  "deps": {}
 }

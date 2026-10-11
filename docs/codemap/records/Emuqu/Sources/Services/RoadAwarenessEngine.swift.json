@@ -15,18 +15,7 @@
   "static minSpeedForCourseTrust 0.7 m/s, maxCourseAccuracyDegrees 30, maxSnapDistanceMeters 40, maxLookaheadMeters 600, maxLookaheadIntersections 3 (RoadAwarenessEngine.swift:131-144)"
  ],
  "toplevel": "No top-level code beyond type declarations and static constants.",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "med",
-   "text": "projectPointOntoSegment projects in raw degrees without scaling longitude by cos(latitude) (JourneyIntelligenceService does scale), so the foot point is wrong at high latitudes and perpDist (haversine to that point) is overestimated, which can drop near snaps past the 40 m cutoff.",
-   "evidence": [
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift:672-679",
-    "Emuqu/Sources/Services/JourneyIntelligenceService.swift:187"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "var RoadAwarenessEngine.LookaheadEvent.Kind.isRoadEnds",
@@ -72,7 +61,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.awareness(for:tile:neighborhoodFallback:)": "ba2cc49bb1635a46",
-    "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.tile(for:)": "2e08747508278555",
+    "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.tile(for:)": "fd87f5d717cc65f4",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "236ffadb120d332c",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.roadGraphService": "b5844c996cbb2b5d"
@@ -112,8 +101,8 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingTrust(for:)": "73f5a4779c5d0d0c",
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.constructPhrase(snap:events:roadContinuesForMeters:neighborhoodFallback:imperial:)": "4a2fb15c9eacdd94",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingTrust(for:)": "d250aa644ae177c3",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.constructPhrase(snap:events:roadContinuesForMeters:neighborhoodFallback:imperial:)": "7678165287274e81",
     "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.fallbackResult(_:)": "8ddf45d1a8d99b3a",
     "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.lookahead(from:tile:)": "b1d3de547a8d9f94",
     "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)": "d5f91b1990b4de87",
@@ -165,12 +154,10 @@
     {
      "kind": "spec-mismatch",
      "sev": "low",
-     "text": "The docstring says it returns 'the trusted bearing (or nil)' but it returns (Bool, reason); docs/FLOWCHART.md describes the gates as 'course accuracy >= 30 deg, speed >= 0.7 m/s ... refuse to snap rather than mis-snap', while the code trusts courseAccuracy <= 30 (and -1), trusts an invalid speed of -1, and an untrusted bearing still snaps (without bearing) rather than refusing.",
+     "text": "docs/FLOWCHART.md (~1257) describes the gates as 'course accuracy >= 30 deg, speed >= 0.7 m/s ... refuse to snap rather than mis-snap', while the code distrusts a valid courseAccuracy > 30 (trusting -1), trusts an invalid speed of -1, and an untrusted bearing still snaps (without bearing bias). The docstring now describes the code; FLOWCHART is outside this file (handed off).",
      "evidence": [
-      "Emuqu/Sources/Services/RoadAwarenessEngine.swift:196-198",
-      "Emuqu/Sources/Services/RoadAwarenessEngine.swift:203-214",
-      "Emuqu/Sources/Services/RoadAwarenessEngine.swift:167-172",
-      "docs/FLOWCHART.md:1257-1258"
+      "docs/FLOWCHART.md:1257-1258",
+      "Emuqu/Sources/Services/RoadAwarenessEngine.swift:204"
      ],
      "found": "second read"
     }
@@ -303,9 +290,9 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)": "15d4962246559ffa",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingDegrees(from:to:)": "47aa61e638769461",
     "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.haversineMeters(_:_:)": "af56fd150c14008b",
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)": "466f005e1a103e17"
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)": "88c2acfd3a47d820"
    }
   },
   {
@@ -425,7 +412,8 @@
     "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.advanceToNextNode(_:tile:)": "c072d24ec94eba24",
     "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.event(at:walk:tile:)": "8a111e80be932e66",
     "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.midWayIntersection(at:walk:tile:)": "fe791c4e97179568",
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)": "6835a1e924e0aa7c"
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)": "6835a1e924e0aa7c",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.coord(_:_:)": "5de21e5d99655fdb"
    }
   },
   {
@@ -530,7 +518,8 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)": "6835a1e924e0aa7c"
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.walkingForward(along:userCourse:)": "6835a1e924e0aa7c",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.coord(_:_:)": "5de21e5d99655fdb"
    }
   },
   {
@@ -601,11 +590,12 @@
   },
   {
    "key": "func RoadAwarenessEngine.constructPhrase(snap:events:roadContinuesForMeters:neighborhoodFallback:imperial:)",
-   "hash": "2abfbe813759e872",
-   "does": "Builds the phrase: 'on <name|ref>' or 'walking through <neighbourhood>' or nil; appends the first event's clause only when walking direction is known.",
+   "hash": "b3cbd98d1f3c374d",
+   "does": "Builds the phrase: 'on <name|ref>' or 'walking through <neighbourhood>' or nil; appends the clause for the first useful event (firstUsefulEvent: road end, roundabout or named crossing, else the first event) only when walking direction is known.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.firstUsefulEvent(in:)",
     "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.clause(for:roadContinuesForMeters:imperial:)",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved"
@@ -632,7 +622,7 @@
     },
     {
      "at": "+17",
-     "cond": "direction known and first event and clause non-nil",
+     "cond": "direction known and a useful event and clause non-nil",
      "effect": "true: append clause"
     }
    ],
@@ -641,14 +631,56 @@
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.clause(for:roadContinuesForMeters:imperial:)": "66e2192cfd7dce75",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.clause(for:roadContinuesForMeters:imperial:)": "6d7f402c3fec45a7",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.event(at:walk:tile:)": "8a111e80be932e66",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.firstUsefulEvent(in:)": "b19ed841dbb87324",
     "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)": "d5f91b1990b4de87"
+   }
+  },
+  {
+   "key": "func RoadAwarenessEngine.firstUsefulEvent(in:)",
+   "hash": "79c190fb7d3210bf",
+   "does": "Static: the first event that says something — a road end, a roundabout, or an intersection with a named cross street — skipping crossings with no named street (OSM way splits, unnamed paths); falls back to the first event when none qualifies; nil for no events.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "case .roadEnds",
+     "effect": "useful"
+    },
+    {
+     "at": "+4",
+     "cond": "case .intersection",
+     "effect": "useful when roundabout or any cross street"
+    },
+    {
+     "at": "+6",
+     "cond": "no useful event",
+     "effect": "?? events.first"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Crossings with no named street still count toward the 3-event lookahead budget (lookahead appends every event), so a run of OSM way splits can push a named cross street past the third event, where it is never reached.",
+     "evidence": [
+      "Emuqu/Sources/Services/RoadAwarenessEngine.swift:378"
+     ],
+     "found": "fix pass"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.event(at:walk:tile:)": "8a111e80be932e66"
    }
   },
   {
    "key": "func RoadAwarenessEngine.clause(for:roadContinuesForMeters:imperial:)",
    "hash": "9a555a177478a71a",
-   "does": "Clause for the first event: roundabout / approaching cross street / road continues X / ends (at next) in distance.",
+   "does": "Clause for the event constructPhrase picked: roundabout / approaching cross street / road continues X / ends (at next) in distance.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.formatDistance(_:imperial:)",
@@ -683,22 +715,7 @@
      "effect": "false: \"ends in D\"; true: \"ends at N in D\""
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "The comment says 'the first useful upcoming event dictates the rest... prioritise roadEnds > intersection-with-named-cross > nothing', but constructPhrase only ever passes events.first. An OSM way split (same-name continuation with no other way) or an unnamed crossing produces an intersection event with empty crossStreets that becomes events.first, so the clause is nil or 'road continues ...' and a named cross street at event 2 or 3 is never spoken; such events also use up the 3-event lookahead budget.",
-     "evidence": [
-      "Emuqu/Sources/Services/RoadAwarenessEngine.swift:597-599",
-      "Emuqu/Sources/Services/RoadAwarenessEngine.swift:590-593",
-      "Emuqu/Sources/Services/RoadAwarenessEngine.swift:610-615",
-      "Emuqu/Sources/Services/RoadAwarenessEngine.swift:468-476",
-      "Emuqu/Sources/Services/RoadAwarenessEngine.swift:410-417",
-      "Emuqu/Sources/Services/RoadAwarenessEngine.swift:378"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.formatDistance(_:imperial:)": "c8e6458ed51a41ae"
@@ -771,34 +788,20 @@
   },
   {
    "key": "func RoadAwarenessEngine.projectPointOntoSegment(point:segmentStart:segmentEnd:)",
-   "hash": "5e9d16ccacd93d28",
-   "does": "Flat lat/lon projection of p onto a→b with t clamped to [0,1]; returns a with t=0 for degenerate segments.",
+   "hash": "6c0e9ab1a756f6fe",
+   "does": "Projection of p onto a→b on a local flat projection with longitude scaled by cos(p.lat), so the foot point is perpendicular in metres; t clamped to [0,1] and the snapped point interpolated in degrees; returns a with t=0 for degenerate segments.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+8",
+     "at": "+9",
      "cond": "lenSq < 1e-18",
      "effect": "true: (a, 0)"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "Projection is done in raw degrees with no cos(latitude) scaling of longitude, so away from the equator the foot point is not the perpendicular foot in metres; haversine to that point overstates perpDist for diagonal roads (by up to ~1/cos(lat), ~1.6x at 52 deg N). That changes which road wins the snap (wrong road name spoken) and pushes real snaps past the 40 m cutoff. The 'close enough at our 800 m bbox scale' comment is wrong because the error is from anisotropy, not scale; JourneyIntelligenceService already applies the scaling, and the projection tests use only an east-west segment.",
-     "evidence": [
-      "Emuqu/Sources/Services/RoadAwarenessEngine.swift:664-666",
-      "Emuqu/Sources/Services/RoadAwarenessEngine.swift:672-679",
-      "Emuqu/Sources/Services/RoadAwarenessEngine.swift:313-314",
-      "Emuqu/Sources/Services/JourneyIntelligenceService.swift:187",
-      "EmuquTests/RoadAwarenessEngineTests.swift:295-307"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -815,15 +818,19 @@
   },
   {
    "key": "func RoadAwarenessEngine.bearingDegrees(from:to:)",
-   "hash": "7a4716330b63d7be",
-   "does": "Initial great-circle bearing a→b in degrees [0,360).",
+   "hash": "c41203848a094d44",
+   "does": "Initial bearing from a→b in degrees clockwise from true north, [0, 360): converts both points to coordinates and calls the global bearingDegrees(from:to:).",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func bearingDegrees(from:to:)"
+   ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func bearingDegrees(from:to:)": "1880b57b7020c663"
+   }
   }
  ],
  "deps": {}

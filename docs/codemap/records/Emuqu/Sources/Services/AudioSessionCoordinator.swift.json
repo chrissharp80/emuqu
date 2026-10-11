@@ -90,30 +90,6 @@
    }
   },
   {
-   "key": "func AudioSessionCoordinator.isVoiceActive()",
-   "hash": "f18c6015358b7e0e",
-   "does": "True when .voice holds a claim.",
-   "entry": null,
-   "calls": [],
-   "reads": [
-    "mem:AudioSessionCoordinator.claims"
-   ],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "isVoiceActive() has no caller anywhere in the repo, tests included.",
-     "evidence": [
-      "Emuqu/Sources/Services/AudioSessionCoordinator.swift:100"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
-  },
-  {
    "key": "func AudioSessionCoordinator.hasActiveClaims()",
    "hash": "5635978dc6ec6020",
    "does": "True when any claim is held; claimants check it before deactivating the session.",
@@ -133,24 +109,24 @@
    "does": "Runs applyCurrentClaims under the recursive applyLock so resolve+apply is serialised.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.applyCurrentClaims()"
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.applyCurrentClaims(isRetry:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.applyCurrentClaims()": "b61d53c976aa2141"
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.applyCurrentClaims(isRetry:)": "aa2fe47afb74f432"
    }
   },
   {
-   "key": "func AudioSessionCoordinator.applyCurrentClaims()",
-   "hash": "6974d4a5634b5d2e",
-   "does": "Snapshots claims; with none returns; else picks .playAndRecord (mode .measurement) if any claim is voiceRecord, otherwise .playback (.default), computes options, and calls setCategory unless the live session already has that category and options.",
+   "key": "func AudioSessionCoordinator.applyCurrentClaims(isRetry:)",
+   "hash": "5cfe5ec2e9bd4103",
+   "does": "Snapshots claims; with none returns; else picks .playAndRecord (mode .measurement) if any claim is voiceRecord, otherwise .playback (.default), computes options, and calls apply (passing isRetry) unless the live session already has that category and options.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.categoryOptions(needsRecord:ducks:)",
-    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.apply(category:mode:options:)"
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.apply(category:mode:options:isRetry:)"
    ],
    "reads": [
     "mem:AudioSessionCoordinator.claims",
@@ -184,7 +160,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "315f6413360002af",
-    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.apply(category:mode:options:)": "bc8c367823460d1e",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.apply(category:mode:options:isRetry:)": "8feed31707cbb635",
     "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.categoryOptions(needsRecord:ducks:)": "27d5d99cef0dccb0"
    }
   },
@@ -212,13 +188,14 @@
    "deps": {}
   },
   {
-   "key": "func AudioSessionCoordinator.apply(category:mode:options:)",
-   "hash": "d9a2d452e05b781f",
-   "does": "Calls AVAudioSession.setCategory(category, mode:, options:); a throw is debugLogged at info level and not retried.",
+   "key": "func AudioSessionCoordinator.apply(category:mode:options:isRetry:)",
+   "hash": "bb32222129dea101",
+   "does": "Calls AVAudioSession.setCategory(category, mode:, options:). On a throw logs a warning and, on a first failure, scheduleRetry() re-resolves the claims once a second later; a second failure is only logged and the session keeps its previous category until the next claim/release.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "ext:AVAudioSession.setCategory"
+    "ext:AVAudioSession.setCategory",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.scheduleRetry()"
    ],
    "reads": [],
    "writes": [
@@ -226,25 +203,37 @@
    ],
    "branches": [
     {
-     "at": "+7",
+     "at": "+8",
      "cond": "setCategory throws (catch)",
-     "effect": "info log only; session stays in its previous category"
-    }
-   ],
-   "flags": [
+     "effect": "warning log"
+    },
     {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "Comment says 'the next claim/refresh cycle retries', but the coordinator has no refresh cycle; a failed setCategory during a voice claim leaves voice with the old (e.g. .playback) category until some other claimant claims or releases.",
-     "evidence": [
-      "Emuqu/Sources/Services/AudioSessionCoordinator.swift:163",
-      "Emuqu/Sources/Services/AudioSessionCoordinator.swift:173"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+10",
+     "cond": "already a retry",
+     "effect": "return; else schedule one re-resolve in 1 s"
     }
    ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.scheduleRetry()": "4d762c20b72107f8",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func AudioSessionCoordinator.scheduleRetry()",
+   "hash": "1e5deb321a963b68",
+   "does": "After 1 s on a background queue, re-resolves the current claims under applyLock with isRetry true.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.applyCurrentClaims(isRetry:)",
+    "ext:DispatchQueue.asyncAfter"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.applyCurrentClaims(isRetry:)": "aa2fe47afb74f432"
    }
   }
  ],

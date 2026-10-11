@@ -17,20 +17,6 @@
  "toplevel": "Synthesized Equatable on SleepTimelineEdit/State/Segment (compares UUIDs too). No other top-level code.",
  "flags": [
   {
-   "kind": "broken",
-   "sev": "high",
-   "text": "Carving awake inside an interval-less envelope segment (strap-only / HR-estimated night, built by envelopeSegment with intervals: []) gives the segment a single .awake interval; from then on both the editor total (editedTotalSleepMinutes counts envelope duration only when intervals.isEmpty) and the saved SleepData (adjustedSegment counts envelope minutes only when clipped.isEmpty) treat the whole segment as 0 sleep. Marking 30 min awake on an 8 h strap-only night saves ~0 min sleep. Merging an envelope segment with a staged one drops the envelope duration the same way. Not covered by SleepTimelineEditorTests.",
-   "evidence": [
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift:132",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift:273",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift:294",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift:240",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift:182",
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift:614"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
    "kind": "fragile",
    "sev": "low",
    "text": "Edit summaries are hard-coded English strings persisted into SleepData.edits (e.g. \"Start moved to\", \"Added\", \"Carved\"); nothing in the app displays SleepEditRecord.summary, so they are stored but unused.",
@@ -46,8 +32,8 @@
  "units": [
   {
    "key": "func SleepTimelineState.hasSameContent(as:)",
-   "hash": "e9325924e21f8710",
-   "does": "Compares two states by segment count, edit count, segment bounds and interval stage/start/end, ignoring UUIDs. Used by commit() to decide whether to save.",
+   "hash": "fe31bc5c6063687b",
+   "does": "Content equality ignoring segment/interval UUIDs: same segment count and edit count, and per segment the same start/end and the same intervals (stage, start, end and provenance) in order.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -55,44 +41,30 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "segment counts or edit counts differ",
-     "effect": "return false"
-    },
-    {
-     "at": "+3",
-     "cond": "loop over segment pairs",
-     "effect": "checks each pair"
+     "cond": "segment or edit counts differ",
+     "effect": "false"
     },
     {
      "at": "+4",
-     "cond": "start/end/interval count differ",
-     "effect": "return false"
+     "cond": "a segment's bounds or interval count differ",
+     "effect": "false"
     },
     {
-     "at": "+6",
-     "cond": "any interval pair differs in stage/start/end",
-     "effect": "return false; if no mismatch, true after loop"
+     "at": "+7",
+     "cond": "an interval differs in stage, bounds or provenance",
+     "effect": "false"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Interval provenance is not compared, so a change that only alters provenance is treated as no change (not reachable through current edits, which always change bounds or add edits).",
-     "evidence": [
-      "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift:69"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "cab2cc006b4ecb88"
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "cab2cc006b4ecb88",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "428ceef7932431a2"
    }
   },
   {
    "key": "func SleepTimelineState.initial(from:)",
    "hash": "8d550d705a6d9fbd",
-   "does": "Builds the editor state from SleepData: sorts intervals, groups them with splitStageIntervalsByAwake(gap: splitGapMinutes), makes one segment per group, attaches every interval not grouped to the preceding (or first) segment, and falls back to one interval-less envelope segment from sleepStart/sleepEnd when there are no segments; edits copied from sleepData.edits.",
+   "does": "Builds the editor state from SleepData: sorts intervals, groups them with splitStageIntervalsByAwake(gap: splitGapMinutes), makes one segment per group, attaches every interval not grouped to the preceding (or first) segment, and falls back to envelopeSegment (one segment holding a single unstaged interval over sleepStart..sleepEnd) when no interval made a segment; edits come from sleepData.edits.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.splitStageIntervalsByAwake(_:gap:)",
@@ -118,7 +90,7 @@
    "deps": {
     "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.splitStageIntervalsByAwake(_:gap:)": "2ed6f8998ac10205",
     "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.attaching(_:to:)": "a5eea61f08b9124e",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.envelopeSegment(from:)": "5e25e8336b18c5e0",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.envelopeSegment(from:)": "a3951e38a7454c48",
     "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.segment(spanning:)": "2ee5bbb0b258ce4d",
     "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "4cec6874d7fcb65a"
    }
@@ -171,102 +143,130 @@
   },
   {
    "key": "func SleepTimelineState.envelopeSegment(from:)",
-   "hash": "b1b40b05680e51e4",
-   "does": "Single segment from sleepData.sleepStart..sleepEnd with no intervals; nil when either is missing or end <= start.",
+   "hash": "0e2135c1ed264eb7",
+   "does": "Fallback segment for a night with no stage intervals: spans sleepStart..sleepEnd and holds one .unspecified interval over that span, with provenance from envelopeProvenance(boundarySource), so carve/merge/boundary edits work on real minutes and the envelope counts as sleep in the editor total and the saved SleepData.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.envelopeProvenance(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "sleepStart or sleepEnd missing, or end <= start",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "ec3d6b9cd4d65d48",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.envelopeProvenance(_:)": "e1e57356fe80eb7d"
+   }
+  },
+  {
+   "key": "func SleepTimelineState.envelopeProvenance(_:)",
+   "hash": "d00abbf64b6425f3",
+   "does": "Provenance for an envelope interval: .watch for HealthKit-sourced boundaries (healthKit, hrValidated, healthKitHREstimated), .hrvDerived for strap HR-estimated or recording-bounds envelopes.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+1",
-     "cond": "sleepStart/sleepEnd missing or end <= start",
-     "effect": "returns nil"
-    }
-   ],
-   "flags": [
+     "at": "+4",
+     "cond": "HealthKit / HR-validated / HK HR-estimated",
+     "effect": ".watch"
+    },
     {
-     "kind": "broken",
-     "sev": "high",
-     "text": "Carving awake inside an interval-less envelope segment (strap-only / HR-estimated night, built by envelopeSegment with intervals: []) gives the segment a single .awake interval; from then on both the editor total (editedTotalSleepMinutes counts envelope duration only when intervals.isEmpty) and the saved SleepData (adjustedSegment counts envelope minutes only when clipped.isEmpty) treat the whole segment as 0 sleep. Marking 30 min awake on an 8 h strap-only night saves ~0 min sleep. Merging an envelope segment with a staged one drops the envelope duration the same way. Not covered by SleepTimelineEditorTests.",
-     "evidence": [
-      "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift:132",
-      "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift:273",
-      "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift:294",
-      "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift:240",
-      "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift:182",
-      "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift:614"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+5",
+     "cond": "HR-estimated or recording bounds",
+     "effect": ".hrvDerived"
     }
    ],
-   "deps": {
-    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344"
-   }
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "func SleepTimelineState.applying(_:)",
-   "hash": "9f30e43d3a3a913b",
-   "does": "Dispatches an edit to its transform, snapping times to the minute; returns self when rejected.",
+   "hash": "0634f9373929e075",
+   "does": "Dispatches one SleepTimelineEdit to its transform; times are snapped to the minute (static snap) for boundary, add, split and carve edits. Rejected edits return self unchanged.",
    "entry": "Called by SleepTimelineEditorView.apply (Handles.swift:414) and tests",
    "calls": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.snap(_:)",
     "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingAdjustBoundary(id:side:newTime:)",
     "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingAddSegment(start:end:)",
     "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingRemoveSegment(id:)",
     "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingSplit(id:at:)",
     "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingMerge(leftId:rightId:)",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingCarveAwake(start:end:)",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.snap(_:)"
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingCarveAwake(start:end:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+2",
-     "cond": ".adjustBoundary",
-     "effect": "applyingAdjustBoundary with snapped newTime"
+     "cond": "adjustBoundary",
+     "effect": "applyingAdjustBoundary with snapped time"
     },
     {
      "at": "+4",
-     "cond": ".addSegment",
-     "effect": "applyingAddSegment with snapped start/end"
+     "cond": "addSegment",
+     "effect": "applyingAddSegment with snapped bounds"
     },
     {
      "at": "+6",
-     "cond": ".removeSegment",
+     "cond": "removeSegment",
      "effect": "applyingRemoveSegment"
     },
     {
      "at": "+8",
-     "cond": ".split",
-     "effect": "applyingSplit at snapped time"
+     "cond": "split",
+     "effect": "applyingSplit with snapped time"
     },
     {
      "at": "+10",
-     "cond": ".merge",
+     "cond": "merge",
      "effect": "applyingMerge"
     },
     {
      "at": "+12",
-     "cond": ".carveAwake",
-     "effect": "applyingCarveAwake with snapped start/end"
+     "cond": "carveAwake",
+     "effect": "applyingCarveAwake with snapped bounds"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingAddSegment(start:end:)": "c10a1c3b951bda3d",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingAdjustBoundary(id:side:newTime:)": "c484d21e21f12e05",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingCarveAwake(start:end:)": "a65c3a245a72409d",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingMerge(leftId:rightId:)": "49c0485cae97296d",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingAddSegment(start:end:)": "5b2ce4afde9e203d",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingAdjustBoundary(id:side:newTime:)": "c24d537ab36a6d48",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingCarveAwake(start:end:)": "9fc676e65a1b6092",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingMerge(leftId:rightId:)": "23a13cd80f3808f9",
     "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingRemoveSegment(id:)": "6320e7ce613870ee",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingSplit(id:at:)": "fd37f3c2c85841e3",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.snap(_:)": "623c454578e6c4cb"
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingSplit(id:at:)": "c670c6163ffb29b6",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.snap(_:)": "40a7ec58116226a1"
+   }
+  },
+  {
+   "key": "func SleepTimelineState.canSplit(segmentStart:segmentEnd:at:)",
+   "hash": "cf65a1bd173a2a1a",
+   "does": "Whether a split at `at`, snapped to the minute as applying does, leaves more than 60 s on each side of the segment. Shared by applyingSplit and SplitSegmentSheet's button.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.snap(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.snap(_:)": "40a7ec58116226a1"
    }
   },
   {
    "key": "func SleepTimelineState.snap(_:)",
-   "hash": "b2640a881e90fb72",
-   "does": "Rounds a Date to the nearest 60 s (snapSeconds) since reference date.",
+   "hash": "cae6adcc8600050d",
+   "does": "Static: rounds a date to the nearest snapSeconds (60 s) boundary.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -277,12 +277,13 @@
   },
   {
    "key": "func SleepTimelineState.applyingAdjustBoundary(id:side:newTime:)",
-   "hash": "c5aa5e5399546311",
-   "does": "Moves one segment boundary (clamped to >=1 min length and not past neighbours), clips its intervals to the new window, appends an adjustBoundary edit record and normalizes.",
+   "hash": "6427d225ab6d2879",
+   "does": "Moves one boundary of a segment via clampedBoundary (min 1 min long, never into a neighbour). A move the clamp leaves unchanged returns self (no edit). Otherwise clips existing intervals to the new window and adds extensionFill for any time the move newly covers (unstaged .userAdjusted sleep), records an adjustBoundary edit naming the applied boundary time, and normalizes.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.clampedBoundary(_:side:newTime:)",
     "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.clipIntervals(_:to:end:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.extensionFill(from:to:)",
     "Emuqu/Sources/Models/SleepData.swift::init SleepEditRecord(kind:summary:timestamp:id:)",
     "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.formatTime(_:)",
     "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.normalized()"
@@ -291,62 +292,64 @@
    "writes": [],
    "branches": [
     {
-     "at": "+2",
-     "cond": "segment id not found",
+     "at": "+1",
+     "cond": "id not found",
      "effect": "return self"
     },
     {
      "at": "+4",
-     "cond": "clamped end <= start",
-     "effect": "return self (reject)"
+     "cond": "clamped segment empty or unchanged",
+     "effect": "return self, no edit recorded"
     },
     {
      "at": "+12",
-     "cond": "side == .start",
-     "effect": "summary text \"Start moved to\", else \"End moved to\""
+     "cond": "start vs end side",
+     "effect": "summary names the applied start or end"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "The edit record summary uses the requested newTime, not the clamped boundary actually applied, and an edit is recorded even when clamping leaves the boundary unchanged (state differs only by the appended record, so apply() pushes undo and counts a \"boundary move\").",
-     "evidence": [
-      "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift:168",
-      "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift:177",
-      "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift:415"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "broken",
-     "sev": "high",
-     "text": "Moving a boundary outward (earlier start / later end) only widens the segment: clipIntervals keeps the existing intervals and nothing is added for the newly covered time, so the extension contributes 0 sleep and 0 awake both to the editor total (editedTotalSleepMinutes sums interval minutes when intervals are non-empty) and to the saved SleepData (adjustedSegment / rebuiltSleepData sum clipped intervals). Dragging wake time from 07:00 to 07:30 moves sleepEnd but leaves totalSleepMinutes and inBedMinutes unchanged, contradicting USERS_MANUAL ('Drag the right handle to set when you actually woke up', delta '+12m from original'). The bar draws the uncovered stretch with the core-colour base wash so it looks like sleep. Tests only cover shortening (SleepTimelineEditorTests.swift:223).",
-     "evidence": [
-      "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift:173",
-      "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift:185",
-      "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift:445",
-      "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift:610",
-      "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift:566",
-      "docs/USERS_MANUAL.md:188",
-      "EmuquTests/SleepTimelineEditorTests.swift:223"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "cab2cc006b4ecb88",
     "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.clipIntervals(_:to:end:)": "464377796700dee8",
     "Emuqu/Sources/Models/SleepData.swift::init SleepEditRecord(kind:summary:timestamp:id:)": "d8a29315bcd236be",
     "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.clampedBoundary(_:side:newTime:)": "9d6020487be55266",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.extensionFill(from:to:)": "eff6e2a7f55dc145",
     "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.formatTime(_:)": "b36cf9ea81331d50",
     "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.normalized()": "8439c7da2556fbdf"
    }
   },
   {
+   "key": "func SleepTimelineState.extensionFill(from:to:)",
+   "hash": "06f35c34d6529390",
+   "does": "Intervals for the time a boundary move newly brings into a segment: an .unspecified/.userAdjusted interval for new.start..old.start when the start moved earlier and for old.end..new.end when the end moved later; empty for a shrink.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "start moved earlier",
+     "effect": "fill the added head"
+    },
+    {
+     "at": "+5",
+     "cond": "end moved later",
+     "effect": "fill the added tail"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "ec3d6b9cd4d65d48",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13"
+   }
+  },
+  {
    "key": "func SleepTimelineState.applyingAddSegment(start:end:)",
-   "hash": "320c229e53d15874",
-   "does": "Adds user-declared .unspecified segments for the parts of [start,end] not already covered by a segment (each >= 1 min), appends an addSegment record and normalizes.",
+   "hash": "0d854ef31a7a8b5c",
+   "does": "Adds a user-declared .unspecified segment for each sub-range of [start,end] no segment already covers (uncoveredRanges); records an addSegment edit whose summary gives the total minutes actually added and the first added piece's start; normalizes.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.uncoveredRanges(from:to:)",
@@ -361,28 +364,18 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "end <= start",
+     "cond": "empty range",
      "effect": "return self"
     },
     {
      "at": "+3",
-     "cond": "no uncovered piece",
-     "effect": "return self (fully overlapping add rejected silently)"
+     "cond": "range already fully covered",
+     "effect": "return self"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Summary records the full requested duration even when only the uncovered sub-ranges were added.",
-     "evidence": [
-      "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift:186",
-      "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift:192"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "428ceef7932431a2",
     "Emuqu/Sources/Models/SleepData.swift::init SleepEditRecord(kind:summary:timestamp:id:)": "d8a29315bcd236be",
     "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.formatDuration(_:)": "79f75f2216be81b3",
     "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.formatTime(_:)": "b36cf9ea81331d50",
@@ -419,10 +412,11 @@
   },
   {
    "key": "func SleepTimelineState.applyingSplit(id:at:)",
-   "hash": "c42d1efd3da288eb",
-   "does": "Splits a segment at a time at least 1 min inside each end into two fresh-UUID segments with clipped intervals, records a split, normalizes.",
+   "hash": "7ad144c1218d17d9",
+   "does": "Splits a segment at a time canSplit accepts (more than 1 min inside each end) into two fresh-UUID segments with clipped intervals, records a split, normalizes.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.canSplit(segmentStart:segmentEnd:at:)",
     "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.clipIntervals(_:to:end:)",
     "Emuqu/Sources/Models/SleepData.swift::init SleepEditRecord(kind:summary:timestamp:id:)",
     "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.formatTime(_:)",
@@ -438,7 +432,7 @@
     },
     {
      "at": "+3",
-     "cond": "at not strictly more than 60 s from both ends",
+     "cond": "cut within a minute of either end",
      "effect": "return self (silently rejected)"
     }
    ],
@@ -446,17 +440,20 @@
    "deps": {
     "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "cab2cc006b4ecb88",
     "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.clipIntervals(_:to:end:)": "464377796700dee8",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "428ceef7932431a2",
     "Emuqu/Sources/Models/SleepData.swift::init SleepEditRecord(kind:summary:timestamp:id:)": "d8a29315bcd236be",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.canSplit(segmentStart:segmentEnd:at:)": "8f17f75b0a247beb",
     "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.formatTime(_:)": "b36cf9ea81331d50",
     "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.normalized()": "8439c7da2556fbdf"
    }
   },
   {
    "key": "func SleepTimelineState.applyingMerge(leftId:rightId:)",
-   "hash": "3a9bfba45a645d42",
-   "does": "Merges two segments (order-independent) whose gap is 0..60 min into one fresh segment spanning a.start..b.end with concatenated intervals; records a merge; normalizes.",
+   "hash": "8879a946c686d492",
+   "does": "Merges two segments whose gap is 0..maxMergeGapMinutes into one fresh-UUID segment spanning both, holding both segments' intervals plus mergeGapFill (the gap as .awake/.userAdjusted, so it counts toward time in bed, not sleep); records a merge edit; normalizes.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.mergeGapFill(between:and:)",
     "Emuqu/Sources/Models/SleepData.swift::init SleepEditRecord(kind:summary:timestamp:id:)",
     "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.normalized()"
    ],
@@ -470,46 +467,21 @@
     },
     {
      "at": "+3",
-     "cond": "leftIdx < rightIdx",
-     "effect": "orders as (left,right) else swapped"
+     "cond": "order",
+     "effect": "a = earlier index"
     },
     {
      "at": "+7",
-     "cond": "gap < 0 (overlap) or > 60 min (Int-truncated)",
-     "effect": "return self (rejected)"
+     "cond": "overlap or gap above maxMergeGapMinutes",
+     "effect": "return self"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "high",
-     "text": "Carving awake inside an interval-less envelope segment (strap-only / HR-estimated night, built by envelopeSegment with intervals: []) gives the segment a single .awake interval; from then on both the editor total (editedTotalSleepMinutes counts envelope duration only when intervals.isEmpty) and the saved SleepData (adjustedSegment counts envelope minutes only when clipped.isEmpty) treat the whole segment as 0 sleep. Marking 30 min awake on an 8 h strap-only night saves ~0 min sleep. Merging an envelope segment with a staged one drops the envelope duration the same way. Not covered by SleepTimelineEditorTests.",
-     "evidence": [
-      "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift:132",
-      "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift:273",
-      "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift:294",
-      "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift:240",
-      "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift:182",
-      "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift:614"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "The merged segment spans a.start..b.end but holds only the two segments' intervals, so the gap (up to 60 min) between them counts as neither sleep nor awake and is excluded from inBedMinutes (sleep+awake), while sleepStart/sleepEnd span it and the editor bar paints it with the core-colour base wash.",
-     "evidence": [
-      "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift:236",
-      "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift:240",
-      "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift:567",
-      "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift:445"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "cab2cc006b4ecb88",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "428ceef7932431a2",
     "Emuqu/Sources/Models/SleepData.swift::init SleepEditRecord(kind:summary:timestamp:id:)": "d8a29315bcd236be",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.mergeGapFill(between:and:)": "524e146ae9a129f6",
     "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.normalized()": "8439c7da2556fbdf"
    }
   },
@@ -539,28 +511,37 @@
      "effect": "return self (no edit)"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "high",
-     "text": "Carving awake inside an interval-less envelope segment (strap-only / HR-estimated night, built by envelopeSegment with intervals: []) gives the segment a single .awake interval; from then on both the editor total (editedTotalSleepMinutes counts envelope duration only when intervals.isEmpty) and the saved SleepData (adjustedSegment counts envelope minutes only when clipped.isEmpty) treat the whole segment as 0 sleep. Marking 30 min awake on an 8 h strap-only night saves ~0 min sleep. Merging an envelope segment with a staged one drops the envelope duration the same way. Not covered by SleepTimelineEditorTests.",
-     "evidence": [
-      "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift:132",
-      "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift:273",
-      "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift:294",
-      "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift:240",
-      "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift:182",
-      "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift:614"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "428ceef7932431a2",
     "Emuqu/Sources/Models/SleepData.swift::init SleepEditRecord(kind:summary:timestamp:id:)": "d8a29315bcd236be",
     "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.formatDuration(_:)": "79f75f2216be81b3",
     "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.formatTime(_:)": "b36cf9ea81331d50",
     "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.normalized()": "8439c7da2556fbdf",
     "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.segmentsCarving(start:end:)": "c277c824d9b8cc9f"
+   }
+  },
+  {
+   "key": "func SleepTimelineState.mergeGapFill(between:and:)",
+   "hash": "1ed955c1df911888",
+   "does": "The wake between two segments being merged, as one .awake/.userAdjusted interval a.end..b.start; empty when they touch.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "segments touch",
+     "effect": "no fill"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "ec3d6b9cd4d65d48",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13"
    }
   },
   {
@@ -593,7 +574,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "cab2cc006b4ecb88",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.carving(_:from:to:)": "df384e6beee0b98f"
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.carving(_:from:to:)": "e953c1dbc8560363"
    }
   },
   {
@@ -619,22 +600,7 @@
      "effect": "kept as-is; else replaced by its remnants"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "high",
-     "text": "Carving awake inside an interval-less envelope segment (strap-only / HR-estimated night, built by envelopeSegment with intervals: []) gives the segment a single .awake interval; from then on both the editor total (editedTotalSleepMinutes counts envelope duration only when intervals.isEmpty) and the saved SleepData (adjustedSegment counts envelope minutes only when clipped.isEmpty) treat the whole segment as 0 sleep. Marking 30 min awake on an 8 h strap-only night saves ~0 min sleep. Merging an envelope segment with a staged one drops the envelope duration the same way. Not covered by SleepTimelineEditorTests.",
-     "evidence": [
-      "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift:132",
-      "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift:273",
-      "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift:294",
-      "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift:240",
-      "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift:182",
-      "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift:614"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "ec3d6b9cd4d65d48",
     "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.remnants(of:clippedStart:clippedEnd:)": "81a31393d3227866"
@@ -882,23 +848,13 @@
   {
    "key": "func SleepTimelineUndoStack.clear()",
    "hash": "2d2181046fddd72f",
-   "does": "Empties the stack.",
+   "does": "Empties the stack. Called by the editor when a refresh from Apple Health replaces the starting point.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "SleepTimelineUndoStack.clear() has no caller in app or tests (grep \"undo.clear\" / \".clear()\" on the stack finds none).",
-     "evidence": [
-      "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift:422"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   }
  ],

@@ -122,45 +122,9 @@ final class PDFReportGenerator {
         }
     }
 
-    struct SleepTrendData {
-        let averageSleepMinutes: Double
-        let averageDeepSleepMinutes: Double?
-        /// Percent over the nights whose wake was measured; nil when none was.
-        let averageEfficiency: Double?
-        let trend: AnalysisSleepTrendInput.SleepTrend
-        let nightsAnalyzed: Int
-
-        static let empty = SleepTrendData(
-            averageSleepMinutes: 0, averageDeepSleepMinutes: nil,
-            averageEfficiency: nil, trend: .insufficient, nightsAnalyzed: 0
-        )
-
-        init(averageSleepMinutes: Double, averageDeepSleepMinutes: Double?, averageEfficiency: Double?, trend: AnalysisSleepTrendInput.SleepTrend, nightsAnalyzed: Int) {
-            self.averageSleepMinutes = averageSleepMinutes
-            self.averageDeepSleepMinutes = averageDeepSleepMinutes
-            self.averageEfficiency = averageEfficiency
-            self.trend = trend
-            self.nightsAnalyzed = nightsAnalyzed
-        }
-
-        init(from healthKit: HealthKitManager.SleepTrendStats?) {
-            guard let hk = healthKit else {
-                self = .empty
-                return
-            }
-            averageSleepMinutes = hk.averageSleepMinutes
-            averageDeepSleepMinutes = hk.averageDeepSleepMinutes
-            // `SleepTrendStats` reports 0 when no night's wake was measured.
-            averageEfficiency = hk.averageEfficiency
-            nightsAnalyzed = hk.nightsAnalyzed
-            switch hk.trend {
-            case .improving: trend = .improving
-            case .declining: trend = .declining
-            case .stable: trend = .stable
-            case .insufficient: trend = .insufficient
-            }
-        }
-    }
+    /// The sleep trend the report reads: the summary generator's own input
+    /// type, so the two cannot drift apart field by field.
+    typealias SleepTrendData = AnalysisSleepTrendInput
 
     struct Config {
         var pageSize: CGSize = .init(width: 612, height: 792) // Letter size
@@ -260,6 +224,12 @@ final class PDFReportGenerator {
         let scoreBreakdown: RecoveryScoreCalculator.ScoreBreakdown?
         let baselineStats: BaselineTracker.RecoveryBaselineStats?
         let trainingContext: TrainingContext?
+        /// The session's own frozen load (`trainingSnapshot`, else the
+        /// analysis result's), which "What This Means" reads as the app does.
+        let frozenTrainingContext: TrainingContext?
+        /// The caller's live load snapshot, kept only for a report on today's
+        /// session; nil for any other day.
+        let adviceLiveLoad: TrainingLoadRegistry.TrainingLoad?
         let style: ReportStyle
         let sections: ReportSections
     }
@@ -343,8 +313,8 @@ final class PDFReportGenerator {
         var pageNumber = 1
         _ = drawPage1_SummaryAndMetrics(inputs, pageNumber: &pageNumber, in: context, pageRect: pageRect)
         // Page 2 needs raw RR data to have anything to plot.
-        if inputs.sections.contains(.charts), inputs.hasRawData, inputs.series != nil {
-            _ = drawPage2_Visualizations(inputs, pageNumber: &pageNumber, in: context, pageRect: pageRect)
+        if inputs.sections.contains(.charts), inputs.hasRawData, let series = inputs.series {
+            _ = drawPage2_Visualizations(inputs, series: series, pageNumber: &pageNumber, in: context, pageRect: pageRect)
         }
         if inputs.style == .comprehensive, inputs.sections.contains(.deepDive) {
             drawDeepDivePages(inputs, pageNumber: &pageNumber, in: context, pageRect: pageRect)
@@ -356,10 +326,7 @@ final class PDFReportGenerator {
         let contentWidth = pageRect.width - config.margins.left - config.margins.right
         let y = yPosition + 10
         let note = importedDataNote(session: session)
-        let noteHeight = ceil(note.boundingRect(
-            with: CGSize(width: contentWidth - 50, height: .greatestFiniteMagnitude),
-            options: [.usesLineFragmentOrigin, .usesFontLeading], context: nil
-        ).height)
+        let noteHeight = importedNoteTextHeight(note, contentWidth: contentWidth)
         // The box grows with the note, so a long or translated one is not clipped.
         let boxHeight = max(50, noteHeight + 20)
         let boxRect = CGRect(x: config.margins.left, y: y, width: contentWidth, height: boxHeight)
@@ -371,6 +338,21 @@ final class PDFReportGenerator {
         ])
         note.pdfDraw(in: CGRect(x: config.margins.left + 35, y: y + 10, width: contentWidth - 50, height: noteHeight))
         return y + boxHeight + 15
+    }
+
+    /// Everything drawImportedDataNote advances by (10 above, the box, 15
+    /// below), so the caller can make room for it first.
+    func importedDataNoteHeight(session: HRVSession, pageRect: CGRect) -> CGFloat {
+        let contentWidth = pageRect.width - config.margins.left - config.margins.right
+        let noteHeight = importedNoteTextHeight(importedDataNote(session: session), contentWidth: contentWidth)
+        return 10 + max(50, noteHeight + 20) + 15
+    }
+
+    private func importedNoteTextHeight(_ note: NSAttributedString, contentWidth: CGFloat) -> CGFloat {
+        ceil(note.boundingRect(
+            with: CGSize(width: contentWidth - 50, height: .greatestFiniteMagnitude),
+            options: [.usesLineFragmentOrigin, .usesFontLeading], context: nil
+        ).height)
     }
 
     private func importedDataNote(session: HRVSession) -> NSAttributedString {
@@ -402,23 +384,23 @@ private func reportInputs(
     style: PDFReportGenerator.ReportStyle, sections: PDFReportGenerator.ReportSections
 ) -> PDFReportGenerator.ReportInputs {
     let series = session.rrSeries // Optional - may be nil for imported data
+    let isToday = Calendar.current.isDateInToday(session.endDate ?? session.startDate)
     return PDFReportGenerator.ReportInputs(
         session: session,
         result: result,
         series: series,
         artifactFlags: flags ?? session.artifactFlags ?? [],
         hasRawData: series.map { !$0.points.isEmpty } ?? false,
-        sleepData: health.sleepData,
-        sleepTrend: health.sleepTrend,
+        sleepData: health.sleepData, sleepTrend: health.sleepTrend,
         recentSessions: health.recentSessions,
-        healthKitHR: health.healthKitHR,
-        vitals: health.vitals,
+        healthKitHR: health.healthKitHR, vitals: health.vitals,
         compositeRecoveryScore: health.compositeRecoveryScore,
         scoreBreakdown: health.scoreBreakdown,
         baselineStats: health.baselineStats,
         trainingContext: mergedTrainingContext(frozen: result.trainingContext, live: liveLoadSnapshot, session: session),
-        style: style,
-        sections: sections
+        frozenTrainingContext: session.trainingSnapshot ?? result.trainingContext,
+        adviceLiveLoad: isToday ? liveLoadSnapshot : nil,
+        style: style, sections: sections
     )
 }
 

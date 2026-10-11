@@ -116,14 +116,22 @@ enum SessionMerger {
     }
 
     /// One side has no beats: adopt the imported series wholesale when the
-    /// existing session has none, otherwise fill in only what's missing.
+    /// existing session has none (no series, or an empty one), otherwise fill
+    /// in only what's missing.
+    ///
+    /// The score fill follows the analysis: an existing session that keeps its
+    /// own analysis does not take the imported score, which was computed from
+    /// a different one (the score triple and the analysis move together, as
+    /// `adoptAnalysis` does on the other paths).
     private static func singleSeriesOutcome(imported: HRVSession, existing: HRVSession) -> MergeOutcome {
         var outcome = MergeOutcome()
-        if existing.rrSeries == nil, imported.rrSeries != nil {
+        let existingHasBeats = existing.rrSeries?.points.isEmpty == false
+        if !existingHasBeats, imported.rrSeries != nil {
             outcome.rrChange = .adoptImportedSeries(adoptImportedAnalysis: imported.analysisResult != nil)
         } else {
             outcome.adoptAnalysisResult = existing.analysisResult == nil && imported.analysisResult != nil
             outcome.adoptRecoveryScore = existing.recoveryScore == nil && imported.recoveryScore != nil
+                && existing.analysisResult == nil
         }
         return outcome
     }
@@ -147,15 +155,17 @@ enum SessionMerger {
         imported: HRVSession, existing: HRVSession,
         importedPoints: [RRPoint], existingPoints: [RRPoint]
     ) -> MergeOutcome.RRChange {
-        let existingIsStreaming = (existing.dataSourceSummary?.selectedSource ?? "") == "streaming"
-        let importedIsStreaming = (imported.dataSourceSummary?.selectedSource ?? "") == "streaming"
+        let existingIsStreaming = isStreamed(existing.dataSourceSummary)
+        let importedIsStreaming = isStreamed(imported.dataSourceSummary)
         let mergedPoints = mergePoints(
             importedPoints: importedPoints, existingPoints: existingPoints,
             existingIsStreaming: existingIsStreaming, importedIsStreaming: importedIsStreaming
         )
+        let importedBeats = beatSources(imported.dataSourceSummary, count: importedPoints.count, streamed: importedIsStreaming)
+        let existingBeats = beatSources(existing.dataSourceSummary, count: existingPoints.count, streamed: existingIsStreaming)
         let summary = compositeSummary(
-            imported: imported, existing: existing, importedPoints: importedPoints,
-            existingPoints: existingPoints, mergedPoints: mergedPoints
+            imported: imported, existing: existing, existingPoints: existingPoints, mergedPoints: mergedPoints,
+            beats: (importedBeats.streaming + existingBeats.streaming, importedBeats.device + existingBeats.device)
         )
         let adoptAnalysis = shouldAdoptImportedAnalysis(
             imported: imported, existing: existing,
@@ -187,9 +197,35 @@ enum SessionMerger {
         return DataSourceSelector.mergePoints(internal: existingPoints, streaming: importedPoints)
     }
 
+    /// A series counts as streamed when its summary says "streaming", or when
+    /// it is an earlier composite whose beats were mostly streamed — a merged
+    /// session keeps the role its beats had.
+    private static func isStreamed(_ summary: HRVSession.DataSourceSummary?) -> Bool {
+        guard let summary else { return false }
+        switch summary.selectedSource {
+        case "streaming": return true
+        case "composite": return summary.streamingBeats > (summary.deviceBeats ?? 0)
+        default: return false
+        }
+    }
+
+    /// How many of one side's beats were streamed and how many came from the
+    /// device: an earlier composite keeps its own split, any other side counts
+    /// wholly as whichever kind it is.
+    private static func beatSources(
+        _ summary: HRVSession.DataSourceSummary?, count: Int, streamed: Bool
+    ) -> (streaming: Int, device: Int) {
+        if let summary, summary.selectedSource == "composite" {
+            return (summary.streamingBeats, summary.deviceBeats ?? 0)
+        }
+        return streamed ? (count, 0) : (0, count)
+    }
+
+    /// The composite's summary: the beat split is the sum of both sides'
+    /// (`beatSources`), so each side's beats are attributed to what they were.
     private static func compositeSummary(
         imported: HRVSession, existing: HRVSession,
-        importedPoints: [RRPoint], existingPoints: [RRPoint], mergedPoints: [RRPoint]
+        existingPoints: [RRPoint], mergedPoints: [RRPoint], beats: (streaming: Int, device: Int)
     ) -> HRVSession.DataSourceSummary {
         let baseSummary = imported.dataSourceSummary ?? existing.dataSourceSummary
         let diffPct: Double? = existingPoints.count > 0
@@ -197,8 +233,8 @@ enum SessionMerger {
             : baseSummary?.beatDifferencePercent
         return HRVSession.DataSourceSummary(
             selectedSource: "composite",
-            streamingBeats: baseSummary?.streamingBeats ?? existingPoints.count,
-            deviceBeats: baseSummary?.deviceBeats ?? importedPoints.count,
+            streamingBeats: beats.streaming,
+            deviceBeats: beats.device,
             totalBeats: mergedPoints.count,
             beatDifferencePercent: diffPct,
             reconnectCount: baseSummary?.reconnectCount ?? 0,
@@ -287,13 +323,16 @@ enum SessionMerger {
     }
 
     /// No RR change: fill the analysis and score the existing session lacks.
-    /// The imported analysis's times are re-counted from the existing start.
+    /// The imported analysis's times are re-counted from the existing start,
+    /// and its window indices re-pointed by those times at the existing
+    /// session's own beats, since its indices counted the imported series.
     private static func applyFills(
         _ outcome: MergeOutcome, from imported: HRVSession, to existing: inout HRVSession
     ) {
         if outcome.adoptAnalysisResult {
             let offsetMs = MillisecondOffset.between(imported.startDate, and: existing.startDate, fallback: 0)
-            existing.analysisResult = imported.analysisResult.map { shifted($0, by: offsetMs) }
+            let existingPoints = existing.rrSeries?.points ?? []
+            existing.analysisResult = imported.analysisResult.map { repointed(shifted($0, by: offsetMs), onto: existingPoints) }
         }
         if outcome.adoptRecoveryScore {
             adoptFrozenScore(from: imported, to: &existing)
@@ -313,6 +352,9 @@ enum SessionMerger {
         existing.dataSourceSummary = imported.dataSourceSummary
         existing.sleepStartMs = imported.sleepStartMs
         existing.sleepEndMs = imported.sleepEndMs
+        // The auto window was chosen on a series; it goes with the series.
+        existing.autoWindowResult = imported.autoWindowResult
+        existing.autoWindowScore = imported.autoWindowScore
         adoptAnalysis(adoptImportedAnalysis, from: imported, to: &existing)
     }
 

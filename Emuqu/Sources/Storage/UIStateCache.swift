@@ -100,17 +100,30 @@ final class UIStateCache {
 
     /// Best-effort atomic write off the main actor. A failed write just means
     /// the next launch has no seed and rebuilds live (the pre-cache behavior).
+    ///
+    /// The snapshot holds health values (recovery scores, RMSSD, sleep,
+    /// vitals), so it is sealed with `EncryptionManager` like the archive it
+    /// fronts. With no key reachable nothing is written: unlike the archive,
+    /// losing this cache costs only a live recompute.
     private func persist() {
         guard let url = Self.persistenceURL else { return }
         let store = Store(schema: Self.schemaVersion, dashboard: dashboard, fitness: fitness)
         Self.writeQueue.async {
             do {
-                let data = try JSONEncoder().encode(store)
-                try data.write(to: url, options: .atomic)
+                let sealed = try AppDependencies.current.storage.encryptionManager.encrypt(JSONEncoder().encode(store))
+                try sealed.write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
             } catch {
-                debugLog("[UIStateCache] persist failed: \(error)", level: .warning)
+                debugLog("[UIStateCache] persist failed (nothing written): \(error)", level: .warning)
             }
         }
+    }
+
+    /// The stored JSON: sealed files are opened with `EncryptionManager`; a
+    /// file an earlier build wrote in plain JSON (starts with `{`) is read as
+    /// is and replaced, sealed, by the next write.
+    private static func storeJSON(_ data: Data) throws -> Data {
+        guard data.first != UInt8(ascii: "{") else { return data }
+        return try AppDependencies.current.storage.encryptionManager.decrypt(data)
     }
 
     /// Restore the snapshots at launch. A decode failure or schema mismatch →
@@ -118,7 +131,7 @@ final class UIStateCache {
     private func loadFromDisk() {
         guard let url = Self.persistenceURL,
               let data = try? Data(contentsOf: url),
-              let store = attempt("uiStateCache.decode", { try JSONDecoder().decode(Store.self, from: data) }),
+              let store = attempt("uiStateCache.decode", { try JSONDecoder().decode(Store.self, from: Self.storeJSON(data)) }),
               store.schema == Self.schemaVersion
         else { return }
         dashboard = store.dashboard

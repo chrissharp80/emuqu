@@ -64,10 +64,10 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "93a8b95af9c5a354",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "3401262883b38a4b",
     "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeApproxEntropy(_:m:r:)": "860ec59b6f358221",
     "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computePoincareMetrics(_:)": "1d8f6a93f23a8f8e",
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeSampleEntropy(_:m:r:)": "b2dec3f644bfa965"
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeSampleEntropy(_:m:r:)": "d4690332e5fc5195"
    }
   },
   {
@@ -270,13 +270,13 @@
   },
   {
    "key": "func NonlinearAnalyzer.computeSampleEntropy(_:m:r:)",
-   "hash": "af83b9df56d2a4a1",
-   "does": "Sample entropy -ln(A/B) with m=2, tolerance 0.2*SD of full series, on subsample; nil when either count is 0.",
+   "hash": "4ce9b859f7dd33f8",
+   "does": "Sample entropy -ln(A/B) with m=2, tolerance 0.2*SD of full series, on subsample; B and A are both counted over the same N − m templates (Richman & Moorman); nil when either count is 0.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.sampleStandardDeviation(_:)",
     "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.entropySubsample(_:)",
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.countTemplateMatches(_:templateLength:tolerance:)"
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.countTemplateMatches(_:templateLength:templateCount:tolerance:)"
    ],
    "reads": [],
    "writes": [],
@@ -287,22 +287,22 @@
      "effect": "nil"
     },
     {
-     "at": "+6",
+     "at": "+9",
      "cond": "countM == 0 or countM1 == 0",
      "effect": "nil (undefined entropy surfaced as missing)"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.countTemplateMatches(_:templateLength:tolerance:)": "e7868d988b74afbe",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.countTemplateMatches(_:templateLength:templateCount:tolerance:)": "7b59465cbff290f6",
     "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.entropySubsample(_:)": "d38b174421ccd092",
     "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.sampleStandardDeviation(_:)": "8a931451a298edee"
    }
   },
   {
-   "key": "func NonlinearAnalyzer.countTemplateMatches(_:templateLength:tolerance:)",
-   "hash": "0453058d6ed794cd",
-   "does": "Counts template pairs (i<j, self-matches excluded) within tolerance, over i in 0..<(n-templateLength).",
+   "key": "func NonlinearAnalyzer.countTemplateMatches(_:templateLength:templateCount:tolerance:)",
+   "hash": "76fa37c87fd55c99",
+   "does": "Counts template pairs (i<j, self-matches excluded) within tolerance among the first templateCount templates of templateLength; 0 when templateCount <= 0 or the templates would run past the data.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.templatesMatch(_:_:_:templateLength:tolerance:)"
@@ -311,29 +311,17 @@
    "writes": [],
    "branches": [
     {
-     "at": "+2",
-     "cond": "n <= templateLength",
+     "at": "+1",
+     "cond": "no templates or templates past the data",
      "effect": "0"
     },
     {
-     "at": "+4",
+     "at": "+3",
      "cond": "for each i",
      "effect": "count matches for j>i"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Richman & Moorman (cited at line 183) compare the same N-m templates for lengths m and m+1; here the template count depends on templateLength (n-m for B, n-m-1 for A), so A is computed over one fewer template than B, biasing SampEn slightly upward on short series.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/NonlinearAnalysis.swift:200",
-      "Emuqu/Sources/Analysis/NonlinearAnalysis.swift:189",
-      "Emuqu/Sources/Analysis/NonlinearAnalysis.swift:190"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.templatesMatch(_:_:_:templateLength:tolerance:)": "1b6395258b3c2a03"
    }

@@ -25,15 +25,6 @@
     "Emuqu/Sources/Utilities/CrashLogManager.swift:324"
    ],
    "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "File header says it contains \"the export URL wrapper\"; no such type exists in the file.",
-   "evidence": [
-    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift:4"
-   ],
-   "found": "first read, upheld on second"
   }
  ],
  "units": [
@@ -263,7 +254,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var MemoryTraceView.summary": "09165c15836025e9",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var MemoryTraceView.summary": "f025bf5b6d411e7f",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
    }
   },
@@ -282,133 +273,36 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MemoryTraceView.sampleRow(_:)": "16e613d554b0aeff"
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MemoryTraceView.sampleRow(_:)": "c33769643e3b1e12"
    }
   },
   {
-   "key": "var MemoryTraceView.memoryMB",
-   "hash": "e7f5277d58d20e50",
-   "does": "Converts each sample's \"memory_bytes\" (UInt64 or Int) to MB; samples with neither are dropped.",
+   "key": "var MemoryTraceView.memoryWarnings",
+   "hash": "a0d6bf433ce2147e",
+   "does": "Memory warnings across the trace: memory_warnings_total restarts at 0 in each process, so each process's highest count (a process starts at its \"launch\" sample) is summed.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
-    {
-     "at": "+2",
-     "cond": "\"memory_bytes\" casts to UInt64",
-     "effect": "returns bytes/1_048_576"
-    },
-    {
-     "at": "+3",
-     "cond": "\"memory_bytes\" casts to Int",
-     "effect": "returns bytes/1_048_576; otherwise nil (sample skipped)"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same UInt64/Int memory_bytes decoding as CrashLogManager.megabytes(in:); two copies of the trace-schema knowledge.",
-     "evidence": [
-      "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift:135",
-      "Emuqu/Sources/Utilities/CrashLogManager.swift:324"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
-  },
-  {
-   "key": "var MemoryTraceView.maxThermal",
-   "hash": "b8935ce0a4d693a2",
-   "does": "Returns the hottest thermal state name seen in the trace using the order nominal<fair<serious<critical; starts at \"nominal\".",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+3",
-     "cond": "for each sample",
-     "effect": "iterates the whole trace"
-    },
     {
      "at": "+4",
-     "cond": "sample has a String \"thermal\" whose rank exceeds current top",
-     "effect": "top becomes that state; otherwise unchanged"
-    },
-    {
-     "at": "+5",
-     "cond": "order[t] ?? 0 / order[top] ?? 0",
-     "effect": "unknown names (e.g. \"unknown\" from @unknown default) rank 0, so they never become the peak"
+     "cond": "launch sample",
+     "effect": "previous process's count added, running count reset"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Re-implements CrashLogManager.hotterThermal (same order table) for the same trace.",
-     "evidence": [
-      "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift:144",
-      "Emuqu/Sources/Utilities/CrashLogManager.swift:316"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
-  },
-  {
-   "key": "var MemoryTraceView.memoryWarnings",
-   "hash": "9ea6aac616a95446",
-   "does": "Max of \"memory_warnings_total\" Int across samples.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "max() of empty list",
-     "effect": "?? 0 when no sample carries the counter"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "memory_warnings_total is SystemDiagnosticsManager.memoryWarningCount, a per-process counter that starts at 0 each launch; the trace spans several launches/recordings, so max() shows the largest single-process count, not the number of warnings in the window the row is labelled for.",
-     "evidence": [
-      "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift:80",
-      "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift:405",
-      "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift:431",
-      "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift:154"
-     ],
-     "found": "second read"
-    },
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same max-of-memory_warnings_total reduction as CrashLogManager.summarize(trace:).",
-     "evidence": [
-      "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift:154",
-      "Emuqu/Sources/Utilities/CrashLogManager.swift:309"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
    "key": "var MemoryTraceView.summary",
-   "hash": "50583b383c498265",
-   "does": "Builds a VStack with peak MB, average MB, peak thermal (coloured) and memory-warning count (orange when > 0), formatted with LanguageManager.appLocale.",
+   "hash": "3d059f055f3f0eec",
+   "does": "VStack with peak MB, average MB and peak thermal from MemoryTraceSummary (the same reader the crash report uses) and the per-process-summed memory-warning count (orange when > 0), formatted with LanguageManager.appLocale.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
-    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var MemoryTraceView.memoryMB",
-    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var MemoryTraceView.maxThermal",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::init MemoryTraceSummary(trace:)",
     "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var MemoryTraceView.memoryWarnings",
     "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MemoryTraceView.thermalColor(_:)"
    ],
@@ -431,35 +325,24 @@
      "effect": "count drawn orange; else primary"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Peak MB / peak thermal / warnings summary is computed a second time by CrashLogManager.summarize(trace:) over the same trace schema; the two summaries can drift.",
-     "evidence": [
-      "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift:157",
-      "Emuqu/Sources/Utilities/CrashLogManager.swift:301"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::init MemoryTraceSummary(trace:)": "40832e8cc8121a00",
     "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MemoryTraceView.thermalColor(_:)": "ef4f60d21736cf1f",
-    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var MemoryTraceView.maxThermal": "33d0ae53f6ae76f2",
-    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var MemoryTraceView.memoryMB": "b22f8d5157b4fa76",
-    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var MemoryTraceView.memoryWarnings": "7237390a767f629a",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var MemoryTraceView.memoryWarnings": "6d072468fb2f02f2",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
    }
   },
   {
    "key": "func MemoryTraceView.sampleRow(_:)",
-   "hash": "07fb49857fe7e8e5",
-   "does": "One row per sample: last 8 chars of \"ts\", \"memory_mb\" string, thermal (coloured) and reason.",
+   "hash": "915532e81ff6e938",
+   "does": "One row per sample read through MemoryTraceSample: last 8 chars of the timestamp, memory MB string, thermal (coloured) and reason, \"—\"/\"?\" when absent.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::init MemoryTraceSample(_:)",
     "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MemoryTraceView.thermalColor(_:)"
    ],
    "reads": [],
@@ -489,6 +372,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::init MemoryTraceSample(_:)": "05503fcff7465478",
     "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MemoryTraceView.thermalColor(_:)": "ef4f60d21736cf1f",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
    }
@@ -651,9 +535,9 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func RRStorageAuditDetailView.sessionRowCounts(_:)": "89b746959ced924d",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func RRStorageAuditDetailView.sessionRowCounts(_:)": "6be2511e78f6f838",
     "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func RRStorageAuditDetailView.sessionRowHeader(_:)": "6196e298c04fb032",
-    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var MemoryTraceView.summary": "09165c15836025e9"
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var MemoryTraceView.summary": "f025bf5b6d411e7f"
    }
   },
   {
@@ -682,12 +566,12 @@
   },
   {
    "key": "func RRStorageAuditDetailView.sessionRowCounts(_:)",
-   "hash": "52eabafc34d2a226",
-   "does": "HStack: archive beats, backup beats, archive file size string.",
+   "hash": "0d833c859b149bea",
+   "does": "HStack: archive beats, backup beats, archive file size (ByteCountFormatter, file style).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
-    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func RRStorageAuditDetailView.byteString(_:)"
+    "ext:ByteCountFormatter.string(fromByteCount:countStyle:)"
    ],
    "reads": [],
    "writes": [],
@@ -695,7 +579,6 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func RRStorageAuditDetailView.byteString(_:)": "593005829bc01b20",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
    }
   },
@@ -763,31 +646,6 @@
     }
    ],
    "flags": [],
-   "deps": {}
-  },
-  {
-   "key": "func RRStorageAuditDetailView.byteString(_:)",
-   "hash": "00967ff9118fdd4d",
-   "does": "ByteCountFormatter .file string for a byte count.",
-   "entry": null,
-   "calls": [
-    "ext:ByteCountFormatter"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Identical to ArchiveDiagnosticsView.byteString in ExportAndArchiveViews.swift (same one-liner).",
-     "evidence": [
-      "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift:314",
-      "Emuqu/Sources/Views/ExportAndArchiveViews.swift:853"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   }
  ],

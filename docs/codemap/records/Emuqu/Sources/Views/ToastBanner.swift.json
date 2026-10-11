@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/ToastBanner.swift",
- "hash": "5d3293d48e7f7810",
+ "hash": "c486e42e52681be4",
  "role": "Transient top-of-screen toast: banner view, payload type, a ViewModifier that overlays it, announces it to VoiceOver and auto-clears it after 2.5 s, and a .toastBanner(_:) View extension. Only caller: DashboardV2View.",
  "types": [
   "ToastBanner: struct (View) — capsule with glyph + message",
@@ -10,9 +10,10 @@
  ],
  "state": [
   "binding:ToastBannerModifier.toast (ToastPayload?)",
-  "env:accessibilityReduceTransparency"
+  "env:accessibilityReduceTransparency",
+  "env:accessibilityReduceMotion (ToastBannerModifier)"
  ],
- "toplevel": "ToastPayload.id = UUID() initialised per instance; tint defaults to AppTheme.wongOptimal. Doc says slide in 250ms/hold 2.5s/slide out 200ms; code matches (0.25 easeOut insertion, 2.5 s sleep, 0.2 easeOut removal).",
+ "toplevel": "ToastPayload.id = UUID() initialised per instance; tint defaults to AppTheme.wongOptimal. Header says slide in 250ms / hold 2.5s / fade out 200ms, instant with Reduce Motion; code matches (0.25 easeOut insertion, 2.5 s sleep, 0.2 easeOut opacity removal, both through Animation.zenInterface).",
  "flags": [],
  "units": [
   {
@@ -52,30 +53,22 @@
   },
   {
    "key": "func ToastBannerModifier.body(content:)",
-   "hash": "68aeb9920eb8ee42",
-   "does": "Overlays the banner at the top of content and animates changes keyed on toast?.id with 0.25 s easeOut.",
+   "hash": "ea87b9a1d82b6314",
+   "does": "Overlays the banner at the top of content and animates changes keyed on toast?.id with 0.25 s easeOut, or without animation when Reduce Motion is on (Animation.zenInterface).",
    "entry": "SwiftUI ViewModifier.body",
    "calls": [
-    "Emuqu/Sources/Views/ToastBanner.swift::var ToastBannerModifier.banner"
+    "Emuqu/Sources/Views/ToastBanner.swift::var ToastBannerModifier.banner",
+    "Emuqu/Sources/Views/Utilities/Animation+ReduceMotion.swift::func Animation.zenInterface(_:reduceMotion:)"
    ],
-   "reads": [],
+   "reads": [
+    "env:accessibilityReduceMotion"
+   ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Toast insert/remove animations (.easeOut 0.25 and withAnimation .easeOut 0.2) ignore Reduce Motion, contrary to the policy in Animation+ReduceMotion that interactive transitions must consult it.",
-     "evidence": [
-      "Emuqu/Sources/Views/ToastBanner.swift:59",
-      "Emuqu/Sources/Views/ToastBanner.swift:83",
-      "Emuqu/Sources/Views/Utilities/Animation+ReduceMotion.swift:5"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ToastBanner.swift::var ToastBannerModifier.banner": "09164b8422962260"
+    "Emuqu/Sources/Views/ToastBanner.swift::var ToastBannerModifier.banner": "4d98693061bb4136",
+    "Emuqu/Sources/Views/Utilities/Animation+ReduceMotion.swift::func Animation.zenInterface(_:reduceMotion:)": "f9d6cc10a3c74078"
    }
   },
   {
@@ -96,35 +89,26 @@
      "effect": "render banner and start its task; nil → empty"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Header says the toast slides out over 200 ms; the removal transition is .opacity only, no slide.",
-     "evidence": [
-      "Emuqu/Sources/Views/ToastBanner.swift:5",
-      "Emuqu/Sources/Views/ToastBanner.swift:69"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::var AssistantSystemPrompt.Composed.combined": "3c86d6708fa36edc",
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
-    "Emuqu/Sources/Views/ToastBanner.swift::func ToastBannerModifier.announceThenDismiss(_:)": "a7e85c7487b42b2c",
+    "Emuqu/Sources/Views/ToastBanner.swift::func ToastBannerModifier.announceThenDismiss(_:)": "cc6ffffaf44aa4ba",
     "Emuqu/Sources/Views/ToastBanner.swift::var ToastBanner.body": "4c6b57a12e18cc66"
    }
   },
   {
    "key": "func ToastBannerModifier.announceThenDismiss(_:)",
-   "hash": "c76bd0885d3623ed",
-   "does": "Posts a VoiceOver announcement with the message, sleeps 2.5 s (cancellation swallowed by sleepQuietly), then if the task wasn't cancelled and the binding still holds the same toast id, sets toast to nil with 0.2 s easeOut.",
+   "hash": "9dc4a3e2b6e58e1d",
+   "does": "Posts a VoiceOver announcement with the message, sleeps 2.5 s (cancellation swallowed by sleepQuietly), then if the task wasn't cancelled and the binding still holds the same toast id, sets toast to nil with 0.2 s easeOut (no animation with Reduce Motion).",
    "entry": ".task(id: toast.id) in banner",
    "calls": [
     "ext:UIAccessibility.post(.announcement)",
-    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)"
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)",
+    "Emuqu/Sources/Views/Utilities/Animation+ReduceMotion.swift::func Animation.zenInterface(_:reduceMotion:)"
    ],
-   "reads": [],
+   "reads": [
+    "env:accessibilityReduceMotion"
+   ],
    "writes": [
     "mem:ToastBannerModifier.toast binding (DashboardV2View @State toast)"
    ],
@@ -137,7 +121,8 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851"
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851",
+    "Emuqu/Sources/Views/Utilities/Animation+ReduceMotion.swift::func Animation.zenInterface(_:reduceMotion:)": "f9d6cc10a3c74078"
    }
   },
   {

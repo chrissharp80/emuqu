@@ -41,8 +41,9 @@ enum WorkoutAnalysisSnapshotBuilder {
         var zoneSecs = [0, 0, 0, 0, 0]
         var metsSum = 0.0
         var metsCount = 0
-        var cadenceSum = 0.0
-        var cadenceCount = 0
+        /// Steps taken: each sample's cadence over the seconds it stands for,
+        /// so stationary seconds (no cadence) add none.
+        var stepCount = 0.0
         var movingSec = 0
 
         /// Five HR zones by percentage of max: 50-60 / 60-70 / 70-80 /
@@ -59,8 +60,15 @@ enum WorkoutAnalysisSnapshotBuilder {
         }
     }
 
-    /// One pass over the sample stream for HR zones, METs, cadence, moving
+    /// One pass over the sample stream for HR zones, METs, steps, moving
     /// time and the α1 mean/min/max, plus the α1 band split.
+    ///
+    /// Each sample stands for the seconds since the previous one, at least 1
+    /// and at most 5, and 1 for the first (`Alpha1ReportCards.sampleSeconds`)
+    /// — the rule the α1 bands below and the PDF's zone table use, so a
+    /// sample gap (a stall, or the head of a >12 h workout dropped by the
+    /// recorder's memory cap) is not credited as time in a zone or as moving
+    /// time, and the stored zone seconds agree with the PDF.
     ///
     /// The α1 bands and the first sustained aerobic-threshold crossing come
     /// from `Alpha1ReportCards.alpha1BandTotals`, the calculation the on-screen
@@ -73,10 +81,10 @@ enum WorkoutAnalysisSnapshotBuilder {
     private static func scan(samples: [WorkoutSample], userMaxHR: Int) -> SamplePass {
         var pass = SamplePass()
         let shadows = Alpha1ReportCards.ectopicShadows(in: samples)
-        var lastOffset = 0
+        var lastOffset: Int?
         let maxHR = max(userMaxHR, 1)
         for s in samples {
-            let dt = max(1, s.offsetSec - lastOffset)
+            let dt = Alpha1ReportCards.sampleSeconds(at: s.offsetSec, previous: lastOffset)
             lastOffset = s.offsetSec
             accumulate(s, dt: dt, maxHR: maxHR, shadows: shadows, into: &pass)
         }
@@ -101,8 +109,7 @@ enum WorkoutAnalysisSnapshotBuilder {
             pass.metsCount += 1
         }
         if let c = s.cadenceStepsPerMin, c > 0 {
-            pass.cadenceSum += c
-            pass.cadenceCount += 1
+            pass.stepCount += c * Double(dt) / 60.0
         }
         if isMoving(s) { pass.movingSec += dt }
     }
@@ -276,8 +283,7 @@ enum WorkoutAnalysisSnapshotBuilder {
             movingPercent: movingPercent(inputs, pass: pass),
             vam: vam(inputs, durationHours: durationHours),
             strideLen: strideLength(
-                distanceMeters: inputs.distanceMeters, durationSec: inputs.durationSec,
-                cadenceSum: pass.cadenceSum, cadenceCount: pass.cadenceCount
+                distanceMeters: inputs.distanceMeters, durationSec: inputs.durationSec, stepCount: pass.stepCount
             ),
             gapSecPerKm: WorkoutLiveTrends.sessionGradeAdjustedPaceSecPerKm(samples: inputs.samples)
                 ?? gradeAdjustedPace(
@@ -311,18 +317,18 @@ enum WorkoutAnalysisSnapshotBuilder {
         return "aboveVT2"  // collapsing hard-ish bands together for the pill colour
     }
 
+    /// Metres per stride (two steps). The steps are counted sample by sample
+    /// (`SamplePass.stepCount`), so time spent standing — no cadence — adds
+    /// none; an average cadence times the whole duration would count it as
+    /// stepping and shorten the stride by the stationary fraction.
     private static func strideLength(
         distanceMeters: Double?,
         durationSec: TimeInterval,
-        cadenceSum: Double,
-        cadenceCount: Int
+        stepCount: Double
     ) -> Double? {
         guard let dist = distanceMeters, dist > 100,
-              durationSec > 60, cadenceCount > 0 else { return nil }
-        let avgCad = cadenceSum / Double(cadenceCount)
-        let totalSteps = avgCad * (durationSec / 60.0)
-        guard totalSteps > 0 else { return nil }
-        return dist / (totalSteps / 2.0)
+              durationSec > 60, stepCount > 0 else { return nil }
+        return dist / (stepCount / 2.0)
     }
 
     private static func gradeAdjustedPace(

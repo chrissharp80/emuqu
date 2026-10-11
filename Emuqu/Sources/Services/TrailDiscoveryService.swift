@@ -22,9 +22,9 @@ import Foundation
 // `highway=path` way in the area. Difficulty ratings come from the
 // `sac_scale` (Swiss Alpine Club hiking scale, T1–T6) and `mtb:scale`
 // (mountain bike scale, 0–6) tags. Length is computed from the way
-// nodes' great-circle distances. Ascent/descent comes from a downstream
-// `TopoElevationService` lookup (the Overpass response doesn't include
-// elevation at node level for free).
+// nodes' great-circle distances. Ascent/descent is not known: the Overpass
+// response carries no elevation and nothing looks it up, so a trail saved
+// from a search has no elevation profile.
 //
 // Requests go through `OverpassClient`, which holds the endpoint list, the
 // fallback instance, request spacing and the User-Agent. The composition root
@@ -166,16 +166,36 @@ final class TrailDiscoveryService: Sendable {
         /// "loop", "out and back"). Surfaces in the row's subtitle.
         let descriptor: String?
 
-        /// Distance from a given user location, meters. Used for the
-        /// row's "X km away" badge + sort.
+        /// Distance from a given user location to the nearest trackpoint,
+        /// meters. Used for the row's "X km away" badge + sort. A long route
+        /// that passes close by is close, wherever its centroid lies.
         func distanceFrom(_ location: CLLocation) -> Double {
-            let center = CLLocation(latitude: centerCoord.latitude, longitude: centerCoord.longitude)
-            return center.distance(from: location)
+            let nearest = nearestTrackpoint(to: location.coordinate) ?? centerCoord
+            return CLLocation(latitude: nearest.latitude, longitude: nearest.longitude).distance(from: location)
+        }
+
+        /// The trackpoint closest to `target`, picked on a flat-earth
+        /// approximation (exact enough to rank points of one trail).
+        private func nearestTrackpoint(to target: CLLocationCoordinate2D) -> CLLocationCoordinate2D? {
+            let lonScale = cos(target.latitude * .pi / 180)
+            return trackpoints.min {
+                Self.squaredOffset($0, target, lonScale: lonScale) < Self.squaredOffset($1, target, lonScale: lonScale)
+            }
+        }
+
+        /// Squared degree offset with longitude scaled by `lonScale` and
+        /// taken the short way round the 180° meridian.
+        private static func squaredOffset(
+            _ a: CLLocationCoordinate2D, _ b: CLLocationCoordinate2D, lonScale: Double
+        ) -> Double {
+            let dLat = a.latitude - b.latitude
+            let rawLon = abs(a.longitude - b.longitude)
+            let dLon = (rawLon > 180 ? 360 - rawLon : rawLon) * lonScale
+            return dLat * dLat + dLon * dLon
         }
     }
 
     enum SearchError: Error, LocalizedError, Equatable {
-        case noLocation
         case network(String)
         case decode(String)
         case rateLimited
@@ -189,7 +209,6 @@ final class TrailDiscoveryService: Sendable {
         var errorDescription: String? {
             let b = LanguageManager.appBundle
             switch self {
-            case .noLocation: return String(localized: "Need a GPS fix to search nearby trails", bundle: b)
             case .network: return String(localized: "Couldn't reach the trail map service. Check your connection and try again.", bundle: b)
             case .decode: return String(localized: "The trail map service sent a reply the app couldn't read. Try again.", bundle: b)
             case .rateLimited: return String(localized: "The trail map service is busy. Wait a moment and try again.", bundle: b)
@@ -222,10 +241,12 @@ final class TrailDiscoveryService: Sendable {
         let data = try await fetchOverpass(coord: location.coordinate, filters: filters)
         let trails = try Self.parse(data: data, sport: filters.activity)
         let trimmed = Self.applyFilters(trails, filters: filters)
-            .sorted { $0.distanceFrom(location) < $1.distanceFrom(location) }
+            .map { (trail: $0, distance: $0.distanceFrom(location)) }
+            .sorted { $0.distance < $1.distance }
             .prefix(filters.maxResults)
+            .map { $0.trail }
         if trimmed.isEmpty { throw SearchError.noResults }
-        return Array(trimmed)
+        return trimmed
     }
 
     /// The Overpass reply for this search, with the client's failures turned
@@ -336,7 +357,18 @@ final class TrailDiscoveryService: Sendable {
             debugLog("[TrailDiscovery] Overpass decode error: \(error)", level: .warning)
             throw SearchError.decode(String(describing: error))
         }
-        // Index nodes + ways for relation/way → coordinate resolution.
+        let (nodes, ways) = indexedElements(env)
+        let relations = relationTrails(in: env, nodes: nodes, ways: ways, sport: sport)
+        let usedWayIDs = Set(relations.flatMap { $0.memberWayIDs })
+        return relations.map { $0.trail } + wayTrails(in: env, nodes: nodes, excluding: usedWayIDs, sport: sport)
+    }
+
+    /// Nodes and ways indexed by id for relation/way → coordinate resolution.
+    /// A node without both coordinates is left out; a way without a node
+    /// list resolves to no nodes.
+    private static func indexedElements(
+        _ env: TrailEnvelope
+    ) -> (nodes: [Int64: CLLocationCoordinate2D], ways: [Int64: [Int64]]) {
         var nodes: [Int64: CLLocationCoordinate2D] = [:]
         for el in env.elements where el.type == "node" {
             if let lat = el.lat, let lon = el.lon {
@@ -347,20 +379,24 @@ final class TrailDiscoveryService: Sendable {
         for el in env.elements where el.type == "way" {
             ways[el.id] = el.nodes ?? []
         }
-        return relationTrails(in: env, nodes: nodes, ways: ways, sport: sport)
-            + wayTrails(in: env, nodes: nodes, sport: sport)
+        return (nodes, ways)
     }
 
-    /// Relations: long-form named routes that may span multiple ways.
+    /// Relations: long-form named routes that may span multiple ways. Each
+    /// trail comes with the ids of its member ways.
     private static func relationTrails(
         in env: TrailEnvelope,
         nodes: [Int64: CLLocationCoordinate2D],
         ways: [Int64: [Int64]],
         sport: Activity
-    ) -> [DiscoveredTrail] {
-        env.elements.filter { $0.type == "relation" }.compactMap {
-            relationTrail($0, nodes: nodes, ways: ways, sport: sport)
+    ) -> [(trail: DiscoveredTrail, memberWayIDs: [Int64])] {
+        env.elements.filter { $0.type == "relation" }.compactMap { el in
+            relationTrail(el, nodes: nodes, ways: ways, sport: sport).map { (trail: $0, memberWayIDs: memberWayIDs(of: el)) }
         }
+    }
+
+    private static func memberWayIDs(of relation: TrailElement) -> [Int64] {
+        (relation.members ?? []).filter { $0.type == "way" }.map(\.ref)
     }
 
     /// Nil for an unnamed relation or one whose member ways resolve to fewer
@@ -372,27 +408,46 @@ final class TrailDiscoveryService: Sendable {
         sport: Activity
     ) -> DiscoveredTrail? {
         guard let tags = el.tags, let name = tags["name"], !name.isEmpty else { return nil }
-        let memberWays = (el.members ?? []).filter { $0.type == "way" }.map { ways[$0.ref] ?? [] }
+        let memberWays = memberWayIDs(of: el).map { ways[$0] ?? [] }
         let coords = stitchedNodeIds(memberWays).compactMap { nodes[$0] }
         guard coords.count >= 4 else { return nil }
         return makeTrail(id: "rel-\(el.id)", name: name, tags: tags, coords: coords, sport: sport)
     }
 
     /// Member ways joined end to end at their shared nodes, each turned round
-    /// where needed. OSM lists members in no guaranteed order or direction;
-    /// concatenated as listed, gaps and reversed ways counted as straight
-    /// jumps, inflating the length and zig-zagging the track. A way that
-    /// joins neither end starts a new piece, and the longest piece is kept.
+    /// where needed, and the longest resulting piece. OSM lists members in no
+    /// guaranteed order or direction; concatenated as listed, gaps and
+    /// reversed ways counted as straight jumps, inflating the length and
+    /// zig-zagging the track.
     static func stitchedNodeIds(_ memberWays: [[Int64]]) -> [Int64] {
-        var pieces: [[Int64]] = []
-        for way in memberWays where way.count >= 2 {
-            if let last = pieces.last, let joined = joined(last, way) {
-                pieces[pieces.count - 1] = joined
-            } else {
-                pieces.append(way)
-            }
+        let pieces = stitchedPieces(memberWays.enumerated().map { (id: Int64($0.offset), nodes: $0.element) })
+        return pieces.max { $0.nodes.count < $1.nodes.count }?.nodes ?? []
+    }
+
+    /// A run of joined ways, named by the id of one of its ways.
+    typealias Piece = (id: Int64, nodes: [Int64])
+
+    /// Ways joined end to end wherever they share an end node, in any listed
+    /// order: each way joins whichever piece it touches, and a piece it
+    /// completes is merged with the piece it now touches in turn. Ways that
+    /// touch nothing stay separate pieces. Each piece keeps the id of the
+    /// earliest-listed way it absorbed into, so ids stay distinct.
+    static func stitchedPieces(_ ways: [Piece]) -> [Piece] {
+        var pieces: [Piece] = []
+        for way in ways where way.nodes.count >= 2 {
+            pieces = attach(way, to: pieces)
         }
-        return pieces.max { $0.count < $1.count } ?? []
+        return pieces
+    }
+
+    private static func attach(_ piece: Piece, to pieces: [Piece]) -> [Piece] {
+        for (index, existing) in pieces.enumerated() {
+            guard let merged = joined(existing.nodes, piece.nodes) else { continue }
+            var rest = pieces
+            rest.remove(at: index)
+            return attach((id: existing.id, nodes: merged), to: rest)
+        }
+        return pieces + [piece]
     }
 
     private static func joined(_ piece: [Int64], _ way: [Int64]) -> [Int64]? {
@@ -406,19 +461,34 @@ final class TrailDiscoveryService: Sendable {
     }
 
     /// Ways: shorter individual trails not part of a relation. Ways that are
-    /// members of relations already emitted are skipped to avoid duplicates.
+    /// members of relations already emitted (`usedWayIDs`) are skipped to
+    /// avoid duplicates. OSM splits one named path into many ways, so ways
+    /// sharing a name are joined end to end first and each joined run is
+    /// one trail.
     private static func wayTrails(
-        in env: TrailEnvelope, nodes: [Int64: CLLocationCoordinate2D], sport: Activity
+        in env: TrailEnvelope,
+        nodes: [Int64: CLLocationCoordinate2D],
+        excluding usedWayIDs: Set<Int64>,
+        sport: Activity
     ) -> [DiscoveredTrail] {
-        let usedWayIDs = Set(env.elements.lazy
-            .filter { $0.type == "relation" }
-            .flatMap { ($0.members ?? []).filter { $0.type == "way" }.map(\.ref) }
-        )
-        return env.elements.filter { $0.type == "way" && !usedWayIDs.contains($0.id) }.compactMap { el in
-            guard let tags = el.tags, let name = tags["name"], !name.isEmpty else { return nil }
-            let coords = (el.nodes ?? []).compactMap { nodes[$0] }
+        let named = env.elements.filter { el in
+            el.type == "way" && !usedWayIDs.contains(el.id) && !(el.tags?["name"] ?? "").isEmpty
+        }
+        let byName = Dictionary(grouping: named) { $0.tags?["name"] ?? "" }
+        return byName.flatMap { name, ways in namedWayTrails(name: name, ways: ways, nodes: nodes, sport: sport) }
+    }
+
+    /// One trail per joined run of the same-named `ways`, carrying the id
+    /// and tags of the earliest-listed way in the run.
+    private static func namedWayTrails(
+        name: String, ways: [TrailElement], nodes: [Int64: CLLocationCoordinate2D], sport: Activity
+    ) -> [DiscoveredTrail] {
+        let tagsByWay = Dictionary(ways.map { ($0.id, $0.tags ?? [:]) }) { first, _ in first }
+        return stitchedPieces(ways.map { (id: $0.id, nodes: $0.nodes ?? []) }).compactMap { piece in
+            let coords = piece.nodes.compactMap { nodes[$0] }
             guard coords.count >= 4 else { return nil }
-            return makeTrail(id: "way-\(el.id)", name: name, tags: tags, coords: coords, sport: sport)
+            let tags = tagsByWay[piece.id] ?? [:]
+            return makeTrail(id: "way-\(piece.id)", name: name, tags: tags, coords: coords, sport: sport)
         }
     }
 
@@ -468,11 +538,16 @@ final class TrailDiscoveryService: Sendable {
         return total
     }
 
+    /// Mean latitude, and the circular mean of longitude, so a trail that
+    /// crosses the 180° meridian is centred on it, not on the far side of
+    /// the globe.
     private static func computeCentroid(_ coords: [CLLocationCoordinate2D]) -> CLLocationCoordinate2D {
         guard !coords.isEmpty else { return CLLocationCoordinate2D(latitude: 0, longitude: 0) }
         let lat = coords.map(\.latitude).reduce(0, +) / Double(coords.count)
-        let lon = coords.map(\.longitude).reduce(0, +) / Double(coords.count)
-        return CLLocationCoordinate2D(latitude: lat, longitude: lon)
+        let lonRadians = coords.map { $0.longitude * .pi / 180 }
+        let east = lonRadians.map { cos($0) }.reduce(0, +)
+        let north = lonRadians.map { sin($0) }.reduce(0, +)
+        return CLLocationCoordinate2D(latitude: lat, longitude: atan2(north, east) * 180 / .pi)
     }
 
     private static func applyFilters(_ trails: [DiscoveredTrail], filters: SearchFilters) -> [DiscoveredTrail] {

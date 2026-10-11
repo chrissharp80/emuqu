@@ -1,16 +1,16 @@
 {
  "file": "Emuqu/Sources/Views/OvernightChartsView+Init.swift",
- "hash": "ae6cd81fb59610ef",
+ "hash": "5e6d7360b38ed00e",
  "role": "OvernightChartsView convenience initialisers (with and without inter-chart content) and the OvernightStats value model with HK-HR backfill helpers.",
  "types": [
-  "OvernightChartsView: extension — init with @ViewBuilder interChartContent; constrained extension (InterChartContent == EmptyView) init without it",
-  "OvernightStats: struct — computed overnight HR/HRV/sleep/window stats and chart viewport",
+  "OvernightChartsView: extension — init with @ViewBuilder interChartContent; constrained extension (InterChartContent == EmptyView) init without it, the entry point the #Preview and OvernightSnapshotTests use",
+  "OvernightStats: struct — computed overnight HR/HRV/sleep/window stats, chart viewport, and peakSearchBandMs (the 30–70% band the peak search used, for the chart markers; nil without known sleep)",
   "OvernightStats.HRSummary: struct — min/max/nadir/nadirTimeMs/avg"
  ],
  "state": [
   "mem:OvernightStats.empty (static zero instance)"
  ],
- "toplevel": "OvernightStats.empty sets every numeric to 0 / empty, sleepEfficiency nil, but deepSleepMinutes and awakeningsCount to 0.",
+ "toplevel": "OvernightStats.empty sets every numeric to 0 / empty, sleepEfficiency and peakSearchBandMs nil, but deepSleepMinutes and awakeningsCount to 0.",
  "flags": [],
  "units": [
   {
@@ -34,25 +34,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No production caller: grep finds only the #Preview (OvernightHRVChartCanvas.swift:582) and EmuquTests/OvernightSnapshotTests.swift:24/39/54; MorningResultsView always passes interChartContent.",
-     "evidence": [
-      "Emuqu/Sources/Views/OvernightChartsView+Init.swift:34",
-      "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift:582",
-      "EmuquTests/OvernightSnapshotTests.swift:24"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
    "key": "func OvernightStats.withHealthKitHR(_:sessionStart:chartStartMs:chartEndMs:)",
-   "hash": "e0d412a3f9f21e16",
-   "does": "Returns a copy with HK HR samples and new chart bounds, backfilling min/max/nadir/avg (and nadir clock time) from HK when the RR-derived summary is zero.",
+   "hash": "46c16c1396037ff3",
+   "does": "Returns a copy with HK HR samples and new chart bounds, backfilling min/max/nadir/avg (and nadir clock time) from HK when the RR-derived summary is zero; every other field, peakSearchBandMs included, is carried over.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/OvernightChartsView+Init.swift::func OvernightStats.resolvedHRSummary(from:)",

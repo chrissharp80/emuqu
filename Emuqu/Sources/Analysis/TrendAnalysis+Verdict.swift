@@ -42,7 +42,9 @@ enum TrendVerdict {
         /// The most recent 7 days against the readings before them, in
         /// percent: the geometric-mean ratio on the logarithmic scale, the
         /// difference of means over the earlier mean on the linear one.
-        /// Nil when there are too few readings to compare.
+        /// Nil when there are too few readings to compare. Filled for a
+        /// `.flat` movement too, where it is noise: a surface that quotes it
+        /// as a trend must check `movement` first, as `weeklyRMSSDChange` does.
         let recentChangePercent: Double?
         let readingCount: Int
     }

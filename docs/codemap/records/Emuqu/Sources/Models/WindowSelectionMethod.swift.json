@@ -95,8 +95,8 @@
   },
   {
    "key": "var WindowSelectionMethod.tooltip",
-   "hash": "779240fc495f98df",
-   "does": "Localized explanatory tooltip per method shown under the reanalysis picker.",
+   "hash": "1a32a3240fd8d481",
+   "does": "Localized explanatory tooltip per method shown under the reanalysis picker; .peakTotalPower shares the .peakSDNN text because its selection uses SDNN as the total-power proxy (same window).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
@@ -115,14 +115,9 @@
      "effect": "highest parasympathetic activity"
     },
     {
-     "at": "+6",
-     "cond": "self == .peakSDNN",
-     "effect": "highest total HRV"
-    },
-    {
      "at": "+8",
-     "cond": "self == .peakTotalPower",
-     "effect": "window with most overall ANS activity (claim not met: selection uses SDNN)"
+     "cond": "self == .peakSDNN or .peakTotalPower",
+     "effect": "highest total HRV (sympathetic + parasympathetic)"
     },
     {
      "at": "+10",
@@ -130,18 +125,7 @@
      "effect": "tap/drag chart to choose"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Tooltip for peakTotalPower promises the window with most overall autonomic activity; selection actually maximises SDNN (same as peakSDNN).",
-     "evidence": [
-      "Emuqu/Sources/Models/WindowSelectionMethod.swift:50",
-      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:672"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }

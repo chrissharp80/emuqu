@@ -40,8 +40,10 @@ enum ActivityBoutResolver {
     static let maxBoutDuration: TimeInterval = 6 * 3_600
 
     /// When the activity that began at `start` stopped, or nil when the
-    /// samples show no activity at all — in which case there is nothing to
-    /// reconstruct and the caller must say so rather than inventing a duration.
+    /// samples show no activity continuing from `start`: none at all, or only
+    /// activity that begins more than `maxGap` after it, which is a later,
+    /// separate bout. Either way there is nothing to reconstruct and the
+    /// caller must say so rather than inventing a duration.
     ///
     /// `activity` is any signal that is present while the user is moving and
     /// absent when they stop — exercise minutes, step counts — in whatever

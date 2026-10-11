@@ -1,50 +1,15 @@
 {
  "file": "scripts/check_no_orphan_swift.sh",
- "hash": "80862d129ee910ce",
- "role": "CI gate: every .swift file under Emuqu, EmuquTests, EmuquUITests and the watch app is referenced in project.pbxproj (or lives in a synchronized root group), and no basename appears twice in Sources phases.",
+ "hash": "0cf30ff36bc0371b",
+ "role": "CI gate: every .swift file under Emuqu, EmuquTests, EmuquUITests and the watch app is compiled by some target's Sources build phase (resolved by path through the group tree) or lives in a synchronized root group, and no path is listed twice in the same Sources phase.",
  "types": [],
  "state": [
   "file:Emuqu.xcodeproj/project.pbxproj"
  ],
- "toplevel": "set -euo pipefail; no cd. PROJECT=$1 or Emuqu.xcodeproj/project.pbxproj; roots = remaining args or four defaults. SYNCED_ROOTS from PBXFileSystemSynchronizedRootGroup `path =` values. For each file: synced -> count; else grep `/* <basename> */` in pbxproj or record missing. Missing -> exit 1. Duplicates: `uniq -d` over `<name>.swift in Sources */,` occurrences -> exit 1. Else clean with counts.",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "Membership is tested by basename comment text anywhere in pbxproj, so a file whose PBXFileReference exists but is in no Sources phase, or that shares a basename with a registered file, passes. The duplicate check would also flag a file legitimately compiled into two targets.",
-   "evidence": [
-    "scripts/check_no_orphan_swift.sh:66",
-    "scripts/check_no_orphan_swift.sh:92"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "silent-failure",
-   "sev": "low",
-   "text": "Missing roots are skipped (`[[ -d ]] || continue`) and a missing project file only makes grep print errors. Run from /tmp it prints 'clean. 0 Swift files ... are in a target' and exits 0.",
-   "evidence": [
-    "scripts/check_no_orphan_swift.sh:58",
-    "scripts/check_no_orphan_swift.sh:104"
-   ],
-   "found": "second read"
-  }
- ],
- "units": [
-  {
-   "key": "fn is_synced",
-   "hash": "6614331189cb492f",
-   "does": "Returns 1 when there are no synchronized roots; returns 0 if the file path starts with any synchronized root path + '/', else 1.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [],
-   "deps": {}
-  }
- ],
+ "toplevel": "set -euo pipefail; cd to repo root. PROJECT=$1 or Emuqu.xcodeproj/project.pbxproj (missing -> 2); roots = remaining args or four defaults (missing -> 2). Python parses every object (brace-matched), builds child->group parents, resolves each file reference's full path (sourceTree SOURCE_ROOT or root group = its own path, else parent path + path), collects paths compiled by each PBXSourcesBuildPhase (duplicate within one phase recorded) and PBXFileSystemSynchronizedRootGroup paths. No Swift files or no compiled paths -> 2. A disk file not under a synced root and not compiled -> exit 1; duplicates in one phase -> exit 1 (one file in two targets is fine). Else clean with counts.",
+ "flags": [],
+ "units": [],
  "deps": {
-  "scripts/add_swift_file.py::": "9aff6d0528ef62d2",
-  "scripts/check_no_orphan_swift.sh::fn is_synced": "858518fd5f060177"
+  "scripts/add_swift_file.py::": "9aff6d0528ef62d2"
  }
 }

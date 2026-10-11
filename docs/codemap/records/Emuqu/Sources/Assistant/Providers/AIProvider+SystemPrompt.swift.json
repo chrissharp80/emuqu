@@ -4,7 +4,7 @@
  "role": "Composer of the shared AI-coach system prompt: picks sections per provider/turn (tool vs no-tool, voice, app reference, units/locale, disabled features), splits a cacheable stable half from a per-send variable half (clock, training load, live workout marker, pending verifier corrections, prior summary, rendered data), and rebuilds a condensed prompt for Apple on-device.",
  "types": [
   "AssistantSystemPrompt: enum — prompt composer",
-  "AssistantSystemPrompt.Composed: struct — stable/variable halves + combined forms + cacheSplitMarker"
+  "AssistantSystemPrompt.Composed: struct — stable/variable halves + combinedWithMarker + cacheSplitMarker"
  ],
  "state": [
   "mem:AssistantSystemPrompt.pendingRecentUserMessages (@MainActor static var; set/cleared by AssistantViewModel callers)",
@@ -12,78 +12,18 @@
   "static let userFactsHeader / englishOnlySection / routeLoadingGuidance / locationToolGuidance / locationPhrasingGuidance / dashboardCacheFooter (prompt text)"
  ],
  "toplevel": "Static prompt-text constants (lines 149-151, 394-449, 662-667).",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "med",
-   "text": "In tool mode the stable half carries toolOverlay ('There is NO data pre-loaded into this context', 'Every numeric claim ... MUST come from a tool call made in THIS turn'), while the variable half of the same prompt injects the '# Dashboard cache' load block / '# Today' recovery line and base rule 1 names the dashboard cache as a valid source. The model gets contradictory sourcing rules on every tool-mode send.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPromptText.swift:369",
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPromptText.swift:453",
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPromptText.swift:59",
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift:279",
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift:589"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
-   "key": "var AssistantSystemPrompt.Composed.combined",
-   "hash": "032554ba4c6edaf9",
-   "does": "Returns stable alone when variable is empty, else stable + blank line + variable.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "variable is empty",
-     "effect": "returns stable only; else joined"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Composed.combined has no caller in the repo (grep of '.combined' finds only SwiftUI/CryptoKit uses); the doc's 'fallback for Apple, OpenAI' is not how those providers get the prompt (they strip the marker from combinedWithMarker).",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift:26",
-      "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift:259"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
-  },
-  {
    "key": "var AssistantSystemPrompt.Composed.combinedWithMarker",
-   "hash": "9dbbe5f48b9b0931",
-   "does": "Returns stable alone when variable is empty, else stable + cacheSplitMarker + variable.",
+   "hash": "16f37f2112b2dbed",
+   "does": "Returns stable + cacheSplitMarker + variable. The variable half always opens with the clock snapshot, so the marker is always present.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "variable is empty",
-     "effect": "returns stable only (unreachable in practice: variableSections always contains nowSnapshot); else joined with the marker"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "variable.isEmpty is never true for a composed prompt: variableSections always starts with nowSnapshot(), so the stable-only return is unreachable.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift:35",
-      "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift:278"
-     ],
-     "found": "second read"
-    }
-   ],
+   "branches": [],
+   "flags": [],
    "deps": {}
   },
   {
@@ -101,7 +41,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.composeSplit(userFacts:priorSummary:contextRendered:includeAppReference:compactAppReference:voiceMode:toolMode:)": "52a5af558f45018e",
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::var AssistantSystemPrompt.Composed.combinedWithMarker": "39fc175515f81bbd"
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::var AssistantSystemPrompt.Composed.combinedWithMarker": "df6df5ef75af6f78"
    }
   },
   {
@@ -118,8 +58,8 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.stableSections(userFacts:includeAppReference:compactAppReference:voiceMode:toolMode:)": "529dfa81bc2427f6",
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.variableSections(priorSummary:contextRendered:)": "c45e112f4774b840"
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.stableSections(userFacts:includeAppReference:compactAppReference:voiceMode:toolMode:)": "7441da8d52caba42",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.variableSections(priorSummary:contextRendered:)": "43dcfab0221b3feb"
    }
   },
   {
@@ -164,13 +104,10 @@
     {
      "kind": "unreachable-branch",
      "sev": "low",
-     "text": "Both production callers pass compactAppReference: true and never pass includeAppReference, so the full AppKnowledgeBase.reference (line 140 false arm) and the no-reference path (139 false) are reached only from tests using defaults; the comment says the compact variant is for small-context providers (Apple) but every provider gets it.",
+     "text": "The only production caller (AssistantViewModel+Routing.composeSystemPromptForTurn, through compose) passes compactAppReference: true and never passes includeAppReference, so the full AppKnowledgeBase.reference arm and the no-reference arm are reached only from tests using the defaults. Removing the two parameters needs that call site changed first (handoff).",
      "evidence": [
       "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift:137",
-      "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift:140",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:588",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift:619",
-      "EmuquTests/AssistantContextBuilderTests.swift:372"
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:617"
      ],
      "found": "second read"
     }
@@ -334,20 +271,20 @@
   },
   {
    "key": "func AssistantSystemPrompt.variableSections(priorSummary:contextRendered:)",
-   "hash": "afb5748b317f656d",
-   "does": "Variable half: now snapshot, training-load sections, live workout marker (if any), pending verifier corrections (consumed), prior summary, rendered data.",
+   "hash": "7d1f8cc6078d2eee",
+   "does": "Variable half: now snapshot, training-load sections, live workout marker (if any), the verifier's correction reminder (MetricsVerifier.pendingCorrectionsBlock — not retired here; the next reply's verification retires it, so a re-composed fallback prompt carries it too), prior summary, rendered data.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.nowSnapshot()",
     "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.trainingLoadSections()",
     "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.activeWorkoutMarker()",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.consumePendingCorrectionsBlock()"
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.pendingCorrectionsBlock()"
    ],
    "reads": [
-    "mem:MetricsVerifier.pendingCorrections"
+    "mem:MetricsVerifier.corrections"
    ],
    "writes": [
-    "mem:MetricsVerifier.pendingCorrections"
+    "mem:MetricsVerifier.corrections (pending -> delivered)"
    ],
    "branches": [
     {
@@ -357,8 +294,8 @@
     },
     {
      "at": "+5",
-     "cond": "pending corrections exist",
-     "effect": "appends correction block (buffer cleared)"
+     "cond": "corrections pending or delivered-but-unanswered",
+     "effect": "appends correction block"
     },
     {
      "at": "+8",
@@ -373,8 +310,8 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.consumePendingCorrectionsBlock()": "d65cb8c4cec5d587",
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.activeWorkoutMarker()": "ff8d7e972f84bffd",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.pendingCorrectionsBlock()": "5582756dfb59aa71",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.activeWorkoutMarker()": "9862bafcafe07003",
     "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.nowSnapshot()": "24cf72076d0d30a6",
     "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.trainingLoadSections()": "9b8b1adefbb8dbeb"
    }
@@ -595,18 +532,7 @@
      "effect": "returns nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "elapsed minutes changes every minute, so the marker's text changes each minute; it is in the variable half so the cache is unaffected, but the comment's claim that it 'holds across many rapid sends' only applies within one minute.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift:510",
-      "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift:493"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSnapshot()": "a50b1a67daa97277",
     "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.formatted(_:_:)": "6d3db3f64fb1239d",

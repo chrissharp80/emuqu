@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <limits.h>
 #include <mach-o/dyld.h>
+#include <pthread.h>
 #include <signal.h>
 #include <stdint.h>
 #include <string.h>
@@ -24,6 +25,9 @@ static const void *g_code_image_base;
 static char g_code_image_name[256];
 static size_t g_code_image_name_len;
 static volatile sig_atomic_t g_handling;
+// The thread that won g_handling. Written once, right after the atomic
+// exchange that claims the handler, and read only by a later signal.
+static pthread_t g_handling_thread;
 
 static const int kFatalSignals[] = {
     SIGABRT, // abort(), assertion / precondition failure
@@ -104,13 +108,22 @@ static void safe_write_signal_name(int fd, int sig) {
 }
 
 static void emuqu_signal_handler(int signal_number) {
-    // A second fatal signal raised while we are mid-write means the handler
-    // itself is the problem. Leave immediately rather than recursing; _exit is
-    // async-signal-safe and skips atexit handlers, which is what we want.
-    if (g_handling) {
-        _exit(128 + signal_number);
+    // The first signal claims the handler with an atomic exchange, so two
+    // threads crashing together cannot both truncate and write the file.
+    if (__atomic_exchange_n(&g_handling, 1, __ATOMIC_SEQ_CST) != 0) {
+        // A second fatal signal on the SAME thread means the handler itself
+        // faulted. Leave immediately rather than recursing; _exit is
+        // async-signal-safe and skips atexit handlers, which is what we want.
+        if (pthread_equal(g_handling_thread, pthread_self())) {
+            _exit(128 + signal_number);
+        }
+        // Another thread is still writing. Wait for it: its re-raise ends the
+        // process, so the log is completed and the OS still writes its report.
+        for (;;) {
+            pause();
+        }
     }
-    g_handling = 1;
+    g_handling_thread = pthread_self();
 
     int fd = open(g_crash_path, O_WRONLY | O_CREAT | O_TRUNC, 0600);
     if (fd >= 0) {
@@ -159,6 +172,14 @@ static void emuqu_signal_handler(int signal_number) {
     // it would have without us and the OS still writes its own report.
     signal(signal_number, SIG_DFL);
     raise(signal_number);
+}
+
+/// Puts the first `count` fatal signals back to the dispositions saved in
+/// `previous`, undoing a partial install.
+static void restore_handlers(const struct sigaction *previous, int count) {
+    for (int i = 0; i < count; i++) {
+        (void)sigaction(kFatalSignals[i], &previous[i], NULL);
+    }
 }
 
 bool emuqu_install_crash_signal_handlers(const char *crash_file_path) {
@@ -221,12 +242,16 @@ bool emuqu_install_crash_signal_handlers(const char *crash_file_path) {
     action.sa_handler = emuqu_signal_handler;
     sigemptyset(&action.sa_mask);
     // SA_NODEFER is deliberately NOT set: the signal being handled stays
-    // blocked for the duration, which is what keeps the re-entrancy guard
-    // above simple and correct.
+    // blocked on the handling thread for the duration. Other threads can still
+    // take a fatal signal; the guard in the handler makes them wait.
     action.sa_flags = 0;
 
+    // All or nothing: if one sigaction fails, the handlers already installed
+    // are put back to what they were, so `false` means none is installed.
+    struct sigaction previous[sizeof(kFatalSignals) / sizeof(kFatalSignals[0])];
     for (int i = 0; i < kFatalSignalCount; i++) {
-        if (sigaction(kFatalSignals[i], &action, NULL) != 0) {
+        if (sigaction(kFatalSignals[i], &action, &previous[i]) != 0) {
+            restore_handlers(previous, i);
             return false;
         }
     }

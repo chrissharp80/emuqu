@@ -10,6 +10,16 @@ extension CollectorSessionControl {
     /// System sound ID for the "received message" chime (standard iOS notification sound)
     static let kCompletionSoundID: SystemSoundID = 1007
 
+    /// Fewest beats a quick reading is analysed on; the streaming
+    /// verification checks the same number, and the insufficient-data
+    /// message quotes it.
+    nonisolated static let minimumQuickReadingBeats = 120
+
+    /// How long a reading that reached its target may run on to collect
+    /// that minimum: a 2-minute reading below 60 bpm holds fewer than 120
+    /// beats, and a minute more covers a heart rate down to 40 bpm.
+    private static let maxQuickReadingExtensionSeconds = 60
+
     /// Start a streaming session for quick HRV reading
     /// - Parameter durationSeconds: Target duration (180 for 3min, 300 for 5min)
     @MainActor
@@ -75,7 +85,7 @@ extension CollectorSessionControl {
         if let session = collector.currentSession {
             runQuickStreamingBackup(session: session)
         }
-        guard collector.streamingElapsedSeconds >= collector.streamingTargetSeconds else { return }
+        guard quickReadingComplete() else { return }
         debugLog("[RRCollector] Streaming complete: elapsed=\(collector.streamingElapsedSeconds)s, target=\(collector.streamingTargetSeconds)s")
         collector.streamingTimer?.invalidate()
         collector.streamingTimer = nil
@@ -83,6 +93,17 @@ extension CollectorSessionControl {
         playCompletionAlert()
         // Notify that streaming is complete (UI should call stopStreamingSession)
         collector.onStreamingComplete?()
+    }
+
+    /// The target is reached and the reading holds the minimum beats, or has
+    /// run on as long as it may for them.
+    @MainActor
+    private func quickReadingComplete() -> Bool {
+        let elapsed = collector.streamingElapsedSeconds
+        let target = collector.streamingTargetSeconds
+        guard elapsed >= target else { return false }
+        return collector.polarManager.streamedRRPoints.count >= Self.minimumQuickReadingBeats
+            || elapsed >= target + Self.maxQuickReadingExtensionSeconds
     }
 
     /// Incremental backup every ~60 seconds (same as overnight streaming),
@@ -144,8 +165,9 @@ extension CollectorSessionControl {
         let rrPoints = collector.polarManager.stopStreaming()
         await publishQuickStreamingStopped(rrPoints: rrPoints, elapsedHours: elapsedHoursForBattery)
         await collector.backupStreamingData(rrPoints, sessionId: baseSession.id)
-        // For streaming, 120 beats is enough (~2 min at 60 bpm)
-        guard rrPoints.count >= 120 else {
+        // A slow heart's 2-minute reading ran on until it had these (see
+        // `quickReadingComplete`); one stopped early can still fall short.
+        guard rrPoints.count >= Self.minimumQuickReadingBeats else {
             let failed = await handleInsufficientStreamingData(baseSession: baseSession)
             disconnectVeritySenseAfterQuickSession()
             return failed
@@ -259,7 +281,10 @@ extension CollectorSessionControl {
             let cloudSync = collector.cloudSyncManager // read before the hop, not through the collector
             Task { await cloudSync.uploadSession(session) }
         } catch {
-            debugLog("[RRCollector] Warning: Failed to archive streaming session: \(error)")
+            // The reading on screen is not saved: say so. Its recording marker
+            // stays, so the next launch offers it from the raw backup.
+            debugLog("[RRCollector] Failed to archive streaming session: \(error)", level: .error)
+            await MainActor.run { collector.lastError = error }
         }
     }
 }

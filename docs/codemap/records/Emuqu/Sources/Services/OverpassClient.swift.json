@@ -1,16 +1,18 @@
 {
  "file": "Emuqu/Sources/Services/OverpassClient.swift",
- "hash": "96bfd09aafcad076",
+ "hash": "1aa1102249a24a43",
  "role": "Actor that sends every OpenStreetMap Overpass request for the app (trail discovery and road graph): one-at-a-time with a minimum gap, per-host cooldowns for busy/refused replies, endpoint fallback, and an optional short reply cache.",
  "types": [
   "OverpassClient: actor — serialized Overpass POST client",
-  "OverpassClient.Failure: enum — busy, refused(Int), unreachable(String), cancelled"
+  "OverpassClient.Failure: enum — busy, refused(Int), unreachable(String), cancelled",
+  "OverpassClient.Remark: private Decodable — the top-level `remark` of an Overpass JSON reply"
  ],
  "state": [
   "static endpoints: overpass.private.coffee, overpass-api.de (OverpassClient.swift:59)",
   "static userAgent 'Emuqu/<version> iOS (chrissharp80@gmail.com)' (OverpassClient.swift:66)",
   "static busyCooldown 60 s, refusalCooldown 300 s (OverpassClient.swift:68-69)",
-  "actor state: lastRequestAt, requestInFlight, queuedCallers, cooling[URL], replies cache (max 16) (OverpassClient.swift:72-78)"
+  "actor state: lastRequestAt, requestInFlight, queuedCallers [(ticket UUID, CheckedContinuation<Bool>)], cooling[URL], replies cache (max 16) (OverpassClient.swift:72-80)",
+  "static malformedQueryStatus = 400: a malformed-query reply, not held against any host"
  ],
  "toplevel": "endpoints built by compactMap(URL(string:)); userAgent reads Bundle.main.appVersion at first access. One shared instance is created in AppDependencies.OverpassServices.client.",
  "flags": [],
@@ -33,8 +35,8 @@
   },
   {
    "key": "func OverpassClient.post(query:timeout:cacheFor:)",
-   "hash": "b4f51e96b5784472",
-   "does": "Returns cached reply if fresh; otherwise waits for its turn, rechecks cache, picks non-cooling hosts, asks them in order, caches the reply for cacheFor seconds, and frees the turn on exit.",
+   "hash": "54569e557ef945ea",
+   "does": "Returns cached reply if fresh; otherwise waits for its turn (throwing .cancelled without the slot if cancelled while queued), rechecks cache, picks non-cooling hosts, asks them in order, caches the reply for cacheFor seconds unless it carries an Overpass remark, and frees the turn on exit.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.cachedReply(for:)",
@@ -58,6 +60,11 @@
      "effect": "true: return it immediately"
     },
     {
+     "at": "+2",
+     "cond": "waitForTurn throws .cancelled (cancelled while queued)",
+     "effect": "rethrow before the defer is set, so the slot is not released by this caller"
+    },
+    {
      "at": "+4",
      "cond": "fresh cached reply after getting turn",
      "effect": "true: return it (a previous caller fetched it)"
@@ -73,32 +80,20 @@
      "effect": "false: throw firstCoolingFailure() without a request; true: ask hosts"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "Any 2xx reply is cached for cacheFor seconds, including Overpass's HTTP 200 replies whose JSON carries a runtime-error 'remark' (query timeout / out of memory, partial data). RoadGraphService checks remark itself, but TrailDiscoveryService, the only caller that passes cacheFor, never checks it (grep 'remark' finds only RoadGraphService), so an incomplete trail list is served from cache for the whole cache window.",
-     "evidence": [
-      "Emuqu/Sources/Services/OverpassClient.swift:98-99",
-      "Emuqu/Sources/Services/TrailDiscoveryService.swift:236",
-      "Emuqu/Sources/Services/RoadGraphService.swift:395-396"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.cachedReply(for:)": "6453551b86226021",
-    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.finishTurn()": "964b151521a3c2bd",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.finishTurn()": "87198b97ee6d6376",
     "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.firstCoolingFailure()": "77417b8783044814",
-    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.firstReply(to:from:timeout:)": "26964bc7e81f6f27",
-    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.remember(_:for:keepFor:)": "155b28f2c5ca22e8",
-    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.waitForTurn()": "c29bb423b29ecdd9"
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.firstReply(to:from:timeout:)": "12271f710e56c231",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.remember(_:for:keepFor:)": "0d538d71b59b7ef4",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.waitForTurn()": "da8b6b13f8d5078a"
    }
   },
   {
    "key": "func OverpassClient.firstReply(to:from:timeout:)",
-   "hash": "defecf0f80134fdb",
-   "does": "Tries each host in order; returns first success, rethrows cancellation immediately, otherwise cools the host down and remembers the last failure, throwing it after all hosts fail.",
+   "hash": "68e0032dd7d8740e",
+   "does": "Tries each host in order; returns first success, rethrows cancellation and a malformed-query refusal (HTTP 400) immediately without asking the next host, otherwise cools the host down and remembers the last failure, throwing it after all hosts fail.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.attempt(query:at:timeout:)",
@@ -126,6 +121,11 @@
     },
     {
      "at": "+8",
+     "cond": "case .failure(.refused(400))",
+     "effect": "throw .refused(400): the query is malformed, the next host would reject it too; no host cooled"
+    },
+    {
+     "at": "+10",
      "cond": "case .failure(other)",
      "effect": "coolDown host, record failure, try next"
     }
@@ -138,8 +138,8 @@
   },
   {
    "key": "func OverpassClient.cooldown(after:)",
-   "hash": "007c12194e063c59",
-   "does": "Maps failure to host cooldown: busy → 60 s, refused → 300 s, unreachable/cancelled → nil (no cooldown).",
+   "hash": "d3166d8a8cd3ecb5",
+   "does": "Maps failure to host cooldown: busy → 60 s, refused(400) → nil (malformed query, not the host), any other refused → 300 s, unreachable/cancelled → nil (no cooldown).",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -152,8 +152,8 @@
     },
     {
      "at": "+3",
-     "cond": "case .refused",
-     "effect": "300 s"
+     "cond": "case .refused(status): status == 400",
+     "effect": "true: nil; false: 300 s"
     },
     {
      "at": "+4",
@@ -186,10 +186,14 @@
   },
   {
    "key": "func OverpassClient.waitForTurn()",
-   "hash": "9a3d46e6675f7f06",
-   "does": "Takes the in-flight slot if free; otherwise suspends on a continuation appended to the FIFO queue.",
+   "hash": "fdbdf08e2fe94993",
+   "does": "Takes the in-flight slot if free; otherwise suspends on a ticketed continuation appended to the FIFO queue, inside a cancellation handler that asks leaveQueue to drop it. Returns when handed the slot; throws .cancelled (without the slot) when it left the queue because its task was cancelled.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.leaveQueue(_:)",
+    "ext:withTaskCancellationHandler",
+    "ext:withCheckedContinuation"
+   ],
    "reads": [
     "mem:OverpassClient.requestInFlight"
    ],
@@ -201,28 +205,50 @@
     {
      "at": "+1",
      "cond": "requestInFlight",
-     "effect": "false: mark in flight and return; true: enqueue and suspend (not cancellation-aware)"
-    }
-   ],
-   "flags": [
+     "effect": "false: mark in flight and return; true: enqueue and suspend"
+    },
     {
-     "kind": "coupling",
-     "sev": "low",
-     "text": "The single FIFO slot is not cancellation-aware and a trail search holds it with a 30 s per-host timeout across up to two hosts, so a roads-ahead lookup queued behind it cannot get a tile within its 3 s fact budget and reports no road data until the search finishes.",
-     "evidence": [
-      "Emuqu/Sources/Services/OverpassClient.swift:137-145",
-      "Emuqu/Sources/Services/TrailDiscoveryService.swift:236",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift:130"
-     ],
-     "found": "second read"
+     "at": "+10",
+     "cond": "onCancel",
+     "effect": "spawns a Task that runs leaveQueue(ticket) on the actor"
+    },
+    {
+     "at": "+13",
+     "cond": "granted",
+     "effect": "false (left the queue on cancellation): throw .cancelled; true: caller holds the slot"
     }
    ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.leaveQueue(_:)": "bc80bcd18a33f6b0"
+   }
+  },
+  {
+   "key": "func OverpassClient.leaveQueue(_:)",
+   "hash": "dc2fa94e9efa17b4",
+   "does": "Removes the queued caller with this ticket and resumes it with false (no slot). Does nothing when the ticket is no longer queued because finishTurn already handed it the slot.",
+   "entry": "Task spawned by the cancellation handler in waitForTurn when a queued caller's task is cancelled.",
+   "calls": [],
+   "reads": [
+    "mem:OverpassClient.queuedCallers"
+   ],
+   "writes": [
+    "mem:OverpassClient.queuedCallers"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "ticket still queued",
+     "effect": "false: return; true: remove and resume(false)"
+    }
+   ],
+   "flags": [],
    "deps": {}
   },
   {
    "key": "func OverpassClient.finishTurn()",
-   "hash": "0f0d65318aa2f02b",
-   "does": "Resumes the next queued caller (passing the slot), or clears requestInFlight when none are waiting.",
+   "hash": "62e65e4aa96e2cb5",
+   "does": "Resumes the next queued caller with true (passing the slot), or clears requestInFlight when none are waiting.",
    "entry": null,
    "calls": [],
    "reads": [
@@ -236,7 +262,7 @@
     {
      "at": "+1",
      "cond": "queue empty",
-     "effect": "true: requestInFlight = false; false: resume first waiter"
+     "effect": "true: requestInFlight = false; false: resume first waiter with true"
     }
    ],
    "flags": [],
@@ -317,16 +343,18 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.cooldown(after:)": "28b8f261ec751b82",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.cooldown(after:)": "2b7a6b079b4b909e",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
    "key": "func OverpassClient.remember(_:for:keepFor:)",
-   "hash": "a8b1e39760a9481b",
-   "does": "When keepFor>0: drops expired entries, evicts the soonest-expiring entry if 16 are cached, then stores the reply with expiry now+keepFor.",
+   "hash": "3f00c17a613127de",
+   "does": "When keepFor>0 and the reply carries no Overpass remark: drops expired entries, evicts the soonest-expiring entry if 16 are cached, then stores the reply with expiry now+keepFor.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.isIncomplete(_:)"
+   ],
    "reads": [
     "mem:OverpassClient.replies"
    ],
@@ -336,8 +364,8 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "seconds > 0",
-     "effect": "false: nothing cached"
+     "cond": "seconds > 0 and !isIncomplete(data)",
+     "effect": "false: nothing cached (no cache asked, or a partial reply)"
     },
     {
      "at": "+4",
@@ -346,7 +374,37 @@
     }
    ],
    "flags": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.isIncomplete(_:)": "26072ae8e9f8ebfb"
+   }
+  },
+  {
+   "key": "func OverpassClient.isIncomplete(_:)",
+   "hash": "e57e764aa60a37c5",
+   "does": "Decodes the reply as a JSON object with an optional top-level `remark`; true (and logs the remark) when one is present, meaning Overpass stopped early and the data is partial. False when there is no remark or the reply is not a JSON object.",
+   "entry": null,
+   "calls": [
+    "ext:JSONDecoder.decode",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "decode throws (not a JSON object)",
+     "effect": "return false"
+    },
+    {
+     "at": "+7",
+     "cond": "remark nil",
+     "effect": "return false; else log and return true"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
   },
   {
    "key": "func OverpassClient.send(query:to:timeout:)",
@@ -392,7 +450,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
-    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.checkStatus(_:host:)": "c304413a7f626085",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.checkStatus(_:host:)": "606ac89637df545d",
     "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.request(query:to:timeout:)": "abe026450a68c722",
     "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.waitForRequestGap()": "3646d3a1c11d2341"
    }
@@ -451,20 +509,7 @@
      "effect": "false: throw refused(status)"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "med",
-     "text": "Every non-2xx other than 429/504 — including 400 for a malformed query — is a \"refusal\" that benches the host for 5 minutes for the whole app; since both hosts reject the same bad query, one bad trail-search query disables road awareness on both hosts for 5 minutes (and vice versa).",
-     "evidence": [
-      "Emuqu/Sources/Services/OverpassClient.swift:214",
-      "Emuqu/Sources/Services/OverpassClient.swift:126",
-      "Emuqu/Sources/Services/OverpassClient.swift:173",
-      "Emuqu/Sources/Utilities/AppDependencies.swift:633-637"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {

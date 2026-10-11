@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Services/SessionRecoveryService.swift",
- "hash": "d092534ac47535b2",
+ "hash": "c493da0d5266543f",
  "role": "Main-actor service with the recovery algorithms behind RRCollector/SessionRecoveryCoordinator: lost-session detection from raw backups (with iCloud pull), trash listing/restore/permanent delete, backup retrieval with pause/resume parent merge, and windowed analysis.",
  "types": [
   "SessionRecoveryService: class (@MainActor final) — recovery logic over SessionArchive, RawRRBackup, CloudKitSyncManager",
@@ -10,7 +10,8 @@
  "state": [
   "ud:sessionRecoveryLastCloudPull (standard suite; last iCloud backup pull time, seconds since 1970)",
   "mem:SessionRecoveryService.minRecoverableBeatCount = 120",
-  "mem:SessionRecoveryService.cloudPullMinInterval = 300 s"
+  "mem:SessionRecoveryService.cloudPullMinInterval = 300 s",
+  "ud:sessionRecovery.forgottenBackupIds (standard suite; last 500 session ids deleted forever, so their cloud backups are not pulled back)"
  ],
  "toplevel": "Dependencies stored as lets set by init. One instance is cached on RRCollector._recoveryService by SessionRecoveryCoordinator.recoveryService (RRCollector+Recovery.swift:9-20).",
  "flags": [],
@@ -137,11 +138,11 @@
   },
   {
    "key": "func SessionRecoveryService.checkForLostSessions(excluding:)",
-   "hash": "1bbc1da65a71eebe",
-   "does": "Lost-session scan: pulls iCloud backups at most every 5 min, lists raw backups with no archive entry, not deleted and not live; permanently discards those under 120 beats (locally and in iCloud) and returns the rest as (id, captureDate, beatCount).",
+   "hash": "25edc0306a9c5176",
+   "does": "Lost-session scan: pulls iCloud backups at most every 5 min (leaving live recordings alone), lists raw backups with no archive entry, not deleted and not live; permanently discards those under 120 beats that no archived session links to (locally and in iCloud) and returns the rest as (id, captureDate, beatCount).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.pullCloudBackupsToLocalIfDue()",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.pullCloudBackupsToLocalIfDue(excluding:)",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.deletedIds",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.allBackups()",
@@ -168,7 +169,7 @@
     {
      "kind": "data-loss",
      "sev": "low",
-     "text": "Orphan backups below 120 beats are deleted permanently, locally and from iCloud, on every scan with no user confirmation; a short pause/resume fragment whose id is only referenced through a parent's linkedSessionIds (not an archive entry) is deleted too.",
+     "text": "Orphan backups below 120 beats (not linked from an archived session) are deleted permanently, locally and from iCloud, on every scan with no user confirmation: the documented design (a backup that short can never be analysed), kept as a note.",
      "evidence": [
       "Emuqu/Sources/Services/SessionRecoveryService.swift:142",
       "Emuqu/Sources/Services/SessionRecoveryService.swift:136"
@@ -177,8 +178,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.discardUnrecoverable(_:)": "973585d940d39d97",
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.pullCloudBackupsToLocalIfDue()": "7cffc0d276bad22a",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.discardUnrecoverable(_:)": "1e3535438555467f",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.pullCloudBackupsToLocalIfDue(excluding:)": "d6711df144e46675",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.deletedIds": "e91f888d6e501c65",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.allBackups()": "35facf94f9a03191",
@@ -187,8 +188,8 @@
   },
   {
    "key": "func SessionRecoveryService.discardUnrecoverable(_:)",
-   "hash": "7c27c1f3b440d679",
-   "does": "Discards each given raw backup (logging failures) and schedules deletion of its iCloud live backup.",
+   "hash": "0414e2704cf0c6bc",
+   "does": "Discards each given raw backup; when that fails it logs and keeps the iCloud copy (the next scan retries both); otherwise schedules deletion of its iCloud live backup.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
@@ -209,39 +210,28 @@
     {
      "at": "+3",
      "cond": "for each id",
-     "effect": "discard + cloud delete per id"
+     "effect": "discard, then cloud delete"
     },
     {
      "at": "+6",
      "cond": "catch: local discard threw",
-     "effect": "logged; cloud copy is still deleted"
+     "effect": "logged; continue without deleting the cloud copy"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "When the local discard fails, the iCloud copy is still deleted, so the cloud and local copies diverge and only a debug log records it.",
-     "evidence": [
-      "Emuqu/Sources/Services/SessionRecoveryService.swift:159",
-      "Emuqu/Sources/Services/SessionRecoveryService.swift:162"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.deleteLiveBackup(sessionId:)": "45359120e68caf72",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.discardBackup(_:)": "7b2203e9cb226548",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.discardBackup(_:)": "2bcb457e0fd17448",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
-   "key": "func SessionRecoveryService.pullCloudBackupsToLocalIfDue()",
-   "hash": "71b75ffe2840be9b",
-   "does": "Runs pullCloudBackupsToLocal unless the last pull (UserDefaults sessionRecoveryLastCloudPull) was under 300 s ago, then stores the current time.",
+   "key": "func SessionRecoveryService.pullCloudBackupsToLocalIfDue(excluding:)",
+   "hash": "39d6602d7bccee72",
+   "does": "Runs pullCloudBackupsToLocal(excluding: live) unless the last pull was under 300 s ago, then stamps the pull time.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.pullCloudBackupsToLocal()"
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.pullCloudBackupsToLocal(excluding:)"
    ],
    "reads": [
     "ud:sessionRecoveryLastCloudPull"
@@ -252,31 +242,61 @@
    "branches": [
     {
      "at": "+4",
-     "cond": "a previous pull exists and was < 300 s ago",
-     "effect": "returns without pulling"
+     "cond": "pulled under 300 s ago",
+     "effect": "return"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.pullCloudBackupsToLocal()": "e66ad2ed5d26eb7f"
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.pullCloudBackupsToLocal(excluding:)": "96e456c606d38504"
    }
   },
   {
    "key": "func SessionRecoveryService.pullCloudBackupsToLocal()",
-   "hash": "027e67e5821e8e25",
-   "does": "Fetches all iCloud live backups; for each, if the session is archived or already backed up locally deletes the cloud copy, otherwise saves it as a local raw backup.",
+   "hash": "d0761030294296a4",
+   "does": "Pull with no recording known to be in progress: forwards to pullCloudBackupsToLocal(excluding: []).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.pullCloudBackupsToLocal(excluding:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Called by the coordinator (RRCollector+BackupRecovery.swift:33) with no live ids, so a pull it starts during a recording retires that recording's iCloud live backup until the next upload; the coordinator should call pullCloudBackupsToLocal(excluding: liveRecordingIds()) (handed off).",
+     "evidence": [
+      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:33"
+     ],
+     "found": "fix pass"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.pullCloudBackupsToLocal(excluding:)": "96e456c606d38504"
+   }
+  },
+  {
+   "key": "func SessionRecoveryService.pullCloudBackupsToLocal(excluding:)",
+   "hash": "6af8a9256a0a7b4e",
+   "does": "Fetches all iCloud live backups; skips the ids in live (recordings in progress); retires (deletes) the cloud copy of a session that is archived, already backed up locally, marked deleted, or deleted forever (forgottenIds); saves the rest as local raw backups.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.fetchLiveBackups()",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.allBackups()",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.deletedIds",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.forgottenIds()",
     "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.retireCloudBackup(_:)",
     "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.savePulledBackup(_:)"
    ],
    "reads": [
     "ck:live backups",
     "archive:entries",
-    "file:raw RR backups"
+    "archive:deletedIds",
+    "file:raw RR backups",
+    "ud:sessionRecovery.forgottenBackupIds"
    ],
    "writes": [
     "ck:live backup delete",
@@ -285,55 +305,60 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "no cloud backups (or fetch failed → [])",
-     "effect": "returns"
-    },
-    {
-     "at": "+5",
-     "cond": "for each cloud backup",
-     "effect": "retire or save"
+     "cond": "no cloud backups",
+     "effect": "return"
     },
     {
      "at": "+7",
-     "cond": "session archived or local backup exists",
-     "effect": "retireCloudBackup (cloud delete); else savePulledBackup"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "A recording still in progress has a local backup, so a pull during it deletes that recording's iCloud live backup (checkForLostSessions excludes live ids only after the pull); the cloud copy exists again only after the next periodic live-backup upload.",
-     "evidence": [
-      "Emuqu/Sources/Services/SessionRecoveryService.swift:186",
-      "Emuqu/Sources/Services/SessionRecoveryService.swift:133",
-      "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift:195"
-     ],
-     "found": "first read, upheld on second"
+     "cond": "backup of a live recording",
+     "effect": "skipped"
     },
     {
-     "kind": "broken",
-     "sev": "med",
-     "text": "The pull keeps only cloud backups whose id has neither an archive entry nor a local backup. It never checks deletedIds or permanently forgotten ids. permanentlyDelete calls forgetDeletedSession and fires deleteLiveBackup in a detached Task, and that call returns silently when iCloud sync is off or the CloudKit delete fails (CloudKitLiveBackupManager.swift:157,166). The next pull then writes the cloud copy back as a local backup with no entry and no deletion mark, so the session the user deleted forever shows up again under Lost Sessions, which is exactly what permanentlyDelete's doc comment says it prevents.",
-     "evidence": [
-      "Emuqu/Sources/Services/SessionRecoveryService.swift:186",
-      "Emuqu/Sources/Services/SessionRecoveryService.swift:187",
-      "Emuqu/Sources/Services/SessionRecoveryService.swift:247",
-      "Emuqu/Sources/Services/SessionRecoveryService.swift:258",
-      "Emuqu/Sources/Services/SessionRecoveryService.swift:260",
-      "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift:157",
-      "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift:166"
-     ],
-     "found": "second read"
+     "at": "+8",
+     "cond": "id archived, backed up, deleted or forgotten",
+     "effect": "retire the cloud copy; else save locally"
     }
    ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.forgottenIds()": "855583e263a45194",
     "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.retireCloudBackup(_:)": "6f1100993b1e1449",
     "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.savePulledBackup(_:)": "fb584bbd06e47f6c",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.deletedIds": "e91f888d6e501c65",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.fetchLiveBackups()": "fb9e6c9d36298db5",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.allBackups()": "35facf94f9a03191"
    }
+  },
+  {
+   "key": "func SessionRecoveryService.forgottenIds()",
+   "hash": "816163e778266cca",
+   "does": "Static: the session ids recorded as deleted forever, from UserDefaults (unparseable strings dropped).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ud:sessionRecovery.forgottenBackupIds"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SessionRecoveryService.rememberForgotten(_:)",
+   "hash": "1d98f712c7007a83",
+   "does": "Static: appends the id to the deleted-forever list in UserDefaults (once), keeping the most recent 500.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ud:sessionRecovery.forgottenBackupIds"
+   ],
+   "writes": [
+    "ud:sessionRecovery.forgottenBackupIds"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "func SessionRecoveryService.retireCloudBackup(_:)",
@@ -454,21 +479,10 @@
     {
      "at": "+4",
      "cond": "catch: unmarkAsDeleted threw",
-     "effect": "logged; caller continues restoring a session still marked deleted"
+     "effect": "logged; the caller (SessionReanalysis/Recovery coordinator restoreFromTrash) checks deletedIds next and abandons the restore"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "A failed unmark is swallowed; SessionRecoveryCoordinator.restoreFromTrash goes on to re-archive the session while its id stays in deletedIds.",
-     "evidence": [
-      "Emuqu/Sources/Services/SessionRecoveryService.swift:235",
-      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:42"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.unmarkAsDeleted(_:)": "64feb753f919f66a",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.trashRestore": "c06a7370dc0f2a56",
@@ -497,12 +511,13 @@
   },
   {
    "key": "func SessionRecoveryService.permanentlyDelete(_:)",
-   "hash": "fdfd3bb9620041a7",
-   "does": "Permanently deletes: drops the trashed file, discards the raw backup (logging failure), deletes the iCloud live backup, and forgets the deleted-id record (logging failure).",
+   "hash": "1c68a7eb209c71c0",
+   "does": "Permanently deletes: drops the trashed file and discards the raw backup; if that fails it logs and stops, keeping the deletion mark so the backup stays in the Trash instead of reappearing under Lost Sessions. Otherwise records the id as deleted forever, deletes the iCloud live backup, and forgets the deleted-id record (logging failure).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.discardTrashed(_:)",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.discardBackup(_:)",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.rememberForgotten(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.deleteLiveBackup(sessionId:)",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.forgetDeletedSession(_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
@@ -511,6 +526,7 @@
    "writes": [
     "archive:trash file",
     "file:raw RR backups",
+    "ud:sessionRecovery.forgottenBackupIds",
     "ck:live backup delete",
     "archive:deletedIds"
    ],
@@ -518,32 +534,21 @@
     {
      "at": "+4",
      "cond": "catch: discardBackup threw",
-     "effect": "logged; continues"
+     "effect": "log and return; deletion mark kept"
     },
     {
-     "at": "+10",
+     "at": "+12",
      "cond": "catch: forgetDeletedSession threw",
-     "effect": "logged only"
+     "effect": "logged"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "If discardBackup fails but forgetDeletedSession succeeds, the backup is no longer in deletedIds and has no archive entry, so it reappears under Lost Sessions, the case the doc comment says this function prevents.",
-     "evidence": [
-      "Emuqu/Sources/Services/SessionRecoveryService.swift:255",
-      "Emuqu/Sources/Services/SessionRecoveryService.swift:260",
-      "Emuqu/Sources/Services/SessionRecoveryService.swift:136"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.rememberForgotten(_:)": "4e1cab3531b4aadb",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.discardTrashed(_:)": "e29a7846681f7347",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.forgetDeletedSession(_:)": "226b61e7c27e971d",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.forgetDeletedSession(_:)": "74eba6b6f57ef1dc",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.deleteLiveBackup(sessionId:)": "45359120e68caf72",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.discardBackup(_:)": "7b2203e9cb226548",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.discardBackup(_:)": "2bcb457e0fd17448",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },

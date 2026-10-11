@@ -19,19 +19,36 @@ extension WorkoutSessionLifecycle {
     // and Racing with a Power Meter.
     // NOTE: 30-SAMPLE window assumes ~1 Hz power sampling = Coggan's 30 s; if
     // sample cadence differs, derive window length from cadence.
+    // A row without power (a dropout) ends a run of rows, and windows are
+    // taken within runs only, so no window splices seconds from either side
+    // of a dropout.
     static func computeNormalizedPower(samples: [WorkoutSample]) -> Double? {
-        let watts: [Double] = samples.compactMap { $0.powerWatts.map(Double.init) }
-        guard watts.count >= 30 else { return nil }  // need at least one full window
-        var windowMeans: [Double] = []
-        windowMeans.reserveCapacity(watts.count - 29)
-        for i in 29 ..< watts.count {
-            let slice = watts[(i - 29) ... i]
-            let mean = slice.reduce(0, +) / 30.0
-            windowMeans.append(mean)
-        }
-        let fourths = windowMeans.map { pow($0, 4) }
-        let meanFourth = fourths.reduce(0, +) / Double(fourths.count)
+        let windowMeans = powerRuns(samples).flatMap { Self.rollingThirtySampleMeans($0) }
+        guard !windowMeans.isEmpty else { return nil }  // need at least one full window
+        let meanFourth = windowMeans.reduce(0) { $0 + pow($1, 4) } / Double(windowMeans.count)
         return pow(meanFourth, 0.25)
+    }
+
+    /// Runs of consecutive rows that carry power, in order.
+    private static func powerRuns(_ samples: [WorkoutSample]) -> [[Double]] {
+        var runs: [[Double]] = []
+        var current: [Double] = []
+        for sample in samples {
+            if let watts = sample.powerWatts {
+                current.append(Double(watts))
+            } else if !current.isEmpty {
+                runs.append(current)
+                current = []
+            }
+        }
+        if !current.isEmpty { runs.append(current) }
+        return runs
+    }
+
+    /// The mean of every 30-sample window in one run; empty under 30 samples.
+    private static func rollingThirtySampleMeans(_ watts: [Double]) -> [Double] {
+        guard watts.count >= 30 else { return [] }
+        return (29 ..< watts.count).map { i in watts[(i - 29) ... i].reduce(0, +) / 30.0 }
     }
 
     // MARK: - METs estimation
@@ -157,14 +174,25 @@ extension WorkoutSessionLifecycle {
     /// the next app launch can recover via SessionRecoveryService. The
     /// session is still shown in .finished state so the user sees
     /// what was captured; recovery is a safety net, not the primary path.
+    ///
+    /// An accidental start (finalize classifies a session with no heart
+    /// rate, no movement and under 30 samples as `.failed`) is not archived:
+    /// its backups are retired as for an archived one, and it never reaches
+    /// history, iCloud or Apple Health.
     func archive(session: HRVSession) async {
+        guard session.state != .failed else {
+            retireRedundantBackups(for: session)
+            debugLog("[WorkoutRecorder] accidental start id=\(session.id.uuidString.prefix(8)) (no heart rate, movement or samples) — not archived")
+            return
+        }
         do {
             _ = try recorder.core.archive.archive(session)
             debugLog("[WorkoutRecorder] archived session id=\(session.id.uuidString.prefix(8)) sport=\(session.workoutMetadata?.sport.rawValue ?? "?") type=\(session.sessionType.rawValue)")
             recorder.core.notifyArchiveChanged()
             retireRedundantBackups(for: session)
+            let cloudSync = recorder.core.cloudSyncManager
             Task(priority: .utility) {
-                await recorder.core.cloudSyncManager.uploadSession(session)
+                await cloudSync.uploadSession(session)
             }
             exportToHealthKitIfAvailable(session)
         } catch {
@@ -181,10 +209,18 @@ extension WorkoutSessionLifecycle {
     /// same data lives inside the session's `WorkoutMetadata`), so they're
     /// dropped rather than left to accumulate as stale per-session files in
     /// the App Group.
+    ///
+    /// The persisted state is one key shared with RRCollector's overnight and
+    /// quick recordings, so it is cleared only when it is this workout's; the
+    /// check and clear run on `recordingStateQueue` after the start's save.
     private func retireRedundantBackups(for session: HRVSession) {
         recorder.core.rawBackup.markAsArchived(session.id)
         AppDependencies.current.storage.workoutTrackBackup.discard(session.id)
-        PersistedRecordingState.clear()
+        let sessionId = session.id
+        Self.recordingStateQueue.async {
+            guard PersistedRecordingState.load()?.sessionId == sessionId else { return }
+            PersistedRecordingState.clear()
+        }
     }
 
     /// Publish to HealthKit as an HKWorkout so the session appears in
@@ -193,7 +229,6 @@ extension WorkoutSessionLifecycle {
     /// Best-effort — if auth isn't granted or the API call fails,
     /// the in-app session is canonical and unaffected.
     private func exportToHealthKitIfAvailable(_ session: HRVSession) {
-        guard #available(iOS 17.0, *) else { return }
         let healthStore = recorder.core.healthKit.healthStore
         let weight = recorder.settingsProvider().effectiveBodyWeightKg
         let archive = recorder.core.archive
@@ -307,8 +342,15 @@ extension WorkoutSessionLifecycle {
     }
 
     /// Pulls today's overnight session plus the overnight sessions before it
-    /// for baseline computation. Done on MainActor because SessionArchive is
-    /// MainActor-bound.
+    /// for baseline computation. Runs on the MainActor, where the report is
+    /// staged; `SessionArchive` itself is not actor-bound, and the detached
+    /// render reads it too.
+    ///
+    /// Today's overnight is the reported night only when it ended today
+    /// (the rule `todaysMorningSession` uses at workout start): a morning
+    /// with no recording must not present the previous night, ~30 h old,
+    /// as today's recovery in the Holistic report. The 36 h window still
+    /// picks the reported night for the baseline list.
     ///
     /// Past workouts are only picked here, from the index. Decoding every
     /// one on the MainActor takes seconds for archives with many sessions
@@ -327,7 +369,7 @@ extension WorkoutSessionLifecycle {
             restingHR: settings.effectiveRestingHR, lthr: settings.effectiveLTHR,
             temperatureUnit: settings.temperatureUnit,
             pdfURL: coachReportPDFURL(for: session),
-            todayOvernight: recentOvernight.first(where: { $0.startDate >= dayCutoff }),
+            todayOvernight: todaysOvernight(in: recentOvernight, reportedNightCutoff: dayCutoff),
             recentOvernight: recentOvernight,
             pastWorkoutIds: archive.entries
                 .filter { $0.sessionType == .workout && $0.sessionId != session.id }
@@ -358,6 +400,12 @@ extension WorkoutSessionLifecycle {
             if night.isReliableForHRVAggregates { baselineNights += 1 }
         }
         return nights
+    }
+
+    /// The reported night when it ended today, else nil.
+    private static func todaysOvernight(in nights: [HRVSession], reportedNightCutoff: Date) -> HRVSession? {
+        let startOfToday = Calendar.current.startOfDay(for: Date())
+        return nights.first { $0.startDate >= reportedNightCutoff && ($0.endDate ?? $0.startDate) >= startOfToday }
     }
 
     /// Nights in the recovery score's HRV baseline (`BaselineTracker`).
@@ -410,7 +458,7 @@ extension WorkoutSessionLifecycle {
     }
 
     /// Holistic report (workout + recovery + the loop) when today has an
-    /// overnight session; otherwise the upgraded standalone workout PDF with
+    /// overnight session (`todayOvernight`, one that ended today); otherwise the upgraded standalone workout PDF with
     /// hero verdict + status arrows + What This Means page. A render failure
     /// stages the email without an attachment rather than dropping it.
     private static func renderCoachReportPDF(

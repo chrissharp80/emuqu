@@ -155,8 +155,11 @@ enum MedicalQueryGuard {
 
     /// The trigger family, or nil when the text is safe to send. Split out from
     /// `evaluate` so callers can log the category without holding the reply.
+    /// Typographic apostrophes are folded to ASCII first: iOS Smart Punctuation
+    /// types "can’t", and a pattern written with `'` must still match it.
     static func classify(_ text: String) -> Trigger? {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "[\u{2018}\u{2019}\u{02BC}]", with: "'", options: .regularExpression)
         guard !trimmed.isEmpty else { return nil }
         let range = NSRange(trimmed.startIndex..., in: trimmed)
         // Order is the safety decision, not an implementation detail. An acute

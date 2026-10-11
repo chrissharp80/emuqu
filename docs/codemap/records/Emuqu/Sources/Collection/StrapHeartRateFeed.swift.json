@@ -29,7 +29,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.run(generation:manager:)": "bd37f1584e0bf2b7"
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.run(generation:manager:)": "68146d1e3106564f"
    }
   },
   {
@@ -55,31 +55,6 @@
    "deps": {
     "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.start(generation:)": "cad30d50a80cd551"
    }
-  },
-  {
-   "key": "func StrapHeartRateFeed.stop()",
-   "hash": "fb792b89558bb1a6",
-   "does": "Cancels and clears the feed task.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [
-    "mem:StrapLinkRuntime.feedTask"
-   ],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "stop() has no caller anywhere in the repo, tests included (grep for feed.stop / .stop() finds none on StrapHeartRateFeed); feed tasks are cancelled through StrapLinkRuntime.cancelLinkTasks instead.",
-     "evidence": [
-      "Emuqu/Sources/Collection/StrapHeartRateFeed.swift:75",
-      "Emuqu/Sources/Collection/StrapLinkRuntime.swift:96"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
   },
   {
    "key": "func StrapHeartRateFeed.desiredKind(deviceType:sessionActive:)",
@@ -162,19 +137,7 @@
      "effect": "true: logs the pass (also every pass after a successful one, since failures==0 satisfies %10); false: silent"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "logPass's comment says only a changed outcome or every tenth identical one is logged, but `failures % 10 == 0` is also true when a pass delivered samples (failures reset to 0), so every successful pass that ends is logged even when its outcome text repeats.",
-     "evidence": [
-      "Emuqu/Sources/Collection/StrapHeartRateFeed.swift:97",
-      "Emuqu/Sources/Collection/StrapHeartRateFeed.swift:99",
-      "Emuqu/Sources/Collection/StrapHeartRateFeed.swift:107"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.resubscribeDelay(afterFailures:)": "61f3f2d049fb2a7f",
     "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.isCurrent(_:generation:)": "09258ce982b3435d",

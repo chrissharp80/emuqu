@@ -17,11 +17,14 @@ import SwiftUI
 ///   • Big "Connect" button — fires `requestAuthorization()`
 ///   • "Skip for now" tertiary
 ///
-/// Post-return verification:
-///   • Auth completed → confirmation card "You're connected" + scope
-///     summary
-///   • Partial grant → warning card listing what's missing and how to
-///     fix in Settings
+/// Post-return verification (inferred from data presence, as iOS hides
+/// read denials):
+///   • Data found for every scope → "You're connected" card
+///   • Data for some scopes → a note that some categories show no recent
+///     data and where to check them
+///   • No data at all → a warning with the path to the Health switches
+///     and an Open Settings button
+///   • The request itself failed → the failure, with its reason
 struct OnboardingHealthPage: View {
     @Environment(RRCollector.self) var collector
     let advance: () -> Void
@@ -29,6 +32,9 @@ struct OnboardingHealthPage: View {
     @State private var requesting: Bool = false
     @State private var didAttempt: Bool = false
     @State private var grantedScopes: Set<String> = []
+    /// The reason the Health request threw, shown instead of the scope
+    /// status; nil when the sheet ran.
+    @State private var authorizationError: String?
 
     private var hk: HealthKitManager { collector.healthKit }
 
@@ -232,7 +238,9 @@ struct OnboardingHealthPage: View {
 
     @ViewBuilder
     private var statusCard: some View {
-        if grantedScopes.count >= 4 {
+        if let authorizationError {
+            authorizationFailedRow(authorizationError)
+        } else if grantedScopes.count >= 4 {
             allScopesGrantedRow
         } else if grantedScopes.isEmpty {
             noDataVisibleRow
@@ -286,15 +294,28 @@ struct OnboardingHealthPage: View {
     /// `openSettingsURLString`. iOS has no documented URL for the Health app,
     /// so the text above gives the path to the switches in both places.
     private var openHealthButton: some View {
-        Button(action: openSettings) {
+        Button(action: openAppSettings) {
             Label(String(localized: "Open Settings", bundle: LanguageManager.appBundle), systemImage: "gear")
         }
         .buttonStyle(.bordered)
     }
 
-    private func openSettings() {
-        guard let settings = URL(string: UIApplication.openSettingsURLString) else { return }
-        UIApplication.shared.open(settings)
+
+    /// The Health request threw (e.g. Health unavailable on this device), so
+    /// no sheet was shown; says so rather than reading as an empty grant.
+    private func authorizationFailedRow(_ reason: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(AppTheme.wongCaution)
+            Text(String(localized: "Apple Health authorization failed: \(reason)", bundle: LanguageManager.appBundle))
+                .font(.caption)
+                .foregroundColor(AppTheme.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppTheme.wongCaution.opacity(0.1))
+        .cornerRadius(10)
     }
 
     private var scopesPendingRow: some View {
@@ -314,10 +335,12 @@ struct OnboardingHealthPage: View {
     @MainActor
     private func requestHealthAuthorization() async {
         requesting = true
+        authorizationError = nil
         do {
             try await hk.requestAuthorization()
         } catch {
             debugLog("[OnboardingHealthPage] auth request failed: \(error)", level: .warning)
+            authorizationError = error.localizedDescription
         }
         // Infer the granted scopes from data presence
         // (iOS hides read denial); the result drives the status card above.
@@ -325,6 +348,15 @@ struct OnboardingHealthPage: View {
         requesting = false
         didAttempt = true
     }
+}
+
+/// Opens this app's page in iOS Settings, through the documented
+/// `openSettingsURLString`. Shared by the onboarding pages that send the user
+/// there (Apple Health switches, Bluetooth access).
+@MainActor
+func openAppSettings() {
+    guard let settings = URL(string: UIApplication.openSettingsURLString) else { return }
+    UIApplication.shared.open(settings)
 }
 
 #Preview {

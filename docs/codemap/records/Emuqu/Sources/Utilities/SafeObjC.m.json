@@ -6,120 +6,9 @@
  "state": [
   "mem:FRSafeAudioEngineErrorDomain = @\"FlowRecovery.SafeAudioEngine\" (global NSString, not declared in the header; no Swift code matches on it)"
  ],
- "toplevel": "Defines FRSafeAudioEngineErrorDomain (line 7). Error codes: -1/-2 start, -10/-11 installTap, -20/-21 prepare, -30/-31 removeTap, -40/-41 voice processing, -50/-51 stop, -60/-61 reset, -70/-71 speak, -72/-73 stopSpeaking.",
- "flags": [
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "FRSafeStartAudioEngine, FRSafeInstallTap and FRSafePrepareAudioEngine each inline the same exception-to-NSError construction that _FRSafeErrorFromException (SafeObjC.m:103) was later added to centralise.",
-   "evidence": [
-    "Emuqu/Sources/Utilities/SafeObjC.m:27",
-    "Emuqu/Sources/Utilities/SafeObjC.m:59",
-    "Emuqu/Sources/Utilities/SafeObjC.m:87",
-    "Emuqu/Sources/Utilities/SafeObjC.m:103"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "Defines FRSafeAudioEngineErrorDomain (line 7) and, right after it, the static _FRSafeErrorFromException helper every @catch uses. Error codes: -1/-2 start, -10/-11 installTap, -20/-21 prepare, -30/-31 removeTap, -40/-41 voice processing, -50/-51 stop, -60/-61 reset, -70/-71 speak, -72/-73 stopSpeaking.",
+ "flags": [],
  "units": [
-  {
-   "key": "c FRSafeStartAudioEngine",
-   "hash": "bd27ca85199894a1",
-   "does": "Starts an AVAudioEngine via startAndReturnError: inside @try. Returns YES on success; NO with the bridged NSError on recoverable failure, or NO with code -2 NSError on NSException; nil engine → NO code -1. Callers: VoiceConversationController+Pipeline startAudioEngineWithRetry (line 202), SpeechInputManager.startEngine (SpeechInputManager.swift:102).",
-   "entry": null,
-   "calls": [
-    "ext:AVAudioEngine.startAndReturnError"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "engine == nil",
-     "effect": "set code -1 \"engine is nil\" if outError, return NO (unreachable from Swift: nonnull parameter)"
-    },
-    {
-     "at": "+3",
-     "cond": "outError non-NULL",
-     "effect": "write error; else skip"
-    },
-    {
-     "at": "+12",
-     "cond": "!ok || startErr != nil",
-     "effect": "copy startErr to outError and return NO — also when ok==YES but an error object was set, so a running engine is reported as failed; else return YES"
-    },
-    {
-     "at": "+18",
-     "cond": "@catch NSException",
-     "effect": "build userInfo with reason ?: name ?: fallback text, set code -2 if outError, return NO"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Returns NO when startAndReturnError: returned YES but wrote an error object (`!ok || startErr != nil`), contrary to the Cocoa rule that the error out-param is only meaningful on failure; the Pipeline caller then retries start, removes the mic tap and throws audioSessionUnavailable although the engine may be running. Separately, SafeObjC.m is compiled with ARC (CLANG_ENABLE_OBJC_ARC = YES) and without -fobjc-arc-exceptions, so strong objects in each @try scope are not released when an NSException is caught, and the engine is reused after an exception Apple frameworks do not guarantee to recover from (retry at Pipeline:209).",
-     "evidence": [
-      "Emuqu/Sources/Utilities/SafeObjC.m:21",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift:204",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift:209",
-      "Emuqu.xcodeproj/project.pbxproj:4712"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {}
-  },
-  {
-   "key": "c FRSafeInstallTap",
-   "hash": "7f88f1df90ed397a",
-   "does": "Installs a tap block on an AVAudioInputNode bus inside @try; YES on success, NO with code -11 NSError on NSException, NO with code -10 if node nil. Callers: VoiceConversationController+Pipeline installMicTap (line 152, retries with nil format on failure), SpeechInputManager.startEngine.",
-   "entry": null,
-   "calls": [
-    "ext:AVAudioInputNode.installTapOnBus"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+6",
-     "cond": "node == nil",
-     "effect": "code -10 \"input node is nil\", NO (unreachable from Swift)"
-    },
-    {
-     "at": "+18",
-     "cond": "@catch NSException",
-     "effect": "code -11 with exception reason/name if outError; NO"
-    }
-   ],
-   "flags": [],
-   "deps": {}
-  },
-  {
-   "key": "c FRSafePrepareAudioEngine",
-   "hash": "cdc76a712e7940db",
-   "does": "Calls [AVAudioEngine prepare] inside @try; YES on success, NO with code -21 on NSException, NO with code -20 if engine nil. Callers: VoiceConversationController+Pipeline prepareAudioEngine (line 173), SpeechInputManager.startEngine.",
-   "entry": null,
-   "calls": [
-    "ext:AVAudioEngine.prepare"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "engine == nil",
-     "effect": "code -20, NO (unreachable from Swift)"
-    },
-    {
-     "at": "+14",
-     "cond": "@catch NSException",
-     "effect": "code -21 with reason/name if outError; NO"
-    }
-   ],
-   "flags": [],
-   "deps": {}
-  },
   {
    "key": "c _FRSafeErrorFromException",
    "hash": "8cebaac621340d7d",
@@ -147,6 +36,111 @@
    ],
    "flags": [],
    "deps": {}
+  },
+  {
+   "key": "c FRSafeStartAudioEngine",
+   "hash": "110d5a88732c42a0",
+   "does": "Starts an AVAudioEngine via startAndReturnError: inside @try. Returns the call's BOOL: YES on success (an error object written alongside a YES is ignored, per the Cocoa convention); NO with the bridged NSError (possibly nil) on recoverable failure; NO with a code -2 NSError built by _FRSafeErrorFromException on NSException; nil engine → NO code -1. Callers: VoiceConversationController+Pipeline startAudioEngineWithRetry, SpeechInputManager.startEngine.",
+   "entry": null,
+   "calls": [
+    "ext:AVAudioEngine.startAndReturnError",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c _FRSafeErrorFromException"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "engine == nil",
+     "effect": "set code -1 \"engine is nil\" if outError, return NO (unreachable from Swift: nonnull parameter)"
+    },
+    {
+     "at": "+2",
+     "cond": "outError non-NULL",
+     "effect": "write error; else skip"
+    },
+    {
+     "at": "+14",
+     "cond": "!ok && outError",
+     "effect": "copy startErr to outError; the function returns ok either way"
+    },
+    {
+     "at": "+17",
+     "cond": "@catch NSException",
+     "effect": "code -2 error from the exception if outError; return NO"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "SafeObjC.m is compiled with ARC (CLANG_ENABLE_OBJC_ARC = YES) and without -fobjc-arc-exceptions, so strong objects inside each @try are not released when an NSException is caught; and the Pipeline caller retries start on the same engine after an exception, which Apple frameworks do not guarantee to recover from.",
+     "evidence": [
+      "Emuqu.xcodeproj/project.pbxproj:4712",
+      "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift:209"
+     ],
+     "found": "second read; the YES-with-error case was fixed"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/SafeObjC.m::c _FRSafeErrorFromException": "4921cb0f00cc5aa8"
+   }
+  },
+  {
+   "key": "c FRSafeInstallTap",
+   "hash": "3589bb4eaf5e2e38",
+   "does": "Installs a tap block on an AVAudioInputNode bus inside @try; YES on success, NO with a code -11 NSError (via _FRSafeErrorFromException) on NSException, NO with code -10 if node nil. Callers: VoiceConversationController+Pipeline installMicTap (retries with nil format on failure), SpeechInputManager.startEngine.",
+   "entry": null,
+   "calls": [
+    "ext:AVAudioInputNode.installTapOnBus",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c _FRSafeErrorFromException"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "node == nil",
+     "effect": "code -10 \"input node is nil\", NO (unreachable from Swift)"
+    },
+    {
+     "at": "+18",
+     "cond": "@catch NSException",
+     "effect": "code -11 error from the exception if outError; NO"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/SafeObjC.m::c _FRSafeErrorFromException": "4921cb0f00cc5aa8"
+   }
+  },
+  {
+   "key": "c FRSafePrepareAudioEngine",
+   "hash": "5ee36d73526eee98",
+   "does": "Calls [AVAudioEngine prepare] inside @try; YES on success, NO with a code -21 NSError (via _FRSafeErrorFromException) on NSException, NO with code -20 if engine nil. Callers: VoiceConversationController+Pipeline prepareAudioEngine, SpeechInputManager.startEngine.",
+   "entry": null,
+   "calls": [
+    "ext:AVAudioEngine.prepare",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c _FRSafeErrorFromException"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "engine == nil",
+     "effect": "code -20, NO (unreachable from Swift)"
+    },
+    {
+     "at": "+14",
+     "cond": "@catch NSException",
+     "effect": "code -21 error from the exception if outError; NO"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/SafeObjC.m::c _FRSafeErrorFromException": "4921cb0f00cc5aa8"
+   }
   },
   {
    "key": "c FRSafeRemoveTap",

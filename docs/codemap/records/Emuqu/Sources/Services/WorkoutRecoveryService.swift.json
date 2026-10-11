@@ -134,19 +134,20 @@
   },
   {
    "key": "func WorkoutRecoveryService.attachAnalysisSnapshot(to:sport:durationSec:rrPoints:settings:)",
-   "hash": "bc9c9ea2c7857574",
-   "does": "Builds WorkoutAnalysisSnapshotBuilder.Inputs from metadata (distance, elevation, samples, splits, TRIMP, decoupling), duration, settings max HR/body weight and a mean HR computed as 60000 / mean RR, and stores the built snapshot in metadata.analysisSnapshot.",
+   "hash": "e9de1e140a3485e5",
+   "does": "Builds WorkoutAnalysisSnapshotBuilder.Inputs from metadata (distance, elevation, samples, splits, TRIMP, decoupling), duration, settings max HR/body weight and a mean HR from plausibleMeanHeartRate (beats inside 300–2000 ms only), and stores the built snapshot in metadata.analysisSnapshot, replacing any earlier one.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.build(_:)"
+    "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.build(_:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.plausibleMeanHeartRate(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+13",
-     "cond": "rrPoints.isEmpty",
-     "effect": "true → meanHR nil; false → 60000 / arithmetic mean of all rr_ms (no artifact filtering)"
+     "cond": "no beat inside 300–2000 ms (incl. no beats)",
+     "effect": "meanHR nil; else 60000 / mean of the plausible beats"
     },
     {
      "at": "+16",
@@ -159,23 +160,13 @@
      "effect": "?? → [] (no splits passed)"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "meanHR is computed from the unfiltered mean of every rr_ms, so dropout/artifact beats (e.g. 3000 ms gaps) bias the snapshot's mean HR, unlike meanHeartRate (:629) which filters 300–2000 ms.",
-     "evidence": [
-      "Emuqu/Sources/Services/WorkoutRecoveryService.swift:154",
-      "Emuqu/Sources/Services/WorkoutRecoveryService.swift:629"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.build(_:)": "2857c29056b11e4c",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveBodyWeightKg": "6aabde6ed09dc61f",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.plausibleMeanHeartRate(_:)": "427ed09e52ff32c6"
    }
   },
   {
@@ -220,7 +211,7 @@
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
     "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.prepare(sessionId:reason:deps:overrides:)": "d4013f11c8d2008b",
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.rebuild(sessionId:reason:prepared:overrides:deps:)": "abf94ab6b8d25806",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.rebuild(sessionId:reason:prepared:overrides:deps:)": "fbff75d9fb70f7c2",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
    }
@@ -276,68 +267,103 @@
   },
   {
    "key": "func WorkoutRecoveryService.rebuild(sessionId:reason:prepared:overrides:deps:)",
-   "hash": "4c368dfdb06cf235",
-   "does": "Resolves the recovered timeline, aborts (nil) when it holds no data or end<=start, assembles metadata, builds the session, carries forward user/measured fields from any existing archived copy with the same id, then persists and returns the Outcome.",
+   "hash": "6970ba145f91246c",
+   "does": "Takes the start date from knownStartDate (aborts with nil and a warning when no source has one), resolves the recovered timeline, aborts (nil) when it holds no data or end<=start, assembles metadata, builds the session, carries forward what the archived copy with the same id holds (carryArchived: user/measured fields, per-second samples, then a rebuilt analysis snapshot), then persists and returns the Outcome.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.resolveRecovered(sessionId:prepared:overrides:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.knownStartDate(_:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.resolveRecovered(sessionId:startDate:prepared:overrides:)",
     "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.hasRecoverableData(_:)",
     "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.assembleMetadata(recovered:reason:overrides:prepared:deps:)",
     "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.buildRecoveredSession(sessionId:startDate:endDate:rrPoints:metadata:)",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)",
-    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryForward(from:into:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.carryArchived(into:recovered:deps:)",
     "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.persist(_:metadata:recovered:overrides:deps:)"
    ],
    "reads": [
-    "archive:SessionArchive.exists/retrieveOrLog"
+    "archive:SessionArchive.exists/retrieveOrLog (via carryArchived)"
    ],
    "writes": [],
    "branches": [
     {
-     "at": "+5",
+     "at": "+4",
+     "cond": "knownStartDate(prepared) nil (no track header, archived copy or RR backup)",
+     "effect": "log warning, return nil (nothing saved; strap/override offsets are never anchored to now)"
+    },
+    {
+     "at": "+9",
      "cond": "!hasRecoverableData(recovered)",
      "effect": "log warning, return nil; else continue"
     },
     {
-     "at": "+16",
-     "cond": "archive.exists(id) and retrieveOrLog returns a session",
-     "effect": "true → carryForward(from: archived) copies tags/notes/export stamps etc. into session; false → session left as built"
-    },
-    {
-     "at": "+19",
+     "at": "+21",
      "cond": "session.workoutMetadata nil",
      "effect": "?? → the freshly assembled metadata (never nil in practice since buildRecoveredSession sets it)"
     }
    ],
-   "flags": [
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.assembleMetadata(recovered:reason:overrides:prepared:deps:)": "6f1e6366b4efcb62",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.buildRecoveredSession(sessionId:startDate:endDate:rrPoints:metadata:)": "da840d5d0631e2a0",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.carryArchived(into:recovered:deps:)": "6e2ee3f6ad8864a0",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.hasRecoverableData(_:)": "4841bdb3f473e3fd",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.knownStartDate(_:)": "ab001c5ddbd302e8",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.persist(_:metadata:recovered:overrides:deps:)": "761dad0236d659cc",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.resolveRecovered(sessionId:startDate:prepared:overrides:)": "d8598bda0f92613f",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryService.knownStartDate(_:)",
+   "hash": "5cf4bba82ec3f2c0",
+   "does": "The workout's start: the track backup header's startDate, else the archived copy's startDate, else the RR backup's captureDate; nil when none of them exists.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
     {
-     "kind": "broken",
-     "sev": "med",
-     "text": "The analysis snapshot is built in assembleMetadata before carryForward runs; when the rebuild had no live samples (track backup already discarded: trim / strap-augment / Watch-route of a saved workout) carrySamples then restores the archived samples, but the stored analysisSnapshot stays the one built from samples: [] (no alpha1 stats, HR zones, moving time, narratives). needsRebuild only triggers on schema version or language, so the post-summary and the assistant's workout facts keep reading the empty snapshot.",
-     "evidence": [
-      "Emuqu/Sources/Services/WorkoutRecoveryService.swift:392",
-      "Emuqu/Sources/Services/WorkoutRecoveryService.swift:157",
-      "Emuqu/Sources/Services/WorkoutRecoveryService.swift:301",
-      "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift:21",
-      "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift:83",
-      "Emuqu/Sources/Models/WorkoutAnalysisSnapshot.swift:104",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:96",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift:313"
-     ],
-     "found": "second read"
+     "at": "+1",
+     "cond": "?? chain",
+     "effect": "header start → archived session start → RR backup captureDate → nil"
     }
    ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutRecoveryService.carryArchived(into:recovered:deps:)",
+   "hash": "725e8081f76e357e",
+   "does": "When the archive holds a copy with the session's id, carries its user/measured fields and per-second samples forward (carryForward) and then rebuilds the analysis snapshot over the metadata as it now stands (attachAnalysisSnapshot with the recovered sport, duration and beats), so a trim / strap-augment / Watch-route of a saved workout whose track backup is gone keeps alpha1 bands, zones, moving time and narratives.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryForward(from:into:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.attachAnalysisSnapshot(to:sport:durationSec:rrPoints:settings:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.exists/retrieveOrLog",
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "archive has no copy or it cannot be retrieved",
+     "effect": "return; session left as built"
+    },
+    {
+     "at": "+3",
+     "cond": "session.workoutMetadata nil after carryForward",
+     "effect": "return without a snapshot rebuild (never in practice: buildRecoveredSession sets it)"
+    }
+   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryForward(from:into:)": "fe9cf4d8a1a8bdb5",
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.assembleMetadata(recovered:reason:overrides:prepared:deps:)": "db5619039f3d3bdc",
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.buildRecoveredSession(sessionId:startDate:endDate:rrPoints:metadata:)": "da840d5d0631e2a0",
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.hasRecoverableData(_:)": "4841bdb3f473e3fd",
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.persist(_:metadata:recovered:overrides:deps:)": "761dad0236d659cc",
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.resolveRecovered(sessionId:prepared:overrides:)": "9ff3e1cf9a284259",
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryForward(from:into:)": "5d2afb4462bff8e4",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.attachAnalysisSnapshot(to:sport:durationSec:rrPoints:settings:)": "4617e4293a9f8d89",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "129adb95a00b9a83",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "f0a309cc2b24de13",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "f0a309cc2b24de13"
    }
   },
   {
@@ -353,9 +379,9 @@
    "deps": {}
   },
   {
-   "key": "func WorkoutRecoveryService.resolveRecovered(sessionId:prepared:overrides:)",
-   "hash": "3d5b5cc9bed96d2b",
-   "does": "Resolves sport, start date, raw track (override or backup), live/baro samples and RR points (via resolveRRPoints), clips the track, resolves the end date and duration (min 1 s), and returns a RecoveredWorkout with samples cut to the duration and baro cut to the end date.",
+   "key": "func WorkoutRecoveryService.resolveRecovered(sessionId:startDate:prepared:overrides:)",
+   "hash": "c7cdb4f9d92ed734",
+   "does": "With the start date rebuild resolved (knownStartDate), resolves sport, raw track (override or backup), live/baro samples and RR points (via resolveRRPoints), clips the track, resolves the end date and duration (min 1 s), and returns a RecoveredWorkout with samples cut to the duration and baro cut to the end date.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.resolveRRPoints(diskPoints:strapPoints:overridePoints:autoTrimOverride:sessionId:startDate:)",
@@ -372,46 +398,31 @@
     },
     {
      "at": "+5",
-     "cond": "start date sources",
-     "effect": "?? chain → backup header startDate, then archived session start, then RR backup captureDate, then Date() (now)"
-    },
-    {
-     "at": "+6",
      "cond": "overrides.track / record nil",
      "effect": "?? → override track, else backup track, else []"
     },
     {
-     "at": "+7",
+     "at": "+6",
      "cond": "record nil",
      "effect": "?? → no live samples"
     },
     {
-     "at": "+8",
+     "at": "+7",
      "cond": "record nil",
      "effect": "?? → no baro samples"
     },
     {
-     "at": "+10",
+     "at": "+9",
      "cond": "rrEntry nil",
      "effect": "?? → disk points []"
     },
     {
-     "at": "+19",
+     "at": "+18",
      "cond": "record nil",
      "effect": "?? → backupHealthKitHROffsets []"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "med",
-     "text": "When neither the track header, the archived session nor the RR backup supplies a start date the start falls back to Date() (now); any strap/override RR offsets are then anchored to the recovery moment, so the recovered workout is stamped at the wrong time.",
-     "evidence": [
-      "Emuqu/Sources/Services/WorkoutRecoveryService.swift:337"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.clipTrack(_:isOverride:rrPoints:startDate:)": "68d51bda9e0b4dd6",
     "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.resolveEndDate(startDate:rrPoints:track:liveSamples:baroSamples:)": "8b15a3fc6ac0d814",
@@ -438,13 +449,14 @@
   },
   {
    "key": "func WorkoutRecoveryService.assembleMetadata(recovered:reason:overrides:prepared:deps:)",
-   "hash": "a3f120fe24c073d0",
-   "does": "Runs the analyzer, maps its output via buildMetadata (with forced distance), sets healthKitHROffsets to the markers still on kept rows, attaches route TRIMP extrapolation, backfills route fields from the archived copy when the raw track was empty, and attaches the analysis snapshot.",
+   "hash": "993432af2e7fca66",
+   "does": "Runs the analyzer, maps its output via buildMetadata (with forced distance), sets healthKitHROffsets to the markers still on kept rows, takes elevation from the track's GPS altitude when there are no barometer samples (applyGPSElevation), attaches route TRIMP extrapolation, backfills route fields from the archived copy when the raw track was empty, and attaches the analysis snapshot.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.runAnalyzer(sport:rrPoints:startDate:track:settings:unitsPreference:)",
     "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.buildMetadata(sport:computed:baroSamples:liveSamples:reason:overrideDistanceMeters:)",
     "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.healthKitHROffsets(_:in:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.applyGPSElevation(to:track:)",
     "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.attachRouteExtrapolation(to:track:sport:archive:savedRouteStore:)",
     "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.backfillRouteFields(into:from:)",
     "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.attachAnalysisSnapshot(to:sport:durationSec:rrPoints:settings:)"
@@ -455,14 +467,20 @@
    "writes": [],
    "branches": [
     {
-     "at": "+16",
+     "at": "+15",
+     "cond": "recovered.baroSamples empty",
+     "effect": "true → applyGPSElevation sets gain/loss from the track (left nil with fewer than two fixes); false → barometer figures from buildMetadata stand"
+    },
+    {
+     "at": "+17",
      "cond": "rawTrackWasEmpty and existing archived session has workoutMetadata",
      "effect": "true → backfillRouteFields copies distance/splits/polyline/elevation where new values are absent; false → skipped"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.attachAnalysisSnapshot(to:sport:durationSec:rrPoints:settings:)": "e4d87e1af48f3761",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.applyGPSElevation(to:track:)": "529a2671841f1c1c",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.attachAnalysisSnapshot(to:sport:durationSec:rrPoints:settings:)": "4617e4293a9f8d89",
     "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.attachRouteExtrapolation(to:track:sport:archive:savedRouteStore:)": "165255bff6fe5181",
     "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.backfillRouteFields(into:from:)": "ba951023fd59d855",
     "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.buildMetadata(sport:computed:baroSamples:liveSamples:reason:overrideDistanceMeters:)": "376022d5a92214de",
@@ -547,23 +565,32 @@
     {
      "at": "+3",
      "cond": "baroSamples.isEmpty",
-     "effect": "early return: elevation gain/loss stay nil (the analyzer's GPS elevation is never copied by buildMetadata); else set from barometer"
+     "effect": "early return: elevation gain/loss stay nil here; assembleMetadata then takes them from the GPS track (applyGPSElevation). Else set from barometer"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "With no barometer samples the recovered workout has nil elevation gain/loss, whereas the live finalize falls back to the GPS-altitude accumulator (WorkoutRecorder+Lifecycle.swift:173); the two copies of the finalize logic diverge, so a GPS-only crash recovery shows no elevation.",
-     "evidence": [
-      "Emuqu/Sources/Services/WorkoutRecoveryService.swift:449",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift:173"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)": "9dcf57bfefae560f",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryService.applyGPSElevation(to:track:)",
+   "hash": "6ea797da2d4d6f6c",
+   "does": "GPS-altitude elevation for a recovery without barometer samples: sums the fix-to-fix altitude changes of at least 5 m (the live recorder's GPS fallback gate) into elevation gain and loss. Leaves both untouched with fewer than two fixes.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "track.count <= 1",
+     "effect": "return; gain/loss stay as they were (nil from buildMetadata)"
+    }
+   ],
+   "flags": [],
+   "deps": {
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933"
    }
   },
@@ -592,7 +619,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35",
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.applyBarometricElevation(to:baroSamples:)": "f19a30ec1fabc195"
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.applyBarometricElevation(to:baroSamples:)": "c7c27ae52869c416"
    }
   },
   {
@@ -827,6 +854,28 @@
      "at": "+3",
      "cond": "another full window fits",
      "effect": "append the window's mean HR and advance; else stop"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.meanHeartRate(_:)": "e564c4747ae7a9e3"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryService.plausibleMeanHeartRate(_:)",
+   "hash": "3037a0cf2b346461",
+   "does": "Mean heart rate (60000 / mean RR) over the beats inside 300–2000 ms via meanHeartRate on the whole array, or nil when none is plausible.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.meanHeartRate(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "mean > 0",
+     "effect": "true → mean; false (no plausible beat) → nil"
     }
    ],
    "flags": [],

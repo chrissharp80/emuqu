@@ -1,12 +1,12 @@
 {
  "file": "Emuqu/Sources/Models/WorkoutMetadata.swift",
- "hash": "c62cc75db4cb24e5",
+ "hash": "dc0a7723f10aa898",
  "role": "Workout data model: Sport enum, Split/Lap/LiveMarker/WorkoutSample/HRRSample value types, WorkoutMetadata (all workout-specific fields stored on HRVSession.workoutMetadata, with explicit additive Codable and the cross-source training-load resolver), WorkoutWeatherSnapshot, PartialDataReason, and [HRRSample] best-reading helpers.",
  "types": [
   "Sport: enum (String, Codable, CaseIterable, Identifiable) — 10 activities with names, icons, GPS use",
   "Split: struct (Codable) — fixed-distance segment",
-  "Lap: struct (Codable) — user/interval segment",
-  "LiveMarker: struct (Codable) + Kind enum — timeline markers",
+  "Lap: struct (Codable) — user/interval segment (not produced by the recorder; kept for decode)",
+  "LiveMarker: struct (Codable) + Kind enum — timeline markers (never placed; kept for decode)",
   "WorkoutSample: struct (Codable) — per-second tick row with custom tolerant decode",
   "HRRSample: struct (Codable) + Provenance enum — post-stop HR recovery",
   "WorkoutMetadata: struct (Codable, Equatable) — workout extras, load resolver, explicit Codable",
@@ -19,36 +19,11 @@
   "mem:WorkoutMetadata.currentSchemaVersion = 1 (written as schemaVersion, never read back)",
   "mem:WorkoutMetadata.routeEstimateNoPriorConfidence = 0.4 (also read by RouteTRIMPEstimator.swift:189)",
   "mem:WorkoutMetadata.routeDropoutRecordedShare = 0.5",
-  "archive: WorkoutMetadata is persisted inside HRVSession (CodingKeys at Emuqu/Sources/Models/WorkoutMetadata.swift:775-791)",
+  "archive: WorkoutMetadata is persisted inside HRVSession (CodingKeys at Emuqu/Sources/Models/WorkoutMetadata.swift:770-786)",
   "hk:HKMetadataKeyWeatherTemperature / HKMetadataKeyWeatherHumidity (read by WorkoutWeatherSnapshot init)"
  ],
- "toplevel": "Split, Lap, LiveMarker, HRRSample, WorkoutWeatherSnapshot, Sport, PartialDataReason and TrainingLoadSource use synthesized conformances. WorkoutSample.CodingKeys lists all 9 fields. WorkoutMetadata.CodingKeys (775-791) covers every stored property plus schemaVersion; the split encoder writes every key (hrTSS is written by encodePowerMetrics, not encodeLoadMetrics as its doc comment groups it).",
+ "toplevel": "Split, Lap, LiveMarker, HRRSample, WorkoutWeatherSnapshot, Sport, PartialDataReason and TrainingLoadSource use synthesized conformances. WorkoutSample.CodingKeys lists all 9 fields. WorkoutMetadata.CodingKeys (770-786) covers every stored property except unrecognizedSportRawValue (written back under the sport key) plus schemaVersion; the split encoder writes every key (hrTSS is written by encodePowerMetrics, not encodeLoadMetrics as its doc comment groups it). WorkoutMetadata.unrecognizedSportRawValue (private(set), nil by default) holds a sport string this build does not know.",
  "flags": [
-  {
-   "kind": "fragile",
-   "sev": "med",
-   "text": "WorkoutMetadata.init(from:) decodes sport with the throwing c.decode(Sport.self) and nested synthesized enums (LiveMarker.Kind, HRRSample.Provenance, PartialDataReason) with plain decodeIfPresent, so a raw value added by a newer build (e.g. a new Sport synced from another device) makes the whole metadata decode throw, unlike WorkoutThreshold which degrades unknown metrics tolerantly.",
-   "evidence": [
-    "Emuqu/Sources/Models/WorkoutMetadata.swift:804",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift:811",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift:814",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift:832",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift:107"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "preferredTrainingLoad re-implements the same six-tier precedence as TrainingLoadPrecedence.stored (power > route-dropout estimate > hrTSS > METs > luciaTRIMP > extrapolatedTRIMP); the two must be edited in lockstep, and they read FTP from different sources (settingsManager.settings on the main actor vs settingsSnapshot).",
-   "evidence": [
-    "Emuqu/Sources/Models/WorkoutMetadata.swift:708",
-    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift:83",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift:646",
-    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift:85"
-   ],
-   "found": "first read, upheld on second"
-  },
   {
    "kind": "dead",
    "sev": "low",
@@ -62,6 +37,17 @@
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift:647"
    ],
    "found": "second read"
+  },
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "Unknown values in the nested enums (LiveMarker.Kind, HRRSample.Provenance, PartialDataReason) from a newer build no longer fail the decode, but the whole liveMarkers/hrrSamples array or partialDataReason decodes as nil (logged), and a re-save on this build drops them from the stored copy; only the sport string is preserved for write-back.",
+   "evidence": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift:806",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift:809",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift:827"
+   ],
+   "found": "fix batch b15"
   }
  ],
  "units": [
@@ -391,9 +377,7 @@
     "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.perSampleMETLoad()",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.bucketMETLoad()"
    ],
-   "reads": [
-    "mem:SettingsManager.settingsSnapshot"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -404,7 +388,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.bucketMETLoad()": "b475107cb103ccfb",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.bucketMETLoad()": "576af85a86bf3732",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.perSampleMETLoad()": "345072b931a5fbb3"
    }
   },
@@ -468,23 +452,16 @@
   },
   {
    "key": "func WorkoutMetadata.bucketMETLoad()",
-   "hash": "6a8441165fbba94f",
-   "does": "Single-bucket METs load: average km/h from distance and moving time, METs from WorkoutRecorder.estimateMETs at that pace, × moving hours, normalized by loadFromMETHours. Reads the settings snapshot's effectiveMaxHR to pass as userMaxHR, which estimateMETs ignores.",
+   "hash": "73148c15560aeb02",
+   "does": "Single-bucket METs load: average km/h from distance and moving time (last sample offset), METs from METLookup.mets at that speed, × moving hours, normalized by loadFromMETHours. Reads no settings; nil for a workout with no samples.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.estimateMETs(sport:paceSecPerKm:heartRate:userMaxHR:)",
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.averageKmh()",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.totalDurationSec()",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.loadFromMETHours(_:)",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager",
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR"
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.loadFromMETHours(_:)"
    ],
-   "reads": [
-    "mem:SettingsManager.settingsSnapshot"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -493,41 +470,12 @@
      "effect": "returns nil; otherwise returns the bucket load"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "The doc comment says EVERY workout has total distance+duration so a walk without per-second samples 'STILL gets a sensible load number here', but duration comes from totalDurationSec(), which is nil without samples, so a sample-less workout always gets nil (the computedMETLoad comment at 532-535 admits this).",
-     "evidence": [
-      "Emuqu/Sources/Models/WorkoutMetadata.swift:568",
-      "Emuqu/Sources/Models/WorkoutMetadata.swift:571",
-      "Emuqu/Sources/Models/WorkoutMetadata.swift:586",
-      "Emuqu/Sources/Models/WorkoutMetadata.swift:612"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "coupling",
-     "sev": "low",
-     "text": "bucketMETLoad reaches into AppDependencies.current.app.settingsManager for effectiveMaxHR, but estimateMETs discards userMaxHR (`userMaxHR _`); the read is pointless and contradicts TrainingLoadPrecedence's comment that computedMETLoad reads only meta.samples with no SettingsManager.",
-     "evidence": [
-      "Emuqu/Sources/Models/WorkoutMetadata.swift:584",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift:56",
-      "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift:66"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.estimateMETs(sport:paceSecPerKm:heartRate:userMaxHR:)": "779e33252e61c46e",
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "599269848673b93a",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "99b5dc9d71b51468",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.averageKmh()": "cd57df7fdff8bd45",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.loadFromMETHours(_:)": "d320dde6b82ddb52",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.totalDurationSec()": "51f6d9354ba84472",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb"
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.totalDurationSec()": "51f6d9354ba84472"
    }
   },
   {
@@ -687,56 +635,20 @@
   },
   {
    "key": "var WorkoutMetadata.preferredTrainingLoad",
-   "hash": "a79a046df029de52",
-   "does": "Main-actor preferred training load with source: computedPowerTSS (>0) → route estimate when routeEstimateReplacesHRLoad → hrTSS → computedMETLoad → luciaTRIMP → extrapolatedTRIMP → nil. Used by history calendar, workout rows, AI and load tiles.",
+   "hash": "9bb7711538069fca",
+   "does": "Main-actor preferred training load with source: returns TrainingLoadPrecedence.stored(self) with its default FTP anchors from the settings snapshot — storedPowerTSS or read-time power TSS → route estimate when routeEstimateReplacesHRLoad → hrTSS → computedMETLoad → luciaTRIMP → extrapolatedTRIMP → nil, the same figure ATL/CTL count. Used by history calendar, workout rows, share card and load tiles.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedPowerTSS",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad"
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)"
    ],
    "reads": [
-    "mem:SettingsManager.settings",
     "mem:SettingsManager.settingsSnapshot"
    ],
    "writes": [],
-   "branches": [
-    {
-     "at": "+7",
-     "cond": "computedPowerTSS > 0",
-     "effect": "returns (pTSS, .power)"
-    },
-    {
-     "at": "+8",
-     "cond": "route estimate replaces the HR load and extrapolatedTRIMP non-nil",
-     "effect": "returns (extrap, .routeHistory)"
-    },
-    {
-     "at": "+9",
-     "cond": "hrTSS > 0",
-     "effect": "returns (hrTSS, .hr)"
-    },
-    {
-     "at": "+10",
-     "cond": "computedMETLoad > 0",
-     "effect": "returns (mets, .mets)"
-    },
-    {
-     "at": "+11",
-     "cond": "luciaTRIMP > 0",
-     "effect": "returns (trimp, .banister)"
-    },
-    {
-     "at": "+12",
-     "cond": "extrapolatedTRIMP > 0",
-     "effect": "returns (extrap, .routeHistory); otherwise nil"
-    }
-   ],
+   "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad": "607fda538196aa13",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedPowerTSS": "bdc32e3316520d02",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad": "fe42b9b533314c95"
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)": "4072cd48894182bc"
    }
   },
   {
@@ -753,25 +665,76 @@
   },
   {
    "key": "init WorkoutMetadata(from:)",
-   "hash": "c0683b36fb4cb764",
-   "does": "Decodes WorkoutMetadata: reads and discards schemaVersion, requires sport, decodeIfPresent for every other field (missing keys → nil). Throws on a missing/unknown sport or a malformed nested value.",
+   "hash": "23bbc30113735236",
+   "does": "Decodes WorkoutMetadata: sport via decodedSport (an unknown sport reads as .run, its string kept in unrecognizedSportRawValue; a missing sport throws), liveMarkers / hrrSamples / partialDataReason through the tolerant optionalValue (unreadable, e.g. an enum case from a newer build → nil and logged), decodeIfPresent for every other field (missing keys → nil). schemaVersion is not read. Throws only on a missing sport or a malformed value in the remaining fields.",
    "entry": "Decodable requirement, invoked when an HRVSession is decoded from the archive, CloudKit or Watch payloads.",
    "calls": [
-    "ext:KeyedDecodingContainer.decode/decodeIfPresent"
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.decodedSport(from:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.unrecognizedSport(in:)",
+    "Emuqu/Sources/Models/TolerantDecoding.swift::func KeyedDecodingContainer.optionalValue(_:_:)",
+    "ext:KeyedDecodingContainer.decodeIfPresent"
    ],
    "reads": [
     "archive:HRVSession.workoutMetadata"
    ],
    "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/TolerantDecoding.swift::func KeyedDecodingContainer.optionalValue(_:_:)": "c6609aba964cb801",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.decodedSport(from:)": "30d5c2198e89579c",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.unrecognizedSport(in:)": "536f08164f81aada"
+   }
+  },
+  {
+   "key": "func WorkoutMetadata.decodedSport(from:)",
+   "hash": "0fda40a82057b7da",
+   "does": "Decodes the sport key as a String (throws when absent or not a string); returns the matching Sport, or logs a warning and returns .run when the string is not a Sport this build knows.",
+   "entry": null,
+   "calls": [
+    "ext:KeyedDecodingContainer.decode",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
    "branches": [
     {
      "at": "+2",
-     "cond": "schemaVersion missing",
-     "effect": "?? 0 fallback; value is discarded either way (no migration logic keyed on it)"
+     "cond": "string is not a known Sport rawValue",
+     "effect": "log warning, return .run"
     }
    ],
    "flags": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func WorkoutMetadata.unrecognizedSport(in:)",
+   "hash": "26acc4719ec0a9c3",
+   "does": "Returns the stored sport string when it is not a known Sport rawValue; nil when it is known or unreadable.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/TolerantDecoding.swift::func KeyedDecodingContainer.optionalValue(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "sport key absent/unreadable",
+     "effect": "nil"
+    },
+    {
+     "at": "+2",
+     "cond": "string maps to a Sport",
+     "effect": "nil; else the raw string"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/TolerantDecoding.swift::func KeyedDecodingContainer.optionalValue(_:_:)": "c6609aba964cb801"
+   }
   },
   {
    "key": "func WorkoutMetadata.encode(to:)",
@@ -794,20 +757,26 @@
     "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.encodeContext(into:)": "37d3681dc526b93e",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.encodeLoadMetrics(into:)": "01c3bf8f4c0bd381",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.encodePowerMetrics(into:)": "267dd35ad915d269",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.encodeRouteAndSamples(into:)": "9067410828306bfc"
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.encodeRouteAndSamples(into:)": "420a0164c9ced6d5"
    }
   },
   {
    "key": "func WorkoutMetadata.encodeRouteAndSamples(into:)",
-   "hash": "e1af3cdc9836ec30",
-   "does": "Writes schemaVersion (1), sport, gpsPolyline, distance, elevation gain/loss, splits, laps, liveMarkers, samples, healthKitHROffsets (optionals only when present).",
+   "hash": "b792d6120da7d459",
+   "does": "Writes schemaVersion (1), sport (unrecognizedSportRawValue when set, else sport.rawValue), gpsPolyline, distance, elevation gain/loss, splits, laps, liveMarkers, samples, healthKitHROffsets (optionals only when present).",
    "entry": null,
    "calls": [
     "ext:KeyedEncodingContainer.encode/encodeIfPresent"
    ],
    "reads": [],
    "writes": [],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "?? — unrecognizedSportRawValue nil",
+     "effect": "writes sport.rawValue"
+    }
+   ],
    "flags": [],
    "deps": {}
   },

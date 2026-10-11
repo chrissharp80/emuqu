@@ -12,32 +12,7 @@
   "static exportSize = 1080x1920"
  ],
  "toplevel": "Hard-coded .system(size:) fonts are intentional (fixed canvas). The render extension is @MainActor (line 282).",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Stale doc comments: header says \"Render with ImageRenderer at scale 1 to get a 1080×1920 PNG\" but renderImage uses scale 3 over a 360x640 layout; the .workout variant is documented with a `polyline` parameter that does not exist; routeMap docs point to `RecapCard.renderRouteMap(_:)` whose real signature is renderRouteMap(coordinates:tint:).",
-   "evidence": [
-    "Emuqu/Sources/Views/RecapCard.swift:15",
-    "Emuqu/Sources/Views/RecapCard.swift:17-18",
-    "Emuqu/Sources/Views/RecapCard.swift:39-41",
-    "Emuqu/Sources/Views/RecapCard.swift:48-52",
-    "Emuqu/Sources/Views/RecapCard.swift:286-289",
-    "Emuqu/Sources/Views/RecapCard.swift:300-303"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "summaryPanel is documented as \"AI Coach summary + attribution\" but its only production caller passes \"Load N\"/\"TRIMP N\" or the literal \"Emuqu\".",
-   "evidence": [
-    "Emuqu/Sources/Views/RecapCard.swift:244",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift:58-67"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "var RecapCard.body",
@@ -353,17 +328,6 @@
     }
    ],
    "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "The extension is @MainActor, so renderRouteMap and the UIGraphicsImageRenderer route overlay run on the main actor even though FitnessPostSummaryView+Share calls it from Task.detached(priority: .utility) \"so the CoreGraphics work doesn't pin the UI thread\".",
-     "evidence": [
-      "Emuqu/Sources/Views/RecapCard.swift:282",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift:13-15",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift:71-76"
-     ],
-     "found": "first read, upheld on second"
-    },
     {
      "kind": "privacy",
      "sev": "low",

@@ -7,20 +7,7 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "Three near-identical blocks reset the review UI state (currentSession, needsAcceptance, recordingPhase, verificationResult, recoveryWindow, isDeviceFetchInProgress, stopObservingSleepData) and have already drifted: clearAcceptedSessionState also notifies archiveSignal, clearAcceptanceState does not, and rejectSession's block omits reviewArchivedSessionId (cleared instead by discardReviewArchivedSession in RRCollector+MorningProcessing.swift:171).",
-   "evidence": [
-    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift:51",
-    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift:96",
-    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift:122",
-    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift:171"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "func MorningSessionPipeline.acceptSession()",
@@ -51,18 +38,18 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.clearAcceptedSessionState()": "1ff3b364e32f05ad",
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.clearAcceptedSessionState()": "08e80bdefad79dfa",
     "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.runAcceptance(_:)": "f1cc14e948c22cbf",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204"
    }
   },
   {
    "key": "func MorningSessionPipeline.runAcceptance(_:)",
-   "hash": "3f32fa288d212409",
+   "hash": "7d9b79ea13e9a3d1",
    "does": "Builds AcceptanceInputs (scoring config, frozen-or-fresh training context, scoring baseline stats, typical sleep hours, sleep schedule) and calls SessionAcceptanceService.processAcceptance, which freezes the score + HealthKit snapshots, archives, marks the raw backup, updates the baseline, clears persisted recording state via the closure, exports to HealthKit if enabled, and syncs to CloudKit; the returned session is discarded.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.acceptanceTrainingContext(_:frozen:)",
+    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.scoringTrainingContext(result:sessionEnd:)",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.currentScoringConfig",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.scoringBaselineStats(for:)",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.processAcceptance(session:inputs:enableHealthKitExport:clearPersistedRecordingState:)",
@@ -83,7 +70,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.acceptanceTrainingContext(_:frozen:)": "8e0fbd3cc1606624",
+    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.scoringTrainingContext(result:sessionEnd:)": "cbea23db8a63d361",
     "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingState()": "13bc57053cf73f87",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.scoringBaselineStats(for:)": "f465e8f605f0556c",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.currentScoringConfig": "aa1d03c0318867a7",
@@ -91,51 +78,13 @@
    }
   },
   {
-   "key": "func MorningSessionPipeline.acceptanceTrainingContext(_:frozen:)",
-   "hash": "1601600686b41298",
-   "does": "Returns the analysis result's frozen training context, else fetches one as of the session end (or start) via createTrainingContextEnsuringFresh.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.createTrainingContextEnsuringFresh(relativeTo:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "result?.trainingContext non-nil",
-     "effect": "return it"
-    },
-    {
-     "at": "+2",
-     "cond": "session.endDate nil (??)",
-     "effect": "uses session.startDate as the reference date"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Identical to scoringTrainingContext in RRCollector+Analysis.swift:47-50 except for an optional result parameter.",
-     "evidence": [
-      "Emuqu/Sources/Collection/RRCollector+Acceptance.swift:44",
-      "Emuqu/Sources/Collection/RRCollector+Analysis.swift:47"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.createTrainingContextEnsuringFresh(relativeTo:)": "85f6f48c29a9652c"
-   }
-  },
-  {
    "key": "func MorningSessionPipeline.clearAcceptedSessionState()",
-   "hash": "a7ac16fa139b4a0c",
-   "does": "Main-actor reset after acceptance: clears currentSession, reviewArchivedSessionId, needsAcceptance, recordingPhase → .idle, verificationResult, recoveryWindow, isDeviceFetchInProgress, notifies the archive signal, and stops HealthKit sleep observation.",
+   "hash": "41284a7988b53858",
+   "does": "Main-actor reset after acceptance: clearAcceptanceState (the one review-UI reset), then notifies the archive signal.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()",
-    "Emuqu/Sources/Collection/HealthKitManager+WriteForwarding.swift::func HealthKitManager.stopObservingSleepData()"
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.clearAcceptanceState()",
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()"
    ],
    "reads": [],
    "writes": [
@@ -152,21 +101,16 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "47c71a985b0f7b54",
-    "Emuqu/Sources/Collection/HealthKitManager+WriteForwarding.swift::func HealthKitManager.stopObservingSleepData()": "de95712231fd4cda",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isDeviceFetchInProgress": "c99b310984e70107",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance": "37c71d78df96a761",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase": "dab0f809cbb1be27",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.verificationResult": "85a59852d009664a",
-    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "f61a7a679f5280dd"
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.clearAcceptanceState()": "339032e63971ec97"
    }
   },
   {
    "key": "func MorningSessionPipeline.updateCompositeRecoveryScore(for:exportMetrics:)",
-   "hash": "0ea7bf66fec19fe2",
+   "hash": "a922244382b012f3",
    "does": "Re-scores an already archived session: with an analysis result, resolves training context, calls SessionAcceptanceService.updateCompositeRecoveryScore (refresh snapshots, rescore, re-archive, optional HealthKit export), and notifies the archive signal when it updated.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.acceptanceTrainingContext(_:frozen:)",
+    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.scoringTrainingContext(result:sessionEnd:)",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.currentScoringConfig",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.scoringBaselineStats(for:)",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.updateCompositeRecoveryScore(for:scoringConfig:trainingContext:baselineStats:typicalSleepHours:sleepSchedule:exportMetrics:enableHealthKitExport:)",
@@ -195,16 +139,16 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "47c71a985b0f7b54",
-    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.acceptanceTrainingContext(_:frozen:)": "8e0fbd3cc1606624",
+    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.scoringTrainingContext(result:sessionEnd:)": "cbea23db8a63d361",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.scoringBaselineStats(for:)": "f465e8f605f0556c",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.currentScoringConfig": "aa1d03c0318867a7",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.updateCompositeRecoveryScore(for:scoringConfig:trainingContext:baselineStats:typicalSleepHours:sleepSchedule:exportMetrics:enableHealthKitExport:)": "43855bbf0dd30ec4"
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.updateCompositeRecoveryScore(for:scoringConfig:trainingContext:baselineStats:typicalSleepHours:sleepSchedule:exportMetrics:enableHealthKitExport:)": "f7bcf7dda0b880a7"
    }
   },
   {
    "key": "func MorningSessionPipeline.clearAcceptanceState()",
    "hash": "08b9acba6fd4b04a",
-   "does": "Clears review UI state for an already-archived overnight session (same fields as clearAcceptedSessionState, without the archive-signal notify) and stops HealthKit sleep observation.",
+   "does": "The one reset of the review UI (overnight already archived, acceptance and rejection all use it): clears currentSession, reviewArchivedSessionId, needsAcceptance, recordingPhase → .idle, verificationResult, recoveryWindow, isDeviceFetchInProgress, and stops HealthKit sleep observation.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager+WriteForwarding.swift::func HealthKitManager.stopObservingSleepData()"
@@ -232,13 +176,13 @@
   },
   {
    "key": "func MorningSessionPipeline.rejectSession()",
-   "hash": "caa9e87fac5fbd20",
-   "does": "Rejects the session: SessionAcceptanceService.processRejection clears persisted recording state and fires an iCloud live-backup delete for the session id; then on the main actor clears currentSession, needsAcceptance, recordingPhase, verificationResult, recoveryWindow, isDeviceFetchInProgress and stops sleep observation.",
+   "hash": "9d69a723c27aca7a",
+   "does": "Rejects the session: SessionAcceptanceService.processRejection clears persisted recording state and fires an iCloud live-backup delete for the session id; then on the main actor resets the review UI with clearAcceptanceState (reviewArchivedSessionId included — discardReviewArchivedSession has normally cleared it already).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.processRejection(sessionId:clearPersistedRecordingState:)",
     "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingState()",
-    "Emuqu/Sources/Collection/HealthKitManager+WriteForwarding.swift::func HealthKitManager.stopObservingSleepData()"
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.clearAcceptanceState()"
    ],
    "reads": [
     "mem:RRCollector.currentSession"
@@ -256,14 +200,9 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+WriteForwarding.swift::func HealthKitManager.stopObservingSleepData()": "de95712231fd4cda",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isDeviceFetchInProgress": "c99b310984e70107",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance": "37c71d78df96a761",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase": "dab0f809cbb1be27",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.verificationResult": "85a59852d009664a",
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.clearAcceptanceState()": "339032e63971ec97",
     "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingState()": "13bc57053cf73f87",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.processRejection(sessionId:clearPersistedRecordingState:)": "b2f8cca5d0330849",
-    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "f61a7a679f5280dd"
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.processRejection(sessionId:clearPersistedRecordingState:)": "b2f8cca5d0330849"
    }
   }
  ],

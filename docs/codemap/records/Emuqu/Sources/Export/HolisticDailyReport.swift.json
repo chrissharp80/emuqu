@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Export/HolisticDailyReport.swift",
- "hash": "37fccbe0e7d4a01d",
+ "hash": "2869197c5dcbf600",
  "role": "The combined \"Daily Report\" PDF: renders two unique cover pages (Today in one glance; Why your score) to a temp PDF, renders the WorkoutPDFReport to another temp, and merges them with PDFKit into the destination; also holds the training-load source for the report and builds the shared DailyLoopAnalysis.",
  "types": [
   "HolisticDailyReport: final class (Sendable) — immutable report inputs plus generation entry point; extended by +Pages.swift and +Score.swift",
@@ -16,23 +16,12 @@
   "mem:HolisticDailyReport.temperatureUnit",
   "mem:HolisticDailyReport.config",
   "mem:HolisticDailyReport.liveLoadSnapshot",
+  "mem:HolisticDailyReport.loopAnalysis (private let DailyLoopAnalysis, built once in init)",
   "file:<tmp>/holistic-workout-<8 hex>.pdf",
   "file:<tmp>/holistic-cover-<8 hex>.pdf"
  ],
  "toplevel": "Config stored-property initializers create UIFonts/UIColors at construction. Constructed by ReportsListView.renderHolistic (ReportsListView.swift:392), MainTabView+Reports.renderDailyReport (MainTabView+Reports.swift:113) and WorkoutRecorder+Metrics.holisticReport (WorkoutRecorder+Metrics.swift:444), plus EmuquTests/WorkoutReportSmokeTests.swift:214 and TrainingAdviceGateTests.",
  "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Header comment (lines 24-27) and the overnightSession doc (57-58) say a nil overnight session makes the output drop to just the WorkoutPDFReport pages; this class never does that — it always draws the cover pages, with a \"No morning data\" row (HolisticDailyReport+Pages.swift:236-237). The fallback exists only in callers (WorkoutRecorder+Metrics.swift:422, MainTabView+Reports.swift:110-112).",
-   "evidence": [
-    "Emuqu/Sources/Export/HolisticDailyReport.swift:24",
-    "Emuqu/Sources/Export/HolisticDailyReport.swift:57",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift:236",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift:422"
-   ],
-   "found": "first read, upheld on second"
-  },
   {
    "kind": "spec-mismatch",
    "sev": "low",
@@ -48,10 +37,12 @@
  "units": [
   {
    "key": "init HolisticDailyReport(workoutSession:workoutTrack:overnightSession:recentOvernightSessions:userMaxHR:userRestingHR:userLTHR:units:temperatureUnit:liveLoadSnapshot:config:)",
-   "hash": "8ac0c48ad299c79f",
-   "does": "Stores all inputs; keeps liveLoadSnapshot only when the workout (endDate, else startDate) is today in the current calendar, so a past day's report uses the frozen session load.",
+   "hash": "3fbe025254901885",
+   "does": "Stores all inputs; keeps liveLoadSnapshot only when the workout (endDate, else startDate) is today in the current calendar, so a past day's report uses the frozen session load; then builds the shared DailyLoopAnalysis once (makeLoopAnalysis) from the same inputs and that load.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.makeLoopAnalysis(workoutSession:overnightSession:recentOvernightSessions:userMaxHR:liveLoad:)"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
@@ -63,7 +54,7 @@
     {
      "at": "+25",
      "cond": "isToday",
-     "effect": "stores the passed liveLoadSnapshot; otherwise stores nil"
+     "effect": "stores and analyses with the passed liveLoadSnapshot; otherwise nil"
     }
    ],
    "flags": [
@@ -79,7 +70,9 @@
      "found": "second read"
     }
    ],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.makeLoopAnalysis(workoutSession:overnightSession:recentOvernightSessions:userMaxHR:liveLoad:)": "f6c7476f472dea76"
+   }
   },
   {
    "key": "func HolisticDailyReport.generate(to:)",
@@ -186,7 +179,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawTodayInOneGlancePage(ctx:)": "0adf1b7a30d4faec",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawWhyYourScorePage(ctx:)": "2b2cf652cdfa8c53",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawWhyYourScorePage(ctx:)": "355020bcf989f70d",
     "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.removeTemp(_:)": "0d40ae4cc85bc961",
     "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
    }
@@ -295,21 +288,7 @@
      "effect": "?? overnightSession?.trainingSnapshot; nil when neither has one"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "The crash-guard comments name `WorkoutRecorder+Lifecycle.generateHolisticReport` as the detached render path. No such function exists anywhere in the repo. The real callers are WorkoutRecorder+Metrics.renderCoachReportPDF/holisticReport, ReportsListView.renderHolistic and MainTabView+Reports.renderDailyReport.",
-     "evidence": [
-      "Emuqu/Sources/Export/HolisticDailyReport.swift:81",
-      "Emuqu/Sources/Export/HolisticDailyReport.swift:237",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift:439",
-      "Emuqu/Sources/Views/ReportsListView.swift:391",
-      "Emuqu/Sources/Views/MainTabView+Reports.swift:109"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
     "Emuqu/Sources/Collection/TrainingLoad.swift::func TrainingLoad.daysSinceHardWorkout(in:anchors:relativeTo:)": "cd200634574141b1",
@@ -335,38 +314,36 @@
   },
   {
    "key": "func HolisticDailyReport.analysis()",
-   "hash": "6df7040a225eda6f",
-   "does": "Builds a fresh DailyLoopAnalysis from the workout, the overnight session, the recent overnight sessions that started on or before the reported night (overnight start, else workout start), max HR and the advice-gate load.",
+   "hash": "46d3baa9854fdbcd",
+   "does": "Returns the DailyLoopAnalysis built once in init (the inputs never change), so every page read shares one instance.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HolisticDailyReport.makeLoopAnalysis(workoutSession:overnightSession:recentOvernightSessions:userMaxHR:liveLoad:)",
+   "hash": "588916f9387ee322",
+   "does": "Builds the DailyLoopAnalysis: the workout, the overnight session, the recent overnight sessions that started on or before the reported night (overnight start, else workout start), max HR, and the advice-gate load from adviceGateLoad(live:workoutSession:overnightSession:).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.adviceGateLoad()"
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.adviceGateLoad(live:workoutSession:overnightSession:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+1",
+     "at": "+4",
      "cond": "overnightSession is nil",
      "effect": "?? reported night = workoutSession.startDate"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "analysis() constructs a new DailyLoopAnalysis (filtering sessions and recomputing the ln-RMSSD baseline each time a property is read) on every call; one page render calls it about ten times (drawGlanceHero, morningHRVRow, workoutInternalLoadRow, loopParagraph, tomorrowAction, whatsHelpingPoints twice via drawHelpingHurting, hurtingHRVPoints, legacyHRVContribution twice). The doc comment says it is built once per render.",
-     "evidence": [
-      "Emuqu/Sources/Export/HolisticDailyReport.swift:264",
-      "Emuqu/Sources/Export/HolisticDailyReport.swift:269",
-      "Emuqu/Sources/Export/HolisticDailyReport+Score.swift:124",
-      "Emuqu/Sources/Export/HolisticDailyReport+Score.swift:125",
-      "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift:475"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.adviceGateLoad()": "b128a4bfd76116fd"
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.adviceGateLoad(live:workoutSession:overnightSession:)": "9497ba7540b45ed5"
    }
   },
   {

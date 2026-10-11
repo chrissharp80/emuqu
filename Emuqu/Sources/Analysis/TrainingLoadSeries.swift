@@ -7,9 +7,12 @@ import Foundation
 /// so a day's load and the EWMA step are computed one way only; the two paths
 /// differ only in how many days they replay.
 enum TrainingLoadSeries {
-    /// What a workout without a precomputed load is scored against (Banister
-    /// TRIMP's heart-rate reserve). Resolved once per refresh and handed to
-    /// both paths.
+    /// The heart rates a workout without a precomputed load is scored against
+    /// (Banister TRIMP's heart-rate reserve). Resolved once per refresh and
+    /// handed to both paths. Not everything TRIMP reads: its sex weighting
+    /// comes from the biological-sex setting when the load is computed
+    /// (`WorkoutSummary.effectiveLoad`); the cache's `LoadSettings` carries
+    /// that setting, so a change to it rebuilds both paths.
     struct HeartRateAnchors: Equatable, Codable, Sendable {
         let restingHR: Double
         let maxHR: Double
@@ -89,10 +92,11 @@ enum TrainingLoadSeries {
         return series
     }
 
-    /// The EWMA after `day`: every day of `dailyLoad` up to and including it.
+    /// The EWMA after `day`: `replay` over every day of `dailyLoad` up to and
+    /// including it, read at the last of them. `.zero` when none is.
     static func point(through day: Date, in dailyLoad: [Date: Double]) -> Point {
-        dailyLoad.keys.sorted().filter { $0 <= day }.reduce(Point.zero) { point, date in
-            point.stepped(load: dailyLoad[date] ?? 0)
-        }
+        let upToDay = dailyLoad.filter { $0.key <= day }
+        guard let lastDay = upToDay.keys.max() else { return .zero }
+        return replay(upToDay)[lastDay] ?? .zero
     }
 }

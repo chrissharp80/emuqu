@@ -1,18 +1,20 @@
 {
  "file": "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift",
- "hash": "a3fc54b3ebf27710",
+ "hash": "1297369abb02e523",
  "role": "Composition root for the assistant's fact system: the shared PeriodParser vocabulary, AppFactResolverFactory.build (registers every fact namespace on a FactResolverRegistry), the user.* profile/settings namespace (incl. score.* meta facts), and the small app.capabilities/app.version namespace.",
  "types": [
   "PeriodParser: enum — parses period tokens (7d, last_week, this_week, all_time...) into a cutoff Date or DateInterval",
   "AppFactResolverFactory: enum — builds the FactResolverRegistry with all namespaces",
   "UserProfileNamespace: struct (FactNamespaceResolver) — user.profile.*, user.settings.*, score.algorithm.version, score.history.recomputed_under_v2",
-  "AppCapabilitiesNamespace: struct (FactNamespaceResolver) — app.capabilities.has_barometer, app.version.schema.workout_metadata"
+  "AppCapabilitiesNamespace: struct (FactNamespaceResolver) — app.capabilities.has_barometer, app.version.schema.workout_metadata",
+  "RecentBiometricProfile: private @MainActor enum — one Apple Health biometric-profile fetch shared by the profile facts for 10 s"
  ],
  "state": [
   "mem:PeriodParser.namedDayWindows (static let token→days table)",
   "mem:UserProfileNamespace.namespace = \"user\"",
   "mem:UserProfileNamespace.settings (closure returning UserSettings)",
-  "mem:AppCapabilitiesNamespace.namespace = \"app\""
+  "mem:AppCapabilitiesNamespace.namespace = \"app\"",
+  "mem:RecentBiometricProfile.recent (MainActor static: start time + in-flight/finished fetch Task)"
  ],
  "toplevel": "Imports CoreMotion under #if canImport(CoreMotion). Header comment states the concurrency contract (fact resolution runs on MainActor; assumeIsolated relies on it). No global code.",
  "flags": [],
@@ -20,7 +22,7 @@
   {
    "key": "func PeriodParser.cutoff(for:now:)",
    "hash": "f57a000f6d11c678",
-   "does": "Lowercases/trims a period token and returns its start Date: numeric N-day windows (Nd, last_Nd, N_days) via numericDayWindow, today = start of day, yesterday = start of yesterday, this_week = start of the locale week, all_time/all = distantPast, else the namedDayWindows rolling window; unknown → nil.",
+   "does": "Lowercases/trims a period token and returns its start Date: numeric N-day windows (Nd, last_Nd, N_days) via numericDayWindow, today = start of day, yesterday = start of yesterday, this_week = start of the locale week, all_time/all = distantPast, else the namedDayWindows rolling window (bare 'week' included); unknown → nil.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.numericDayWindow(_:)"
@@ -64,28 +66,15 @@
      "effect": "returns nil (caller treats as unknown period); else now - days"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Doc says the leading 'last_' is optional for the whole vocabulary, but 'week' (bare form of last_week) is not in namedDayWindows nor numeric, so it returns nil; month/quarter/year bare forms are present.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift:69",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift:108",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift:109"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.numericDayWindow(_:)": "bf32db0a6694f020",
-    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.numericDayWindow(_:)": "bf32db0a6694f020"
    }
   },
   {
    "key": "func PeriodParser.interval(for:now:)",
    "hash": "fbdd48eafde68e96",
-   "does": "Returns the DateInterval for a period: yesterday = [start of yesterday, start of today), last_week = previous calendar week, everything else = [cutoff(for:), now].",
+   "does": "Returns the DateInterval for a period: yesterday = [start of yesterday, start of today), last_week = previous calendar week, everything else = [cutoff(for:), now]. Callers answer a nil with PeriodParser.invalidPeriod (invalidParameter), never an empty period.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.cutoff(for:now:)"
@@ -124,26 +113,46 @@
      "effect": "nil; else [start, now]"
     }
    ],
-   "flags": [
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.cutoff(for:now:)": "4649473008518c23"
+   }
+  },
+  {
+   "key": "func PeriodParser.invalidPeriod(_:)",
+   "hash": "05881610904d9ecf",
+   "does": "Returns unknownPeriod(raw) when interval(for:) cannot parse the period string, nil when it parses.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.interval(for:now:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.unknownPeriod(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
     {
-     "kind": "silent-failure",
-     "sev": "med",
-     "text": "An unrecognized period token (e.g. 'week', '6_weeks', '2w', 'last_2_months') makes interval(for:) return nil, and the period callers map nil to an empty entry list instead of an invalidParameter error, so workout.count($period) answers 0 and list facts answer 'no workouts in <period>' for a period that has workouts. The header comment (AppFactResolver.swift:62-67) says funnelling through PeriodParser closed exactly this silent-empty gap.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift:136",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift:54",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift:197",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift:102",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift:381",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift:65"
-     ],
-     "found": "second read"
+     "at": "+1",
+     "cond": "interval(for:) is nil",
+     "effect": "returns unknownPeriod(raw); otherwise nil"
     }
    ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.cutoff(for:now:)": "4fe47cf964eece10",
-    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.interval(for:now:)": "e66f9b4913f074f8",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.unknownPeriod(_:)": "c328a78356e85e54"
    }
+  },
+  {
+   "key": "func PeriodParser.unknownPeriod(_:)",
+   "hash": "e49465cdbcbfbbfe",
+   "does": "Builds missing(invalidParameter, \"unknown period '<raw>' — accepts 7d/14d/…/all_time\") listing the accepted vocabulary.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "func PeriodParser.numericDayWindow(_:)",
@@ -221,6 +230,37 @@
    }
   },
   {
+   "key": "func RecentBiometricProfile.fetch()",
+   "hash": "13340652636abfc7",
+   "does": "MainActor: returns the Apple Health biometric profile, reusing the fetch started within the last 10 s (awaiting it if still running); otherwise starts a new HealthKitManager.fetchBiometricProfile() under a 3 s FactResolveTimeout, records it with the start time and awaits it. Nil on timeout.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)",
+    "Emuqu/Sources/Collection/HealthKitManager+Store.swift::func HealthKitManager.fetchBiometricProfile()"
+   ],
+   "reads": [
+    "mem:RecentBiometricProfile.recent",
+    "hk:bodyMass, biologicalSex, dateOfBirth (via fetchBiometricProfile)"
+   ],
+   "writes": [
+    "mem:RecentBiometricProfile.recent"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a fetch started less than 10 s ago",
+     "effect": "awaits and returns its result; otherwise starts and records a new fetch"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)": "ee8ecd721e21103a",
+    "Emuqu/Sources/Collection/HealthKitManager+Store.swift::func HealthKitManager.fetchBiometricProfile()": "acc4e78677a6f52c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+   }
+  },
+  {
    "key": "var UserProfileNamespace.entries",
    "hash": "458b4b21a0824fb5",
    "does": "FactNamespaceResolver.entries witness for user.*: concatenation of userProfileEntries, userSettingsEntries and userProfileEntries2.",
@@ -260,14 +300,14 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileAgeEntry": "c196dd4609b3a509",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileBiologicalSexEntry": "94598e17b3f8129b",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileLthrEntry": "9164e4bae343297a",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileAgeEntry": "7759c9c4c4156831",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileBiologicalSexEntry": "1ebe74b84e853644",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileLthrEntry": "7ea2b544340eca67",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileLthrIsUserSetEntry": "e263cb63fffb6441",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileMaxHrEntry": "90b20f7e0a58296a",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileMaxHrIsUserSetEntry": "ba7c332fad4b4ae7",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileRestingHrEntry": "09555e303d086e10",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileWeightKgEntry": "298cb0d9b7adaf18"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileWeightKgEntry": "7bae133d0a785a9a"
    }
   },
   {
@@ -289,8 +329,8 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.scoreAlgorithmVersionEntry": "337f02ee28379cbd",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.scoreHistoryRecomputedUnderV2Entry": "bac2f99cc0dbbe90",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.scoreAlgorithmVersionEntry": "98e718f4a096dca4",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.scoreHistoryRecomputedUnderV2Entry": "a97ec8ad10e263af",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userSettingsComebackModeActiveEntry": "5c69d7e1798ff220",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userSettingsComebackModeDayInWindowEntry": "5cd270fc367039a0",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userSettingsOnTrainingBreakEntry": "0491e990fbf932c2",
@@ -315,8 +355,8 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileUsesHealthkitVo2maxEntry": "4b21a491918c895b",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileVo2MaxEntry": "f8bf865884e02bb2",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileVo2MaxIsOverrideEntry": "e8ac26abfaa490b3",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileVo2MaxEntry": "c2bb851d12a7a9f1",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileVo2MaxIsOverrideEntry": "675be0268467c5ab",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileVo2MaxTrendEntry": "5334e385319f28d7"
    }
   },
@@ -362,8 +402,8 @@
   },
   {
    "key": "var UserProfileNamespace.userProfileLthrEntry",
-   "hash": "da2709851f3cc182",
-   "does": "Fixed fact user.profile.lthr (Int) = settings().effectiveLTHR (override ≥80, else max(120, 0.88 × effectiveMaxHR)).",
+   "hash": "a4b71f8fa9d9f516",
+   "does": "Fixed fact user.profile.lthr (Int) = settings().effectiveLTHR (override ≥80, else max(120, 0.88 × effectiveMaxHR)). Description states the 120 bpm floor.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
@@ -374,21 +414,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Description says LTHR falls back to '0.88 × max HR heuristic' but effectiveLTHR also floors it at 120 bpm.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift:290",
-      "Emuqu/Sources/Models/UserSettings+Model.swift:121"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR": "8d8a7ef3cdac7b54"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR": "d8f21d4214c3f50a"
    }
   },
   {
@@ -441,13 +470,12 @@
   },
   {
    "key": "var UserProfileNamespace.userProfileWeightKgEntry",
-   "hash": "e6b6d3022b71d837",
-   "does": "Async fixed fact user.profile.weight_kg: Settings bodyWeightKg override, else HealthKit biometric profile body weight (3 s timeout), else missing(notRecorded) noting the 75 kg estimate default.",
+   "hash": "6eff9dfb87011a79",
+   "does": "Async fixed fact user.profile.weight_kg: Settings bodyWeightKg override, else HealthKit biometric profile body weight (shared RecentBiometricProfile fetch, 3 s cap, reused for 10 s), else missing(notRecorded) noting the 75 kg estimate default.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixedAsync(key:description:valueType:resolve:)",
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)",
-    "Emuqu/Sources/Collection/HealthKitManager+Store.swift::func HealthKitManager.fetchBiometricProfile()"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func RecentBiometricProfile.fetch()"
    ],
    "reads": [
     "mem:UserSettings (settings closure → SettingsManager.settingsSnapshot)",
@@ -468,9 +496,8 @@
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func RecentBiometricProfile.fetch()": "59764968e0e76ed2",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixedAsync(key:description:valueType:resolve:)": "7ac0cf1ea91ba5f2",
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)": "ee8ecd721e21103a",
-    "Emuqu/Sources/Collection/HealthKitManager+Store.swift::func HealthKitManager.fetchBiometricProfile()": "acc4e78677a6f52c",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "832c4ee32f6110e2",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
@@ -478,13 +505,12 @@
   },
   {
    "key": "var UserProfileNamespace.userProfileBiologicalSexEntry",
-   "hash": "32e64334303cb481",
-   "does": "Async fixed fact user.profile.biological_sex: Settings biologicalSex rawValue, else HealthKit profile appBiologicalSex (3 s timeout), else missing.",
+   "hash": "f10846e0578b82a4",
+   "does": "Async fixed fact user.profile.biological_sex: Settings biologicalSex rawValue, else HealthKit profile appBiologicalSex (shared RecentBiometricProfile fetch, 3 s cap, reused for 10 s), else missing.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixedAsync(key:description:valueType:resolve:)",
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)",
-    "Emuqu/Sources/Collection/HealthKitManager+Store.swift::func HealthKitManager.fetchBiometricProfile()"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func RecentBiometricProfile.fetch()"
    ],
    "reads": [
     "mem:UserSettings (settings closure → SettingsManager.settingsSnapshot)",
@@ -505,10 +531,9 @@
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func RecentBiometricProfile.fetch()": "59764968e0e76ed2",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixedAsync(key:description:valueType:resolve:)": "7ac0cf1ea91ba5f2",
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)": "ee8ecd721e21103a",
     "Emuqu/Sources/Collection/HealthDataTypes.swift::var HealthBiometricProfile.appBiologicalSex": "ad45ac65e59d2989",
-    "Emuqu/Sources/Collection/HealthKitManager+Store.swift::func HealthKitManager.fetchBiometricProfile()": "acc4e78677a6f52c",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "55c985aa6bd25115",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
@@ -516,14 +541,13 @@
   },
   {
    "key": "var UserProfileNamespace.userProfileAgeEntry",
-   "hash": "6db195a65d08186a",
-   "does": "Async fixed fact user.profile.age: whole years from Settings birthday to now, else from HealthKit dateOfBirth (3 s timeout), else missing.",
+   "hash": "d93c5bb02101a631",
+   "does": "Async fixed fact user.profile.age: whole years from Settings birthday to now, else from HealthKit dateOfBirth (shared RecentBiometricProfile fetch, 3 s cap, reused for 10 s), else missing.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixedAsync(key:description:valueType:resolve:)",
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)",
-    "Emuqu/Sources/Collection/HealthKitManager+Store.swift::func HealthKitManager.fetchBiometricProfile()",
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Int?, reason: MissingReason, detail: String?)"
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Int?, reason: MissingReason, detail: String?)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func RecentBiometricProfile.fetch()"
    ],
    "reads": [
     "mem:UserSettings (settings closure → SettingsManager.settingsSnapshot)",
@@ -542,25 +566,11 @@
      "effect": "returns HK-derived age; else missing('no birthday in Settings or Apple Health')"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "weight_kg, biological_sex and age each call fetchBiometricProfile separately with their own 3 s timeout; get_user(field='profile') resolves them sequentially (CompactToolRouter+Resolvers.swift:487-491), so a user without Settings values triggers three identical HealthKit fetches and up to 9 s of waiting.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift:315",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift:327",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift:341",
-      "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift:489"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func RecentBiometricProfile.fetch()": "59764968e0e76ed2",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixedAsync(key:description:valueType:resolve:)": "7ac0cf1ea91ba5f2",
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)": "ee8ecd721e21103a",
     "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Int?, reason: MissingReason, detail: String?)": "5a39f12343a8c5ae",
-    "Emuqu/Sources/Collection/HealthKitManager+Store.swift::func HealthKitManager.fetchBiometricProfile()": "acc4e78677a6f52c",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "848cd8a572666b81",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
@@ -688,8 +698,8 @@
   },
   {
    "key": "var UserProfileNamespace.scoreAlgorithmVersionEntry",
-   "hash": "62a760df232d2899",
-   "does": "Fixed fact score.algorithm.version = ScoringVersion.current ('v3.1.oct2026'); lives in the user namespace and is reached via the registry's cross-namespace fallback scan.",
+   "hash": "a443a40266d3da6d",
+   "does": "Fixed fact score.algorithm.version = ScoringVersion.current; description names no version string (it describes the current weights); lives in the user namespace and is reached via the registry's cross-namespace fallback scan.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)"
@@ -697,26 +707,15 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "The description hard-codes the version string 'v3.1.oct2026' and its weights while the value comes from ScoringVersion.current, which was introduced precisely to stop duplicating that string; a version bump leaves the description stale.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift:393",
-      "Emuqu/Sources/Analysis/ScoringVersion.swift:25"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
    }
   },
   {
    "key": "var UserProfileNamespace.scoreHistoryRecomputedUnderV2Entry",
-   "hash": "081dfd0a902370e7",
-   "does": "Fixed fact score.history.recomputed_under_v2 = settings().hasRunScoreHistoryRecompute.",
+   "hash": "eddc06eb1cf205bb",
+   "does": "Fixed fact score.history.recomputed_under_v2 = settings().hasRunScoreHistoryRecompute; description says true means the recompute offer was settled (run, declined, or a post-change install) and does not prove archived scores were recomputed.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)"
@@ -726,28 +725,15 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Description tells the model 'true means the whole archive was reanalyzed under HRV/Sleep/Vitals', but the flag is also set true when the user declined the recompute and on every fresh onboarding, so the assistant can assert history was recomputed when it was not.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift:403",
-      "Emuqu/Sources/Models/UserSettings+Model.swift:571",
-      "Emuqu/Sources/Models/UserSettings+Model.swift:575",
-      "Emuqu/Sources/Views/Onboarding/OnboardingView.swift:104"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
    }
   },
   {
    "key": "var UserProfileNamespace.userProfileVo2MaxEntry",
-   "hash": "5aae03ba4f9615ac",
-   "does": "Fixed fact user.profile.vo2_max: settings vo2MaxOverride if set, else when useHealthKitVO2Max the TrainingMetricsCache snapshot's vo2MaxLatest (read on main actor), else missing.",
+   "hash": "5e5a71ed70df3a0a",
+   "does": "Fixed fact user.profile.vo2_max: settings vo2MaxOverride when > 0, else when useHealthKitVO2Max the TrainingMetricsCache snapshot's vo2MaxLatest (read on main actor), else missing.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
@@ -761,12 +747,12 @@
    "writes": [],
    "branches": [
     {
-     "at": "+8",
-     "cond": "vo2MaxOverride non-nil",
-     "effect": "returns it"
+     "at": "+9",
+     "cond": "vo2MaxOverride non-nil and > 0",
+     "effect": "returns it (an override of 0 or less is ignored, as vo2_max_is_override reads it)"
     },
     {
-     "at": "+11",
+     "at": "+12",
      "cond": "useHealthKitVO2Max and cache snapshot has vo2MaxLatest",
      "effect": "returns HK value; else missing('no VO2max override and HealthKit estimate unavailable')"
     }
@@ -798,19 +784,7 @@
      "effect": "treated as 0 → false"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "vo2_max returns any non-nil override (if let) while vo2_max_is_override requires > 0, so a stored override of 0 makes vo2_max report 0 ml/kg/min with is_override false; only the Settings page clamp (BiometricsSettingsPage.swift:80) prevents it.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift:417",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift:430",
-      "Emuqu/Sources/Views/BiometricsSettingsPage.swift:80"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
    }
@@ -895,7 +869,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func CMAltimeterIsAvailable()": "9122772812a6a063",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func CMAltimeterIsAvailable()": "61cfce07b4686691",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
    }
   }

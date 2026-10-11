@@ -46,23 +46,10 @@
     {
      "at": "+18",
      "cond": "moved (?:)",
-     "effect": "true: returns cursor; false: returns nil (no activity after start)"
+     "effect": "true: returns cursor; false: returns nil (no activity at all after start, or the first usable window starts more than maxGap after start — a later, separate bout)"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Doc comment says nil means the samples show no activity at all, but when the first usable window starts more than maxGap (10 min) after `start` the loop breaks on its first iteration (line 62) and returns nil although activity exists; the rebuild then falls back to steps or fails with 'no bout'.",
-     "evidence": [
-      "Emuqu/Sources/Import/ActivityBoutResolver.swift:42",
-      "Emuqu/Sources/Import/ActivityBoutResolver.swift:62",
-      "Emuqu/Sources/Import/ActivityBoutResolver.swift:68",
-      "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift:192"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.usable(_:after:)": "38434c4667fbcfa2"
    }

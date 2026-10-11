@@ -17,7 +17,7 @@
   {
    "key": "func TurnMarkerEngine.evaluate(step:context:state:)",
    "hash": "e3443362d6f46546",
-   "does": "First tick seeds a leg; afterwards accumulates HR (>0) into the leg, restarts the leg when the step index goes backwards, returns (nil, working) on the same step, and on a step advance returns the leg payload plus a fresh leg seeded at the new step.",
+   "does": "First tick seeds a leg; afterwards accumulates HR (>0) into the leg, restarts the leg when the step index goes backwards, returns (nil, working) on the same step, and on a step advance returns the leg payload plus a fresh leg seeded at the new step. When several steps were passed since the last tick, one payload covers them all (the leg since the last announcement, labelled with the latest turn made); earlier turns are not announced after the fact.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.legStart(at:context:)",
@@ -47,18 +47,7 @@
      "effect": "false: (nil, working); true: payload + fresh leg"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "When several steps are passed between ticks (index jumps by >1) only one payload is produced, labelled with the newest step's instruction; the intermediate turns are merged into one 'leg' with no announcement.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/TurnMarkerEngine.swift:100",
-      "Emuqu/Sources/Assistant/TurnMarkerEngine.swift:136"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.legPayload(step:context:working:)": "88dd604de262d2ac",
     "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.legStart(at:context:)": "8f1a3e13215c09eb"
@@ -128,12 +117,12 @@
   },
   {
    "key": "func TurnMarkerFormatter.render(payload:unitsImperial:)",
-   "hash": "64eb84ecf85bef0a",
+   "hash": "73d16fd2249666e3",
    "does": "Renders 'Done: <instruction>' (or 'Turn completed'), 'last leg m:ss', optional pace, 'HR n', and climb, comma-joined with a trailing period, in the app bundle's language.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
-    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerFormatter.lowercaseFirst(_:)",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.lowercaseFirst(_:)",
     "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerFormatter.paceLabel(secPerKm:unitsImperial:)",
     "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerFormatter.climbLabel(meters:unitsImperial:)"
    ],
@@ -186,8 +175,8 @@
     }
    ],
    "deps": {
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.lowercaseFirst(_:)": "7ae2fa39646325c4",
     "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerFormatter.climbLabel(meters:unitsImperial:)": "8ac182e0006e8873",
-    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerFormatter.lowercaseFirst(_:)": "c1810dec56525005",
     "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerFormatter.paceLabel(secPerKm:unitsImperial:)": "c2984cebaca8b548",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
@@ -239,39 +228,6 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
-   }
-  },
-  {
-   "key": "func TurnMarkerFormatter.lowercaseFirst(_:)",
-   "hash": "cef2a060cf7d5303",
-   "does": "Lowercases the first character when the app language is English; else unchanged.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "English and non-empty",
-     "effect": "lowercased first; else s"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Copy of TurnAlertFormatter.lowercaseFirst.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/TurnMarkerEngine.swift:190",
-      "Emuqu/Sources/Assistant/TurnAlertEngine.swift:217"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
    }
   }
  ],

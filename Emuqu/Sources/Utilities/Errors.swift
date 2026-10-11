@@ -8,7 +8,6 @@ enum PipelineError: Error, LocalizedError {
     case timeDomainFailed(sessionId: UUID, windowStart: Int, windowEnd: Int)
     case nonlinearFailed(sessionId: UUID, windowStart: Int, windowEnd: Int)
     case windowSelectionFailed(sessionId: UUID)
-    case noRecoveryWindow(sessionId: UUID)
     case insufficientRange(sessionId: UUID, start: Int, end: Int)
     case healthKitFetchFailed(sessionId: UUID, operation: String, underlying: Error)
 
@@ -22,12 +21,10 @@ enum PipelineError: Error, LocalizedError {
             "Nonlinear analysis failed for session \(id.uuidString.prefix(8)) window [\(start)-\(end)]"
         case let .windowSelectionFailed(id):
             "Window selection returned no result for session \(id.uuidString.prefix(8))"
-        case let .noRecoveryWindow(id):
-            "No recovery window found for session \(id.uuidString.prefix(8))"
         case let .insufficientRange(id, start, end):
             "Invalid window range [\(start)-\(end)] for session \(id.uuidString.prefix(8))"
-        case let .healthKitFetchFailed(id, op, _):
-            "Apple Health \(op) failed for session \(id.uuidString.prefix(8))"
+        case let .healthKitFetchFailed(id, op, underlying):
+            "Apple Health \(op) failed for session \(id.uuidString.prefix(8)): \(underlying.localizedDescription)"
         }
     }
 }

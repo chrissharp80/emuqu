@@ -4,7 +4,10 @@ import Foundation
 // `UserSettings+Model.swift` to keep that file under the 1000-line
 // limit. The decoder is not one monolithic initializer: it seeds
 // `self` from the designated `init()` and then fills each settings domain from
-// its own small function, mirroring the grouping the encoder uses.
+// its own small function. Each `decodeX` has an `encodeX` covering the same
+// keys (routing mode is encoded with the onboarding group, and
+// `profileFieldsFromHealth` is decoded last but encoded with the profile), so a
+// missing field shows up as a difference between the two halves of one pair.
 //
 // This file is
 // the app's forward/backward compatibility surface — a changed default here is
@@ -31,6 +34,21 @@ extension UserSettings {
         from container: KeyedDecodingContainer<CodingKeys>
     ) -> T? {
         container.optionalValue(type, key)
+    }
+
+    /// A wall-clock time of day in minutes after midnight: the time-zone
+    /// independent minute key when present and within a day, else the legacy
+    /// absolute `Date` key read in the current calendar (all that builds before
+    /// the minute key wrote). Nil when neither is usable.
+    static func decodedMinuteOfDay(
+        _ key: CodingKeys,
+        legacy legacyKey: CodingKeys,
+        from container: KeyedDecodingContainer<CodingKeys>
+    ) -> Int? {
+        if let minute = optional(Int.self, key, from: container), (0 ..< 24 * 60).contains(minute) {
+            return minute
+        }
+        return optional(Date.self, legacyKey, from: container).map { minuteOfDay($0) }
     }
 
     /// Decode with a default for every field, so a schema change never drops a
@@ -71,8 +89,7 @@ extension UserSettings {
         baselineHR = Self.optional(Double.self, .baselineHR, from: container)
         typicalSleepHours = min(14.0, max(3.0, Self.decoded(Double.self, .typicalSleepHours, from: container, default: 8.0)))
         defaultWindowSelectionMethod = Self.decoded(WindowSelectionMethod.self, .defaultWindowSelectionMethod, from: container, default: .consolidatedRecovery)
-        expectedBedtime = (Self.optional(Date.self, .expectedBedtime, from: container))
-            ?? Calendar.current.date(from: DateComponents(hour: 22, minute: 0)) ?? Date()
+        expectedBedtimeMinuteOfDay = Self.decodedMinuteOfDay(.expectedBedtimeMinuteOfDay, legacy: .expectedBedtime, from: container) ?? 22 * 60
         sessionMergeMode = Self.decoded(SessionMergeMode.self, .sessionMergeMode, from: container, default: .defaultGap)
         customMergeGapHours = min(12.0, max(1.0, Self.decoded(Double.self, .customMergeGapHours, from: container, default: 4.5)))
         sleepSplitGapMinutes = max(0, Self.decoded(Int.self, .sleepSplitGapMinutes, from: container, default: 20))
@@ -80,12 +97,18 @@ extension UserSettings {
 
     /// Physiological markers and the thresholds derived from them.
     ///
-    /// A present `maxHR` is clamped to 100–240 bpm; absent stays absent, because
-    /// "no maximum recorded" and "maximum of 100" drive different zone maths.
+    /// A present `maxHR` below the Biometrics field's minimum
+    /// (`MaxHeartRate.minimumUserEntered`) decodes as absent: it is a value
+    /// that was still being typed when the settings were flushed, and
+    /// `MaxHeartRate.effective` already treats it as unset. Raising it to a
+    /// floor instead would turn a half-typed "18" into a 100 bpm override that
+    /// every zone and load derives from. A present value above 240 bpm is
+    /// clamped to 240.
     private mutating func decodeFitnessMarkers(from container: KeyedDecodingContainer<CodingKeys>) {
         vo2MaxOverride = Self.optional(Double.self, .vo2MaxOverride, from: container)
         useHealthKitVO2Max = Self.decoded(Bool.self, .useHealthKitVO2Max, from: container, default: false)
-        maxHR = (Self.optional(Int.self, .maxHR, from: container)).map { min(240, max(100, $0)) }
+        maxHR = Self.optional(Int.self, .maxHR, from: container)
+            .flatMap { $0 >= MaxHeartRate.minimumUserEntered ? min(240, $0) : nil }
         lactateThresholdHR = Self.optional(Int.self, .lactateThresholdHR, from: container)
         bodyWeightKg = Self.optional(Double.self, .bodyWeightKg, from: container)
         userRestingHR = Self.optional(Int.self, .userRestingHR, from: container)
@@ -99,20 +122,19 @@ extension UserSettings {
     /// Report email recipients, per category.
     ///
     /// Legacy migration — a user who only ever set the old single default fields
-    /// (pre-categorisation) has both new categories seeded from that value, so
-    /// behaviour is unchanged. The separate settings then override per category
-    /// as the user updates them.
+    /// (pre-categorisation) has each empty category seeded from that value, so
+    /// behaviour is unchanged. The legacy fields are then consumed (set to nil),
+    /// so the next save drops them: a recipient the user later clears in
+    /// Settings stays cleared instead of being re-seeded on every launch.
     private mutating func decodeEmailDefaults(from container: KeyedDecodingContainer<CodingKeys>) {
-        defaultEmailRecipient = Self.optional(String.self, .defaultEmailRecipient, from: container)
-        defaultEmailCC = Self.optional(String.self, .defaultEmailCC, from: container)
-        defaultRecoveryEmailRecipient = Self.optional(String.self, .defaultRecoveryEmailRecipient, from: container)
-        defaultRecoveryEmailCC = Self.optional(String.self, .defaultRecoveryEmailCC, from: container)
-        defaultTrainingEmailRecipient = Self.optional(String.self, .defaultTrainingEmailRecipient, from: container)
-        defaultTrainingEmailCC = Self.optional(String.self, .defaultTrainingEmailCC, from: container)
-        if defaultRecoveryEmailRecipient == nil { defaultRecoveryEmailRecipient = defaultEmailRecipient }
-        if defaultRecoveryEmailCC == nil { defaultRecoveryEmailCC = defaultEmailCC }
-        if defaultTrainingEmailRecipient == nil { defaultTrainingEmailRecipient = defaultEmailRecipient }
-        if defaultTrainingEmailCC == nil { defaultTrainingEmailCC = defaultEmailCC }
+        let legacyRecipient = Self.optional(String.self, .defaultEmailRecipient, from: container)
+        let legacyCC = Self.optional(String.self, .defaultEmailCC, from: container)
+        defaultRecoveryEmailRecipient = Self.optional(String.self, .defaultRecoveryEmailRecipient, from: container) ?? legacyRecipient
+        defaultRecoveryEmailCC = Self.optional(String.self, .defaultRecoveryEmailCC, from: container) ?? legacyCC
+        defaultTrainingEmailRecipient = Self.optional(String.self, .defaultTrainingEmailRecipient, from: container) ?? legacyRecipient
+        defaultTrainingEmailCC = Self.optional(String.self, .defaultTrainingEmailCC, from: container) ?? legacyCC
+        defaultEmailRecipient = nil
+        defaultEmailCC = nil
     }
 
     /// Sleep/training integration, training breaks, comeback and overreach state.
@@ -135,8 +157,8 @@ extension UserSettings {
     private mutating func decodeNotifications(from container: KeyedDecodingContainer<CodingKeys>) {
         dailyReportEnabled = Self.decoded(Bool.self, .dailyReportEnabled, from: container, default: false)
         dailyReportDelivery = Self.decoded(DailyReportDelivery.self, .dailyReportDelivery, from: container, default: .smart)
-        if let fixedTime = Self.optional(Date.self, .dailyReportFixedTime, from: container) {
-            dailyReportFixedTime = fixedTime
+        if let fixedMinute = Self.decodedMinuteOfDay(.dailyReportFixedMinuteOfDay, legacy: .dailyReportFixedTime, from: container) {
+            dailyReportFixedMinuteOfDay = fixedMinute
         }
         dailyReportFormat = Self.decoded(DailyReportFormat.self, .dailyReportFormat, from: container, default: .auto)
         hrvAnomalyAlertsEnabled = Self.decoded(Bool.self, .hrvAnomalyAlertsEnabled, from: container, default: false)
@@ -152,12 +174,7 @@ extension UserSettings {
     /// Theme, units, avatar and the voice/watch presentation preferences.
     private mutating func decodeAppearance(from container: KeyedDecodingContainer<CodingKeys>) {
         appearanceTheme = Self.decoded(AppearanceTheme.self, .appearanceTheme, from: container, default: .light)
-        do {
-            colorTheme = try container.decode(ColorTheme.self, forKey: .colorTheme)
-        } catch {
-            debugLog("[UserSettings] colorTheme decode failed, falling back to .blue: \(error)")
-            colorTheme = .blue
-        }
+        colorTheme = Self.decoded(ColorTheme.self, .colorTheme, from: container, default: .blue)
         temperatureUnit = Self.decoded(TemperatureUnit.self, .temperatureUnit, from: container, default: .regionDefault)
         avatarImageData = Self.optional(Data.self, .avatarImageData, from: container)
         watchDisplayOnlyMode = Self.decoded(Bool.self, .watchDisplayOnlyMode, from: container, default: true)
@@ -246,6 +263,7 @@ extension UserSettings {
         try encodeTrainingState(into: &container)
         try encodeNotifications(into: &container)
         try encodeAppearance(into: &container)
+        try encodeOnboarding(into: &container)
         try encodeExportAndPerformance(into: &container)
         try encodeCoachAutomation(into: &container)
     }
@@ -261,6 +279,8 @@ extension UserSettings {
         try container.encodeIfPresent(baselineRMSSD, forKey: .baselineRMSSD)
         try container.encodeIfPresent(baselineHR, forKey: .baselineHR)
         try container.encode(typicalSleepHours, forKey: .typicalSleepHours)
+        // The legacy `Date` key is still written for builds that predate the minute key.
+        try container.encode(expectedBedtimeMinuteOfDay, forKey: .expectedBedtimeMinuteOfDay)
         try container.encode(expectedBedtime, forKey: .expectedBedtime)
         try container.encode(sessionMergeMode, forKey: .sessionMergeMode)
         try container.encode(customMergeGapHours, forKey: .customMergeGapHours)
@@ -307,12 +327,14 @@ extension UserSettings {
         try container.encode(peakingDetectionEnabled, forKey: .peakingDetectionEnabled)
         try container.encode(intentionalOverreachActive, forKey: .intentionalOverreachActive)
         try container.encodeIfPresent(intentionalOverreachEndDate, forKey: .intentionalOverreachEndDate)
+        try container.encode(trainingGoal, forKey: .trainingGoal)
     }
 
     /// Daily report, alert toggles, and the in-workout announcements.
     private func encodeNotifications(into container: inout KeyedEncodingContainer<CodingKeys>) throws {
         try container.encode(dailyReportEnabled, forKey: .dailyReportEnabled)
         try container.encode(dailyReportDelivery, forKey: .dailyReportDelivery)
+        try container.encode(dailyReportFixedMinuteOfDay, forKey: .dailyReportFixedMinuteOfDay)
         try container.encode(dailyReportFixedTime, forKey: .dailyReportFixedTime)
         try container.encode(dailyReportFormat, forKey: .dailyReportFormat)
         try container.encode(hrvAnomalyAlertsEnabled, forKey: .hrvAnomalyAlertsEnabled)
@@ -323,16 +345,22 @@ extension UserSettings {
         try container.encode(mileMarkerInterval, forKey: .mileMarkerInterval)
         try container.encode(enableTurnByTurnAlerts, forKey: .enableTurnByTurnAlerts)
         try container.encode(enableTurnMarkerUpdates, forKey: .enableTurnMarkerUpdates)
+    }
+
+    /// Theme, units, avatar and the voice/watch presentation preferences.
+    private func encodeAppearance(into container: inout KeyedEncodingContainer<CodingKeys>) throws {
+        try container.encode(appearanceTheme, forKey: .appearanceTheme)
+        try container.encode(colorTheme, forKey: .colorTheme)
+        try container.encode(temperatureUnit, forKey: .temperatureUnit)
+        try container.encodeIfPresent(avatarImageData, forKey: .avatarImageData)
+        try container.encode(watchDisplayOnlyMode, forKey: .watchDisplayOnlyMode)
         try container.encode(preferredSTTProvider, forKey: .preferredSTTProvider)
         try container.encode(preserveClipboardForPaste, forKey: .preserveClipboardForPaste)
     }
 
-    /// Avatar, units, theme and the one-shot onboarding flags.
-    private func encodeAppearance(into container: inout KeyedEncodingContainer<CodingKeys>) throws {
-        try container.encodeIfPresent(avatarImageData, forKey: .avatarImageData)
-        try container.encode(temperatureUnit, forKey: .temperatureUnit)
-        try container.encode(trainingGoal, forKey: .trainingGoal)
-        try container.encode(watchDisplayOnlyMode, forKey: .watchDisplayOnlyMode)
+    /// Provider routing mode, onboarding, one-time migration flags, trial,
+    /// iCloud and heat tracking.
+    private func encodeOnboarding(into container: inout KeyedEncodingContainer<CodingKeys>) throws {
         try container.encode(routingMode, forKey: .routingMode)
         try container.encode(hasCompletedOnboarding, forKey: .hasCompletedOnboarding)
         try container.encode(hasAcknowledgedScoreArchitectureChange, forKey: .hasAcknowledgedScoreArchitectureChange)
@@ -341,8 +369,6 @@ extension UserSettings {
         try container.encodeIfPresent(trialStartDate, forKey: .trialStartDate)
         try container.encode(iCloudSyncEnabled, forKey: .iCloudSyncEnabled)
         try container.encode(heatTrackingEnabled, forKey: .heatTrackingEnabled)
-        try container.encode(appearanceTheme, forKey: .appearanceTheme)
-        try container.encode(colorTheme, forKey: .colorTheme)
     }
 
     /// HealthKit export selection, plus the performance / battery

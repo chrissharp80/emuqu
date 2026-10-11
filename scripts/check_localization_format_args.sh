@@ -17,13 +17,17 @@
 # ("%2$@ de %1$lld minutos"). This gate resolves every specifier in every
 # translation to the argument position it reads and fails when that position's
 # type differs from the English one, or when it reads a position English never
-# supplies. A translation may leave an argument out: the formatter ignores
+# supplies. An integer's width counts as part of its type: "%d" in a
+# translation where English has "%lld" reads 32 of the 64 bits Swift passes. A
+# translation may leave an argument out: the formatter ignores
 # unread trailing arguments, so that is a wording choice, not a crash.
 #
 # Plural and device variations are checked the same way, against the English
 # form of the same variation when there is one.
 
 set -euo pipefail
+
+cd "$(dirname "$0")/.."
 
 CATALOGUE="${1:-Emuqu/Localizable.xcstrings}"
 
@@ -49,13 +53,23 @@ SPEC = re.compile(
 )
 INTEGER = set("dDiuUxXoOcC")
 FLOAT = set("fFeEgGaA")
+# An integer's width is part of its type: Swift passes `Int` as 64 bits
+# ("%lld"), and a translation reading it as "%d" takes 32 of them. On Apple's
+# 64-bit platforms `l`, `ll`, `q`, `j`, `z` and `t` all read 64 bits.
+WIDTH = {"hh": "8-bit", "h": "16-bit", None: "32-bit",
+         "l": "64-bit", "ll": "64-bit", "q": "64-bit", "j": "64-bit", "z": "64-bit", "t": "64-bit"}
 
 
-def kind(conv):
+def kind(conv, length=None):
     if conv == "@":
         return "object"
+    if conv in "cC":
+        return "character"
+    if conv in "DUO":
+        # The capital forms are the deprecated long-sized spellings.
+        return "integer 64-bit"
     if conv in INTEGER:
-        return "integer"
+        return "integer " + WIDTH.get(length, "32-bit")
     if conv in FLOAT:
         return "float"
     if conv in "sS":
@@ -68,7 +82,7 @@ def arguments(text):
     positions = {}
     sequential = 0
     for match in SPEC.finditer(text):
-        explicit, _, conv = match.groups()
+        explicit, length, conv = match.groups()
         if conv == "%":
             continue
         if explicit:
@@ -76,7 +90,7 @@ def arguments(text):
         else:
             sequential += 1
             position = sequential
-        positions.setdefault(position, set()).add(kind(conv))
+        positions.setdefault(position, set()).add(kind(conv, length))
     return positions
 
 

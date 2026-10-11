@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 /// Two-tier memory, long-term layer.
 /// Holds **persistent conversational artifacts** that
@@ -27,7 +28,11 @@ import Foundation
 ///
 /// **Storage:** JSON file in the App Group container (Documents when the
 /// group is unavailable), written atomically with complete file protection.
-/// Like all app data it is removed when the app is deleted.
+/// Like all app data it is removed when the app is deleted. A file that
+/// cannot be read (the phone has not been unlocked yet) holds saves and is
+/// read again before the next change and on unlock; one that does not
+/// decode is set aside (`UndecodableFile`) before the next save; a failed
+/// write is retried on unlock.
 @Observable
 @MainActor
 final class AssistantArtifactStore {
@@ -78,15 +83,24 @@ final class AssistantArtifactStore {
 
     /// Delete All My Data removed the file; this drops the in-memory copy so
     /// nothing reads it afterwards and the next save cannot write it back.
+    /// The read and write flags reset too: there is no file left to protect
+    /// or retry, and a stale flag would hold every later save.
     func forgetAfterPurge() {
         artifacts = []
+        diskState = .readable
+        writePending = false
     }
 
     private let fileURL: URL
 
-    /// True when `load()` found a file it could not decode. Blocks `persist()`
-    /// so a corrupt or newer-schema file is preserved rather than overwritten.
-    private var loadFailed = false
+    /// What the last read of the file found. Saves are held unless it is
+    /// `.readable`, so the user's artifacts on disk are never replaced by the
+    /// partial in-memory list.
+    private enum DiskState { case readable, unreadable, undecodable }
+    private var diskState = DiskState.readable
+    /// A save was held or failed and has not been written yet.
+    private var writePending = false
+    private let unlockObservers = NotificationTokens()
     private let queue = DispatchQueue(label: "com.chrissharp.flowrecovery.assistant.artifacts", qos: .userInitiated)
 
     private init() {
@@ -100,13 +114,38 @@ final class AssistantArtifactStore {
         }()
         _ = attempt("AssistantArtifactStore.create") { try fm.createDirectory(at: dir, withIntermediateDirectories: true) }
         fileURL = dir.appendingPathComponent("artifacts.json")
-        load()
+        apply(readDisk())
+        wireRecoveryOnUnlock()
+    }
+
+    /// Unlock (and becoming active, since a suspended app can miss the
+    /// unlock notification) runs `recoverAfterUnlock()` on the main actor.
+    private func wireRecoveryOnUnlock() {
+        for name in [UIApplication.protectedDataDidBecomeAvailableNotification, UIApplication.didBecomeActiveNotification] {
+            unlockObservers.add(NotificationCenter.default.addObserver(forName: name, object: nil, queue: nil) { [weak self] _ in
+                self?.scheduleRecoveryAfterUnlock()
+            })
+        }
+    }
+
+    nonisolated private func scheduleRecoveryAfterUnlock() {
+        Task { @MainActor [weak self] in
+            self?.recoverAfterUnlock()
+        }
+    }
+
+    /// Reads a file that could not be read before, then writes a held or
+    /// failed save.
+    func recoverAfterUnlock() {
+        if diskState == .unreadable { apply(readDisk()) }
+        if writePending { persist() }
     }
 
     // MARK: - CRUD
 
     @discardableResult
     func add(kind: Kind, body: String) -> Artifact {
+        reloadIfBlocked()
         let trimmed = body.trimmingCharacters(in: .whitespacesAndNewlines)
         let artifact = Artifact(kind: kind, body: trimmed)
         artifacts.append(artifact)
@@ -116,34 +155,12 @@ final class AssistantArtifactStore {
 
     @discardableResult
     func updateStatus(id: UUID, status: Status) -> Artifact? {
+        reloadIfBlocked()
         guard let idx = artifacts.firstIndex(where: { $0.id == id }) else { return nil }
         artifacts[idx].status = status
         artifacts[idx].updatedAt = Date()
         persist()
         return artifacts[idx]
-    }
-
-    @discardableResult
-    func updateBody(id: UUID, body: String) -> Artifact? {
-        guard let idx = artifacts.firstIndex(where: { $0.id == id }) else { return nil }
-        artifacts[idx].body = body.trimmingCharacters(in: .whitespacesAndNewlines)
-        artifacts[idx].updatedAt = Date()
-        persist()
-        return artifacts[idx]
-    }
-
-    func remove(id: UUID) {
-        artifacts.removeAll { $0.id == id }
-        persist()
-    }
-
-    func removeAll(kind: Kind? = nil) {
-        if let kind {
-            artifacts.removeAll { $0.kind == kind }
-        } else {
-            artifacts.removeAll()
-        }
-        persist()
     }
 
     // MARK: - Queries
@@ -157,62 +174,92 @@ final class AssistantArtifactStore {
         return out.sorted { $0.createdAt > $1.createdAt }
     }
 
-    var counts: [Kind: Int] {
-        var out: [Kind: Int] = [:]
-        for k in Kind.allCases {
-            out[k] = artifacts.filter { $0.kind == k && $0.status == .open }.count
-        }
-        return out
-    }
-
     // MARK: - Persistence
 
     /// Must not catch EVERY error as "First run — file doesn't exist yet",
     /// `DecodingError` included. Doing so means a
     /// corrupt write, a truncated file, or a future schema change to `Artifact`
-    /// leaves `artifacts` empty, and the next `add` / `updateStatus` /
-    /// `updateBody` / delete calls `persist()`, which atomically overwrites the
-    /// file with the empty snapshot. The user's artifact history is gone,
-    /// silently, with nothing logged.
-    ///
-    /// `SavedRouteStore` already had the right shape 200 lines away: mark the
-    /// load as failed and refuse to save rather than clobber a recoverable
-    /// file. Same pattern here.
-    private func load() {
+    /// leaves `artifacts` empty, and the next `add` / `updateStatus` calls
+    /// `persist()`, which atomically overwrites the file with the empty
+    /// snapshot. The user's artifact history is gone, silently, with nothing
+    /// logged. A missing file is the only first run; a file that cannot be
+    /// read and one that does not decode are told apart.
+    private enum DiskRead {
+        case missing, unreadable, undecodable
+        case artifacts([Artifact])
+    }
+
+    private func readDisk() -> DiskRead {
+        let data: Data
         do {
-            let data = try Data(contentsOf: fileURL)
-            artifacts = try JSONDecoder().decode([Artifact].self, from: data)
-            loadFailed = false
+            data = try Data(contentsOf: fileURL)
         } catch let error as CocoaError where error.code == .fileNoSuchFile || error.code == .fileReadNoSuchFile {
-            // Genuine first run. The only case the original comment described.
-            loadFailed = false
+            return .missing
         } catch {
-            loadFailed = true
-            debugLog(
-                "[AssistantArtifactStore] artifacts.json present but unreadable — keeping in-memory list and blocking saves so the file is not clobbered: \(error)",
-                level: .error
-            )
+            debugLog("[AssistantArtifactStore] artifacts.json present but unreadable (device locked?) — holding saves until it can be read: \(error)", level: .warning)
+            return .unreadable
+        }
+        do {
+            return .artifacts(try JSONDecoder().decode([Artifact].self, from: data))
+        } catch {
+            debugLog("[AssistantArtifactStore] artifacts.json does not decode — it is set aside before the next save: \(error)", level: .error)
+            return .undecodable
+        }
+    }
+
+    /// Folds a read into memory. Artifacts on disk that the list lacks are
+    /// added, so a change made while the file could not be read is kept
+    /// alongside everything saved before it.
+    private func apply(_ read: DiskRead) {
+        switch read {
+        case .missing: diskState = .readable
+        case .unreadable: diskState = .unreadable
+        case .undecodable: diskState = .undecodable
+        case let .artifacts(onDisk):
+            let known = Set(artifacts.map(\.id))
+            artifacts = onDisk.filter { !known.contains($0.id) } + artifacts
+            diskState = .readable
+        }
+    }
+
+    /// Before any change: read again a file that could not be read, and set
+    /// aside one that does not decode (kept, not deleted) so saving resumes.
+    private func reloadIfBlocked() {
+        if diskState == .unreadable { apply(readDisk()) }
+        if diskState == .undecodable, UndecodableFile.setAside(fileURL, caller: "AssistantArtifactStore") {
+            diskState = .readable
         }
     }
 
     private func persist() {
-        // Never overwrite a store file we could not decode — that destroys a
-        // recoverable library. Mirrors `SavedRouteStore.save()`.
-        guard !loadFailed else {
-            debugLog("[AssistantArtifactStore] skipping save — prior load failed; refusing to clobber the on-disk file", level: .warning)
+        reloadIfBlocked()
+        guard diskState == .readable else {
+            writePending = true
+            debugLog("[AssistantArtifactStore] save held — artifacts.json not readable yet; retried on unlock", level: .warning)
             return
         }
+        writePending = false
         let snapshot = artifacts
         let url = fileURL
         queue.async {
-            do {
-                let data = try JSONEncoder().encode(snapshot)
-                // Artifacts can quote health-adjacent context; protect at rest
-                // (readable only while unlocked), matching ConversationStore.
-                try data.write(to: url, options: [.atomic, .completeFileProtection])
-            } catch {
-                debugLog("[AssistantArtifactStore] persist failed: \(error)", level: .warning)
-            }
+            guard !Self.write(snapshot, to: url) else { return }
+            Task { @MainActor in self.writePending = true }
+        }
+    }
+
+    /// False when the write failed. The directory is created first: Delete
+    /// All My Data removes it under a running store, and only init created it.
+    nonisolated private static func write(_ snapshot: [Artifact], to url: URL) -> Bool {
+        do {
+            let data = try JSONEncoder().encode(snapshot)
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            // Artifacts can quote health-adjacent context; protect at rest
+            // (readable only while unlocked), matching ConversationStore.
+            try data.write(to: url, options: [.atomic, .completeFileProtection])
+            return true
+        } catch {
+            debugLog("[AssistantArtifactStore] persist failed, retried on unlock or the next change: \(error)", level: .warning)
+            return false
         }
     }
 }

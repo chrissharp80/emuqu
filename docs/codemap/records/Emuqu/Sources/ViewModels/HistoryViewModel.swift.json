@@ -12,19 +12,7 @@
   "let pageSize = 10"
  ],
  "toplevel": "Uses HistoryConstants (Constants+SleepAndDisplay.swift:291-307): debounce 150 ms, close-window 90 min, overlap 0.85, tiny artifact ≤45 min, near-end 30 min, start tol 5 min, end tol 30 min.",
- "flags": [
-  {
-   "kind": "broken",
-   "sev": "med",
-   "text": "Chain and same-night dedup run on the whole archive before the type/tag/search filters, so when a hidden segment matches a filter but the chain winner does not, the night disappears from filtered History entirely.",
-   "evidence": [
-    "Emuqu/Sources/ViewModels/HistoryViewModel.swift:128",
-    "Emuqu/Sources/ViewModels/HistoryViewModel.swift:130",
-    "Emuqu/Sources/ViewModels/HistoryViewModel.swift:131"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "init HistoryViewModel(archive:settingsProvider:)",
@@ -135,7 +123,7 @@
    "deps": {
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "599269848673b93a",
     "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.apply(_:)": "3e6ca79d97a12e36",
-    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.computeFiltered(entries:typeFilter:tagFilter:searchText:schedule:)": "f748bee0437e300c"
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.computeFiltered(entries:typeFilter:tagFilter:searchText:schedule:)": "1bd857a7f6a189cb"
    }
   },
   {
@@ -155,32 +143,58 @@
   },
   {
    "key": "func HistoryViewModel.computeFiltered(entries:typeFilter:tagFilter:searchText:schedule:)",
-   "hash": "1ba9da5b9566f601",
-   "does": "Pure pipeline: builds id map, hides non-winning split-night chain members, collapses scoreless same-night overnight duplicates, applies type/tag/search filters, sorts by displayDate descending, computes segment counts.",
+   "hash": "6fed16296fa31bfe",
+   "does": "Pure pipeline: builds id map; maps every non-winning split-night chain member to its chain winner, then every scoreless same-night overnight duplicate (among what remains) to its cluster winner; runs the type/tag/search filters over ALL entries and keeps a shown row (a winner or an entry folded into nothing) when it or any entry folded into it matches; sorts by displayDate descending and computes segment counts. A night whose hidden segment matches a filter is therefore still listed, under its winner's row.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.chainDuplicateIds(entries:entryById:)",
-    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.collapseSameNightOvernightDuplicatesStatic(_:entryById:schedule:)",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.chainHiddenToWinner(entries:entryById:)",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.sameNightHiddenToWinner(_:entryById:schedule:)",
     "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.applyFilters(_:typeFilter:tagFilter:searchText:)",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.shownRow(for:hiddenToWinner:)",
     "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate",
     "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.computeLinkedSegmentCountsStatic(for:entryById:)"
    ],
    "reads": [],
    "writes": [],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+15",
+     "cond": "entry not folded into a same-night winner and it (or something folded into it) matched the filters",
+     "effect": "kept as a row; otherwise dropped"
+    }
+   ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate": "b7a08a3bb6301f41",
-    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.applyFilters(_:typeFilter:tagFilter:searchText:)": "0508c1f7c27f01dc",
-    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.chainDuplicateIds(entries:entryById:)": "d44a1162147265b8",
-    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.collapseSameNightOvernightDuplicatesStatic(_:entryById:schedule:)": "f2227601a98cb772",
-    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.computeLinkedSegmentCountsStatic(for:entryById:)": "f116311590f5f5e3"
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.applyFilters(_:typeFilter:tagFilter:searchText:)": "af6e860e51e5eb82",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.chainHiddenToWinner(entries:entryById:)": "6864db09bf672182",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.computeLinkedSegmentCountsStatic(for:entryById:)": "f116311590f5f5e3",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.sameNightHiddenToWinner(_:entryById:schedule:)": "2ceb65cd69afd8ba",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.shownRow(for:hiddenToWinner:)": "0af90e360f33e74a"
    }
   },
   {
-   "key": "func HistoryViewModel.chainDuplicateIds(entries:entryById:)",
-   "hash": "fe497227c60df6ea",
-   "does": "Walks each linked chain once and returns every member's id except the chain winner (highest score).",
+   "key": "func HistoryViewModel.shownRow(for:hiddenToWinner:)",
+   "hash": "34e1d685bef625a0",
+   "does": "Follows the hidden→winner map from an id to the row it is shown under (an entry folded into a chain winner that is itself folded into a same-night winner resolves to the latter); stops after as many steps as the map has entries.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "id is a hidden entry and the step bound is not reached",
+     "effect": "moves to its winner; otherwise returns the current id"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HistoryViewModel.chainHiddenToWinner(entries:entryById:)",
+   "hash": "dc79b683f300836f",
+   "does": "Walks each linked chain once and maps every member's id except the chain winner (highest score; any real score beats none) to the winner's id.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.chainFrom(_:entryById:visited:)",
@@ -207,13 +221,13 @@
     {
      "at": "+10",
      "cond": "member is not the winner",
-     "effect": "true: hide"
+     "effect": "true: maps it to the winner"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.chainFrom(_:entryById:visited:)": "f68fdcc593da6b4e",
-    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.chainWinner(_:)": "99b09208112e6e67"
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.chainWinner(_:)": "1982bdd7fcbeefbc"
    }
   },
   {
@@ -251,8 +265,8 @@
   },
   {
    "key": "func HistoryViewModel.chainWinner(_:)",
-   "hash": "4fbd41d38bd7542e",
-   "does": "Max by recoveryScore (nil = 0), then later endDate (nil = distantPast), then later date.",
+   "hash": "cd61a00b86b9fb47",
+   "does": "Max by recoveryScore (nil = -infinity, so any real score, 0 included, beats a missing one), then later endDate (nil = distantPast), then later date.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -261,12 +275,12 @@
     {
      "at": "+2",
      "cond": "a.recoveryScore nil",
-     "effect": "0"
+     "effect": "-infinity"
     },
     {
      "at": "+3",
      "cond": "b.recoveryScore nil",
-     "effect": "0"
+     "effect": "-infinity"
     },
     {
      "at": "+4",
@@ -289,18 +303,7 @@
      "effect": "order by end; else by start date"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "A scored segment is hidden when another segment of the chain has a higher score; a nil score ties with a real 0.",
-     "evidence": [
-      "Emuqu/Sources/ViewModels/HistoryViewModel.swift:182",
-      "Emuqu/Sources/ViewModels/HistoryViewModel.swift:149"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c"
    }
@@ -323,7 +326,7 @@
     },
     {
      "at": "+10",
-     "cond": "tagFilter non-empty",
+     "cond": "tagFilter non-empty (HistoryView's tag filter bar sets selectedTags)",
      "effect": "keep entries sharing any tag"
     },
     {
@@ -337,19 +340,7 @@
      "effect": "?? false: no match on notes"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "No view or test ever sets HistoryViewModel.selectedTags (grep finds only HistoryViewModel.swift), so the tag filter at line 206 is always skipped in the app and the selectedTags observation is dead.",
-     "evidence": [
-      "Emuqu/Sources/ViewModels/HistoryViewModel.swift:13",
-      "Emuqu/Sources/ViewModels/HistoryViewModel.swift:206",
-      "Emuqu/Sources/Views/HistoryView.swift:136"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
     "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate": "b7a08a3bb6301f41",
@@ -457,9 +448,9 @@
    "deps": {}
   },
   {
-   "key": "func HistoryViewModel.collapseSameNightOvernightDuplicatesStatic(_:entryById:schedule:)",
-   "hash": "7de8cc894cc80a94",
-   "does": "Groups overnight entries by overnightWindowStart(endDate ?? date) and hides scoreless losers of duplicate clusters within each night group.",
+   "key": "func HistoryViewModel.sameNightHiddenToWinner(_:entryById:schedule:)",
+   "hash": "53486fb8655e2379",
+   "does": "Groups overnight entries by overnightWindowStart(endDate ?? date) and maps the scoreless losers of duplicate clusters within each night group to their cluster winner.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)",
@@ -471,7 +462,7 @@
     {
      "at": "+6",
      "cond": "fewer than 2 overnight entries",
-     "effect": "return entries unchanged"
+     "effect": "returns an empty map"
     },
     {
      "at": "+8",
@@ -481,25 +472,21 @@
     {
      "at": "+11",
      "cond": "group has >1 entry",
-     "effect": "collect hidden ids"
-    },
-    {
-     "at": "+14",
-     "cond": "nothing to hide",
-     "effect": "return entries unchanged; else filter"
+     "effect": "merges that group's hidden→winner map"
     }
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.merge(_:sleepSchedule:)": "301cdd78533bd624",
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
-    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.sameNightHiddenIds(group:entryById:)": "0a327e6fd99659ee"
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.sameNightHiddenIds(group:entryById:)": "3067f1394086889f"
    }
   },
   {
    "key": "func HistoryViewModel.sameNightHiddenIds(group:entryById:)",
-   "hash": "281e82e48711144e",
-   "does": "For each duplicate component in a night group, hides members that are not the winner and have no recovery score.",
+   "hash": "eed32972e47e8b8b",
+   "does": "For each duplicate component in a night group, maps members that are not the winner and have no recovery score to the winner's id.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.duplicateComponent(seed:group:byId:visited:)",
@@ -521,7 +508,7 @@
     {
      "at": "+10",
      "cond": "member not winner and recoveryScore nil",
-     "effect": "hide; scored sessions always shown"
+     "effect": "maps it to the winner; scored sessions always shown"
     }
    ],
    "flags": [],

@@ -168,18 +168,19 @@ summary_lines=(
 
 failed=0
 
-# Slack must be said out loud, as the other gates do with "below budget —
-# lower it to N to lock the gain in". Without that a budget drifts above its
-# measured value — `.shared` at 718 against 716, `try?` at 377 against 375 —
-# and the next two additions of each are undetectable: add a real `try?` and
-# the gate stays green. The invariant `check_budget_monotonicity.sh`
+# Slack fails the gate. Printing it was not enough: a budget drifted above its
+# measured value (`.shared` 83 against 90, `try?` 139 against 170) and every
+# addition up to the budget passed green — seven new `.shared` reads and 31
+# new swallowed errors, undetectable. The invariant `check_budget_monotonicity.sh`
 # states in its own header — "every budget currently sits exactly at its
-# measured value" — needs something that says so out loud when it stops holding.
+# measured value" — is now enforced here: a change that removes debt lowers the
+# budget file in the same commit.
 slack_lines=()
 note_slack() {
     local label="$1" count="$2" budget="$3" file="$4"
     if (( count < budget )); then
-        slack_lines+=("- SLACK: ${label} is ${count} against a budget of ${budget}; lower ${file} to ${count} to lock the gain in")
+        slack_lines+=("- FAIL (slack): ${label} is ${count} against a budget of ${budget}; lower ${file} to ${count} in this change to lock the gain in")
+        failed=1
     fi
 }
 note_slack ".shared usage" "$shared_count" "$shared_budget" "$SHARED_BUDGET_FILE"

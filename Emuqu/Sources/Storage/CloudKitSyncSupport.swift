@@ -103,6 +103,11 @@ final class CloudKitSettingsSync {
 
     @ObservationIgnored private var debounceTask: Task<Void, Never>?
     @ObservationIgnored private var changeObserver: NSObjectProtocol?
+    /// One push at a time. The debounced push, the launch push and the Back Up
+    /// button each fetch and save the same record; interleaved at their awaits,
+    /// the second save lost to the first with `.serverRecordChanged` although
+    /// both came from this device.
+    private let pushSerializer = SyncSerializer()
     private var zoneEnsured = false
     /// Sticky per-launch flag. Set when the UserSettings record type isn't
     /// in production schema yet — same retry-storm protection as
@@ -135,9 +140,13 @@ final class CloudKitSettingsSync {
     /// reported a backup that never happened.
     @discardableResult
     func pushImmediately() async -> Bool {
-        guard let reason = await performPush() else { return true }
-        status = .error(reason)
-        return false
+        switch await performPush() {
+        case .pushed:
+            return true
+        case let .skipped(reason), let .failed(reason):
+            status = .error(reason)
+            return false
+        }
     }
 
     /// Pull the cloud copy down and overlay it onto the local settings
@@ -186,14 +195,38 @@ final class CloudKitSettingsSync {
     /// 2-second debounce. Long enough to coalesce rapid edits in the
     /// settings UI, short enough that the user can change something
     /// and tap "Sync now" without seeing a stale state.
+    ///
+    /// A push that fails (a conflict, settings not loaded yet) shows its reason
+    /// in `status`; one skipped because sync is off or onboarding is not done
+    /// leaves `status` alone, since that is not a failure. Either way the
+    /// next settings change or the launch push tries again.
     private func scheduleDebouncedPush() {
         guard !schemaUnavailable else { return }
         debounceTask?.cancel()
         debounceTask = Task { @MainActor [weak self] in
             await sleepQuietly(2_000_000_000, context: "scheduleDebouncedPush")
             if Task.isCancelled { return }
-            await self?.performPush()
+            guard let self, case let .failed(reason) = await self.performPush() else { return }
+            self.status = .error(reason)
         }
+    }
+
+    /// What a push did.
+    private enum PushOutcome {
+        case pushed
+        /// Not attempted: sync off, onboarding unfinished, or schema paused.
+        case skipped(String)
+        /// Attempted and not saved.
+        case failed(String)
+    }
+
+    /// Runs `pushNow` behind any push already in flight.
+    private func performPush() async -> PushOutcome {
+        var outcome = PushOutcome.skipped("")
+        await pushSerializer.run { [self] in
+            outcome = await pushNow()
+        }
+        return outcome
     }
 
     /// On `.serverRecordChanged`, another device wrote a newer record between
@@ -212,14 +245,13 @@ final class CloudKitSettingsSync {
     /// before the user had been asked. Finishing onboarding is itself a
     /// settings change, so the first push follows it without a separate hook.
     ///
-    /// Returns nil when the settings were saved, otherwise why they were not.
-    @discardableResult
-    private func performPush() async -> String? {
-        if let skipped = pushSkipReason() { return skipped }
+    /// Callers go through `performPush`, which serializes pushes.
+    private func pushNow() async -> PushOutcome {
+        if let skipped = pushSkipReason() { return .skipped(skipped) }
         let sealed: Data
         switch sealedLocalSettings() {
         case let .ready(data): sealed = data
-        case let .unavailable(reason): return reason
+        case let .unavailable(reason): return .failed(reason)
         }
         status = .syncing
         do {
@@ -227,13 +259,13 @@ final class CloudKitSettingsSync {
             try await saveSettingsRecord(sealed)
             status = .lastPushed(Date())
             debugLog("[CloudKitSettings] settings pushed (\(sealed.count) encrypted bytes)")
-            return nil
+            return .pushed
         } catch let error as CKError where error.code == .serverRecordChanged {
             debugLog("[CloudKitSettings] push conflict (server has newer copy); will retry on next change", level: .warning)
             status = .idle
-            return String(localized: "Another device updated the backup at the same time", bundle: LanguageManager.appBundle)
+            return .failed(String(localized: "Another device updated the backup at the same time", bundle: LanguageManager.appBundle))
         } catch {
-            return handlePushFailure(error)
+            return .failed(handlePushFailure(error))
         }
     }
 
@@ -327,11 +359,23 @@ final class CloudKitSettingsSync {
         } catch let error as CKError where CloudHealthScrubCoordinator.meansNoRecord(error) {
             defaults.set(true, forKey: Self.scrubbedKey)
         } catch let error as RestoreError {
-            debugLog("[CloudKitSettings] stored record not rewritten: \(error.localizedDescription) — left to the device that wrote it", level: .warning)
-            defaults.set(true, forKey: Self.scrubbedKey)
+            noteUnrewritableRecord(error)
         } catch {
             debugLog("[CloudKitSettings] stored record not rewritten yet: \(error.localizedDescription)", level: .warning)
         }
+    }
+
+    /// A record that is damaged is left to the device that wrote it, and the
+    /// scrub is done here. One sealed with a key iCloud Keychain has not
+    /// delivered yet stays pending, so the scrub runs once the key arrives
+    /// instead of never.
+    private func noteUnrewritableRecord(_ error: RestoreError) {
+        guard error != .keyNotOnThisDevice else {
+            debugLog("[CloudKitSettings] stored record not rewritten yet: \(error.localizedDescription) — retried once the key arrives", level: .warning)
+            return
+        }
+        debugLog("[CloudKitSettings] stored record not rewritten: \(error.localizedDescription) — left to the device that wrote it", level: .warning)
+        UserDefaults.standard.set(true, forKey: Self.scrubbedKey)
     }
 
     /// Saving a zone that already exists succeeds, so any error here is a
@@ -473,9 +517,23 @@ enum CloudSettingsRecord {
 
 /// Sync status lines shown in Settings → iCloud & Data, in the app language.
 /// One definition each: `resumeSyncForAvailableAccount` matches on the
-/// not-signed-in line to clear it.
+/// not-signed-in line to clear it, through `isNotSignedIn`.
 enum CloudSyncMessages {
     static var notSignedIn: String { String(localized: "Not signed into iCloud", bundle: LanguageManager.appBundle) }
+
+    /// Whether `message` is the not-signed-in line in the current app
+    /// language or in any language the app ships. A stored line keeps the
+    /// language it was made in, so an in-app language change in between must
+    /// not stop it from being recognised.
+    static func isNotSignedIn(_ message: String?) -> Bool {
+        guard let message else { return false }
+        if message == notSignedIn { return true }
+        return Bundle.main.localizations.contains { code in
+            guard let path = Bundle.main.path(forResource: code, ofType: "lproj"),
+                  let bundle = Bundle(path: path) else { return false }
+            return message == String(localized: "Not signed into iCloud", bundle: bundle)
+        }
+    }
     static var noInternet: String { String(localized: "No internet connection", bundle: LanguageManager.appBundle) }
     static var storageFull: String { String(localized: "iCloud storage full", bundle: LanguageManager.appBundle) }
     static var previousSyncTimedOut: String {

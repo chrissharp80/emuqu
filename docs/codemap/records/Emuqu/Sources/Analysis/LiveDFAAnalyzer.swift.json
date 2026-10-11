@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift",
- "hash": "bb84e2840173ded4",
+ "hash": "9ff4e6d9b3694981",
  "role": "@Observable @MainActor live DFA alpha1 analyzer for workouts: keeps a 2-minute rolling RR window on a gap-corrected beat clock, artifact-corrects it, fits DFA alpha1 every 20 s, and publishes alpha1/band/status for the live tiles, voice coach and Watch payload. Also hosts the shared static cleaner used by the offline re-analyzer.",
  "types": [
   "LiveDFAAnalyzer: class — @Observable @MainActor rolling alpha1 analyzer owned by WorkoutRecorder (WorkoutRecorder.swift:71)",
@@ -16,8 +16,6 @@
   "mem:LiveDFAAnalyzer.status",
   "mem:LiveDFAAnalyzer.bufferFillFraction",
   "mem:LiveDFAAnalyzer.lastComputeAt",
-  "mem:LiveDFAAnalyzer.beatsInWindow",
-  "mem:LiveDFAAnalyzer.correctedFraction",
   "mem:LiveDFAAnalyzer.lowConfidenceCorrectedFraction=0.03 (nonisolated static)",
   "mem:LiveDFAAnalyzer.maxCorrectedFraction=0.06 (nonisolated static)",
   "mem:LiveDFAAnalyzer.windowSpanSlackSec=2.0 (private static)",
@@ -39,16 +37,11 @@
   {
    "kind": "dead",
    "sev": "low",
-   "text": "The published properties beatsInWindow, lastComputeAt and correctedFraction (instance) have no reader outside the class. The only external dfa.* reads are currentAlpha1, currentBand, fitQuality and status. The '217 / 240 needed' diagnostic readout promised in the comment does not exist.",
+   "text": "lastComputeAt (published, set on each successful fit) has no production reader; only LiveDFAAnalyzerStreamTests read it to pin the recompute cadence.",
    "evidence": [
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift:101",
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift:103",
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift:104",
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift:109",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:701",
-    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift:402"
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift:101"
    ],
-   "found": "second read"
+   "found": "fix pass b02"
   }
  ],
  "units": [
@@ -271,8 +264,8 @@
   },
   {
    "key": "func LiveDFAAnalyzer.reset(sessionStart:)",
-   "hash": "d612daff7f1e2b96",
-   "does": "Clears the buffer, beat clock, compute/beat timestamps and every published value, sets status .warmup(0) and records sessionStart (which enables ingest). Called by WorkoutRecorder+Start.swift:298 at workout start.",
+   "hash": "32433c9ea470d34e",
+   "does": "Clears the buffer, beat clock, compute/beat timestamps and every published value (alpha1, band, fit quality, fill fraction, lastComputeAt), sets status .warmup(0) and records sessionStart (which enables ingest). Called by WorkoutRecorder+Start.swift at workout start.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -288,9 +281,7 @@
    ],
    "branches": [],
    "flags": [],
-   "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.CleanedSeries.correctedFraction": "4ca30bfb832337b9"
-   }
+   "deps": {}
   },
   {
    "key": "func LiveDFAAnalyzer.ingest(points:now:)",
@@ -335,8 +326,8 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.BeatClock.stamp(_:)": "72768c5fc7fd1f49",
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.publishFillProgress()": "3c21475549b7b653",
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.recompute(now:)": "8599a8464eda98c5",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.publishFillProgress()": "aefd05fe1a29a570",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.recompute(now:)": "9f5bf6cc3c346533",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.refreshStatus(now:)": "6ce5130c0a2465b1",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.trimToWindow()": "3b3d77adbb10c4b1"
    }
@@ -361,8 +352,8 @@
   },
   {
    "key": "func LiveDFAAnalyzer.publishFillProgress()",
-   "hash": "7bbb353d30c97d62",
-   "does": "Publishes beatsInWindow and bufferFillFraction = min(beats/64, span/(windowSec-2)), each capped at 1.",
+   "hash": "73ef96afa1b08d4e",
+   "does": "Publishes bufferFillFraction = min(beats/64, span/(windowSec-2)), each capped at 1.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.bufferSpanSec"
@@ -401,14 +392,13 @@
   },
   {
    "key": "func LiveDFAAnalyzer.recompute(now:)",
-   "hash": "63fad0c5d9ab768f",
-   "does": "If the window is full, cleans the RR series, records correctedFraction, fits DFA via fitOrExplain and publishes alpha1, R2, band and lastComputeAt, then refreshes status.",
+   "hash": "2ce1261495779520",
+   "does": "If the window is full, cleans the RR series, fits DFA via fitOrExplain and publishes alpha1, R2, band and lastComputeAt, then refreshes status.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.hasEnoughDataForFit",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.refreshStatus(now:)",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_:)",
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.CleanedSeries.correctedFraction",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.fitOrExplain(_:)",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.Band.display(alpha1:)"
    ],
@@ -428,7 +418,7 @@
      "effect": "refreshStatus (stalled or warming-up, clears value) and return"
     },
     {
-     "at": "+7",
+     "at": "+6",
      "cond": "fitOrExplain returns nil",
      "effect": "return; status already set to tooManyArtifacts/fitFailed and value cleared by fitOrExplain"
     }
@@ -439,7 +429,6 @@
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_:)": "84bb81d01db736b2",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.fitOrExplain(_:)": "84349768cbd1c3d8",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.refreshStatus(now:)": "6ce5130c0a2465b1",
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.CleanedSeries.correctedFraction": "4ca30bfb832337b9",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.hasEnoughDataForFit": "fd297dd9b534680b"
    }
   },
@@ -471,7 +460,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "93a8b95af9c5a354",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "3401262883b38a4b",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.logWindow(cleaned:result:)": "cf056a41dae131f1",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markFitFailed()": "bb855bed11817cb0",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markTooNoisy(correctedFraction:)": "5434fae75e089ec7",
@@ -665,13 +654,13 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.isArtifactBeat(_:recentClean:)": "5fd6a5c4372ef4d3"
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.isArtifactBeat(_:recentClean:)": "a310f1d7391372ba"
    }
   },
   {
    "key": "func LiveDFAAnalyzer.isArtifactBeat(_:recentClean:)",
-   "hash": "735cea2aba3f6811",
-   "does": "Artifact test: true if rr < 300 or > 2000 ms; false if fewer than 3 clean neighbours; else true when |rr - median|/median > 0.20 (median = upper-middle element of sorted recent clean beats).",
+   "hash": "667b3a5ebd5cbc97",
+   "does": "Artifact test: true if rr is outside HRVThresholds.minimumRRIntervalMs…maximumRRIntervalMs (300–2000 ms); false if fewer than 3 clean neighbours; else true when |rr - median|/median > HRVThresholds.ectopicThresholdPercent (0.20) (median = upper-middle element of sorted recent clean beats).",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -679,7 +668,7 @@
    "branches": [
     {
      "at": "+4",
-     "cond": "rr out of 300..2000",
+     "cond": "rr out of minimumRRIntervalMs..maximumRRIntervalMs",
      "effect": "true"
     },
     {
@@ -688,20 +677,7 @@
      "effect": "false (first beats are never median-screened)"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Hard-codes 300/2000 ms and 0.20 ectopic ratio instead of HRVThresholds.minimumRRIntervalMs/maximumRRIntervalMs/ectopicThresholdPercent which hold the same values; a tuning change to the shared constants would not reach live alpha1.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift:504",
-      "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift:506",
-      "Emuqu/Sources/Analysis/HRVThresholds.swift:10",
-      "Emuqu/Sources/Analysis/HRVThresholds.swift:236"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {

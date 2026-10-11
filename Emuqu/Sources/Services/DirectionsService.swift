@@ -64,6 +64,12 @@ enum DirectionsService {
     /// One active session at a time; calling `directions.routeTo` again
     /// replaces it. The AI tells the user to "say 'never mind' to clear" —
     /// which routes through `disengage()`.
+    ///
+    /// Throws `CancellationError` instead of engaging when its task was
+    /// cancelled while the destination or route was being resolved: the
+    /// assistant's caller gives up after a few seconds, cancels the lookup and
+    /// tells the user the route is unavailable, so a route arriving later must
+    /// not start guidance behind that answer.
     static func resolveRoute(
         from origin: CLLocationCoordinate2D,
         to destination: Destination,
@@ -73,6 +79,7 @@ enum DirectionsService {
         let (destLabel, destCoord) = try await resolveDestination(destination, near: origin)
         // 2) Ask MapKit for a route.
         let route = try await mapKitRoute(from: origin, to: destCoord, mode: mode)
+        try Task.checkCancellation()
         AppDependencies.current.location.activeRouteSession.engage(
             route: route, destinationLabel: destLabel, destinationCoord: destCoord
         )
@@ -131,26 +138,32 @@ enum DirectionsService {
         return (label, originFix.coordinate)
     }
 
-    /// Searches a 25 km box around origin — enough for "nearest hospital" in a
-    /// rural area, tight enough that "parking" in a city doesn't suggest a lot
-    /// 60 km away. The closest result wins: MKLocalSearch sorts by relevance,
-    /// not distance, and "nearest" is what the user asked for.
+    /// Searches within `poiRadiusMeters` (25 km) of origin — enough for
+    /// "nearest hospital" in a rural area, tight enough that "parking" in a
+    /// city doesn't suggest a lot 60 km away. The search region is only a hint
+    /// to MKLocalSearch, so results beyond the radius are dropped here. The
+    /// closest remaining result wins: MKLocalSearch sorts by relevance, not
+    /// distance, and "nearest" is what the user asked for.
     private static func nearestPOI(
         matching query: String, near origin: CLLocationCoordinate2D
     ) async throws -> (label: String, coord: CLLocationCoordinate2D) {
         let request = MKLocalSearch.Request()
         request.naturalLanguageQuery = query
-        let span = MKCoordinateSpan(latitudeDelta: 0.25, longitudeDelta: 0.25)
-        request.region = MKCoordinateRegion(center: origin, span: span)
+        request.region = MKCoordinateRegion(
+            center: origin, latitudinalMeters: 2 * poiRadiusMeters, longitudinalMeters: 2 * poiRadiusMeters
+        )
         request.resultTypes = [.pointOfInterest, .address]
         let response = try await MKLocalSearch(request: request).start()
         let originLoc = CLLocation(latitude: origin.latitude, longitude: origin.longitude)
-        let nearest = response.mapItems.min { lhs, rhs in
-            distance(from: lhs, to: originLoc) < distance(from: rhs, to: originLoc)
-        }
+        let nearest = response.mapItems
+            .filter { distance(from: $0, to: originLoc) <= poiRadiusMeters }
+            .min { distance(from: $0, to: originLoc) < distance(from: $1, to: originLoc) }
         guard let nearest else { throw DirectionsError.noPOIMatch }
         return (nearest.name ?? nearest.placemark.thoroughfare ?? query, nearest.placemark.coordinate)
     }
+
+    /// How far a point-of-interest destination may be from the user.
+    private static let poiRadiusMeters: CLLocationDistance = 25_000
 
     private static func distance(from item: MKMapItem, to origin: CLLocation) -> CLLocationDistance {
         CLLocation(

@@ -7,24 +7,7 @@
  ],
  "state": [],
  "toplevel": "SDK-dependent members are inside `#if canImport(PolarBleSdk)` blocks; without the SDK startRecording/checkRecordingStatus/stopOfflinePpiRecording/discardStoredExercises throw sdkNotAvailable and clear/check are no-ops.",
- "flags": [
-  {
-   "kind": "broken",
-   "sev": "med",
-   "text": "Arming leaves PolarManager.recordingState stuck at .starting when it aborts after setting it: startVeritySenseRecording sets .starting (:88) before the loop, and the H10 clear step sets .starting (:153) before the next requireArmingAllowed; a CancellationError from requireArmingAllowed (session ending / transfer started), or notConnected/featureNotReady from startOfflinePpiRecording's guards (PolarManager+VeritySense.swift:19-22) never resets it. statusOutcome leaves transitional states untouched (StrapRecordingPolicy.swift:74), so every later startDecision returns .alreadyRecording (StrapRecordingPolicy.swift:52) the Record screen's actions are disabled (RecordView+Panels.swift:580 isActionDisabled is true for .starting) and Disconnect is disabled (ConnectionPanelViews.swift:353) until some fetch settles the state.",
-   "evidence": [
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift:88",
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift:91",
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift:144",
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift:153",
-    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift:52",
-    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift:74",
-    "Emuqu/Sources/Views/ConnectionPanelViews.swift:353",
-    "Emuqu/Sources/Views/RecordView+Panels.swift:580"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "func StrapRecordingCoordinator.startRecording(while:)",
@@ -69,8 +52,8 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startH10Recording(while:)": "988b75bf27fee0e0",
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startVeritySenseRecording(while:)": "cee76538dc95d9df",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startH10Recording(while:)": "eec290f56fa486d6",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startVeritySenseRecording(while:)": "4068c7ec9b0e5086",
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI": "e4c52ee834297d0b",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
@@ -81,15 +64,13 @@
   },
   {
    "key": "func StrapRecordingCoordinator.startFreshRecording(while:)",
-   "hash": "0c60a31735cac33d",
-   "does": "Arms a fresh recording: refuses (CancellationError) when arming is withdrawn; if the strap reports it is already recording, downloads that stale recording (attended budget) and hands non-empty points to onUnrecoveredDataRescued, then runs startRecording.",
+   "hash": "2a2ad5e9ec2d2496",
+   "does": "Arms a fresh recording: refuses (CancellationError) when arming is withdrawn; if the strap reports it is already recording (or, when it cannot be asked, the app's flag says so), sets that recording aside via setAsideRunningRecording (H10: download to the rescue backup; Verity: stop only), then runs startRecording.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.requireArmingAllowed(_:)",
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.deviceIsRecording()",
-    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.beginTransfer()",
-    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecording(recordedSince:budget:)",
-    "closure:onUnrecoveredDataRescued — RRCollector.backUpRescuedRecording (RRCollector+Lifecycle.swift:61) writes a RawRRBackup under a new UUID",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.setAsideRunningRecording()",
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startRecording(while:)"
    ],
    "reads": [
@@ -97,43 +78,75 @@
    ],
    "writes": [
     "mem:PolarManager.fetchCancelled",
-    "file:RawRRBackup (via closure)"
+    "file:RawRRBackup (via closure, H10)"
    ],
    "branches": [
     {
      "at": "+2",
      "cond": "strap (or fallback app flag) says a recording is running",
-     "effect": "true → beginTransfer + fetchRecording(recordedSince:nil, .attended), whose errors propagate and abort arming; false → straight to startRecording"
-    },
-    {
-     "at": "+5",
-     "cond": "downloaded stale recording has points",
-     "effect": "true → onUnrecoveredDataRescued(stale); false → nothing backed up"
+     "effect": "true → setAsideRunningRecording(), whose errors propagate and abort arming; false → straight to startRecording"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "For a Verity Sense the stale fetch reads every stored offline recording (since nil) and joins them back-to-back into one series dated at the earliest (PolarManager+VeritySense.swift:90-106) and rescues it; the start sequence's rescue step (:93/:120) then reads and rescues the same recordings again. Each rescue is filed under a fresh UUID (RRCollector+Lifecycle.swift:75), so Lost Sessions gets duplicate and multi-night-concatenated entries. Reachability is narrow: every production caller of startFreshRecording is H10-gated (RRCollector+OvernightStreaming.swift:95, WorkoutRecorder+DeviceBackup.swift:88) except the resume loop (RRCollector+PauseResume.swift:222), which only arms after .h10Recording is usable (RRCollector+OvernightArming.swift:124).",
-     "evidence": [
-      "Emuqu/Sources/Collection/PolarManager+Recording.swift:56",
-      "Emuqu/Sources/Collection/PolarManager+Recording.swift:122",
-      "Emuqu/Sources/Collection/PolarManager+VeritySense.swift:90",
-      "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift:75",
-      "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift:95",
-      "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift:88",
-      "Emuqu/Sources/Collection/RRCollector+PauseResume.swift:222"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.deviceIsRecording()": "7fad25aed3840f53",
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.requireArmingAllowed(_:)": "6b890a6caaaa138a",
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startRecording(while:)": "ffd15a39296cbea9",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.setAsideRunningRecording()": "e3da40d120f597d7",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startRecording(while:)": "ffd15a39296cbea9"
+   }
+  },
+  {
+   "key": "func StrapRecordingCoordinator.setAsideRunningRecording()",
+   "hash": "d0f712bb5b2a0eab",
+   "does": "Sets aside the recording the strap is running before arming. Calls beginTransfer. H10 (any non-Verity type): downloads it with fetchRecording(recordedSince: nil, .attended) — which stops it and puts its start on the download record, so the start's own rescue skips it — and hands non-empty points to onUnrecoveredDataRescued. Verity Sense: only stops it (stopWithinBudget) and waits 500 ms for the sensor to list it as complete; the start sequence's rescue step then reads it with every other unsaved recording, so it is filed once.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.beginTransfer()",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecording(recordedSince:budget:)",
+    "closure:onUnrecoveredDataRescued — RRCollector.backUpRescuedRecording (RRCollector+Lifecycle.swift:61) writes a RawRRBackup under a new UUID",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.stopWithinBudget(api:deviceId:)",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)"
+   ],
+   "reads": [
+    "mem:PolarManager.connectedDeviceType",
+    "mem:PolarManager.strapAPI",
+    "mem:PolarManager.connectedDeviceId"
+   ],
+   "writes": [
+    "mem:PolarManager.fetchCancelled",
+    "file:RawRRBackup (via closure, H10)",
+    "ble:strap recording (stopped)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "connectedDeviceType != .veritySense",
+     "effect": "fetchRecording(recordedSince: nil, .attended) (errors propagate); rescue the points when non-empty; return"
+    },
+    {
+     "at": "+4",
+     "cond": "downloaded stale recording has points",
+     "effect": "true → onUnrecoveredDataRescued(stale); false → nothing backed up"
+    },
+    {
+     "at": "+7",
+     "cond": "Verity: strapAPI or connectedDeviceId nil",
+     "effect": "throw PolarError.notConnected"
+    },
+    {
+     "at": "+8",
+     "cond": "Verity: stop fails or times out",
+     "effect": "error propagates and aborts arming; otherwise sleep 500 ms and return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.stopWithinBudget(api:deviceId:)": "7c80b02fd97316d4",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI": "e4c52ee834297d0b",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
     "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.beginTransfer()": "e9daeea8a265471e",
-    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecording(recordedSince:budget:)": "4137f7f6f0a5ee91"
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecording(recordedSince:budget:)": "4137f7f6f0a5ee91",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851"
    }
   },
   {
@@ -189,11 +202,40 @@
   },
   {
    "key": "func StrapRecordingCoordinator.startVeritySenseRecording(while:)",
-   "hash": "4a2487839f0c928a",
-   "does": "Verity Sense arming: requires offlineRecording usable, sets recordingState .starting, then for each StrapStartSequence step re-checks arming permission and runs rescue (fetch all offline PPI → backup), clear (only when rescue succeeded), and begin (startOfflinePpiRecording).",
+   "hash": "372c3674e2a2a37b",
+   "does": "Verity Sense arming: requires offlineRecording usable, sets recordingState .starting, then runs runVeritySenseStartSteps inside settlingAbortedStart, so a step that throws (arming withdrawn, sensor not ready, start refused) returns the state from .starting to .idle before the error propagates.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requireUsable(_:)",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.settlingAbortedStart(_:)",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.runVeritySenseStartSteps(while:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:PolarManager.recordingState"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "offlineRecording not usable",
+     "effect": "throw featureNotReady before touching recordingState"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.runVeritySenseStartSteps(while:)": "8a8116137fd76874",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.settlingAbortedStart(_:)": "a076d2a986109134",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requireUsable(_:)": "d0e5ebb2017c6d6b"
+   }
+  },
+  {
+   "key": "func StrapRecordingCoordinator.runVeritySenseStartSteps(while:)",
+   "hash": "97f4d967039be1fa",
+   "does": "Runs the Verity StrapStartSequence steps in order, re-checking arming permission before each: rescue (rescueUnrecoveredOfflineRecordings — only recordings the app does not already hold), clear (only when the rescue succeeded), and begin (startOfflinePpiRecording).",
+   "entry": null,
+   "calls": [
     "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)",
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.requireArmingAllowed(_:)",
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.rescueUnrecoveredOfflineRecordings()",
@@ -202,58 +244,68 @@
    ],
    "reads": [],
    "writes": [
-    "mem:PolarManager.recordingState"
+    "ble:Verity Sense offline recordings (deleted by the clear, started by begin)"
    ],
    "branches": [
     {
-     "at": "+4",
+     "at": "+2",
      "cond": "for each step in [.rescueExisting, .clearExisting, .beginRecording]",
-     "effect": "each iteration first calls requireArmingAllowed; a throw exits with recordingState left at .starting"
+     "effect": "requireArmingAllowed first; a throw ends the loop and propagates"
     },
     {
-     "at": "+7",
+     "at": "+5",
      "cond": "step .rescueExisting",
      "effect": "rescued = rescueUnrecoveredOfflineRecordings()"
     },
     {
-     "at": "+8",
+     "at": "+6",
      "cond": "step .clearExisting and rescued == true",
      "effect": "clearExistingTolerantly('recordings') — deletes every offline PPI recording"
     },
     {
-     "at": "+11",
+     "at": "+9",
      "cond": "step .clearExisting and rescued == false",
      "effect": "skip the clear; the new recording starts beside the undownloaded one"
     },
     {
-     "at": "+12",
+     "at": "+10",
      "cond": "step .beginRecording",
      "effect": "try startOfflinePpiRecording()"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "The Verity rescue downloads and backs up every stored offline recording without consulting the download ledger / isRecordingSaved, unlike the H10 path (:179-184). StrapStartSequence documents that the rescue 'downloads only what the download record says the app lacks, so it costs nothing when everything is saved'. Since the Verity keeps recordings after download (PolarManager+VeritySense.swift:84-85), every arming re-downloads last night and files it again as a new rescue backup.",
-     "evidence": [
-      "Emuqu/Sources/Collection/PolarManager+Recording.swift:93",
-      "Emuqu/Sources/Collection/PolarManager+Recording.swift:120",
-      "Emuqu/Sources/Collection/StrapStartSequence.swift:52",
-      "Emuqu/Sources/Collection/StrapStartSequence.swift:13"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.clearExistingTolerantly(label:)": "2bfae4a309856faa",
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.requireArmingAllowed(_:)": "6b890a6caaaa138a",
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.rescueUnrecoveredOfflineRecordings()": "02035f32ea8d05a8",
-    "Emuqu/Sources/Collection/PolarManager+VeritySense.swift::func StrapRecordingCoordinator.startOfflinePpiRecording()": "a4c3e48c0acc4b5e",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requireUsable(_:)": "d0e5ebb2017c6d6b",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.rescueUnrecoveredOfflineRecordings()": "68b1174b4c02a415",
+    "Emuqu/Sources/Collection/PolarManager+VeritySense.swift::func StrapRecordingCoordinator.startOfflinePpiRecording()": "5bb1d6244f4b89f0",
     "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)": "9b9d45939c985f0e"
+   }
+  },
+  {
+   "key": "func StrapRecordingCoordinator.settlingAbortedStart(_:)",
+   "hash": "5032cdc7af27683a",
+   "does": "Runs a start body; if it throws, moves recordingState from .starting back to .idle (any other state is left alone) and rethrows, so an aborted arming never leaves the app refusing later starts as already recording.",
+   "entry": null,
+   "calls": [
+    "closure:start — runVeritySenseStartSteps or the H10 step loop in startH10Recording"
+   ],
+   "reads": [
+    "mem:PolarManager.recordingState"
+   ],
+   "writes": [
+    "mem:PolarManager.recordingState"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "the body throws",
+     "effect": "if recordingState == .starting set .idle; rethrow"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930"
    }
   },
   {
@@ -283,11 +335,11 @@
   },
   {
    "key": "func StrapRecordingCoordinator.rescueUnrecoveredOfflineRecordings()",
-   "hash": "5e6a8d0da9ece64b",
-   "does": "Reads all Verity offline PPI recordings (requireEveryEntry) and passes non-empty results to onUnrecoveredDataRescued; returns true when nothing needs keeping (empty, none found, or rescued) and false when the read failed so the caller skips the clear.",
+   "hash": "b6e545504bc8c657",
+   "does": "Reads the Verity offline PPI recordings the app does not already hold (fetchUnsavedOfflinePpiRecordings, every one required) and passes non-empty results to onUnrecoveredDataRescued; returns true when nothing needs keeping (all saved, none stored, empty, or rescued) and false when a read failed so the caller skips the clear.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/PolarManager+VeritySense.swift::func StrapRecordingCoordinator.fetchOfflinePpiRecording(requireEveryEntry:recordedSince:)",
+    "Emuqu/Sources/Collection/PolarManager+VeritySense.swift::func StrapRecordingCoordinator.fetchUnsavedOfflinePpiRecordings()",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "closure:onUnrecoveredDataRescued — RRCollector.backUpRescuedRecording (RRCollector+Lifecycle.swift:61)"
    ],
@@ -303,8 +355,8 @@
     },
     {
      "at": "+7",
-     "cond": "catch PolarError.noRecordingFound",
-     "effect": "nothing on the strap; return true"
+     "cond": "catch PolarError.noRecordingFound (nothing stored, or everything stored is already saved)",
+     "effect": "return true"
     },
     {
      "at": "+11",
@@ -315,17 +367,18 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::var StrapRecordingCoordinator.deviceLabel": "58f6b558451d4e72",
-    "Emuqu/Sources/Collection/PolarManager+VeritySense.swift::func StrapRecordingCoordinator.fetchOfflinePpiRecording(requireEveryEntry:recordedSince:)": "2a28e1081f0c7a5e",
+    "Emuqu/Sources/Collection/PolarManager+VeritySense.swift::func StrapRecordingCoordinator.fetchUnsavedOfflinePpiRecordings()": "c35bd53f92ab3439",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
    "key": "func StrapRecordingCoordinator.startH10Recording(while:)",
-   "hash": "b961c59a8058d39b",
-   "does": "H10 arming: requires h10Recording usable, then for each StrapStartSequence step re-checks arming permission and runs it.",
+   "hash": "61e9150a9243cae1",
+   "does": "H10 arming: requires h10Recording usable, then inside settlingAbortedStart runs each StrapStartSequence step after re-checking arming permission, so a throw after the clear step set .starting returns the state to .idle.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requireUsable(_:)",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.settlingAbortedStart(_:)",
     "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)",
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.requireArmingAllowed(_:)",
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.runH10StartStep(_:)"
@@ -334,15 +387,16 @@
    "writes": [],
    "branches": [
     {
-     "at": "+2",
+     "at": "+3",
      "cond": "for each step in [.rescueExisting, .clearExisting, .beginRecording]",
-     "effect": "requireArmingAllowed before each; a throw after the clear step leaves recordingState .starting"
+     "effect": "requireArmingAllowed before each; a throw propagates after settlingAbortedStart resets .starting to .idle"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.requireArmingAllowed(_:)": "6b890a6caaaa138a",
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.runH10StartStep(_:)": "4efd878a15828ddd",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.settlingAbortedStart(_:)": "a076d2a986109134",
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requireUsable(_:)": "d0e5ebb2017c6d6b",
     "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)": "9b9d45939c985f0e"
@@ -381,7 +435,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.beginH10RecordingSurfacingFailure()": "de0287de08522299",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.beginH10RecordingSurfacingFailure()": "32a40b0de7578e87",
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.clearExistingTolerantly(label:)": "2bfae4a309856faa",
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.rescueUndownloadedH10Recordings()": "ba54bdfc1b92face",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930"
@@ -464,12 +518,12 @@
   },
   {
    "key": "func StrapRecordingCoordinator.beginH10RecordingSurfacingFailure()",
-   "hash": "ae02b7c955f96630",
-   "does": "Starts the H10 exercise recording; on failure converts the error through surfaceH10StartFailure and throws the result.",
+   "hash": "95e7d9914309e4be",
+   "does": "Starts the H10 exercise recording; on failure converts the error through surfaceStartFailure and throws the result.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.beginH10ExerciseRecording()",
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.surfaceH10StartFailure(_:)"
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.surfaceStartFailure(_:)"
    ],
    "reads": [],
    "writes": [],
@@ -477,13 +531,13 @@
     {
      "at": "+3",
      "cond": "beginH10ExerciseRecording throws",
-     "effect": "throw await surfaceH10StartFailure(error) (strapBatteryTooLow or the original error)"
+     "effect": "throw surfaceStartFailure(error) (strapBatteryTooLow or the original error)"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.beginH10ExerciseRecording()": "e52f4ce73d41cb4d",
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.surfaceH10StartFailure(_:)": "0450551a4bf2dc33"
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.surfaceStartFailure(_:)": "305408f73aa9b5b5"
    }
   },
   {
@@ -520,9 +574,9 @@
    }
   },
   {
-   "key": "func StrapRecordingCoordinator.surfaceH10StartFailure(_:)",
-   "hash": "97c6df7087c6b5a5",
-   "does": "Logs the start failure, sets recordingState .idle, and sets lastError: strapBatteryTooLow(percent: last batteryLevel) for a PFTP BATTERY_TOO_LOW refusal (returned to the caller), otherwise recordingFailed(humanized message) while returning the original error.",
+   "key": "func StrapRecordingCoordinator.surfaceStartFailure(_:)",
+   "hash": "163b4ef470ff796f",
+   "does": "Shared by the H10 and Verity Sense starts: logs the start failure, sets recordingState .idle, and sets lastError: strapBatteryTooLow(percent: last batteryLevel) for a PFTP BATTERY_TOO_LOW refusal (returned to the caller), otherwise recordingFailed(humanized message) while returning the original error.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.isBatteryTooLow(_:)",
@@ -627,18 +681,18 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.clearOfflinePpiRecordings()": "54c957a65e457e92",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.clearOfflinePpiRecordings()": "f64ea72af7068a01",
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.clearStoredExercises()": "2db4191cbed6471c",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d"
    }
   },
   {
    "key": "func StrapRecordingCoordinator.clearOfflinePpiRecordings()",
-   "hash": "57c37678aaa8f79c",
-   "does": "Verity: removes every offline PPI recording when the offlineRecording feature is usable, logging how many were removed.",
+   "hash": "a91aa9f0dfd8e71f",
+   "does": "Verity: removes every offline PPI recording, logging how many were removed. Throws notConnected without an API/device id and featureNotReady when the offline-recording feature is not usable, so a caller never treats an unattempted clear as done.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.isUsable(_:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requireUsable(_:)",
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.removeOfflinePpiRecordings(api:deviceId:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
@@ -650,37 +704,25 @@
     {
      "at": "+1",
      "cond": "strapAPI or connectedDeviceId nil",
-     "effect": "return silently"
+     "effect": "throw PolarError.notConnected"
     },
     {
      "at": "+2",
      "cond": "offlineRecording not usable",
-     "effect": "log and return without error — nothing cleared"
+     "effect": "requireUsable throws featureNotReady — nothing cleared, the caller sees the error"
     },
     {
-     "at": "+7",
+     "at": "+4",
      "cond": "removed count == 0",
      "effect": "log 'No offline PPI recordings to clear' and return; else log count"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "med",
-     "text": "When the Verity's offline-recording feature is not usable (or api is nil) this returns normally without clearing; discardStoredExercises (:450-452) then sets hasStoredExercise=false and storedExerciseDate=nil, so the Record screen reports the strap as discarded while its recordings are still stored.",
-     "evidence": [
-      "Emuqu/Sources/Collection/PolarManager+Recording.swift:249",
-      "Emuqu/Sources/Collection/PolarManager+Recording.swift:250",
-      "Emuqu/Sources/Collection/PolarManager+Recording.swift:451"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.removeOfflinePpiRecordings(api:deviceId:)": "4bacb0cccb8308e6",
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI": "e4c52ee834297d0b",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.isUsable(_:)": "b2f3b44958720987",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requireUsable(_:)": "d0e5ebb2017c6d6b",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
@@ -723,37 +765,9 @@
    }
   },
   {
-   "key": "func StrapRecordingCoordinator.listOfflinePpiRecordings(api:deviceId:)",
-   "hash": "5a3d21422eac9301",
-   "does": "Lists the Verity's offline PPI recordings (one entry per recording) via listPpiEntries.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.listPpiEntries(api:deviceId:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "listOfflinePpiRecordings is a one-line pass-through to listPpiEntries with a single caller (:385); two names for the same listing.",
-     "evidence": [
-      "Emuqu/Sources/Collection/PolarManager+Recording.swift:285",
-      "Emuqu/Sources/Collection/PolarManager+Recording.swift:291",
-      "Emuqu/Sources/Collection/PolarManager+Recording.swift:385"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.listPpiEntries(api:deviceId:)": "73ab72fa9690a88b"
-   }
-  },
-  {
    "key": "func StrapRecordingCoordinator.listPpiEntries(api:deviceId:)",
    "hash": "06b4398fd3f7156e",
-   "does": "Collects api.listOfflineRecordings into an array, keeps only .ppi entries and dedups to one entry per recording path via StrapOfflineRecordingEntries.onePerRecording.",
+   "does": "Lists the Verity's offline PPI recordings off the main actor: collects api.listOfflineRecordings into an array, keeps only .ppi entries and dedups to one entry per recording path via StrapOfflineRecordingEntries.onePerRecording. The single listing used by the stored-recordings check, removal and the offline reads.",
    "entry": null,
    "calls": [
     "dyn:StrapRadio.listOfflineRecordings → Emuqu/Sources/Collection/StrapRadio.swift:134|EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.listOfflineRecordings(_:)",
@@ -798,7 +812,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.listPpiEntries(api:deviceId:)": "73ab72fa9690a88b",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.listPpiEntries(api:deviceId:)": "fc7c574ff9a9b9bb",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
@@ -967,8 +981,8 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.checkStoredH10Exercises(api:deviceId:)": "8a66812552556bfc",
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.checkStoredOfflineRecordings(api:deviceId:)": "9806510971406055",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.checkStoredH10Exercises(api:deviceId:)": "cdd10ddc8ff7cb6e",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.checkStoredOfflineRecordings(api:deviceId:)": "0d9feb5a0aa02f42",
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI": "e4c52ee834297d0b",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
@@ -976,12 +990,12 @@
   },
   {
    "key": "func StrapRecordingCoordinator.checkStoredOfflineRecordings(api:deviceId:)",
-   "hash": "4560a4a23cf89941",
-   "does": "Verity: if offlineRecording usable, lists PPI recordings and sets hasStoredExercise = non-empty and storedExerciseDate = earliest entry date; on error resets both to false/nil.",
+   "hash": "1b5c73a8c9690bfa",
+   "does": "Verity: if offlineRecording usable, lists PPI recordings (listPpiEntries) and sets hasStoredExercise = non-empty and storedExerciseDate = earliest entry date; on a listing error logs and keeps the last known values.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.isUsable(_:)",
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.listOfflinePpiRecordings(api:deviceId:)",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.listPpiEntries(api:deviceId:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
@@ -1003,23 +1017,12 @@
     {
      "at": "+11",
      "cond": "listing throws",
-     "effect": "log; hasStoredExercise=false, storedExerciseDate=nil — a BLE error reads as 'nothing stored'"
+     "effect": "log; hasStoredExercise and storedExerciseDate keep their last values (an error is not read as an empty strap)"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "A listing error is mapped to hasStoredExercise=false, the same state as an empty strap, so a strap that holds an undownloaded recording but answered with an error hides the Recover card until the next successful check.",
-     "evidence": [
-      "Emuqu/Sources/Collection/PolarManager+Recording.swift:390",
-      "Emuqu/Sources/Collection/PolarManager+Recording.swift:407"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.listOfflinePpiRecordings(api:deviceId:)": "223a59d837ec481b",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.listPpiEntries(api:deviceId:)": "fc7c574ff9a9b9bb",
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasStoredExercise": "dbd1bab5a9194403",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.isUsable(_:)": "b2f3b44958720987",
@@ -1028,8 +1031,8 @@
   },
   {
    "key": "func StrapRecordingCoordinator.checkStoredH10Exercises(api:deviceId:)",
-   "hash": "d2a42488ce40ad3f",
-   "does": "H10: lists stored exercises, finds the newest by app exercise id and decodes its start date; sets hasStoredExercise = non-empty and storedExerciseDate = that start (nil when undecodable); on error resets to false/nil.",
+   "hash": "a9d286e1caddf839",
+   "does": "H10: lists stored exercises, finds the newest by app exercise id and decodes its start date; sets hasStoredExercise = non-empty and storedExerciseDate = that start (nil when undecodable); on a listing error logs and keeps the last known values.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.listStoredExercises(api:deviceId:)",
@@ -1051,7 +1054,7 @@
     {
      "at": "+10",
      "cond": "listing throws",
-     "effect": "log; hasStoredExercise=false, storedExerciseDate=nil"
+     "effect": "log; hasStoredExercise and storedExerciseDate keep their last values"
     }
    ],
    "flags": [],
@@ -1115,7 +1118,7 @@
   {
    "key": "func StrapRecordingCoordinator.discardStoredExercises()",
    "hash": "cb49d93d6d91c126",
-   "does": "User 'Discard & Start Fresh': requires a connection, stops a running recording (bounded), deletes every stored recording via clearAnyExistingExercises, then sets hasStoredExercise false and storedExerciseDate nil.",
+   "does": "User 'Discard & Start Fresh': requires a connection, stops a recording the strap reports as running (bounded; stopBeforeDiscarding asks the strap rather than trusting the app's flag), deletes every stored recording via clearAnyExistingExercises, then sets hasStoredExercise false and storedExerciseDate nil. Any throw (stop timeout, Verity feature not ready, removal error) propagates before the flags are reset, so the screen never shows a discard that did not happen.",
    "entry": "RecordView.discardAndStartFresh button task (RecordView+Panels.swift:613)",
    "calls": [
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.stopBeforeDiscarding(api:deviceId:)",
@@ -1138,12 +1141,17 @@
      "at": "+5",
      "cond": "connectedDeviceType nil (??)",
      "effect": "log uses 'device'"
+    },
+    {
+     "at": "+7",
+     "cond": "stop or clear throws",
+     "effect": "error propagates to RecordView (sessionState.lastError); hasStoredExercise/storedExerciseDate untouched"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.clearAnyExistingExercises()": "f318a9f9f819be32",
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.stopBeforeDiscarding(api:deviceId:)": "c8c5a13aab778f90",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.stopBeforeDiscarding(api:deviceId:)": "b22d77862823949a",
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI": "e4c52ee834297d0b",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasStoredExercise": "dbd1bab5a9194403",
@@ -1152,46 +1160,53 @@
   },
   {
    "key": "func StrapRecordingCoordinator.stopBeforeDiscarding(api:deviceId:)",
-   "hash": "9b00878ceb64a68c",
-   "does": "If the app believes the strap is recording, runs stopForDiscard under StrapDeadline with the attended stop budget (45 s), timing out with fetchFailed.",
+   "hash": "775c1bc7a5e12091",
+   "does": "Asks the strap whether it is recording (deviceIsRecording, falling back to the app's flag when the strap cannot be asked) and, if so, stops it within the attended budget (stopWithinBudget) before Discard clears it.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/StrapDeadline.swift::func StrapDeadline.race(seconds:timeout:operation:)",
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.stopForDiscard(api:deviceId:)"
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.deviceIsRecording()",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.stopWithinBudget(api:deviceId:)"
    ],
    "reads": [
-    "mem:PolarManager.isRecordingOnDevice"
+    "ble:strap recording status",
+    "mem:PolarManager.isRecordingOnDevice (fallback)"
    ],
    "writes": [],
    "branches": [
     {
      "at": "+1",
-     "cond": "isRecordingOnDevice is false",
-     "effect": "return without asking the strap — a recording the app's flag does not know about is not stopped before the clear"
+     "cond": "strap (or fallback flag) says nothing is recording",
+     "effect": "return without stopping"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Discard trusts the app's isRecordingOnDevice flag, which startFreshRecording's own comment (:42-46) says is false after a relaunch while the strap still records; the subsequent clear then runs against a recording strap.",
-     "evidence": [
-      "Emuqu/Sources/Collection/PolarManager+Recording.swift:460",
-      "Emuqu/Sources/Collection/PolarManager+Recording.swift:42"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.stopForDiscard(api:deviceId:)": "5cc5f5514d6c7a5d",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.deviceIsRecording()": "7fad25aed3840f53",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.stopWithinBudget(api:deviceId:)": "7c80b02fd97316d4"
+   }
+  },
+  {
+   "key": "func StrapRecordingCoordinator.stopWithinBudget(api:deviceId:)",
+   "hash": "a5226124da7d6260",
+   "does": "Runs stopOnStrap under StrapDeadline with the attended stop budget, timing out with fetchFailed('strap stop timed out after Ns'), so a stale link cannot hang Discard or the Verity arming's set-aside.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapDeadline.swift::func StrapDeadline.race(seconds:timeout:operation:)",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.stopOnStrap(api:deviceId:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.stopOnStrap(api:deviceId:)": "af724f581a8b200e",
     "Emuqu/Sources/Collection/StrapDeadline.swift::func StrapDeadline.race(seconds:timeout:operation:)": "4354517274b97049"
    }
   },
   {
-   "key": "func StrapRecordingCoordinator.stopForDiscard(api:deviceId:)",
-   "hash": "2331f8a19d807463",
-   "does": "Stops the running recording for discard: Verity via stopOfflinePpiRecording, H10 via stopH10Recording(awaitFinalize: true, no progress, not cancellable, streamHoldsIt false).",
+   "key": "func StrapRecordingCoordinator.stopOnStrap(api:deviceId:)",
+   "hash": "1c52b0c997df64fb",
+   "does": "Stops the running recording: Verity via stopOfflinePpiRecording, H10 via stopH10Recording(awaitFinalize: true, no progress, not cancellable, streamHoldsIt false).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.stopOfflinePpiRecording()",

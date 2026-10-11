@@ -1,76 +1,14 @@
 import Foundation
 import HealthKit
 
-// Sleep trends and export: aggregating nights and writing them back to
-// HealthKit. Querying and estimating a single night lives in
-// `HealthKitManager+Sleep.swift`.
+// Sleep export, the per-session metric exports and the sleep observer:
+// writing nights back to HealthKit and watching for new ones. Querying and
+// estimating a single night lives in `HealthKitManager+Sleep.swift`. (The
+// multi-night trend reader that gave the file its name had no caller and
+// was removed.)
 
 extension HealthWriteAndObserve {
-    // MARK: - Sleep Trends
-
-    /// Fetch sleep data for the past N days
-    /// - Parameters:
-    ///   - days: Number of days to look back (default 7)
-    ///   - referenceDate: Anchor date to look back from. Defaults to now.
-    ///     For historical sessions, pass the session date to get trends from that time.
-    /// - Returns: Array of SleepData for each night, sorted newest first
-    ///
-    /// Uses the same processing pipeline as fetchSleepData and fetchLastNightSleep:
-    /// source dedup → session grouping → overlap merge → split-night detection → assembly.
-    func fetchSleepTrend(days: Int = 7, relativeTo referenceDate: Date = Date()) async throws -> [SleepData] {
-        guard manager.isHealthKitAvailable else { throw HealthKitManager.HealthKitError.notAvailable }
-        guard let sleepType = HKTypes.category(.sleepAnalysis) else {
-            throw HealthKitManager.HealthKitError.typeUnavailable("sleepAnalysis")
-        }
-        let allSamples = try await trendSamples(sleepType: sleepType, days: days, referenceDate: referenceDate)
-        // Each night becomes one row-3 resolve: no session, watch-only.
-        let nights = Self.byNight(allSamples).map { nightDate, nightSamples in
-            (nightDate, nightContext(nightDate: nightDate, nightSamples: nightSamples))
-        }
-        // One resolve per night — detached, because this type is main-actor
-        // isolated.
-        let results = await Task.detached(priority: .userInitiated) {
-            nights.map { nightDate, context in Self.redated(SleepResolver.resolve(context).sleepData, to: nightDate) }
-        }.value
-        return results.sorted { $0.date > $1.date }
-    }
-
-    /// Samples bucketed by biological night, anchored on each sample's end date.
-    nonisolated private static func byNight(_ samples: [HKCategorySample]) -> [Date: [HKCategorySample]] {
-        let calendar = Calendar.current
-        return Dictionary(grouping: samples) { calendar.startOfDay(for: $0.endDate) }
-    }
-
-    /// No `.strictStartDate` for the trend window read.
-    /// Samples are re-bucketed by biological night by the caller and
-    /// each night is clipped to its bedtime window by the resolver, so
-    /// including a stage that started before the window opened recovers the
-    /// first stage of a night without mis-assigning it.
-    ///
-    /// Bounded, FAIL OPEN: a stalled read degrades to an empty trend rather
-    /// than throwing, matching the "no samples in the window" path — a trend
-    /// chart is informational and must not break the screen it sits on.
-    private func trendSamples(sleepType: HKCategoryType, days: Int, referenceDate: Date) async throws -> [HKCategorySample] {
-        let endDate = min(referenceDate, Date())
-        // Calendar.date(byAdding:) is optional; fall back
-        // to endDate to make the window empty rather than crash.
-        let startDate = Calendar.current.date(byAdding: .day, value: -days, to: endDate) ?? endDate
-        let datePredicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: [])
-        let predicate = manager.sleepReadExcludingOwnWrites(dateRange: datePredicate)
-        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
-        return try await manager.runBoundedThrowingQuery(
-            timeout: HealthKitManager.sleepQueryTimeoutSec,
-            makeQuery: { resolve in
-                HKSampleQuery(
-                    sampleType: sleepType, predicate: predicate,
-                    limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]
-                ) { _, results, error in
-                    resolve(Self.categoryResult(results, error))
-                }
-            },
-            onTimeout: { .success([]) }
-        )
-    }
+    // MARK: - Shared helpers
 
     /// HKSampleQuery hands back (results, error); exactly one is meaningful.
     nonisolated static func categoryResult(_ results: [HKSample]?, _ error: Error?) -> Result<[HKCategorySample], Error> {
@@ -78,89 +16,11 @@ extension HealthWriteAndObserve {
         return .success(results as? [HKCategorySample] ?? [])
     }
 
-    /// The resolver input for one night. The caller re-dates each result to
-    /// the calendar night so trend grouping stays consistent.
-    private func nightContext(nightDate: Date, nightSamples: [HKCategorySample]) -> SleepResolver.Context {
-        let config = SleepMergingConfig.defaultProcessing()
-        return SleepResolver.Context(
-            sessionBounds: nil,
-            linkedSessionBounds: [],
-            watchSamples: nightSamples,
-            rrPoints: [],
-            bedtimeWindow: DateInterval(
-                start: manager.sleepSchedule.overnightWindowStart(relativeTo: nightDate),
-                end: manager.sleepSchedule.overnightWindowEnd(relativeTo: nightDate)
-            ),
-            enhanceWithRR: false,
-            autoSleepExtension: nil,
-            fallbackDate: nightDate,
-            splitGapMinutes: config.awakeGapSplitMinutes
-        )
-    }
-
-    nonisolated private static func redated(_ resolved: SleepData, to nightDate: Date) -> SleepData {
-        SleepData(
-            date: nightDate,
-            inBedStart: resolved.inBedStart,
-            sleepStart: resolved.sleepStart,
-            sleepEnd: resolved.sleepEnd,
-            totalSleepMinutes: resolved.nightSleepMinutes,
-            inBedMinutes: resolved.inBedMinutes,
-            deepSleepMinutes: resolved.deepSleepMinutes,
-            remSleepMinutes: resolved.remSleepMinutes,
-            awakeMinutes: resolved.awakeMinutes,
-            sleepEfficiency: resolved.sleepEfficiency,
-            boundarySource: resolved.boundarySource,
-            segments: resolved.segments,
-            stageIntervals: resolved.stageIntervals,
-            boundaryValidation: nil,
-            hrSleepQuality: nil,
-            splitGapMinutes: resolved.splitGapMinutes
-        )
-    }
-
-    /// Analyze sleep trends from recent data. Average efficiency covers only
-    /// nights whose wake was measured, and is 0 when none was.
-    func analyzeSleepTrend(from sleepData: [SleepData]) -> SleepTrendStats {
-        guard sleepData.count >= 2 else {
-            return SleepTrendStats(
-                averageSleepMinutes: sleepData.first.map { Double($0.nightSleepMinutes) } ?? 0,
-                averageDeepSleepMinutes: sleepData.first?.deepSleepMinutes.map { Double($0) },
-                averageEfficiency: Self.averageMeasuredEfficiency(sleepData),
-                trend: .insufficient,
-                nightsAnalyzed: sleepData.count
-            )
-        }
-        let deepValues = sleepData.compactMap(\.deepSleepMinutes)
-        return SleepTrendStats(
-            averageSleepMinutes: sleepData.map { Double($0.nightSleepMinutes) }.reduce(0, +) / Double(sleepData.count),
-            averageDeepSleepMinutes: deepValues.isEmpty ? nil : Double(deepValues.reduce(0, +)) / Double(deepValues.count),
-            averageEfficiency: Self.averageMeasuredEfficiency(sleepData),
-            trend: Self.sleepTrendDirection(sleepData),
-            nightsAnalyzed: sleepData.count
-        )
-    }
-
-    /// Mean efficiency of the nights whose wake was measured, or 0 when none was.
+    /// Mean efficiency of the nights whose wake was measured, or nil when none was.
     nonisolated static func averageMeasuredEfficiency(_ sleepData: [SleepData]) -> Double? {
         let measured = sleepData.compactMap(\.measuredSleepEfficiency)
         guard !measured.isEmpty else { return nil }
         return measured.reduce(0, +) / Double(measured.count)
-    }
-
-    /// Direction from comparing the first half against the second half (newer
-    /// vs older — `sleepData` is newest-first). ±10 % is the band that reads as
-    /// "stable".
-    nonisolated private static func sleepTrendDirection(_ sleepData: [SleepData]) -> SleepTrendStats.SleepTrend {
-        let midpoint = sleepData.count / 2
-        let newerHalf = Array(sleepData.prefix(midpoint))
-        let olderHalf = Array(sleepData.suffix(from: midpoint))
-        let newerAvg = newerHalf.map { Double($0.nightSleepMinutes) }.reduce(0, +) / Double(max(1, newerHalf.count))
-        let olderAvg = olderHalf.map { Double($0.nightSleepMinutes) }.reduce(0, +) / Double(max(1, olderHalf.count))
-        let changePct = olderAvg > 0 ? ((newerAvg - olderAvg) / olderAvg) * 100 : 0
-        if changePct > 10 { return .improving }
-        if changePct < -10 { return .declining }
-        return .stable
     }
 
     // MARK: - Sleep Export
@@ -183,14 +43,22 @@ extension HealthWriteAndObserve {
         guard let sleepType = HKTypes.category(.sleepAnalysis) else {
             throw HealthKitManager.HealthKitError.typeUnavailable("sleepAnalysis")
         }
-        // Delete any previously written samples for this session (idempotent re-write)
-        try await deletePreviousSleepExport(sessionId: sessionId)
         let samples = Self.sleepExportSamples(
             sleepData: sleepData, sleepType: sleepType, sessionId: sessionId,
             inBedStart: sleepData.inBedStart ?? sleepStart, sleepEnd: sleepEnd
         )
         guard !samples.isEmpty else { return }
+        try await replacePreviousSleepExport(with: samples, sessionId: sessionId, sleepType: sleepType)
+    }
+
+    /// The new copy is saved before the session's previous export is
+    /// removed, and nothing valid to write (the caller's empty check) leaves
+    /// the previous export in place: deleted first, a save that failed left
+    /// the night out of Apple Health altogether.
+    private func replacePreviousSleepExport(with samples: [HKCategorySample], sessionId: UUID, sleepType: HKCategoryType) async throws {
+        let previous = try await previousSleepExport(sessionId: sessionId, sleepType: sleepType)
         try await manager.healthStore.save(samples)
+        if !previous.isEmpty { try await manager.healthStore.delete(previous) }
     }
 
     /// An overall inBed sample spanning the night, followed by one sample per
@@ -235,22 +103,15 @@ extension HealthWriteAndObserve {
     }
 
     /// Delete previously exported sleep samples for a session (enables idempotent re-writes).
-    func deletePreviousSleepExport(sessionId: UUID) async throws {
-        guard let sleepType = HKTypes.category(.sleepAnalysis) else {
-            throw HealthKitManager.HealthKitError.typeUnavailable("sleepAnalysis")
-        }
-
+    private func previousSleepExport(sessionId: UUID, sleepType: HKCategoryType) async throws -> [HKSample] {
         let existingSamples = try await appWrittenSleepSamples(
             sleepType: sleepType,
             predicate: HKQuery.predicateForObjects(from: HKSource.default()),
-            label: "deletePreviousSleepExport dedup"
+            label: "previousSleepExport dedup"
         )
-        let toDelete = existingSamples.filter { sample in
+        return existingSamples.filter { sample in
             guard let uuid = sample.metadata?[HKMetadataKeyExternalUUID] as? String else { return false }
             return HealthExportIdentity.belongsToSession(uuid, sessionId: sessionId, metric: .sleep)
-        }
-        if !toDelete.isEmpty {
-            try await manager.healthStore.delete(toDelete)
         }
     }
 
@@ -308,19 +169,25 @@ extension HealthWriteAndObserve {
     /// A sequential `try await` chain lets a single failure stop all
     /// downstream exports, which shows up as a single data point in Apple
     /// Health.
+    ///
+    /// Every metric is attempted whatever the others did; afterwards the
+    /// first failure is thrown, so the caller learns an export failed.
     func exportSessionMetrics(from session: HRVSession) async throws {
         guard let result = session.analysisResult, !CloudSessionPayload.isHealthKitSourced(session) else { return }
         let settings = manager.settingsProvider()
-        if settings.exportSDNN { await exportHRVMetrics(session: session, result: result) }
-        if settings.exportHeartRate { await exportHRMetrics(session: session, result: result) }
-        if settings.exportRestingHeartRate { await exportRHRMetric(session: session, result: result) }
-        if settings.exportSleepData { await exportSleepIfSoleSource(session: session) }
+        var failures: [Error] = []
+        if settings.exportSDNN, let error = await exportHRVMetrics(session: session, result: result) { failures.append(error) }
+        if settings.exportHeartRate, let error = await exportHRMetrics(session: session, result: result) { failures.append(error) }
+        if settings.exportRestingHeartRate, let error = await exportRHRMetric(session: session, result: result) { failures.append(error) }
+        if settings.exportSleepData, let error = await exportSleepIfSoleSource(session: session) { failures.append(error) }
+        if let first = failures.first { throw first }
     }
 
     /// HRV: windowed SDNN samples across the recording (HealthKit has no RMSSD
-    /// type, so RMSSD is not written), falling back to a
-    /// single summary only when there literally aren't enough beats for one
-    /// 5-min window.
+    /// type, so RMSSD is not written), falling back to a single summary when
+    /// there aren't enough beats for the series or no 5-minute window had
+    /// enough clean beats to write — so a session never reaches Health with
+    /// no HRV at all.
     ///
     /// Threshold: 30 RR points (≈ 30 seconds at 60 bpm). The previous 100
     /// threshold meant a sub-2-minute reading collapsed to a single point — and
@@ -328,22 +195,28 @@ extension HealthWriteAndObserve {
     /// With 30, ANY recording long enough for one analysable window gets the
     /// full series in Apple Health, which is what the beta tester (and
     /// Athlytic / Training Today integrators) need.
-    private func exportHRVMetrics(session: HRVSession, result: HRVAnalysisResult) async {
+    private func exportHRVMetrics(session: HRVSession, result: HRVAnalysisResult) async -> Error? {
         do {
-            if let points = session.rrSeries?.points, points.count >= 30 {
-                try await exportWindowedHRV(from: points, sessionStart: session.startDate, sessionId: session.id)
-            } else {
-                let date = session.endDate ?? session.startDate
-                try await exportSDNN(value: result.timeDomain.sdnn, at: date, sessionId: session.id)
-            }
+            guard try await windowedHRVWritten(session) == 0 else { return nil }
+            let date = session.endDate ?? session.startDate
+            try await exportSDNN(value: result.timeDomain.sdnn, at: date, sessionId: session.id)
+            return nil
         } catch {
             debugLog("[HealthKit Export] HRV export failed: \(error)")
+            return error
         }
+    }
+
+    /// The windowed SDNN series for a session with at least 30 beats; how
+    /// many samples it wrote (0 when too short to try, or no window qualified).
+    private func windowedHRVWritten(_ session: HRVSession) async throws -> Int {
+        guard let points = session.rrSeries?.points, points.count >= 30 else { return 0 }
+        return try await exportWindowedHRV(from: points, sessionStart: session.startDate, sessionId: session.id)
     }
 
     /// HR: minute-level discrete samples (`exportHeartRateSeries`), with the
     /// same lower threshold so even short sessions become a real series.
-    private func exportHRMetrics(session: HRVSession, result: HRVAnalysisResult) async {
+    private func exportHRMetrics(session: HRVSession, result: HRVAnalysisResult) async -> Error? {
         do {
             if let points = session.rrSeries?.points, points.count >= 30 {
                 try await manager.exportHeartRateSeries(from: points, sessionStart: session.startDate, sessionId: session.id)
@@ -351,8 +224,10 @@ extension HealthWriteAndObserve {
                 let date = session.endDate ?? session.startDate
                 try await manager.exportHeartRate(value: result.timeDomain.meanHR, at: date, sessionId: session.id)
             }
+            return nil
         } catch {
             debugLog("[HealthKit Export] HR export failed: \(error)")
+            return error
         }
     }
 
@@ -367,16 +242,18 @@ extension HealthWriteAndObserve {
     /// Only the nocturnal median is written. The session minimum used to
     /// stand in when it was missing, and a single lowest beat is not a resting
     /// heart rate by any definition; a night without the median writes none.
-    private func exportRHRMetric(session: HRVSession, result: HRVAnalysisResult) async {
+    private func exportRHRMetric(session: HRVSession, result: HRVAnalysisResult) async -> Error? {
         let date = session.endDate ?? session.startDate
         do {
             guard let restingHR = Self.restingHeartRateToExport(session: session, result: result) else {
                 try await manager.removeExportedRestingHeartRate(at: date, sessionId: session.id)
-                return
+                return nil
             }
             try await manager.exportRestingHeartRate(value: restingHR, at: date, sessionId: session.id)
+            return nil
         } catch {
             debugLog("[HealthKit Export] RHR export failed: \(error)")
+            return error
         }
     }
 
@@ -407,22 +284,24 @@ extension HealthWriteAndObserve {
     /// read that timed out at wake (a busy store) also lands there. So the
     /// night is checked again right before writing, and a check that finds
     /// another source's sleep, or can't complete, skips the export.
-    private func exportSleepIfSoleSource(session: HRVSession) async {
-        guard let sleepData = session.sleepSnapshot else { return }
+    private func exportSleepIfSoleSource(session: HRVSession) async -> Error? {
+        guard let sleepData = session.sleepSnapshot else { return nil }
         let weAreTheOnlySource =
             sleepData.boundarySource == .hrEstimated ||
             sleepData.boundarySource == .healthKitHREstimated
         guard weAreTheOnlySource, let start = sleepData.inBedStart ?? sleepData.sleepStart,
-              let end = sleepData.sleepEnd, let sleepType = HKTypes.category(.sleepAnalysis) else { return }
+              let end = sleepData.sleepEnd, let sleepType = HKTypes.category(.sleepAnalysis) else { return nil }
         do {
             let otherSource = try await otherSourceWroteSleep(from: start, to: end, sleepType: sleepType)
             guard !otherSource else {
                 debugLog("[HealthKit Export] Sleep export skipped: another source has recorded this night")
-                return
+                return nil
             }
             try await exportSleepToHealthKit(sleepData: sleepData, sessionId: session.id)
+            return nil
         } catch {
             debugLog("[HealthKit Export] Sleep export failed: \(error)")
+            return error
         }
     }
 
@@ -457,7 +336,11 @@ extension HealthWriteAndObserve {
         let query = makeSleepObserverQuery(for: sleepType, owner: self)
         manager.sleepObserverQuery = query
         manager.healthStore.execute(query)
-        manager.healthStore.enableBackgroundDelivery(for: sleepType, frequency: .immediate) { _, _ in
+        // A failed registration (entitlement missing, access denied) means
+        // the overnight cache warm and wake push only run while the app does.
+        manager.healthStore.enableBackgroundDelivery(for: sleepType, frequency: .immediate) { success, error in
+            guard !success else { return }
+            debugLog("[SleepObserver] Background delivery for sleep was not enabled: \(error?.localizedDescription ?? "no error given")", level: .warning)
         }
     }
 
@@ -556,8 +439,11 @@ private func makeSleepObserverQuery(
     }
     // The manager owns this query, so the handler holds the manager weakly and
     // rebuilds the (stateless) helper when it fires.
+    // The app's own sleep exports are not new data: filtered before the
+    // version bump, so they do not set off a re-fetch of today's sleep.
     query.updateHandler = { [weak manager = owner.manager] _, newSamples, _, _, _ in
-        guard let manager, let samples = newSamples, !samples.isEmpty else { return }
+        let ownSource = HKSource.default()
+        guard let manager, let samples = newSamples?.filter({ $0.sourceRevision.source != ownSource }), !samples.isEmpty else { return }
         Task { @MainActor in
             manager.sleepDataVersion += 1
             manager.writes.handleSleepSamplesArrived(samples)

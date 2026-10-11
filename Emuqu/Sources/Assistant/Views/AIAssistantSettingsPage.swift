@@ -34,25 +34,18 @@ struct AIAssistantSettingsPage: View {
         let subtitle: String
     }
 
+    /// Titled with `ProviderID.displayName`, the name the rest of the page
+    /// (and the model picker) uses for each provider.
     var providerFlagToggles: [ProviderFlagEntry] {
         let pickerSubtitle = String(localized: "When off, it leaves the model picker and Flo never sends it anything.", bundle: LanguageManager.appBundle)
-        return [
-            .init(flag: .providerOpenAIEnabled,
-                  title: "OpenAI",
-                  subtitle: pickerSubtitle),
-            .init(flag: .providerAnthropicEnabled,
-                  title: "Anthropic",
-                  subtitle: pickerSubtitle),
-            .init(flag: .providerGeminiEnabled,
-                  title: "Google Gemini",
-                  subtitle: pickerSubtitle),
-            .init(flag: .providerGrokEnabled,
-                  title: "xAI Grok",
-                  subtitle: pickerSubtitle),
-            .init(flag: .providerDeepSeekEnabled,
-                  title: "DeepSeek",
-                  subtitle: pickerSubtitle)
+        let flags: [(FeatureFlags.Key, ProviderID)] = [
+            (.providerOpenAIEnabled, .openai),
+            (.providerAnthropicEnabled, .anthropic),
+            (.providerGeminiEnabled, .gemini),
+            (.providerGrokEnabled, .grok),
+            (.providerDeepSeekEnabled, .deepseek)
         ]
+        return flags.map { ProviderFlagEntry(flag: $0.0, title: $0.1.displayName, subtitle: pickerSubtitle) }
     }
 
     /// Two-way binding into FeatureFlags. The `_ = refreshToken` read forces a
@@ -253,16 +246,23 @@ struct APIKeyEditorView: View {
     /// prompt — the user's clearest possible "stop" gesture leaving the door
     /// open. Revoking is the
     /// safer default: the cost of being wrong is one extra tap.
+    ///
+    /// Consent is withdrawn even when the Keychain delete fails, so nothing
+    /// more is sent. The page then reports what is true: the key is still
+    /// saved (its masked preview and Remove button stay), not "Key removed".
     private func removeKeyAndConsent() {
-        keys.removeKey(for: provider.id)
+        let removed = keys.removeKey(for: provider.id)
         consent.revoke(provider.id)
+        if !removed {
+            debugLog("[Settings] \(provider.id.rawValue) key removal failed — the key is still in the keychain", level: .warning)
+        }
         // The Claude key is one of web search's two routes; with neither left,
         // search goes off rather than sitting on behind a greyed-out toggle.
-        if provider.id == .anthropic, !keys.hasServiceKey(for: .tavilyWebSearch) {
+        if removed, provider.id == .anthropic, !keys.hasServiceKey(for: .tavilyWebSearch) {
             dependencies.app.settingsManager.settings.enableWebSearch = false
         }
-        hasExistingKey = false
-        saveStatus = .removed
+        hasExistingKey = keys.hasKey(for: provider.id)
+        saveStatus = removed ? .removed : .idle
         onChange()
     }
 

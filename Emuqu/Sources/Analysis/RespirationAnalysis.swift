@@ -27,22 +27,27 @@ enum RespirationAnalyzer {
         return breathsPerMin
     }
 
-    /// Mean-centred, zero-padded to a power of 2, then Hann-windowed.
+    /// Mean-centred, Hann-windowed over the samples, then zero-padded to a
+    /// power of 2. The window spans the data, not the padded length, so the
+    /// real signal tapers to zero at both ends before the padding starts
+    /// instead of being cut off abruptly, which would leak power across the
+    /// band the peak search reads.
     private static func meanRemovedHannWindow(_ resampled: [Double]) -> [Double] {
+        let count = resampled.count
         var mean: Double = 0
-        vDSP_meanvD(resampled, 1, &mean, vDSP_Length(resampled.count))
-        var centered = resampled.map { $0 - mean }
+        vDSP_meanvD(resampled, 1, &mean, vDSP_Length(count))
+        let centered = resampled.map { $0 - mean }
+
+        var window = [Double](repeating: 0, count: count)
+        vDSP_hann_windowD(&window, vDSP_Length(count), Int32(vDSP_HANN_DENORM))
+        var windowed = [Double](repeating: 0, count: count)
+        vDSP_vmulD(centered, 1, window, 1, &windowed, 1, vDSP_Length(count))
 
         // Zero-pad to power of 2
-        let log2n = vDSP_Length(ceil(log2(Double(centered.count))))
+        let log2n = vDSP_Length(ceil(log2(Double(count))))
         let fftN = 1 << Int(log2n)
-        centered.append(contentsOf: [Double](repeating: 0, count: fftN - centered.count))
-
-        // Apply Hann window
-        var window = [Double](repeating: 0, count: fftN)
-        vDSP_hann_windowD(&window, vDSP_Length(fftN), Int32(vDSP_HANN_DENORM))
-        vDSP_vmulD(centered, 1, window, 1, &centered, 1, vDSP_Length(fftN))
-        return centered
+        windowed.append(contentsOf: [Double](repeating: 0, count: fftN - count))
+        return windowed
     }
 
     /// Single-sided power spectrum. Nil when no DFT setup could be created.

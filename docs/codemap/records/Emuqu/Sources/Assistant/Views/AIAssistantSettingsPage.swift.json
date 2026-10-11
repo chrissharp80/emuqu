@@ -103,28 +103,20 @@
   },
   {
    "key": "var AIAssistantSettingsPage.providerFlagToggles",
-   "hash": "fd8a3a05b43413c3",
-   "does": "Returns the five provider kill-switch rows (OpenAI, Anthropic, Google Gemini, xAI Grok, DeepSeek), each mapped to its FeatureFlags.Key and sharing one subtitle string.",
+   "hash": "68d8581dc92313ca",
+   "does": "Returns the five provider kill-switch rows (OpenAI, Anthropic, Gemini, Grok, DeepSeek order), each mapped to its FeatureFlags.Key, titled with ProviderID.displayName (Claude, ChatGPT, Gemini, Grok, DeepSeek — the names the rest of the page uses) and sharing one subtitle string.",
    "entry": "read by providerFlagToggleRows (AIAssistantSettingsPage+Sections.swift:628) during body evaluation",
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.displayName",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "hack",
-     "sev": "low",
-     "text": "Provider titles 'OpenAI', 'Anthropic', 'Google Gemini', 'xAI Grok', 'DeepSeek' are hardcoded literals rather than ProviderID.vendorName/displayName, so they can drift from the names shown elsewhere in the same page.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift:40-54",
-      "Emuqu/Sources/Assistant/Providers/AIProvider.swift:41"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13"
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.displayName": "01f7b50221806224",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },
   {
@@ -590,14 +582,14 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::func APIKeyEditorView.removeKeyAndConsent()": "7d56805a56af41a8",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::func APIKeyEditorView.removeKeyAndConsent()": "47b6ff9f3c19ee82",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },
   {
    "key": "func APIKeyEditorView.removeKeyAndConsent()",
-   "hash": "cca55f07e8fe232f",
-   "does": "Deletes the provider's keychain key, revokes its consent, turns enableWebSearch off when removing the Anthropic key and no Tavily key exists, then sets hasExistingKey=false, saveStatus=.removed and calls onChange.",
+   "hash": "94a75b8af56db9b0",
+   "does": "Deletes the provider's keychain key and revokes its consent either way. When the delete failed it logs a warning, leaves web search alone, re-reads hasExistingKey (still true) and shows no 'Key removed.' status, so the page keeps showing the saved key. When it succeeded, turns enableWebSearch off if this was the Anthropic key and no Tavily key exists, then hasExistingKey=false, saveStatus=.removed. Calls onChange.",
    "entry": "'Remove key' button tap",
    "calls": [
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.keys",
@@ -608,7 +600,9 @@
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager",
     "closure:onChange — AIAssistantSettingsPage.keysChanged",
-    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::func AIAssistantSettingsPage.keysChanged()"
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::func AIAssistantSettingsPage.keysChanged()",
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasKey(for:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
     "kc:service.tavily_web_search"
@@ -622,33 +616,33 @@
    ],
    "branches": [
     {
-     "at": "+5",
-     "cond": "provider is Anthropic AND no Tavily key is stored",
-     "effect": "settings.enableWebSearch = false (persisted by SettingsManager didSet); otherwise web search setting left unchanged"
-    }
-   ],
-   "flags": [
+     "at": "+3",
+     "cond": "keychain delete failed",
+     "effect": "log warning"
+    },
     {
-     "kind": "silent-failure",
-     "sev": "med",
-     "text": "The Bool result of keys.removeKey(for:) is discarded; when SecItemDelete fails (status other than success/notFound) the UI still sets hasExistingKey=false and shows 'Key removed.' while the key remains in the keychain and the provider stays usable (onAppear re-reads it next visit).",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift:257",
-      "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift:264-265",
-      "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift:83-91"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+8",
+     "cond": "removed AND provider is Anthropic AND no Tavily key is stored",
+     "effect": "settings.enableWebSearch = false (persisted by SettingsManager didSet)"
+    },
+    {
+     "at": "+12",
+     "cond": "removed",
+     "effect": "saveStatus .removed ('Key removed.'); else .idle (masked preview of the still-saved key)"
     }
    ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasKey(for:)": "227ac15ee3157ece",
     "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasServiceKey(for:)": "31dbad94c3cc4e39",
-    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.removeKey(for:)": "e4e751df1d08e7d5",
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.removeKey(for:)": "7c731dddf0d09d7a",
     "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.revoke(_:)": "bda6182f0dfa3610",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::func AIAssistantSettingsPage.keysChanged()": "b064c2c4bf5e0e8f",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.consent": "aaf612cd1adc3d0e",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.keys": "6ad361dde0017163",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {

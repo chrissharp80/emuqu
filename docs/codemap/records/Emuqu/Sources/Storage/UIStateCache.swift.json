@@ -15,18 +15,7 @@
   "mem:UIStateCache.writeQueue (serial com.emuqu.uistatecache.write)"
  ],
  "toplevel": "static shared, schemaVersion = 1, persistenceURL lazy closure, writeQueue serial queue.",
- "flags": [
-  {
-   "kind": "privacy",
-   "sev": "low",
-   "text": "Dashboard snapshot (recovery score, RMSSD, sleep minutes, vitals, 7-day scores) is written as plaintext JSON with default file protection, outside the encrypted archive the type's comment calls the write model.",
-   "evidence": [
-    "Emuqu/Sources/Storage/UIStateCache.swift:109",
-    "Emuqu/Sources/Storage/UIStateCache.swift:10"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "func UIStateCache.setDashboard(_:)",
@@ -50,7 +39,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.persist()": "55eb3cbcf0e29503"
+    "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.persist()": "952f5290165860bd"
    }
   },
   {
@@ -75,7 +64,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.persist()": "55eb3cbcf0e29503"
+    "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.persist()": "952f5290165860bd"
    }
   },
   {
@@ -111,21 +100,27 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.loadFromDisk()": "4c37164d9035bdb2"
+    "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.loadFromDisk()": "e4488272fce2d4d2"
    }
   },
   {
    "key": "func UIStateCache.persist()",
-   "hash": "7660399dfe0bd1e0",
-   "does": "Snapshots both values and writes them as JSON atomically on the serial writeQueue; failures logged.",
+   "hash": "c0e56d0e7837ae90",
+   "does": "Snapshots both values and, on the serial writeQueue, JSON-encodes them, seals the bytes with EncryptionManager and writes them atomically with completeUntilFirstUserAuthentication; when encryption (or the write) fails nothing is written and a warning is logged.",
    "entry": null,
    "calls": [
     "ext:DispatchQueue.async",
     "ext:JSONEncoder",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.encryptionManager",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)",
     "ext:Data.write",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
-   "reads": [],
+   "reads": [
+    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
+   ],
    "writes": [
     "file:ApplicationSupport/UIStateCache.json"
    ],
@@ -137,23 +132,58 @@
     },
     {
      "at": "+7",
-     "cond": "encode/write throws",
-     "effect": "catch: warning log; next launch starts without a seed"
+     "cond": "encode/encrypt/write throws",
+     "effect": "catch: warning log, nothing written; next launch starts without a seed"
     }
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "6236f6fa0100fadb",
     "Emuqu/Sources/Storage/UIStateCache.swift::let UIStateCache.persistenceURL": "6a88940e6d7da68c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.encryptionManager": "c32367b86a9f2256",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
+   "key": "func UIStateCache.storeJSON(_:)",
+   "hash": "22e7c81793fa86ee",
+   "does": "Returns the stored JSON: data starting with '{' (plain JSON from an earlier build) as is, anything else decrypted with EncryptionManager (throws on failure).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.encryptionManager",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)"
+   ],
+   "reads": [
+    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "starts with '{'",
+     "effect": "return as is; else decrypt"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)": "32058ab0050d0265",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.encryptionManager": "c32367b86a9f2256"
+   }
+  },
+  {
    "key": "func UIStateCache.loadFromDisk()",
-   "hash": "b70ee0b50a9f163c",
-   "does": "Reads and decodes UIStateCache.json and restores dashboard/fitness when schema == 1; otherwise leaves both nil.",
+   "hash": "b46c98898de1d54b",
+   "does": "Reads UIStateCache.json, opens it (storeJSON: sealed or legacy plain), decodes and restores dashboard/fitness when schema == 1; otherwise leaves both nil.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.storeJSON(_:)",
     "ext:Data(contentsOf:)",
     "ext:JSONDecoder",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
@@ -175,6 +205,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.schema(registry:)": "923c2c42ab3aa043",
+    "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.storeJSON(_:)": "989bc6fb61d50f5d",
     "Emuqu/Sources/Storage/UIStateCache.swift::let UIStateCache.persistenceURL": "6a88940e6d7da68c",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"

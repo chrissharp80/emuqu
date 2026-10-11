@@ -94,7 +94,7 @@
    "key": "func WorkoutHRSourceResolver.provenanceSource(for:)",
    "hash": "5c709944161a0706",
    "does": "Maps a Resolution to the provenance HRSource: .use(s)->s, reconnectThenUseStrap->.strap, strapBusy->nil.",
-   "entry": null,
+   "entry": "Called from WorkoutSessionLifecycle.resolveEffectiveSource (WorkoutRecorder+Start.swift) for the source a start uses and records; tests WorkoutHRSourceResolverTests.",
    "calls": [],
    "reads": [],
    "writes": [],
@@ -115,19 +115,7 @@
      "effect": "returns nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No production caller: grep finds provenanceSource only in EmuquTests/WorkoutHRSourceResolverTests.swift (lines 114-144); production resolveEffectiveSource returns the source directly (WorkoutRecorder+Start.swift:197-205).",
-     "evidence": [
-      "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift:91",
-      "EmuquTests/WorkoutHRSourceResolverTests.swift:114",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:197"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   }
  ],

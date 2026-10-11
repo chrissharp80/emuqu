@@ -27,7 +27,15 @@
 # one that moves when a big type grows, and it moves in the right direction when
 # a split genuinely reduces a type rather than relocating it.
 #
-# Exit 0 clean, 1 over either budget, 2 on config error.
+# What it measures: the bodies of every top-level declaration and extension of
+# a name, across the scanned tree (comments and string literals masked, so
+# their braces do not count). What it does NOT measure: file-scope functions
+# and separate sibling types that exist only to serve a type — code moved there
+# leaves the type's total, which is a known way round this gate.
+#
+# Exit 0 clean, 1 over either budget, 2 on config error or a declaration whose
+# braces never balance (that type cannot be measured, so it is not reported as
+# zero).
 
 set -uo pipefail
 cd "$(dirname "$0")/.."
@@ -73,52 +81,113 @@ scan_dir, threshold = sys.argv[1], int(sys.argv[2])
 
 DECL = re.compile(
     r'^\s*(?:@[\w()., *:"\-]+\s+)*'
-    r'(?:(?:public|internal|private|fileprivate|open|final|package|indirect|@objc)\s+)*'
+    r'((?:(?:public|internal|private|fileprivate|open|final|package|indirect|@objc)\s+)*)'
     r'(class|struct|enum|actor|extension|protocol)\s+([\w.]+)'
 )
+QUOTE = re.compile(r'(#*)("""|")')
 
 
-def strip(line):
-    line = re.sub(r'"(?:[^"\\]|\\.)*"', '""', line)
-    return re.sub(r'//.*$', '', line)
+def blank(text):
+    return ''.join('\n' if ch == '\n' else ' ' for ch in text)
+
+
+def comment_end(text, i):
+    """End of the (nestable) block comment opening at i."""
+    depth = 0
+    while i < len(text):
+        if text.startswith('/*', i):
+            depth, i = depth + 1, i + 2
+        elif text.startswith('*/', i):
+            depth, i = depth - 1, i + 2
+            if depth == 0:
+                return i
+        else:
+            i += 1
+    return i
+
+
+def string_end(text, i, hashes, quote):
+    """End of the string literal whose opening delimiter ends at i."""
+    close = quote + hashes
+    while i < len(text):
+        if not hashes and text[i] == '\\':
+            i += 2
+        elif text.startswith(close, i):
+            return i + len(close)
+        elif quote == '"' and text[i] == '\n':
+            return i
+        else:
+            i += 1
+    return i
+
+
+def mask(text):
+    """Blank comments and string literals (newlines kept), so braces and
+    keywords inside them are neither counted nor matched. Covers block
+    comments and multi-line and raw strings, which a per-line strip misses."""
+    out, i = [], 0
+    while i < len(text):
+        quote = QUOTE.match(text, i)
+        if text.startswith('//', i):
+            end = text.find('\n', i)
+            end = len(text) if end < 0 else end
+        elif text.startswith('/*', i):
+            end = comment_end(text, i)
+        elif quote:
+            end = string_end(text, quote.end(), quote.group(1), quote.group(2))
+        else:
+            out.append(text[i])
+            i += 1
+            continue
+        out.append(blank(text[i:end]))
+        i = end
+    return ''.join(out)
+
+
+def body_end(lines, index):
+    """Line on which the declaration at index closes, or None if it never does."""
+    depth, started = 0, False
+    for end in range(index, len(lines)):
+        for char in lines[end]:
+            if char == '{':
+                depth, started = depth + 1, True
+            elif char == '}':
+                depth -= 1
+        if started and depth == 0:
+            return end
+    return None
 
 
 sizes = collections.Counter()
 files = collections.defaultdict(set)
 kinds = {}
+unbalanced = []
 
 for path in sorted(pathlib.Path(scan_dir).rglob('*.swift')):
-    lines = path.read_text(encoding='utf-8', errors='ignore').splitlines()
+    lines = mask(path.read_text(encoding='utf-8', errors='ignore')).split('\n')
     index = 0
     while index < len(lines):
         match = DECL.match(lines[index])
         if not match:
             index += 1
             continue
-        kind, name = match.group(1), match.group(2)
-        depth = 0
-        started = False
-        end = index
-        while end < len(lines):
-            for char in strip(lines[end]):
-                if char == '{':
-                    depth += 1
-                    started = True
-                elif char == '}':
-                    depth -= 1
-            if started and depth == 0:
-                break
-            end += 1
-            if end - index > 4000:
-                break
-        if started and depth == 0:
-            sizes[name] += end - index + 1
-            files[name].add(str(path))
-            if kind != 'extension':
-                kinds[name] = kind
-            index = end + 1
-        else:
+        modifiers, kind, name = match.group(1), match.group(2), match.group(3)
+        # A private or fileprivate type is visible only in its own file, so two
+        # of them with one name are two types; keying them by bare name summed
+        # every private `Row` in the tree into one.
+        if kind != 'extension' and re.search(r'\b(?:private|fileprivate)\b', modifiers):
+            name = f"{name}@{path.name}"
+        end = body_end(lines, index)
+        if end is None:
+            # A body that never closes is a parse failure, not a zero-line type.
+            unbalanced.append(f"{path}:{index + 1} {name}")
             index += 1
+            continue
+        sizes[name] += end - index + 1
+        files[name].add(str(path))
+        if kind != 'extension':
+            kinds[name] = kind
+        index = end + 1
 
 over = [(size, name) for name, size in sizes.items() if size > threshold]
 over.sort(reverse=True)
@@ -126,11 +195,19 @@ print(len(over))
 print(sum(size - threshold for size, _ in over))
 for size, name in over[:12]:
     print(f"OVER {size} {len(files[name])} {kinds.get(name, 'extension-only')} {name}")
+for where in unbalanced:
+    print(f"UNBALANCED {where}")
 PY
 )"
 
 if [[ -z "$MEASURED" ]]; then
     echo "check_aggregate_type_size: measurement produced no output." >&2
+    exit 2
+fi
+
+if printf '%s\n' "$MEASURED" | grep -q '^UNBALANCED '; then
+    echo "check_aggregate_type_size: a declaration's braces never balance, so its size cannot be measured:" >&2
+    printf '%s\n' "$MEASURED" | sed -n 's/^UNBALANCED /    /p' >&2
     exit 2
 fi
 

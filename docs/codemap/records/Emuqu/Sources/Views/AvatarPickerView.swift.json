@@ -38,7 +38,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/AvatarPickerView.swift::func AvatarPickerView.pick(_:)": "340c29efec69a9af",
+    "Emuqu/Sources/Views/AvatarPickerView.swift::func AvatarPickerView.pick(_:)": "a6fe5f9f6762726d",
     "Emuqu/Sources/Views/AvatarPickerView.swift::var AvatarCircleLabel.body": "eea56a26253d03d4",
     "Emuqu/Sources/Views/AvatarPickerView.swift::var AvatarPickerView.errorText": "67b3ef88f4d24a9f",
     "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
@@ -70,14 +70,16 @@
   },
   {
    "key": "func AvatarPickerView.pick(_:)",
-   "hash": "38ca10ef85f2418b",
-   "does": "Sets processing=true and starts a Task that loads/stores the picked image then clears processing.",
+   "hash": "ae64edade1a1f8e4",
+   "does": "Sets processing=true and starts a Task that loads/stores the picked image, then clears processing and resets pickerItem to nil so re-picking the same photo fires onChange again.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/AvatarPickerView.swift::func AvatarPickerView.loadAndStoreImage(from:)"
    ],
    "reads": [],
-   "writes": [],
+   "writes": [
+    "mem:AvatarPickerView.processing/pickerItem @State"
+   ],
    "branches": [
     {
      "at": "+1",
@@ -85,18 +87,7 @@
      "effect": "returns (nothing picked); otherwise processes"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "pickerItem is never reset to nil, so re-selecting the same PhotosPickerItem does not change the binding and .onChange does not fire (e.g. retry after 'Photo load failed').",
-     "evidence": [
-      "Emuqu/Sources/Views/AvatarPickerView.swift:13",
-      "Emuqu/Sources/Views/AvatarPickerView.swift:49"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/AvatarPickerView.swift::func AvatarPickerView.loadAndStoreImage(from:)": "0b5eeb25ccc19e54"
    }
@@ -136,13 +127,13 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/AvatarPickerView.swift::func AvatarPickerView.compressedAvatar(_:)": "0e1a7c6406f56ea4"
+    "Emuqu/Sources/Views/AvatarPickerView.swift::func AvatarPickerView.compressedAvatar(_:)": "bd7a3f9e3478c7f3"
    }
   },
   {
    "key": "func AvatarPickerView.compressedAvatar(_:)",
    "hash": "0578596d98e63a0c",
-   "does": "Downscales off the main actor (Task.detached) to a 256×256-point aspect-fill square and JPEG-encodes at quality 0.7.",
+   "does": "Downscales off the main actor (Task.detached) to a 256×256-pixel aspect-fill square and JPEG-encodes at quality 0.7.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/AvatarPickerView.swift::func downscale(_:to:)",
@@ -151,36 +142,27 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Comments say the avatar is downscaled to 256×256 (~15–60 KB); UIGraphicsImageRenderer(size:) uses the default format whose scale is the screen scale, so on a 3× iPhone the stored JPEG is 768×768 px, about 9× the pixels the comment states, all inside user_settings.json.",
-     "evidence": [
-      "Emuqu/Sources/Views/AvatarPickerView.swift:6",
-      "Emuqu/Sources/Views/AvatarPickerView.swift:78",
-      "Emuqu/Sources/Views/AvatarPickerView.swift:91"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/AvatarPickerView.swift::func downscale(_:to:)": "a52fac54f5547f0b"
+    "Emuqu/Sources/Views/AvatarPickerView.swift::func downscale(_:to:)": "bae9ceda0404b707"
    }
   },
   {
    "key": "func downscale(_:to:)",
-   "hash": "e136d82903acecc2",
-   "does": "Draws the image aspect-fill centred into a UIGraphicsImageRenderer of the target size and returns the result.",
+   "hash": "fbb64e930754a1a1",
+   "does": "Draws the image aspect-fill centred into a UIGraphicsImageRenderer of the target size at scale 1 (so the size is in pixels) and returns the result.",
    "entry": null,
    "calls": [
+    "ext:UIGraphicsImageRendererFormat",
     "ext:UIGraphicsImageRenderer.image"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincareGeometry.scale(_:)": "bc287f5cdfc2a532"
+   }
   },
   {
    "key": "var AvatarCircleLabel.body",

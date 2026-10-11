@@ -23,13 +23,17 @@ import UIKit
 /// touch delay that makes the rest of the UI feel laggy.
 ///
 /// Idempotent — safe to call multiple times. Only installs once
-/// per app launch.
+/// per app launch; after that, every window that becomes key (a window of
+/// a scene opened later included) gets its own recognizer.
 @MainActor
 final class GlobalKeyboardDismissal: NSObject {
     static let shared = GlobalKeyboardDismissal()
 
     private var installed = false
-    private var recognizer: UITapGestureRecognizer?
+
+    /// How many 250 ms retries `prewarmKeyboard` makes while no window exists
+    /// yet: about five seconds, past any cold-launch scene setup.
+    private static let prewarmWindowRetries = 20
 
     /// Install the global tap-to-dismiss gesture. Retries if no key
     /// window is available yet (rare cold-launch timing).
@@ -42,7 +46,17 @@ final class GlobalKeyboardDismissal: NSObject {
             return
         }
         installed = true
+        attach(to: window)
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(windowDidBecomeKey(_:)),
+            name: UIWindow.didBecomeKeyNotification, object: nil
+        )
+        NSLog("[GlobalKeyboardDismissal] installed window-level tap-to-dismiss")
+    }
 
+    /// Add the tap recognizer to `window` unless it already carries one.
+    private func attach(to window: UIWindow) {
+        guard !(window.gestureRecognizers ?? []).contains(where: { $0.delegate === self }) else { return }
         let tap = UITapGestureRecognizer(target: self, action: #selector(handleTap))
         tap.cancelsTouchesInView = false
         tap.delaysTouchesBegan = false
@@ -51,9 +65,13 @@ final class GlobalKeyboardDismissal: NSObject {
         // (scroll, drag, button highlight, swipe-to-go-back).
         tap.delegate = self
         window.addGestureRecognizer(tap)
-        recognizer = tap
+    }
 
-        NSLog("[GlobalKeyboardDismissal] installed window-level tap-to-dismiss")
+    /// A window created after install (a new scene) gets the recognizer the
+    /// first time it becomes key.
+    @objc private func windowDidBecomeKey(_ note: Notification) {
+        guard let window = note.object as? UIWindow else { return }
+        attach(to: window)
     }
 
     @objc private func handleTap() {
@@ -74,9 +92,22 @@ final class GlobalKeyboardDismissal: NSObject {
     /// and no keyboard flashes on screen.
     ///
     /// Skipped when something is already editing: taking first responder
-    /// would dismiss the keyboard the user is typing on.
+    /// would dismiss the keyboard the user is typing on. With no window yet
+    /// (the same cold-launch case `install` waits out) it retries every
+    /// 250 ms, up to `prewarmWindowRetries` times.
     func prewarmKeyboard() {
-        guard let window = UIApplication.activeKeyWindow, !Self.containsFirstResponder(window) else { return }
+        prewarmKeyboard(retriesLeft: Self.prewarmWindowRetries)
+    }
+
+    private func prewarmKeyboard(retriesLeft: Int) {
+        guard let window = UIApplication.activeKeyWindow else {
+            guard retriesLeft > 0 else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(250)) { [weak self] in
+                self?.prewarmKeyboard(retriesLeft: retriesLeft - 1)
+            }
+            return
+        }
+        guard !Self.containsFirstResponder(window) else { return }
         let field = UITextField(frame: .zero)
         window.addSubview(field)
         field.becomeFirstResponder()

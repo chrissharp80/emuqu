@@ -81,7 +81,7 @@ final class PositiveCauseDetector: CauseDetectionStrategy {
 
     /// The user tagged the reading as a recovery day.
     private func detectTagPositives(in context: CauseDetectionContext) -> [DetectedCause] {
-        guard context.selectedTags.contains(where: { $0.name == ReadingTag.recovery.name }) else { return [] }
+        guard context.selectedTags.containsSystemTag(ReadingTag.recovery) else { return [] }
         return [DetectedCause(
             cause: String(localized: "Recovery Day", bundle: NarrativeLanguage.bundle),
             confidence: .moderateHigh,

@@ -45,10 +45,10 @@ enum WindowSelectionMethod: String, Codable, CaseIterable {
             String(localized: "Picks the most stable, organized recovery window during deep sleep. This is what most HRV apps report.", bundle: LanguageManager.appBundle)
         case .peakRMSSD:
             String(localized: "Finds your highest parasympathetic activity regardless of stability.", bundle: LanguageManager.appBundle)
-        case .peakSDNN:
+        // Total power is selected with SDNN as its proxy (SDNN² is the total
+        // variance), so both options pick the same window and say the same.
+        case .peakSDNN, .peakTotalPower:
             String(localized: "Finds your highest total heart rate variability (sympathetic + parasympathetic).", bundle: LanguageManager.appBundle)
-        case .peakTotalPower:
-            String(localized: "Finds the window with the most overall autonomic nervous system activity.", bundle: LanguageManager.appBundle)
         case .custom:
             String(localized: "Tap or drag on the chart to analyze any part of your recording.", bundle: LanguageManager.appBundle)
         }

@@ -10,7 +10,7 @@
   "static let breadcrumbRecentDescription (line 95)",
   "static let breadcrumbArchiveSummaryDescription (line 162)"
  ],
- "toplevel": "Struct conformance; registered by AppFactResolverFactory.registerAppNamespaces (AppFactResolver.swift:221).",
+ "toplevel": "Struct conformance; registered by AppFactResolverFactory.registerAppNamespaces. Not behind the workout-only location gate of the location.* actions: the cloud consent sheet (ProviderConsentSheet) discloses exactly what these facts release — the Get Me Back trail while it runs (active / current_fix / recent_track) and the start points of recent trails and GPS workouts (recent); the file header says so.",
  "flags": [],
  "units": [
   {
@@ -77,7 +77,7 @@
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Breadcrumbs.swift::var BreadcrumbNamespace.breadcrumbCountEntry": "04453e8362cb7404",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Breadcrumbs.swift::var BreadcrumbNamespace.breadcrumbCurrentFixEntry": "5d1e981dfa1e647a",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Breadcrumbs.swift::var BreadcrumbNamespace.breadcrumbDerivedGradePercentEntry": "3d83cf96c5caf1af",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Breadcrumbs.swift::var BreadcrumbNamespace.breadcrumbRecentEntry": "e18500c1ea88ede5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Breadcrumbs.swift::var BreadcrumbNamespace.breadcrumbRecentEntry": "44ea66f83eec5d80",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Breadcrumbs.swift::var BreadcrumbNamespace.breadcrumbRecentTrackEntry": "0a57a9e1207c444b"
    }
   },
@@ -139,19 +139,6 @@
    ],
    "flags": [
     {
-     "kind": "spec-mismatch",
-     "sev": "high",
-     "text": "breadcrumb.recent returns origin_lat/origin_lon of up to 10 archived trails, including the start point of every GPS workout, at any time with no workout gate; the user manual tells users cloud providers receive 'your location during a live workout', and location.current/situation refuse coordinates outside a workout.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Breadcrumbs.swift:35",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Breadcrumbs.swift:83",
-      "docs/USERS_MANUAL.md:1743",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift:170",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift:225"
-     ],
-     "found": "second read"
-    },
-    {
      "kind": "silent-failure",
      "sev": "low",
      "text": "BreadcrumbStore.loadArchive returns [] when archive.json is present but unreadable (before first unlock) or fails to decode, so breadcrumb.recent/count/archive_summary report 'no archived trails' / 0 instead of a read failure.",
@@ -169,7 +156,7 @@
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Breadcrumbs.swift::func BreadcrumbNamespace.tripleFromTrail(_:)": "97ba64c2905fff0d",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
     "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.localISO8601(_:)": "9043f4e802508b2a",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.loadArchive()": "47263c6d18f9ac81",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.loadArchive()": "1e2dc83bbc788b8e",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore": "a52bb2cc5e7e9d78"
    }
@@ -344,18 +331,19 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Breadcrumbs.swift::func BreadcrumbNamespace.resolveBreadcrumbCurrentFix()": "cc63eca711239e89",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Breadcrumbs.swift::func BreadcrumbNamespace.resolveBreadcrumbCurrentFix()": "7d08ec2287d85105",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
    }
   },
   {
    "key": "func BreadcrumbNamespace.resolveBreadcrumbCurrentFix()",
-   "hash": "f483680e3df9c3e6",
-   "does": "Reads BreadcrumbRecorder.activeTrail on the main actor and returns the last fix as {latitude, longitude, accuracy_m, captured_at, altitude_m?, course_deg?, speed_ms?}.",
+   "hash": "51fbf0f91a6caf64",
+   "does": "Reads BreadcrumbRecorder.activeTrail on the main actor and returns fixRecord(last fix); missing notRecorded without an active trail or fix.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbRecorder",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Breadcrumbs.swift::func BreadcrumbNamespace.fixRecord(_:)",
     "ext:MainActor.assumeIsolated"
    ],
    "reads": [
@@ -366,47 +354,44 @@
     {
      "at": "+2",
      "cond": "recorder has an active trail with ≥1 fix",
-     "effect": "builds record; else missing notRecorded"
-    },
-    {
-     "at": "+11",
-     "cond": "fix has altitude",
-     "effect": "adds altitude_m"
-    },
-    {
-     "at": "+12",
-     "cond": "fix has course",
-     "effect": "adds course_deg"
-    },
-    {
-     "at": "+13",
-     "cond": "fix has speed",
-     "effect": "adds speed_ms"
+     "effect": "fixRecord; else missing notRecorded"
     }
    ],
-   "flags": [
-    {
-     "kind": "privacy",
-     "sev": "high",
-     "text": "Returns raw latitude/longitude with no active-workout gate (its own description says 'even outside an active workout'), reachable from cloud providers via the get_breadcrumbs tool (CompactToolRouter.swift:335/400). This contradicts the stated privacy rule that precise location goes to the model only while a workout is recording (AppFactResolver+LiveCoaching.swift:21-33, enforced on location.current/situation). breadcrumb.recent_track, breadcrumb.active and breadcrumb.recent (origin_lat/lon of every archived trail) leak coordinates the same way.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Breadcrumbs.swift:173",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Breadcrumbs.swift:186",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Breadcrumbs.swift:216",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Breadcrumbs.swift:35",
-      "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift:335",
-      "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift:400",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift:21",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift:170"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Breadcrumbs.swift::func BreadcrumbNamespace.fixRecord(_:)": "e447178a7b1c4812",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbRecorder": "b1d087b5ddad95aa",
     "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "42272288bfb6323a"
    }
+  },
+  {
+   "key": "func BreadcrumbNamespace.fixRecord(_:)",
+   "hash": "050c5ef933e2d59a",
+   "does": "Static: one committed fix as {latitude, longitude, accuracy_m, captured_at} plus altitude_m, course_deg and speed_ms when the fix has them — the record current_fix and each recent_track entry share.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "fix has altitude",
+     "effect": "adds altitude_m"
+    },
+    {
+     "at": "+8",
+     "cond": "fix has course",
+     "effect": "adds course_deg"
+    },
+    {
+     "at": "+9",
+     "cond": "fix has speed",
+     "effect": "adds speed_ms"
+    }
+   ],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "var BreadcrumbNamespace.breadcrumbRecentTrackEntry",
@@ -422,18 +407,19 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Breadcrumbs.swift::func BreadcrumbNamespace.resolveBreadcrumbRecentTrack()": "2feccfbd4fd9fb3e",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Breadcrumbs.swift::func BreadcrumbNamespace.resolveBreadcrumbRecentTrack()": "29a481dabcbed9db",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
    }
   },
   {
    "key": "func BreadcrumbNamespace.resolveBreadcrumbRecentTrack()",
-   "hash": "49981ddc9acdef48",
-   "does": "Returns the last ≤20 fixes of the recorder's active trail (oldest first) as records with the current_fix fields; notRecorded when fewer than 2.",
+   "hash": "42ca55c3654783fd",
+   "does": "Returns the last ≤20 fixes of the recorder's active trail (oldest first) as fixRecord records; notRecorded when fewer than 2.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbRecorder",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Breadcrumbs.swift::func BreadcrumbNamespace.fixRecord(_:)",
     "ext:MainActor.assumeIsolated"
    ],
    "reads": [
@@ -450,36 +436,11 @@
      "at": "+3",
      "cond": "≥2 fixes",
      "effect": "builds list; else missing notRecorded"
-    },
-    {
-     "at": "+13",
-     "cond": "fix has altitude",
-     "effect": "adds altitude_m"
-    },
-    {
-     "at": "+14",
-     "cond": "fix has course",
-     "effect": "adds course_deg"
-    },
-    {
-     "at": "+15",
-     "cond": "fix has speed",
-     "effect": "adds speed_ms"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Per-fix record construction (lines 215-224) duplicates resolveBreadcrumbCurrentFix's (185-193).",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Breadcrumbs.swift:185",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Breadcrumbs.swift:215"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Breadcrumbs.swift::func BreadcrumbNamespace.fixRecord(_:)": "e447178a7b1c4812",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbRecorder": "b1d087b5ddad95aa",
     "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "42272288bfb6323a"

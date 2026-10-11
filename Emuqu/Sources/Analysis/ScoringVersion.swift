@@ -26,6 +26,14 @@ enum ScoringVersion {
     /// before this existed the version string was duplicated across the
     /// assistant context, the knowledge base and the fact resolver, with
     /// nothing keeping them in step.
+    ///
+    /// A scoring version names the whole algorithm, the z-score band table
+    /// included: this version scores with
+    /// `RecoveryScoreCalculator.defaultScoringParameters`
+    /// (`scoringParametersV2`, band version "v2.2026-06-22"). The band table's
+    /// own `version` is not stored on a score; re-binding
+    /// `defaultScoringParameters` is a scoring change, so it bumps this
+    /// version, and the stored version then tells which table produced a score.
     static let current = "v3.1.oct2026"
 
     /// What a score decoded without a version is called.

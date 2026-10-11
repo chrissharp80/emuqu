@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Models/IntervalPlan.swift",
- "hash": "713c0ba7921ecec8",
- "role": "Codable model for structured interval workouts: IntervalStep (timed or distance step with a target and label) and IntervalPlan (ordered steps + whole-plan repeatCount), plus three built-in preset plans shown in WorkoutPreflightView.",
+ "hash": "523960322c45793d",
+ "role": "Codable model for structured interval workouts: IntervalStep (timed or distance step with a target and label) and IntervalPlan (ordered steps + whole-plan repeatCount), plus the three built-in preset plans shown in WorkoutPreflightView — the only plans that exist.",
  "types": [
   "IntervalStep: struct (Codable, Equatable, Identifiable) — one step; id = index",
   "IntervalStep.Target: enum — zone / hrRange / paceSecPerKm / effort",
@@ -12,40 +12,7 @@
   "mem:IntervalPlan.presets (static let: 'Easy base (30 min Z2)' id 1111…, \"5×3' tempo @ Z4\" id 2222…, '4×30/30 VO₂ (2 sets)' id 3333…)"
  ],
  "toplevel": "IntervalPlan.presets is a static let evaluated lazily on first access (WorkoutPreflightView.swift:785); it builds three plans with fixed UUID literals via presetID and the 30/30 plan via thirtyThirtySteps(sets: 2). All Codable/Equatable conformances are synthesized.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "displayName/displayLabel comments speak of 'a user plan's name as written' and 'a label the user wrote', but no code outside IntervalPlan.presets ever constructs an IntervalStep/IntervalPlan (grep 'IntervalStep(' finds only IntervalPlan.swift), so only preset plans exist.",
-   "evidence": [
-    "Emuqu/Sources/Models/IntervalPlan.swift:53",
-    "Emuqu/Sources/Models/IntervalPlan.swift:115",
-    "Emuqu/Sources/Models/IntervalPlan.swift:164"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Header says per-step stats (avg HR, distance, pace) are captured at finalize so the post-summary shows a per-interval breakdown; no code in the repo computes or stores per-interval stats (grep for interval stats/breakdown finds only this comment).",
-   "evidence": [
-    "Emuqu/Sources/Models/IntervalPlan.swift:17",
-    "Emuqu/Sources/Models/IntervalPlan.swift:19"
-   ],
-   "found": "second read"
-  },
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "IntervalStep.isWork is documented as driving session-level TRIMP weighting, but nothing reads it (grep '.isWork' finds no reader in app or tests); it is set only in the preset literals.",
-   "evidence": [
-    "Emuqu/Sources/Models/IntervalPlan.swift:48",
-    "Emuqu/Sources/Models/IntervalPlan.swift:51",
-    "Emuqu/Sources/Models/IntervalPlan.swift:160"
-   ],
-   "found": "second read"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "var IntervalStep.id",
@@ -135,19 +102,7 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "The doc comment's examples ('warm up — 5 min @ Zone 2', 'interval 3 of 5 — 800 m @ Zone 4') do not match the output: the target is joined with a second ' — ' separator ('warm up — 5 min — @ Zone 2') and no 'N of M' counter is ever produced.",
-     "evidence": [
-      "Emuqu/Sources/Models/IntervalPlan.swift:73",
-      "Emuqu/Sources/Models/IntervalPlan.swift:74",
-      "Emuqu/Sources/Models/IntervalPlan.swift:79"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/IntervalPlan.swift::var IntervalStep.amountPart": "17dea327fcce5f1a",
     "Emuqu/Sources/Models/IntervalPlan.swift::var IntervalStep.targetPart": "2147c3bb32011fbe"
@@ -225,41 +180,6 @@
    "deps": {}
   },
   {
-   "key": "var IntervalPlan.totalSteps",
-   "hash": "abc413e6592f49d7",
-   "does": "Total steps across all repeats = steps.count x max(1, repeatCount). Not read anywhere: FitnessRecordingView.swift:430 and WorkoutRecorder+Context.swift:340 read IntervalController.totalSteps (flatSteps.count), not this property.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "IntervalPlan.totalSteps has no reader in app or tests; every '.totalSteps' use resolves to IntervalController.totalSteps.",
-     "evidence": [
-      "Emuqu/Sources/Models/IntervalPlan.swift:113",
-      "Emuqu/Sources/Views/FitnessRecordingView.swift:430",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift:340"
-     ],
-     "found": "second read"
-    },
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same computation as IntervalController.totalSteps, which expands steps max(1, repeatCount) times in load(plan:) and returns the count.",
-     "evidence": [
-      "Emuqu/Sources/Models/IntervalPlan.swift:113",
-      "Emuqu/Sources/Collection/IntervalController.swift:53",
-      "Emuqu/Sources/Collection/IntervalController.swift:120"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {}
-  },
-  {
    "key": "var IntervalPlan.displayName",
    "hash": "4d69c16c50870ef9",
    "does": "Localized plan name for the three preset names; any other name returned as stored. Used by WorkoutPreflightView.swift:786 preset chips.",
@@ -299,28 +219,6 @@
    }
   },
   {
-   "key": "var IntervalPlan.estimatedDurationSec",
-   "hash": "073d7c050c4a016c",
-   "does": "Sum of timed steps' durationSec × max(1, repeatCount); distance-only steps contribute 0.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "estimatedDurationSec has no reader anywhere in the repo (grep across .swift and .md finds only its declaration), tests included.",
-     "evidence": [
-      "Emuqu/Sources/Models/IntervalPlan.swift:127"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
-  },
-  {
    "key": "func IntervalPlan.presetID(_:)",
    "hash": "ed82b725a7958e13",
    "does": "Builds a UUID from a literal; traps with preconditionFailure naming the literal if malformed.",
@@ -342,8 +240,8 @@
   },
   {
    "key": "func IntervalPlan.thirtyThirtySteps(sets:)",
-   "hash": "126674b627fa7fef",
-   "does": "Builds the flat 30/30 step list: a 10-min Z2 warm-up then `sets` copies of [30s hard Z5, 30s easy Z2 ×3 alternations, 30s hard, 3-min rest Z1], with sequential indices and isWork true only for 'hard'.",
+   "hash": "c4c3cd6c843b997c",
+   "does": "Builds the flat 30/30 step list: a 10-min Z2 warm-up then `sets` copies of [30s hard Z5, 30s easy Z2 ×3 alternations, 30s hard, 3-min rest Z1], with sequential indices.",
    "entry": null,
    "calls": [],
    "reads": [],

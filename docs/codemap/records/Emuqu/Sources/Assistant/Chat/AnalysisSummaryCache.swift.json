@@ -1,31 +1,34 @@
 {
  "file": "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift",
- "hash": "e9fd8ea3686defd4",
- "role": "Process-wide, lock-protected, in-memory bounded (32) cache of AnalysisSummaryGenerator summaries keyed by session UUID with an optional fingerprint so stale summaries are not served.",
+ "hash": "74a70a7d635d1bd0",
+ "role": "Process-wide, lock-protected, in-memory LRU cache (32 entries) of AnalysisSummaryGenerator summaries keyed by (session UUID, fingerprint), so a summary is only handed back for the inputs it was generated from and summaries of one session for different readers (screen language vs the assistant's English) coexist.",
  "types": [
-  "AnalysisSummaryCache: final class (Sendable) — FIFO-by-store-time bounded summary cache",
-  "AnalysisSummaryCache.State: struct — entries/fingerprints/order"
+  "AnalysisSummaryCache: final class (Sendable) — LRU summary cache keyed by session and fingerprint",
+  "AnalysisSummaryCache.Key: struct Hashable — (sessionId, fingerprint)",
+  "AnalysisSummaryCache.State: struct — entries [Key: AnalysisSummary] and order [Key] (least recently used first), with touch(_:)"
  ],
  "state": [
   "mem:AnalysisSummaryCache.shared (singleton)",
   "mem:AnalysisSummaryCache.maxEntries = 32",
-  "mem:AnalysisSummaryCache.state (OSAllocatedUnfairLock<State>: entries, fingerprints, order)"
+  "mem:AnalysisSummaryCache.state (OSAllocatedUnfairLock<State>: entries, order)"
  ],
- "toplevel": "static let shared; private static maxEntries 32; state lock initialised with empty State.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "docs/API_REFERENCE.md calls it 'LRU 32 entries', but get() does not refresh `order`; eviction is by least recently STORED (as the file's own doc says), so a frequently read entry can be evicted first.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift:4",
-    "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift:65",
-    "docs/API_REFERENCE.md:2652"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "static let shared; private static maxEntries 32; private Key and State types; state lock initialised with empty State.",
+ "flags": [],
  "units": [
+  {
+   "key": "func AnalysisSummaryCache.State.touch(_:)",
+   "hash": "484aa3e8c1675d4a",
+   "does": "Moves key to the end of `order` (most recently used): removes any existing occurrence, then appends it.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:AnalysisSummaryCache.state (order, via inout State)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
   {
    "key": "init AnalysisSummaryCache()",
    "hash": "4f171088cdf643a5",
@@ -52,20 +55,7 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "med",
-     "text": "Doc says the fingerprint changes whenever the generated summary could change, but ContextBuilder generates the cached summary from recentSessions, baselineStats and liveLoadSnapshot, none of which are hashed; a summary cached in the morning keeps being served to the assistant after a workout changes the live training load or new nights change the trend/baseline.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift:23",
-      "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift:33",
-      "Emuqu/Sources/Assistant/Context/ContextBuilder.swift:183",
-      "Emuqu/Sources/Assistant/Context/ContextBuilder.swift:193"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
@@ -76,106 +66,80 @@
    }
   },
   {
-   "key": "func AnalysisSummaryCache.set(_:forSessionId:fingerprint:)",
-   "hash": "63c0f93929b7a5c1",
-   "does": "Under the lock: moves id to the end of `order`, stores summary and fingerprint (default 0), then evicts from the front of `order` until ≤32 entries.",
+   "key": "func AnalysisSummaryCache.fingerprint(for:inputs:)",
+   "hash": "a606d59b175b6a21",
+   "does": "Hashes fingerprint(for: session) together with the caller's `inputs` hash (generator inputs that do not live on the session) into one Int, so a cache entry stored with it misses once any of those inputs changes.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift::func AnalysisSummaryCache.fingerprint(for:)"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage.isEnglish (task-local, via fingerprint(for:))",
+    "mem:LanguageManager.shared.locale (via fingerprint(for:))"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift::func AnalysisSummaryCache.fingerprint(for:)": "beff482da77d0197",
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.finalize()": "dd0ee2d1995fab40"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryCache.set(_:forSessionId:fingerprint:)",
+   "hash": "7fe58940de8fde35",
+   "does": "Under the lock: stores summary under Key(id, fingerprint) (default fingerprint 0), marks the key most recently used (touch), then evicts least-recently-used keys from the front of `order` until at most 32 entries remain. Other fingerprints of the same session are kept.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift::func AnalysisSummaryCache.State.touch(_:)"
+   ],
    "reads": [],
    "writes": [
     "mem:AnalysisSummaryCache.state"
    ],
    "branches": [
     {
-     "at": "+6",
+     "at": "+5",
      "cond": "order.count > 32",
-     "effect": "pop oldest-stored id and drop its entry+fingerprint; loop until within bound; false: done"
+     "effect": "remove the least recently used key and its entry; loop until within bound; false: done"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift::func AnalysisSummaryCache.fingerprint(for:)": "a4476dba8f515d35",
+    "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift::func AnalysisSummaryCache.State.touch(_:)": "1b55b19b1de43325",
     "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.Difficulty.order(_:)": "a2e3af04705bd5b5"
    }
-  },
-  {
-   "key": "func AnalysisSummaryCache.get(forSessionId:)",
-   "hash": "a0f01e7cae79e078",
-   "does": "Returns the cached summary for id regardless of fingerprint, or nil.",
-   "entry": null,
-   "calls": [],
-   "reads": [
-    "mem:AnalysisSummaryCache.state"
-   ],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No caller in app or tests: grep for `get(forSessionId:` finds only the fingerprint-matching overload in ContextBuilder.swift:184 and CitationQuickView.swift:16.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift:65",
-      "Emuqu/Sources/Assistant/Context/ContextBuilder.swift:184",
-      "Emuqu/Sources/Assistant/Views/CitationQuickView.swift:16"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
   },
   {
    "key": "func AnalysisSummaryCache.get(forSessionId:matching:)",
-   "hash": "5b40a1e8d55a4c9c",
-   "does": "Returns the cached summary only when a fingerprint is stored for id and equals the given one; otherwise nil.",
+   "hash": "b580460b4e2d196c",
+   "does": "Under the lock: returns the summary stored under exactly Key(id, fingerprint) and marks it most recently used; nil when there is none (the caller regenerates).",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift::func AnalysisSummaryCache.State.touch(_:)"
+   ],
    "reads": [
     "mem:AnalysisSummaryCache.state"
    ],
-   "writes": [],
+   "writes": [
+    "mem:AnalysisSummaryCache.state (recency order)"
+   ],
    "branches": [
     {
-     "at": "+2",
-     "cond": "no stored fingerprint for id, or it differs",
-     "effect": "return nil (caller regenerates); else return entries[id]"
+     "at": "+3",
+     "cond": "no entry for (id, fingerprint)",
+     "effect": "return nil; else touch the key and return the summary"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift::func AnalysisSummaryCache.fingerprint(for:)": "a4476dba8f515d35"
-   }
-  },
-  {
-   "key": "func AnalysisSummaryCache.invalidate(sessionId:)",
-   "hash": "6eb8a0e428d0ab80",
-   "does": "Removes the entry, fingerprint and order slot for sessionId.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [
-    "mem:AnalysisSummaryCache.state"
-   ],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "invalidate(sessionId:) has no caller anywhere in the repo (app or tests); staleness relies solely on fingerprints.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift:76"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.Difficulty.order(_:)": "a2e3af04705bd5b5"
+    "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift::func AnalysisSummaryCache.State.touch(_:)": "1b55b19b1de43325"
    }
   },
   {
    "key": "func AnalysisSummaryCache.clear()",
-   "hash": "fabbfdec4e835cd2",
-   "does": "Empties entries, fingerprints and order.",
+   "hash": "342f27d2c72911c9",
+   "does": "Under the lock: empties entries and order.",
    "entry": null,
    "calls": [],
    "reads": [],

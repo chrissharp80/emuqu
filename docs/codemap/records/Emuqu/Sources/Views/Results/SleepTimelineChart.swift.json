@@ -235,9 +235,27 @@
    "deps": {
     "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.boundaryTimesRow": "2dafed63bee9703e",
     "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.hypnogramCanvas": "c7c628769ba8d0c7",
-    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.stageLabels": "935a7f50b307c211",
+    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.stageLabels": "43d79bba5944afe4",
     "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.timeAxis": "cc0280a7c977be8a"
    }
+  },
+  {
+   "key": "var SleepTimelineChart.gridStages",
+   "hash": "d25a96e906b8d012",
+   "does": "Stages that get a label and a grid line: awake, REM, core, deep, plus unspecified when any interval is unstaged.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "any interval .unspecified",
+     "effect": "appends .unspecified"
+    }
+   ],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "var SleepTimelineChart.stageLabels",
@@ -256,18 +274,7 @@
      "effect": "true: adds \"Asleep\" label at depth 0.80; false: omitted"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "The \"Asleep\" label for unspecified stage is placed at depth 0.80 but drawHypnogram draws grid lines only at 0, 0.33, 0.60, 1.0, so the unspecified row has a label with no grid line.",
-     "evidence": [
-      "Emuqu/Sources/Views/Results/SleepTimelineChart.swift:101",
-      "Emuqu/Sources/Views/Results/SleepTimelineChart.swift:148"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::func SleepTimelineChart.stageLabel(_:stage:)": "e76f68cd40b06a27",
@@ -306,7 +313,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::func SleepTimelineChart.drawHypnogram(context:size:)": "7a92daf9e3383540",
+    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::func SleepTimelineChart.drawHypnogram(context:size:)": "33eb5b36191eaca0",
     "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.hypnogramAccessibilityLabel": "d07f2e24360ee62f"
    }
   },
@@ -358,10 +365,11 @@
   },
   {
    "key": "func SleepTimelineChart.drawHypnogram(context:size:)",
-   "hash": "00a3c01f231a3a9f",
-   "does": "Draws grid lines and then each session (intervals grouped by gaps > splitGapMinutes).",
+   "hash": "f55f6d88075ff10e",
+   "does": "Draws a grid line under each labelled stage depth (gridStages: awake, REM, core, deep, plus unspecified when present) and then each session (intervals grouped by gaps > splitGapMinutes).",
    "entry": "Canvas draw closure; SwiftUI render of SleepTimelineChart, which is instantiated only by EmuquTests/SleepChartSnapshotTests.swift:40,57,74 (no production call site)",
    "calls": [
+    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.gridStages",
     "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::func SleepTimelineChart.groupIntoSessions(_:)",
     "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::func SleepTimelineChart.drawSession(_:context:width:)"
    ],
@@ -375,18 +383,18 @@
     },
     {
      "at": "+6",
-     "cond": "loop over 4 grid depths",
-     "effect": "draws a line per depth 0,0.33,0.60,1.0"
+     "cond": "loop over gridStages depths",
+     "effect": "one line per labelled stage"
     },
     {
-     "at": "+17",
+     "at": "+16",
      "cond": "loop over sessions",
      "effect": "draws each session"
     },
     {
-     "at": "+18",
+     "at": "+17",
      "cond": "session empty",
-     "effect": "skip (never true: groupIntoSessions never emits empty groups)"
+     "effect": "skip (never true)"
     }
    ],
    "flags": [],
@@ -396,6 +404,7 @@
     "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::func SleepTimelineChart.drawSession(_:context:width:)": "171e5f5bda0cf2de",
     "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::func SleepTimelineChart.groupIntoSessions(_:)": "49bea34d27ecbf0c",
     "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.drawHeight": "8ba8eabe34f9ed8f",
+    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.gridStages": "228fd39663cab9eb",
     "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.sorted": "c8f35d68855d13cd"
    }
   },

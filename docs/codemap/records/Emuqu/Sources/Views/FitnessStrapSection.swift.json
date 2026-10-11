@@ -1,10 +1,10 @@
 {
  "file": "Emuqu/Sources/Views/FitnessStrapSection.swift",
- "hash": "73b5d8a9ae199efc",
+ "hash": "ba5312e58d35b492",
  "role": "Declares FitnessStrapSection (a non-View value type that receives the tab's state as lets, closures and bindings), and FitnessTabView forwarders that rebuild it on each access and delegate the hero/trajectory/summary/recent-workout surfaces to it.",
  "types": [
-  "FitnessStrapSection: struct (@MainActor) — holder of collector, archiveSignal, units, trainingCache, settings, 5 closures and 5 bindings; methods in FitnessTabView+Strap.swift",
-  "FitnessTabView: extension — strapSection builder and forwarders"
+  "FitnessStrapSection: struct (@MainActor) — holder of collector, archiveSignal, units, trainingCache, settings, 5 closures and 6 bindings; methods in FitnessTabView+Strap.swift",
+  "FitnessTabView: extension — strapSection builder and forwarders (heroCard, trajectoryLinkCard, summaryTileGrid, recentWorkoutsList)"
  ],
  "state": [],
  "toplevel": "FitnessStrapSection stored properties only; no behaviour at file scope.",
@@ -12,8 +12,8 @@
  "units": [
   {
    "key": "var FitnessTabView.strapSection",
-   "hash": "64f470ea99890668",
-   "does": "Builds a fresh FitnessStrapSection value on every access from the tab's collector, archive signal, units, training cache, settings, five closures forwarding to FitnessTabView helpers, and five @State bindings.",
+   "hash": "260688a0eb1ee80b",
+   "does": "Builds a fresh FitnessStrapSection value on every access from the tab's collector, archive signal, units, training cache, settings, five closures forwarding to FitnessTabView helpers, and six @State bindings (including recentWorkoutLoadFailed).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.recentWorkoutEntries()",
@@ -35,7 +35,7 @@
     "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.relativeDate(_:)": "e7843456945188bf",
     "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.withinDays(_:_:)": "83e7047b25182f7a",
     "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.trainingCache": "51ff8a2bb9b98388",
-    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.units": "872ca962d5528455"
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.units": "2b5b3b2c99d9c7cc"
    }
   },
   {
@@ -52,7 +52,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessStrapSection.swift::var FitnessTabView.strapSection": "3cc58af43fab31dc",
+    "Emuqu/Sources/Views/FitnessStrapSection.swift::var FitnessTabView.strapSection": "51afdc7464b4bc49",
     "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroCard(latest:)": "717ae61766238405"
    }
   },
@@ -70,7 +70,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessStrapSection.swift::var FitnessTabView.strapSection": "3cc58af43fab31dc",
+    "Emuqu/Sources/Views/FitnessStrapSection.swift::var FitnessTabView.strapSection": "51afdc7464b4bc49",
     "Emuqu/Sources/Views/FitnessTabView+Strap.swift::var FitnessStrapSection.trajectoryLinkCard": "7aa2af2f0b5c24a3"
    }
   },
@@ -88,7 +88,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessStrapSection.swift::var FitnessTabView.strapSection": "3cc58af43fab31dc",
+    "Emuqu/Sources/Views/FitnessStrapSection.swift::var FitnessTabView.strapSection": "51afdc7464b4bc49",
     "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.summaryTileGrid(entries:)": "731a2fee4e2ab634"
    }
   },
@@ -106,66 +106,8 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessStrapSection.swift::var FitnessTabView.strapSection": "3cc58af43fab31dc",
+    "Emuqu/Sources/Views/FitnessStrapSection.swift::var FitnessTabView.strapSection": "51afdc7464b4bc49",
     "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.recentWorkoutsList(entries:)": "5cd9c02f1057f5d7"
-   }
-  },
-  {
-   "key": "var FitnessTabView.heroReloadKey",
-   "hash": "bc6deece68a672c7",
-   "does": "Forwards to FitnessStrapSection.heroReloadKey.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/FitnessStrapSection.swift::var FitnessTabView.strapSection",
-    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::var FitnessStrapSection.heroReloadKey"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No caller. grep -rnw heroReloadKey finds only this forwarder and FitnessStrapSection's own use inside its heroCard (FitnessTabView+Strap.swift:18), which reads the struct's property, not this one. No test callers.",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessStrapSection.swift:79",
-      "Emuqu/Sources/Views/FitnessTabView+Strap.swift:18"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Views/FitnessStrapSection.swift::var FitnessTabView.strapSection": "3cc58af43fab31dc",
-    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::var FitnessStrapSection.heroReloadKey": "35fe11920a7bc395"
-   }
-  },
-  {
-   "key": "func FitnessTabView.loadLatestWorkoutSession()",
-   "hash": "55c4a0d7d62d8c75",
-   "does": "Forwards to FitnessStrapSection.loadLatestWorkoutSession().",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/FitnessStrapSection.swift::var FitnessTabView.strapSection",
-    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.loadLatestWorkoutSession()"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No caller. The only call (FitnessTabView+Strap.swift:25) is inside FitnessStrapSection.heroCard and resolves to the struct's own method. No test callers.",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessStrapSection.swift:81",
-      "Emuqu/Sources/Views/FitnessTabView+Strap.swift:25"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Views/FitnessStrapSection.swift::var FitnessTabView.strapSection": "3cc58af43fab31dc",
-    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.loadLatestWorkoutSession()": "36c4ad213de48719"
    }
   }
  ],

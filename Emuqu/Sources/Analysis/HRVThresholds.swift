@@ -16,10 +16,11 @@ enum HRVThresholds {
     //
     // Centralised constants for `Verification.checkSignalQuality`,
     // `checkEctopy`, `checkOutOfBounds`. Kept here rather than as inline
-    // literals in `Verification.swift` so
-    // tests / tuning passes can override them via the existing `Config`
-    // surface and the bounds stop drifting against
-    // `HRVThresholds.minimumRRIntervalMs/maximumRRIntervalMs`.
+    // literals in `Verification.swift` so every check reads one named value
+    // and the bounds sit next to `minimumRRIntervalMs/maximumRRIntervalMs`.
+    // They are plain constants: there is no override hook, so a tuning pass
+    // edits them here (and bumps `ScoringVersion`, which the governance gate
+    // requires for any threshold change).
 
     /// Maximum acceptable signal-loss gap before the recording is rejected (ms)
     static let verificationMaxGapMs: Int64 = 5000
@@ -311,26 +312,19 @@ enum AgeAdjustedHRV {
             // Fall back to absolute thresholds if no age
             return interpretAbsolute(rmssd: rmssd)
         }
-        let median = medianRMSSD(forAge: age, sex: sex)
-        let banding = categorize(rmssd: rmssd, age: age, sex: sex)
-        return RMSSDInterpretation(
-            category: banding.category,
-            ageContext: banding.ageContext,
-            percentile: estimatePercentile(rmssd: rmssd, median: median),
-            ageAdjustedMedian: median
-        )
+        let category = categorize(rmssd: rmssd, age: age, sex: sex)
+        return RMSSDInterpretation(category: category, ageContext: category.localizedAgeContext)
     }
 
-    /// Which age-adjusted band an RMSSD falls in, and the phrase describing it.
-    private static func categorize(
-        rmssd: Double, age: Int, sex: Sex?
-    ) -> (category: RMSSDCategory, ageContext: String) {
+    /// Which age-adjusted band an RMSSD falls in. The phrase for it is
+    /// `RMSSDCategory.localizedAgeContext`, not a copy here.
+    private static func categorize(rmssd: Double, age: Int, sex: Sex?) -> RMSSDCategory {
         let thresholds = rmssdThresholds(forAge: age, sex: sex)
-        if rmssd >= thresholds.excellent { return (.excellent, "well above average for your age") }
-        if rmssd >= thresholds.good { return (.good, "above average for your age") }
-        if rmssd >= thresholds.fair { return (.fair, "typical for your age") }
-        if rmssd >= thresholds.low { return (.reduced, "below average for your age") }
-        return (.low, "significantly below average for your age")
+        if rmssd >= thresholds.excellent { return .excellent }
+        if rmssd >= thresholds.good { return .good }
+        if rmssd >= thresholds.fair { return .fair }
+        if rmssd >= thresholds.low { return .reduced }
+        return .low
     }
 
     /// Fall back to absolute interpretation when age unknown, on the named
@@ -348,30 +342,7 @@ enum AgeAdjustedHRV {
             .low
         }
 
-        return RMSSDInterpretation(
-            category: category,
-            ageContext: nil,
-            percentile: nil,
-            ageAdjustedMedian: nil
-        )
-    }
-
-    /// Estimate percentile from RMSSD relative to median
-    /// Uses log-normal distribution assumption typical for HRV data
-    private static func estimatePercentile(rmssd: Double, median: Double) -> Int {
-        // Approximate percentile using ratio to median
-        // HRV follows roughly log-normal distribution with CV ~0.4-0.5
-        let ratio = rmssd / median
-
-        if ratio >= 1.8 { return 95 }
-        if ratio >= 1.5 { return 85 }
-        if ratio >= 1.3 { return 75 }
-        if ratio >= 1.1 { return 60 }
-        if ratio >= 0.95 { return 50 }
-        if ratio >= 0.8 { return 35 }
-        if ratio >= 0.65 { return 20 }
-        if ratio >= 0.5 { return 10 }
-        return 5
+        return RMSSDInterpretation(category: category, ageContext: nil)
     }
 }
 
@@ -406,38 +377,15 @@ enum RMSSDCategory: String {
         case .low: String(localized: "Significantly below average for your age", bundle: LanguageManager.appBundle)
         }
     }
-
-    var color: String {
-        switch self {
-        case .excellent: "green"
-        case .good: "teal"
-        case .fair: "yellow"
-        case .reduced: "orange"
-        case .low: "red"
-        }
-    }
 }
 
 struct RMSSDInterpretation {
     let category: RMSSDCategory
+    /// The age-band phrase in the app language (`RMSSDCategory.localizedAgeContext`);
+    /// nil when no age was known and the absolute bands were used.
     let ageContext: String?
-    let percentile: Int?
-    let ageAdjustedMedian: Double?
 
-    /// Full description with age context
-    var fullDescription: String {
-        if let context = ageContext {
-            return "\(category.rawValue) – \(context)"
-        }
-        return category.rawValue
-    }
-
-    /// Short label for UI
-    var label: String {
-        category.rawValue
-    }
-
-    /// `label` in the app language.
+    /// The category name in the app language.
     var localizedLabel: String {
         category.localizedLabel
     }
@@ -445,11 +393,5 @@ struct RMSSDInterpretation {
     /// `ageContext` in the app language; nil when no age was known.
     var localizedAgeContext: String? {
         ageContext == nil ? nil : category.localizedAgeContext
-    }
-
-    /// Percentile description if available
-    var percentileDescription: String? {
-        guard let p = percentile else { return nil }
-        return "\(p)th percentile for your age"
     }
 }

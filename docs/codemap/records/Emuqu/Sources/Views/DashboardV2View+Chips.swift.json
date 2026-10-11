@@ -1,11 +1,12 @@
 {
  "file": "Emuqu/Sources/Views/DashboardV2View+Chips.swift",
- "hash": "0572e54ff7622041",
+ "hash": "a0306ed94e71044f",
  "role": "DashboardV2View extension with the 4-up metric chip row and their variant/state derivation (incl. cold-start seeds), Load trajectory verdict inputs, Recent strip, first-reading CTA, recap share, pull-to-refresh re-analysis, copy-data, and the Day14ParticleBloom view.",
  "types": [
   "DashboardV2View: extension — chips/strip/footer/actions",
   "DashboardV2View.LeadVitalDisplay: enum — display thresholds resp 1.0 br/min, temp 0.3 °C",
-  "Day14ParticleBloom: struct (View) — 12-dot radial burst"
+  "Day14ParticleBloom: struct (View) — 12-dot radial burst",
+  "DashboardV2View.TrajectoryDay: typealias (ctl, atl, tsb) — one day of the load trajectory"
  ],
  "state": [
   "LeadVitalDisplay.respDeviationNoteworthy = 1.0",
@@ -31,21 +32,23 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.hrvChip": "8ae577ee84d15644",
+    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.hrvChip": "a20889980c202479",
     "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.loadChip": "a96ac018e75c5800",
-    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.sleepChip": "675a6ccb490acbf1",
+    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.sleepChip": "31f304b5b6b640f1",
     "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.vitalsChip": "21c09064ba957a47"
    }
   },
   {
    "key": "var DashboardV2View.hrvChip",
-   "hash": "9cf4ca8ef38e4742",
-   "does": "HRV ContributorChip; tap records telemetry and navigates to .hrv.",
+   "hash": "26146fe67ad9f2c1",
+   "does": "HRV ContributorChip; tap records telemetry and navigates to .hrv; recordedAgo = nightAgeLabel of latestOvernightComplete, so an older night shows its age.",
    "entry": "chip tap",
    "calls": [
     "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.hrvVariant",
     "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.hrvState",
-    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.recordChipTap(_:)"
+    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.recordChipTap(_:)",
+    "Emuqu/Sources/Views/DashboardV2View.swift::func nightAgeLabel(for:now:)",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestOvernightComplete"
    ],
    "reads": [],
    "writes": [
@@ -57,18 +60,22 @@
     "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.recordChipTap(_:)": "485f7c5ab65a0a94",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a",
     "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.hrvState": "8c5d7735f7acc93f",
-    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.hrvVariant": "fae4355be4df3918"
+    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.hrvVariant": "a18fadedf5477c5d",
+    "Emuqu/Sources/Views/DashboardV2View.swift::func nightAgeLabel(for:now:)": "2d1b8ce31b042aa9",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestOvernightComplete": "f41743b582b9e9d4"
    }
   },
   {
    "key": "var DashboardV2View.sleepChip",
-   "hash": "48eeaceb4211a7fd",
-   "does": "Sleep ContributorChip; tap records telemetry and navigates to .sleep.",
+   "hash": "605a9f6f881db506",
+   "does": "Sleep ContributorChip; tap records telemetry and navigates to .sleep; recordedAgo = nightAgeLabel of sleepChipSession, so an older night shows its age.",
    "entry": "chip tap",
    "calls": [
     "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.sleepVariant",
     "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.sleepState",
-    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.recordChipTap(_:)"
+    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.recordChipTap(_:)",
+    "Emuqu/Sources/Views/DashboardV2View.swift::func nightAgeLabel(for:now:)",
+    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.sleepChipSession"
    ],
    "reads": [],
    "writes": [
@@ -79,8 +86,10 @@
    "deps": {
     "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.recordChipTap(_:)": "485f7c5ab65a0a94",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a",
-    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.sleepState": "f34405d72e8d0959",
-    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.sleepVariant": "557688cca0a40541"
+    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.sleepChipSession": "1aefcbc071ef6ce9",
+    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.sleepState": "00b87f7300c05a15",
+    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.sleepVariant": "b14788348be181e0",
+    "Emuqu/Sources/Views/DashboardV2View.swift::func nightAgeLabel(for:now:)": "2d1b8ce31b042aa9"
    }
   },
   {
@@ -135,7 +144,7 @@
     "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.recordChipTap(_:)": "485f7c5ab65a0a94",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a",
     "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.loadState": "e984aa57c601f6cc",
-    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.loadVariant": "e8baae3672d32afe",
+    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.loadVariant": "0ad10037d0fda8c6",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.settingsManager": "248c4d378524d288",
     "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingLoadVisibility.isPaused(_:)": "1d59fbbd894f7ba5"
    }
@@ -170,19 +179,7 @@
      "effect": "falls back to seedSummary?.hrvRmssdMs; if both nil returns \"—\""
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "USERS_MANUAL says the HRV chip is \"last night's RMSSD\", but latestOvernightComplete has no age bound, so after nights without an overnight reading the chip keeps showing an older night's RMSSD as current with no date.",
-     "evidence": [
-      "docs/USERS_MANUAL.md:93",
-      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:176",
-      "Emuqu/Sources/Views/DashboardV2View+Chips.swift:66"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.cachedDashboard": "f9a9e25f79476b90",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestOvernightComplete": "f41743b582b9e9d4"
@@ -226,12 +223,11 @@
   },
   {
    "key": "var DashboardV2View.sleepVariant",
-   "hash": "cd2787b75b0c88b4",
-   "does": "Sleep chip value: totalSleepIncludingNapMinutes of the overnight's snapshot, else latest session with any sleep snapshot; cold-start cache/seed minutes; else \"—\".",
+   "hash": "8cc61b9a63db8d93",
+   "does": "Sleep chip value: totalSleepIncludingNapMinutes of sleepChipSession's snapshot when > 0; cold-start cache/seed minutes; else '—'.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestOvernightComplete",
-    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestWithSleep",
+    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.sleepChipSession",
     "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.cachedDashboard"
    ],
@@ -242,56 +238,67 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "overnight sleepSnapshot nil",
-     "effect": "falls back to latestWithSleep snapshot"
+     "cond": "sleepChipSession snapshot with >0 minutes",
+     "effect": "hours/minutes duration"
     },
     {
-     "at": "+2",
-     "cond": "snapshot exists with >0 minutes",
-     "effect": "formatted duration"
+     "at": "+6",
+     "cond": "sessions empty and cache/seed minutes exist",
+     "effect": "cold-start duration"
     },
     {
      "at": "+7",
-     "cond": "sessions empty and cache/seed minutes exist",
-     "effect": "seed duration; else \"—\""
+     "cond": "cache minutes nil",
+     "effect": "seed minutes"
     },
     {
-     "at": "+8",
-     "cond": "cache minutes nil",
-     "effect": "uses seedSummary.sleepMinutes"
+     "at": "+10",
+     "cond": "otherwise",
+     "effect": "'—'"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "USERS_MANUAL says the Sleep chip is \"last night's sleep duration\", but the fallback latestWithSleep has no age bound, so with no sleep on the latest overnight the chip shows the most recent snapshot from any earlier night as current.",
-     "evidence": [
-      "docs/USERS_MANUAL.md:94",
-      "Emuqu/Sources/Views/DashboardV2View+Chips.swift:105",
-      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:198"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.totalSleepIncludingNapMinutes": "a4a2d3868396b45f",
+    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.sleepChipSession": "1aefcbc071ef6ce9",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.cachedDashboard": "f9a9e25f79476b90",
-    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestOvernightComplete": "f41743b582b9e9d4",
-    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestWithSleep": "004c12a9584e0185",
     "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "a4e4b582efee3f03",
     "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
    }
   },
   {
-   "key": "var DashboardV2View.sleepState",
-   "hash": "e571113297e792e2",
-   "does": "Sleep chip state: default when any sleep source exists (same priority as sleepVariant) or cold-start minutes exist, else noData.",
+   "key": "var DashboardV2View.sleepChipSession",
+   "hash": "ab8f36ef712ae1f2",
+   "does": "The session the Sleep chip shows: latestOvernightComplete when it carries a sleep snapshot, else latestWithSleep.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestOvernightComplete",
-    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestWithSleep",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestWithSleep"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "overnight with sleepSnapshot",
+     "effect": "returns it; else latestWithSleep"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestOvernightComplete": "f41743b582b9e9d4",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestWithSleep": "004c12a9584e0185"
+   }
+  },
+  {
+   "key": "var DashboardV2View.sleepState",
+   "hash": "d2b235855b33c8ac",
+   "does": "Sleep chip state: default when sleepChipSession's snapshot has > 0 minutes (the rule sleepVariant shows a value by) or cold-start minutes exist, else noData.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.sleepChipSession",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.cachedDashboard"
    ],
    "reads": [
@@ -300,39 +307,32 @@
    "writes": [],
    "branches": [
     {
-     "at": "+2",
-     "cond": "overnight or latestWithSleep snapshot non-nil",
-     "effect": ".default (even when minutes == 0, where sleepVariant shows \"—\" with default styling)"
-    },
-    {
      "at": "+3",
-     "cond": "sessions empty and cache/seed minutes",
-     "effect": ".default; else .noData"
+     "cond": "snapshot with >0 minutes",
+     "effect": ".default"
     },
     {
      "at": "+4",
-     "cond": "cache minutes nil",
-     "effect": "uses seedSummary minutes"
-    }
-   ],
-   "flags": [
+     "cond": "sessions empty and cache/seed minutes",
+     "effect": ".default"
+    },
     {
-     "kind": "broken",
-     "sev": "low",
-     "text": "A snapshot with totalSleepIncludingNapMinutes == 0 makes sleepState .default while sleepVariant returns \"—\": the chip shows a default-styled \"—\" with no \"tap to set up\" subline and VoiceOver reads \"Sleep, —\" instead of the noData state.",
-     "evidence": [
-      "Emuqu/Sources/Views/DashboardV2View+Chips.swift:106",
-      "Emuqu/Sources/Views/DashboardV2View+Chips.swift:115",
-      "Emuqu/Sources/Views/DashboardV2View+Chips.swift:120"
-     ],
-     "found": "second read"
+     "at": "+5",
+     "cond": "cache minutes nil",
+     "effect": "checks seed minutes"
+    },
+    {
+     "at": "+6",
+     "cond": "otherwise",
+     "effect": ".noData"
     }
    ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
-    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.cachedDashboard": "f9a9e25f79476b90",
-    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestOvernightComplete": "f41743b582b9e9d4",
-    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestWithSleep": "004c12a9584e0185"
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.totalSleepIncludingNapMinutes": "a4a2d3868396b45f",
+    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.sleepChipSession": "1aefcbc071ef6ce9",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.cachedDashboard": "f9a9e25f79476b90"
    }
   },
   {
@@ -486,14 +486,12 @@
   },
   {
    "key": "var DashboardV2View.loadVariant",
-   "hash": "373e0f6a67ea230d",
-   "does": "Load chip: buildingBaseline when the training cache is cold or all loads zero; else TrajectoryVerdict from a 90-day ascending CTL series (yesterday/week-ago anchors, OLS ramp rate, peaking) and \"LOAD n today\" subline.",
+   "hash": "5f95a6850afa07aa",
+   "does": "Load chip: buildingBaseline when the training cache is cold or all loads zero; else the TrajectoryVerdict computed by loadVerdict from trajectorySeries (the Load & Trajectory screen's own 90-day series with today read live), plus 'LOAD N today'.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::func DashboardV2View.anchoredCTL(_:)",
-    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::func DashboardV2View.ctlRampRate(_:liveCTL:)",
-    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::func DashboardV2View.loadVerdict(series:anchors:rampRate:metrics:)",
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.samplesSince(_:)",
+    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::func DashboardV2View.trajectorySeries(_:live:)",
+    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::func DashboardV2View.loadVerdict(series:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [
@@ -505,149 +503,90 @@
     {
      "at": "+2",
      "cond": "trainingMetricsCache.current nil",
-     "effect": ".buildingBaseline \"—\""
+     "effect": "buildingBaseline, '—'"
     },
     {
-     "at": "+9",
-     "cond": "Calendar date(byAdding -90 days) nil",
-     "effect": "cutoff = now (unreachable in practice)"
-    },
-    {
-     "at": "+12",
+     "at": "+6",
      "cond": "ctl, atl and todayTrimp all 0",
-     "effect": ".buildingBaseline \"—\"; else compute verdict"
+     "effect": "buildingBaseline, '—'"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.samplesSince(_:)": "ffe29dcbda438e76",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::func DashboardV2View.anchoredCTL(_:)": "95f032ff17bfa4af",
-    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::func DashboardV2View.ctlRampRate(_:liveCTL:)": "f01f0c3241a3b580",
-    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::func DashboardV2View.loadVerdict(series:anchors:rampRate:metrics:)": "f04d57f62dcdd2e0",
+    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::func DashboardV2View.loadVerdict(series:)": "ad6908fab8d7e267",
+    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::func DashboardV2View.trajectorySeries(_:live:)": "249ced03eadefff7",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.verdict": "3ae168b82fc438b5",
     "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
    }
   },
   {
-   "key": "func DashboardV2View.loadVerdict(series:anchors:rampRate:metrics:)",
-   "hash": "7c7245dc3d4e5592",
-   "does": "Builds TrajectoryVerdict.Inputs (current CTL = yesterday anchor else live, week-ago anchor, sample count, comeback/overreach modes, peaking, ramp, TSB) and computes the verdict.",
+   "key": "func DashboardV2View.trajectorySeries(_:live:)",
+   "hash": "6cdcb6deb108c8b7",
+   "does": "The last 90 days of TrainingMetricsCache samples oldest first as (ctl, atl, tsb), with today's bucket replaced by the live TrainingMetrics values — the series LoadTrajectoryLoader.makeSamples builds for the Load & Trajectory screen.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isIntentionalOverreachInEffect",
-    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::func DashboardV2View.peakingDetected(_:)"
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.samplesSince(_:)"
    ],
    "reads": [
-    "mem:SettingsManager.settings"
+    "mem:TrainingMetricsCache.dailySeries"
    ],
    "writes": [],
    "branches": [
     {
-     "at": "+12",
-     "cond": "anchors.yesterday nil",
-     "effect": "currentCTL = metrics.ctl"
+     "at": "+2",
+     "cond": "Calendar date(byAdding: -90 days) nil",
+     "effect": "cutoff = now"
+    },
+    {
+     "at": "+4",
+     "cond": "sample is today",
+     "effect": "live ctl/atl/tsb; else stored values"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.samplesSince(_:)": "ffe29dcbda438e76",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func DashboardV2View.loadVerdict(series:)",
+   "hash": "5f08801460f5e6eb",
+   "does": "TrajectoryVerdict.compute with the Load & Trajectory screen's inputs from the same series: currentCTL and currentTSB from the newest day, week-ago CTL at count-8 (nil under 8 days), sampleCount, comeback/overreach settings, peakingDetected over the series, and the ctlSlopePerWeek ramp rate over its CTL.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.ctlSlopePerWeek(_:)",
+    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::func DashboardV2View.peakingDetected(_:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings (comeback, overreach)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "fewer than 8 days",
+     "effect": "ctlOneWeekAgo nil"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.ctlSlopePerWeek(_:)": "5b6106827ca00e1b",
     "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive": "4a697d3be6c9e5eb",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isIntentionalOverreachInEffect": "89d88619860d2f61",
     "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13",
-    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::func DashboardV2View.peakingDetected(_:)": "51e53bc83e143c3c",
+    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::func DashboardV2View.peakingDetected(_:)": "26027643821d3b23",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.settingsManager": "248c4d378524d288"
    }
   },
   {
-   "key": "func DashboardV2View.ctlRampRate(_:liveCTL:)",
-   "hash": "e47ca49c240d6c53",
-   "does": "OLS CTL slope per week over the series, substituting liveCTL for today's sample.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.ctlSlopePerWeek(_:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "sample date is today",
-     "effect": "use liveCTL; else stored ctl"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Doc comment says the ramp is \"Zero unless BOTH anchors exist — a one-sided delta would read as a huge ramp\"; the code uses ctlSlopePerWeek (OLS over 14 days, 0 below 8 samples) and never looks at anchors. Stale comment from the old 2-point delta.",
-     "evidence": [
-      "Emuqu/Sources/Views/DashboardV2View+Chips.swift:247",
-      "Emuqu/Sources/Views/DashboardV2View+Chips.swift:254",
-      "Emuqu/Sources/Analysis/TrajectoryVerdict.swift:154"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.ctlSlopePerWeek(_:)": "2a5c105f03a40a41"
-   }
-  },
-  {
-   "key": "func DashboardV2View.anchoredCTL(_:)",
-   "hash": "d76e588409a5c10a",
-   "does": "Yesterday = second-to-last sample CTL (needs >=2), week-ago = 9th-from-last (needs >=9).",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "series.count >= 2",
-     "effect": "yesterday CTL; else nil"
-    },
-    {
-     "at": "+3",
-     "cond": "series.count >= 9",
-     "effect": "week-ago CTL; else nil"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "\"Yesterday\" is positional (series[count-2]) and assumes the last sample is today; if the cache has no entry for today yet, the anchor is two days ago and week-ago is nine days ago.",
-     "evidence": [
-      "Emuqu/Sources/Views/DashboardV2View+Chips.swift:259",
-      "Emuqu/Sources/Analysis/TrainingMetricsCache.swift:236"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "Chip anchors differ from the Load & Trajectory screen it claims to match: chip week-ago = series[count-9] (needs >=9 samples) and current = yesterday, screen week-ago = samples[count-8] (>=8) and current = today. At exactly 8 samples the chip passes ctlOneWeekAgo nil and gets .buildingBaseline while the screen computes a direction verdict; when rampRate == 0 the fallback delta uses different endpoints. Contradicts \"the dashboard chip and this full surface can never disagree\".",
-     "evidence": [
-      "Emuqu/Sources/Views/DashboardV2View+Chips.swift:260",
-      "Emuqu/Sources/Views/DashboardV2View+Chips.swift:225",
-      "Emuqu/Sources/Views/LoadTrajectoryView.swift:103",
-      "Emuqu/Sources/Views/LoadTrajectoryView.swift:116",
-      "Emuqu/Sources/Analysis/TrajectoryVerdict.swift:201"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {}
-  },
-  {
    "key": "func DashboardV2View.peakingDetected(_:)",
-   "hash": "901b1881a268e0fd",
-   "does": "Peaking when enabled and each of the last 4 samples has CTL>0 and (CTL-ATL)/CTL > 10%.",
+   "hash": "d76878fdcafa7ef3",
+   "does": "Peaking when enabled and each of the last 4 days of the trajectory series (today read live) has CTL>0 and (CTL-ATL)/CTL > 10% — the same rule and the same series as the Load & Trajectory screen.",
    "entry": null,
    "calls": [],
    "reads": [
@@ -670,7 +609,7 @@
     {
      "kind": "duplicate",
      "sev": "low",
-     "text": "Same ATL<CTL by >10% over last 4 samples heuristic as LoadTrajectoryLoader.peakingHeuristic, but the screen overrides today's sample with live CTL/ATL while the chip uses the stored daily sample, so peaking (which wins in TrajectoryVerdict.compute) can differ between chip and screen.",
+     "text": "Same ATL<CTL by >10% over last 4 samples heuristic as LoadTrajectoryLoader.peakingHeuristic, written twice (the chip and the screen now run it over the same series, but a rule change has to be made in both).",
      "evidence": [
       "Emuqu/Sources/Views/DashboardV2View+Chips.swift:270",
       "Emuqu/Sources/Views/LoadTrajectoryLoader.swift:274",
@@ -733,7 +672,7 @@
    "deps": {
     "Emuqu/Sources/Views/DashboardV2View+Chips.swift::func DashboardV2View.buildRecentDays()": "9ac7527733cfc940",
     "Emuqu/Sources/Views/DashboardV2View+Chips.swift::func DashboardV2View.openDay(_:)": "b5597afc7cd88629",
-    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.baselineNights": "ccef0fea4ae889e2"
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.baselineNights": "bf5bdd7b8c73498e"
    }
   },
   {
@@ -852,45 +791,6 @@
    }
   },
   {
-   "key": "var DashboardV2View.fullReportLink",
-   "hash": "c871e12842b8dc2c",
-   "does": "Would render a \"Take your first reading\" full-width button when daysCollected == 0, but it is only placed inside revealedDashboardSections, which is shown only when daysCollected != 0, so it never renders.",
-   "entry": null,
-   "calls": [
-    "closure:onStartRecording — MainTabView startRecording()",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "daysCollected == 0",
-     "effect": "show CTA; else nothing. Never true at its only render site (DashboardV2View.swift:374-377,399)"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "fullReportLink's only caller is revealedDashboardSections, which dashboardBodySections shows only when daysCollected != 0, so the daysCollected == 0 CTA never appears. USERS_MANUAL says the \"Take your first reading\" button shows below the Get started checklist.",
-     "evidence": [
-      "Emuqu/Sources/Views/DashboardV2View+Chips.swift:360",
-      "Emuqu/Sources/Views/DashboardV2View.swift:374",
-      "Emuqu/Sources/Views/DashboardV2View.swift:399",
-      "docs/USERS_MANUAL.md:137"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.daysCollected": "06a2354ea1f359d2",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
-   }
-  },
-  {
    "key": "func DashboardV2View.ageFromBirthday(_:)",
    "hash": "58fb477871218776",
    "does": "Whole years between birthday and now, nil without birthday.",
@@ -963,7 +863,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/DashboardV2View+Chips.swift::func DashboardV2View.renderRecapImage(score:verdict:date:)": "1ea2f251b8ea86e8",
-    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.displayedScore": "3ef6f8f7cd87ca76",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.displayedScore": "01657452d21bf419",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestOvernightComplete": "f41743b582b9e9d4",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.verdict": "3ae168b82fc438b5",
     "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func presentShareSheet(activityItem:from:)": "500b0f25ce180df6",
@@ -990,16 +890,17 @@
   },
   {
    "key": "func DashboardV2View.refreshDashboard()",
-   "hash": "81ff2eaf164cbff2",
-   "does": "Re-analyzes the overnight session with WindowSelectionMethod.defaultMethod through onReanalyzeSession and toasts the outcome.",
+   "hash": "5c6dac9f6bb730bd",
+   "does": "Re-analyzes the overnight session with the user's settings.defaultWindowSelectionMethod through onReanalyzeSession and toasts the outcome.",
    "entry": "ScrollView .refreshable (and reanalyzeFromHero)",
    "calls": [
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestOvernightComplete",
-    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.defaultMethod",
     "closure:onReanalyzeSession — MainTabView reanalyzeSession → RRCollector.reanalyzeSession",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
-   "reads": [],
+   "reads": [
+    "mem:SettingsManager.settings.defaultWindowSelectionMethod"
+   ],
    "writes": [
     "archive:reanalyzed session (via RRCollector.reanalyzeSession)"
    ],
@@ -1010,29 +911,16 @@
      "effect": "\"Nothing to re-analyze yet.\" toast"
     },
     {
-     "at": "+6",
+     "at": "+9",
      "cond": "updated != nil",
      "effect": "\"Re-analyzed.\" toast; else \"Couldn't re-analyze\" toast"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "Pull-to-refresh and the hero \"Re-analyze\" menu always pass the factory WindowSelectionMethod.defaultMethod (.consolidatedRecovery) instead of the user's chosen settings.defaultWindowSelectionMethod (set from Morning Results), so a casual pull-to-refresh re-windows the night with a different method and changes the stored recovery score.",
-     "evidence": [
-      "Emuqu/Sources/Views/DashboardV2View+Chips.swift:431",
-      "Emuqu/Sources/Models/WindowSelectionMethod.swift:78",
-      "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift:85",
-      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:358"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.defaultMethod": "3bbcfe53c32067a7",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestOvernightComplete": "f41743b582b9e9d4"
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestOvernightComplete": "f41743b582b9e9d4",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.settingsManager": "248c4d378524d288"
    }
   },
   {
@@ -1048,7 +936,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::func DashboardV2View.refreshDashboard()": "b54833a4cd09e79b"
+    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::func DashboardV2View.refreshDashboard()": "750353ff2f0133c7"
    }
   },
   {
@@ -1087,7 +975,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3",
-    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.displayedScore": "3ef6f8f7cd87ca76",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.displayedScore": "01657452d21bf419",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestOvernightComplete": "f41743b582b9e9d4",
     "Emuqu/Sources/Views/Utilities/PasteboardWriter.swift::func PasteboardWriter.copy(_:)": "2f4d0808edab28a1"
    }
@@ -1106,7 +994,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::func Day14ParticleBloom.restartBurst(_:)": "d1f04467edf69c17",
+    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::func Day14ParticleBloom.restartBurst(_:)": "53c1d6075b9341cf",
     "Emuqu/Sources/Views/DashboardV2View+Chips.swift::func Day14ParticleBloom.spark(_:)": "ec154f3a0094a84b"
    }
   },
@@ -1132,8 +1020,8 @@
   },
   {
    "key": "func Day14ParticleBloom.restartBurst(_:)",
-   "hash": "1d9d343cf284d1ea",
-   "does": "When activated and Reduce Motion off, animates progress 0→1 over 0.8s.",
+   "hash": "1463b5fa3ddc3edc",
+   "does": "When activated and Reduce Motion off, resets progress to 0 and animates it to 1 over 0.8s; when deactivated (or Reduce Motion) resets progress to 0.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -1142,21 +1030,10 @@
     {
      "at": "+1",
      "cond": "!isActive or reduceMotion",
-     "effect": "return; else run burst"
+     "effect": "animProgress = 0, return"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "animProgress is never reset after the burst; it stays at 1 where opacity is 0, so it is invisible only because of the (1-p) factor. When active turns false nothing resets, which works only because the next activation sets 0 first.",
-     "evidence": [
-      "Emuqu/Sources/Views/DashboardV2View+Chips.swift:512",
-      "Emuqu/Sources/Views/DashboardV2View+Chips.swift:514"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   }
  ],

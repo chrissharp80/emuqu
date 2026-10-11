@@ -34,16 +34,19 @@ extension ThresholdCards {
     /// Sources: Rogers & Gronwald 2021 (PMC7845545); Schaffarczyk 2022
     /// (PMC9894976); Van Hooren 2023 (PMID 37916488); Sempere-Ruiz 2024
     /// (10.3389/fphys.2024.1329360).
+    ///
+    /// The crossing is the α1 report's own first sustained AT1 crossing
+    /// (`Alpha1ReportCards.alpha1BandTotals`), so this card, the report, the
+    /// stored snapshot and the PDF name the same moment. Requires HR data at
+    /// that moment; otherwise there is no bpm value to report.
     @ViewBuilder
     var alpha1LT1EstimateCard: some View {
-        let crossings = detectAlpha1Crossings(samples: session.workoutMetadata?.samples ?? [])
-        // Use the first clean downward AT1 crossing as this session's LT1
-        // estimate. Requires HR data; otherwise we can't report a bpm value.
-        if let firstDown = crossings.first(where: { $0.kind == .downAT1 && $0.hr != nil }),
-           let lt1HR = firstDown.hr {
+        let samples = session.workoutMetadata?.samples ?? []
+        let bands = Alpha1ReportCards.alpha1BandTotals(samples: samples, shadows: Alpha1ReportCards.ectopicShadows(in: samples))
+        if let firstDown = bands.firstCrossing, let lt1HR = firstDown.1 {
             VStack(alignment: .leading, spacing: 8) {
                 lt1CardHeader
-                lt1Readout(lt1HR: lt1HR, offsetSec: firstDown.offsetSec)
+                lt1Readout(lt1HR: lt1HR, offsetSec: firstDown.0)
                 Text(String(localized: "HR at which your α1 crossed 0.75. In lab comparisons this lands within about ±10 bpm of the gas-exchange aerobic threshold (Rogers & Gronwald 2021; Schaffarczyk 2022; Van Hooren 2023).", bundle: LanguageManager.appBundle))
                     .font(.caption2)
                     .foregroundStyle(AppTheme.textTertiary)
@@ -126,21 +129,26 @@ extension ThresholdCards {
     /// 120 bpm walk because I had one ectopic beat." One ectopic can no
     /// longer drive a crossing event — the dip expires before the
     /// sustain counter matures.
+    ///
+    /// Readings come from `Alpha1ReportCards.timedCleanAlpha1`, the walk the
+    /// α1 report times its bands and its crossing with: beat-artifact dips
+    /// are left out, and each reading stands for at most 5 s, so the first
+    /// reading after a strap dropout cannot carry the whole gap into the
+    /// sustain. Readings before the warm-up are not fed in at all, so a
+    /// crossing needs α1 at or above the threshold after it first, as the
+    /// report's `AT1CrossDetector` does; the first "Through AT1" here is the
+    /// report's first crossing.
     func detectAlpha1Crossings(samples: [WorkoutSample]) -> [Alpha1Crossing] {
         var out: [Alpha1Crossing] = []
         var last: Double?
-        var prevOff = 0
         var at1 = BandTracker(threshold: HRVConstants.DFA.alpha1AerobicThreshold, downKind: .downAT1, upKind: .upAT1)
         var at2 = BandTracker(threshold: HRVConstants.DFA.alpha1AnaerobicThreshold, downKind: .downAT2, upKind: .upAT2)
-        for s in samples {
-            guard let current = s.alpha1 else { continue }
-            let dt = max(1, s.offsetSec - prevOff)
-            prevOff = s.offsetSec
-            defer { last = current }
-            // Anything before warmup is sample priming — never a crossing.
-            guard s.offsetSec >= Self.alpha1WarmupSec, let prev = last else { continue }
-            advance(&at1, prev: prev, current: current, sample: s, dt: dt, into: &out)
-            advance(&at2, prev: prev, current: current, sample: s, dt: dt, into: &out)
+        let readings = Alpha1ReportCards.timedCleanAlpha1(samples: samples, shadows: Alpha1ReportCards.ectopicShadows(in: samples))
+        for r in readings where r.sample.offsetSec >= Self.alpha1WarmupSec {
+            defer { last = r.alpha1 }
+            guard let prev = last else { continue }
+            advance(&at1, prev: prev, current: r.alpha1, sample: r.sample, dt: r.dt, into: &out)
+            advance(&at2, prev: prev, current: r.alpha1, sample: r.sample, dt: r.dt, into: &out)
         }
         // Cap at 6 events so the card doesn't turn into a log
         return Array(out.prefix(6))
@@ -294,14 +302,17 @@ extension ThresholdCards {
         return .init(label: "VAM", value: display, sub: String(localized: "vertical ascent rate", bundle: LanguageManager.appBundle))
     }
 
-    /// Average pace adjusted for the route's NET climb (gain − loss) at
+    /// Average moving pace adjusted for the route's NET climb (gain − loss) at
     /// 2 s/km per 1 % grade — between the ~3 s/km running and ~1.5 s/km walking
     /// heuristics. Samples carry no per-sample grade, so a hilly loop (net ≈ 0)
-    /// shows close to its plain average pace.
+    /// shows close to its plain average pace. The pace is over moving time
+    /// (the Moving time row's), so a stop does not slow it.
     private func gradeAdjustedPaceRow(samples: [WorkoutSample], meta: WorkoutMetadata?, duration: Double) -> DerivedRow? {
         let pacedSamples = samples.filter { ($0.paceSecPerKm ?? 0) > 0 }
         guard pacedSamples.count >= 30, duration > 300, let dist = meta?.distanceMeters, dist > 500 else { return nil }
-        let adjusted = gradeAdjustedSecondsPerMetre(distanceMetres: dist, duration: duration, meta: meta)
+        let moving = min(duration, Double(movingSeconds(samples: samples)))
+        guard moving > 0 else { return nil }
+        let adjusted = gradeAdjustedSecondsPerMetre(distanceMetres: dist, duration: moving, meta: meta)
         guard let formatted = unitsPref.formatPace(secondsPerMeter: adjusted) else { return nil }
         return .init(
             label: String(localized: "Grade-adj pace", bundle: LanguageManager.appBundle),
@@ -359,11 +370,13 @@ extension ThresholdCards {
 
     /// Time spent in each of Zones 1-5 as a stacked horizontal bar. Uses the
     /// USER's max HR (not session peak) so the same walk gives a consistent
-    /// zone readout across sessions.
+    /// zone readout across sessions. The seconds are the exported PDF's
+    /// (`WorkoutPDFRenderer.hrZoneSeconds`), so a dropout is not credited as
+    /// zone time and the card and the PDF show the same minutes.
     @ViewBuilder
     var hrZoneDistributionCard: some View {
-        let zoneSecs = hrZoneSeconds(samples: session.workoutMetadata?.samples ?? [],
-                                     maxHR: UserSettingsBridge.snapshot().userMaxHR)
+        let zoneSecs = WorkoutPDFRenderer.hrZoneSeconds(samples: session.workoutMetadata?.samples ?? [],
+                                                        maxHR: UserSettingsBridge.snapshot().userMaxHR)
         let total = zoneSecs.reduce(0, +)
         if total > 0 {
             zoneDistributionBody(zoneSecs: zoneSecs, total: total)
@@ -454,36 +467,10 @@ extension ThresholdCards {
         }
     }
 
-    func hrZoneSeconds(samples: [WorkoutSample], maxHR: Int) -> [Int] {
-        // Index: 0 = Z1, 4 = Z5. Zones follow 50-60/60-70/70-80/80-90/90+ of
-        // userMaxHR — same bins TRIMP uses.
-        var zs = [0, 0, 0, 0, 0]
-        var prev = 0
-        for s in samples {
-            let dt = max(1, s.offsetSec - prev)
-            prev = s.offsetSec
-            guard let hr = s.heartRate, maxHR > 0 else { continue }
-            let frac = Double(hr) / Double(maxHR)
-            switch frac {
-            case ..<0.50: break              // below Z1 — don't count
-            case 0.50 ..< 0.60: zs[0] += dt
-            case 0.60 ..< 0.70: zs[1] += dt
-            case 0.70 ..< 0.80: zs[2] += dt
-            case 0.80 ..< 0.90: zs[3] += dt
-            default: zs[4] += dt
-            }
-        }
-        return zs
-    }
-
+    /// The app's colour for the zone at index `idx` (0 = Z1), the one every
+    /// other zone display uses (`HRZone.color`).
     func zoneColor(idx: Int) -> Color {
-        switch idx {
-        case 0: Color(red: 0.40, green: 0.80, blue: 0.55)   // green
-        case 1: Color(red: 0.55, green: 0.85, blue: 0.45)   // lime
-        case 2: Color(red: 0.95, green: 0.80, blue: 0.30)   // yellow
-        case 3: Color(red: 0.95, green: 0.55, blue: 0.25)   // orange
-        default: Color(red: 0.90, green: 0.35, blue: 0.35)  // red
-        }
+        (HRZone(rawValue: idx + 1) ?? .z5).color
     }
 
     /// Z5 is open-ended (90 % of max HR and up), so it reads "≥ N bpm".
@@ -678,24 +665,28 @@ private func movingTimeRow(samples: [WorkoutSample], duration: Double) -> Thresh
     )
 }
 
-/// Steps taken: each sample's cadence (steps per minute) over the seconds
-/// since the previous sample.
+/// Steps taken: each sample's cadence (steps per minute) over the seconds it
+/// stands for (`Alpha1ReportCards.sampleSeconds`: 1 to 5, 1 for the first),
+/// so a dropout gap is not credited with steps.
 private func stepCount(samples: [WorkoutSample]) -> Double {
     var steps = 0.0
-    var lastOff = 0
+    var lastOff: Int?
     for s in samples {
-        let dt = max(1, s.offsetSec - lastOff)
+        let dt = Alpha1ReportCards.sampleSeconds(at: s.offsetSec, previous: lastOff)
         lastOff = s.offsetSec
         if let cadence = s.cadenceStepsPerMin, cadence > 0 { steps += cadence * Double(dt) / 60 }
     }
     return steps
 }
 
+/// Seconds spent moving, each sample standing for the seconds
+/// `Alpha1ReportCards.sampleSeconds` gives it (the stored snapshot's timing),
+/// so a dropout or a pause between samples is not moving time.
 private func movingSeconds(samples: [WorkoutSample]) -> Int {
     var movingSec = 0
-    var lastOff = 0
+    var lastOff: Int?
     for s in samples {
-        let dt = max(1, s.offsetSec - lastOff)
+        let dt = Alpha1ReportCards.sampleSeconds(at: s.offsetSec, previous: lastOff)
         lastOff = s.offsetSec
         if isMoving(s) { movingSec += dt }
     }

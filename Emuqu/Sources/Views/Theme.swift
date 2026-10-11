@@ -1,7 +1,8 @@
 import SwiftUI
 
 /// App theme — high-contrast, health-app palette optimized for readability.
-/// Blue primary (trust/calm), green accents (recovery/growth), clean dark backgrounds.
+/// `primary` follows the colour theme the user picked; the status colours
+/// are the fixed Wong 2011 palette; `accent` is terracotta (coral).
 enum AppTheme {
     // MARK: - Core Palette (color-theme aware)
 
@@ -12,14 +13,31 @@ enum AppTheme {
 
     /// Primary accent — adapts to color theme and appearance
     @MainActor static var primary: Color {
-        let isDark = currentTheme == .dark
+        currentTheme == .dark ? primaryForDarkAppearance : primaryForLightAppearance
+    }
+
+    /// `primary` in dark appearance for the user's colour theme. Also the
+    /// dim theme's `primaryText`, so the two read one set of values.
+    @MainActor private static var primaryForDarkAppearance: Color {
         switch currentColorTheme {
-        case .blue: return isDark ? Color(red: 0.38, green: 0.60, blue: 1.00) : Color(red: 0.23, green: 0.51, blue: 0.96)
-        case .teal: return isDark ? Color(red: 0.28, green: 0.76, blue: 0.73) : Color(red: 0.10, green: 0.59, blue: 0.56)
-        case .indigo: return isDark ? Color(red: 0.52, green: 0.50, blue: 0.98) : Color(red: 0.35, green: 0.34, blue: 0.84)
-        case .purple: return isDark ? Color(red: 0.72, green: 0.48, blue: 0.96) : Color(red: 0.58, green: 0.30, blue: 0.82)
-        case .rose: return isDark ? Color(red: 0.94, green: 0.45, blue: 0.62) : Color(red: 0.82, green: 0.28, blue: 0.48)
-        case .orange: return isDark ? Color(red: 0.96, green: 0.58, blue: 0.28) : Color(red: 0.82, green: 0.44, blue: 0.10)
+        case .blue: Color(red: 0.38, green: 0.60, blue: 1.00)
+        case .teal: Color(red: 0.28, green: 0.76, blue: 0.73)
+        case .indigo: Color(red: 0.52, green: 0.50, blue: 0.98)
+        case .purple: Color(red: 0.72, green: 0.48, blue: 0.96)
+        case .rose: Color(red: 0.94, green: 0.45, blue: 0.62)
+        case .orange: Color(red: 0.96, green: 0.58, blue: 0.28)
+        }
+    }
+
+    /// `primary` in light and dim appearance for the user's colour theme.
+    @MainActor private static var primaryForLightAppearance: Color {
+        switch currentColorTheme {
+        case .blue: Color(red: 0.23, green: 0.51, blue: 0.96)
+        case .teal: Color(red: 0.10, green: 0.59, blue: 0.56)
+        case .indigo: Color(red: 0.35, green: 0.34, blue: 0.84)
+        case .purple: Color(red: 0.58, green: 0.30, blue: 0.82)
+        case .rose: Color(red: 0.82, green: 0.28, blue: 0.48)
+        case .orange: Color(red: 0.82, green: 0.44, blue: 0.10)
         }
     }
 
@@ -33,8 +51,10 @@ enum AppTheme {
     /// `AccessibilityAuditUITests` flagged the assistant disclaimer's primary
     /// button on exactly this.
     ///
-    /// Each value is the corresponding `primary` darkened along its own hue
-    /// until white clears 4.6:1, so the colour theme the user picked still
+    /// Each value is the corresponding `primary`, darkened along its own hue
+    /// where white fell short, until white clears 4.6:1. Indigo and purple in
+    /// light appearance already clear it, so they are `primary` unchanged.
+    /// The colour theme the user picked still
     /// reads as the colour theme they picked — the button is a deeper version
     /// of their accent, not a different one. Measured (white-on-fill):
     ///
@@ -68,15 +88,7 @@ enum AppTheme {
     /// keeps the light accent on dim, where it also fills buttons carrying
     /// white labels.
     @MainActor static var primaryText: Color {
-        guard currentTheme == .dim else { return primary }
-        switch currentColorTheme {
-        case .blue: return Color(red: 0.38, green: 0.60, blue: 1.00)
-        case .teal: return Color(red: 0.28, green: 0.76, blue: 0.73)
-        case .indigo: return Color(red: 0.52, green: 0.50, blue: 0.98)
-        case .purple: return Color(red: 0.72, green: 0.48, blue: 0.96)
-        case .rose: return Color(red: 0.94, green: 0.45, blue: 0.62)
-        case .orange: return Color(red: 0.96, green: 0.58, blue: 0.28)
-        }
+        currentTheme == .dim ? primaryForDarkAppearance : primary
     }
 
     /// Deep primary for depth
@@ -210,9 +222,6 @@ enum AppTheme {
     /// Soft violet — gentle warmth, secondary data
     static let dustyRose = Color(red: 0.65, green: 0.46, blue: 0.90) // #A675E5
 
-    /// Warm sand/cream — subtle highlights
-    static let sand = Color(red: 0.94, green: 0.91, blue: 0.85) // #F0E8D9
-
     /// Bright amber — warning, moderate readiness
     @MainActor static let softGold = Color(red: 0.98, green: 0.76, blue: 0.22) // #FAC238
 
@@ -222,14 +231,9 @@ enum AppTheme {
     // MARK: - Secondary (Legacy compatibility)
 
     static let secondary = dustyRose
-    static let secondaryLight = Color(red: 0.78, green: 0.65, blue: 0.95) // #C7A6F2
-    static let secondaryDark = Color(red: 0.50, green: 0.34, blue: 0.72) // #7F57B8
     @MainActor static let accent = terracotta
 
     // MARK: - Semantic Colors
-
-    /// Success — vivid green
-    @MainActor static let success = sage
 
     /// Warning — darker amber. `softGold` at #FAC238 only hits ~1.6:1 on
     /// white (WCAG AA fail for normal text). This variant at #8A5A00 hits
@@ -356,11 +360,6 @@ enum AppTheme {
 
     // MARK: - Metric Colors (Harmonious)
 
-    /// RMSSD — primary blue
-    @MainActor static var rmssdColor: Color {
-        primary
-    }
-
     /// SDNN — violet (brightened on dark backgrounds)
     @MainActor static var sdnnColor: Color {
         switch currentTheme {
@@ -369,29 +368,18 @@ enum AppTheme {
         }
     }
 
-    /// Heart rate — coral red
-    @MainActor static let heartRateColor = terracotta
-
-    /// HF power — emerald green
-    @MainActor static let hfColor = sage
-
-    /// LF power — light blue
-    @MainActor static var lfColor: Color {
-        primaryLight
-    }
-
-    /// VLF power — neutral gray
-    static let vlfColor = Color(red: 0.55, green: 0.55, blue: 0.62) // #8C8C9E
-
     // MARK: - Readiness Colors
 
-    /// Readiness color aligned with `RecoveryScoreCalculator.readinessLabel` tiers:
-    /// ≥ 7.0 "Ready", ≥ 4.5 "Moderate", ≥ 2.0 "Fatigued", < 2.0 "Rest"
+    /// Readiness color for the `ReadinessScoring.readinessLabel(for:)` band
+    /// the score falls in, so the colour and the word share one set of
+    /// thresholds and one clamping (a non-finite score reads "Moderate").
     @MainActor static func readinessColor(_ score: Double) -> Color {
-        if score >= 7.0 { return sage }
-        if score >= 4.5 { return softGold }
-        if score >= 2.0 { return terracotta }
-        return dustyRose
+        switch ReadinessScoring.readinessLabel(for: score) {
+        case "Ready": sage
+        case "Moderate": softGold
+        case "Fatigued": terracotta
+        default: dustyRose
+        }
     }
 
     /// Recovery score color — delegates to the canonical `ScoreVerdict`
@@ -406,66 +394,50 @@ enum AppTheme {
 
     // MARK: - HRV Helpers
 
-    /// HRV label from absolute RMSSD value.
-    /// When a non-nil, positive `baseline` is supplied the assessment is
-    /// baseline-relative (percent-change thresholds); otherwise absolute thresholds are used.
-    static func hrvLabel(_ hrv: Double, baseline: Double? = nil) -> String {
+    /// The night's HRV tier, by the rule "What This Means"
+    /// (`AnalysisSummaryGenerator.hrvCategory`) rates it with: against a
+    /// non-nil, positive `baseline` when one is given, else by the user's age
+    /// and sex from settings, so the label and that card agree.
+    @MainActor static func hrvCategory(_ hrv: Double, baseline: Double? = nil) -> RMSSDCategory {
         if let baseline, baseline > 0 {
-            // The tiers "What This Means" rates the same night by.
-            let b = LanguageManager.appBundle
-            return switch AnalysisSummaryGenerator.personalCategory(ratio: hrv / baseline) {
-            case .excellent: String(localized: "Excellent", bundle: b)
-            case .good: String(localized: "Good", bundle: b)
-            case .fair: String(localized: "Fair", bundle: b)
-            case .reduced: String(localized: "Reduced", bundle: b)
-            case .low: String(localized: "Low", bundle: b)
-            }
+            return AnalysisSummaryGenerator.personalCategory(ratio: hrv / baseline)
         }
-        if hrv >= 60 { return String(localized: "Excellent", bundle: LanguageManager.appBundle) }
-        if hrv >= 45 { return String(localized: "Good", bundle: LanguageManager.appBundle) }
-        if hrv >= 30 { return String(localized: "Fair", bundle: LanguageManager.appBundle) }
-        return String(localized: "Low", bundle: LanguageManager.appBundle)
+        let settings = AppDependencies.current.app.settingsManager.settings
+        let sex: AgeAdjustedHRV.Sex? = switch settings.biologicalSex {
+        case .male: .male
+        case .female: .female
+        case .other, nil: nil
+        }
+        return AgeAdjustedHRV.interpret(rmssd: hrv, age: settings.age, sex: sex).category
     }
 
-    /// HRV color from absolute RMSSD value (with optional baseline-relative mode).
+    /// The `hrvCategory` tier's name in the app language.
+    @MainActor static func hrvLabel(_ hrv: Double, baseline: Double? = nil) -> String {
+        hrvCategory(hrv, baseline: baseline).localizedLabel
+    }
+
+    /// The `hrvCategory` tier's colour. Good must not share Excellent's
+    /// colour, or the two read the same.
     @MainActor static func hrvColor(_ hrv: Double, baseline: Double? = nil) -> Color {
-        if let baseline, baseline > 0 {
-            // The `hrvLabel` tiers in the absolute palette below: Good must
-            // not share Excellent's colour, or the two read the same.
-            return switch AnalysisSummaryGenerator.personalCategory(ratio: hrv / baseline) {
-            case .excellent: sage
-            case .good: softGold
-            case .fair: terracotta
-            case .reduced, .low: dustyRose
-            }
+        switch hrvCategory(hrv, baseline: baseline) {
+        case .excellent: sage
+        case .good: softGold
+        case .fair: terracotta
+        case .reduced, .low: dustyRose
         }
-        if hrv >= 60 { return sage }
-        if hrv >= 45 { return softGold }
-        if hrv >= 30 { return terracotta }
-        return dustyRose
     }
 
     /// `hrvColor` for words: the same tiers, in the readable text shades.
     @MainActor static func hrvTextColor(_ hrv: Double, baseline: Double? = nil) -> Color {
-        switch hrvColor(hrv, baseline: baseline) {
-        case sage: sageText
-        case softGold: softGoldText
-        case terracotta: terracottaText
-        default: dustyRoseText
+        switch hrvCategory(hrv, baseline: baseline) {
+        case .excellent: sageText
+        case .good: softGoldText
+        case .fair: terracottaText
+        case .reduced, .low: dustyRoseText
         }
     }
 
     // MARK: - Data Source Helpers
-
-    /// SF Symbol name for the given data-source key.
-    static func dataSourceIcon(_ source: String) -> String {
-        switch source {
-        case "composite": "arrow.triangle.merge"
-        case "internal": "internaldrive.fill"
-        case "streaming": "antenna.radiowaves.left.and.right"
-        default: "questionmark.circle"
-        }
-    }
 
     /// Color for the given data-source key.
     @MainActor static func dataSourceColor(_ source: String) -> Color {
@@ -511,49 +483,11 @@ enum AppTheme {
         LocalizedDuration.hoursMinutes(minutes: minutes)
     }
 
-    // MARK: - Chart Colors (Cohesive palette)
-
-    @MainActor static var poincarePointColor: Color {
-        primary.opacity(0.5)
-    }
-
-    @MainActor static var poincareEllipseColor: Color {
-        primary.opacity(0.12)
-    }
-
-    @MainActor static var poincareEllipseStroke: Color {
-        primary.opacity(0.4)
-    }
-
-    @MainActor static var tachogramLine: Color {
-        primary
-    }
-
-    @MainActor static var tachogramFill: Color {
-        primary.opacity(0.15)
-    }
-
-    // MARK: - Tag Colors (Soft, distinguishable)
-
-    @MainActor static func tagColor(for name: String) -> Color {
-        switch name.lowercased() {
-        case "morning": softGold
-        case "post-exercise", "exercise": terracotta
-        case "recovery": sage
-        case "evening": dustyRose
-        case "night", "sleep", "pre-sleep": primaryDark
-        case "stressed": alert
-        case "relaxed": mist
-        default: primaryLight
-        }
-    }
-
     // MARK: - Layout Constants
 
     static let cornerRadius: CGFloat = 16
     static let smallCornerRadius: CGFloat = 10
     static let padding: CGFloat = 16
-    static let smallPadding: CGFloat = 10
 
     /// Subtle shadow — adapts to theme
     @MainActor static var cardShadow: Color {
@@ -578,25 +512,12 @@ extension View {
             .shadow(color: AppTheme.cardShadow, radius: AppTheme.cardShadowRadius, x: 0, y: 2)
     }
 
-    /// Apply elevated card styling
-    @MainActor func elevatedCard() -> some View {
-        padding(AppTheme.padding)
-            .background(AppTheme.cardElevated)
-            .cornerRadius(AppTheme.cornerRadius)
-            .shadow(color: AppTheme.cardShadow, radius: AppTheme.cardShadowRadius + 4, x: 0, y: 4)
-    }
-
     /// Hero card with gradient
     @MainActor func heroCard() -> some View {
         padding(AppTheme.padding)
             .background(AppTheme.heroGradient)
             .cornerRadius(AppTheme.cornerRadius)
             .shadow(color: AppTheme.primary.opacity(0.15), radius: 12, x: 0, y: 4)
-    }
-
-    /// Gradient foreground style
-    @MainActor func gradientForeground() -> some View {
-        foregroundStyle(AppTheme.primaryGradient)
     }
 
     /// Zen background for screens
@@ -609,14 +530,6 @@ extension View {
         scrollContentBackground(.hidden)
             .background(AppTheme.background.ignoresSafeArea())
     }
-
-    /// Soft section header style
-    @MainActor func sectionHeader() -> some View {
-        font(.subheadline.weight(.semibold))
-            .foregroundColor(AppTheme.textSecondary)
-            .textCase(.uppercase)
-            .tracking(0.5)
-    }
 }
 
 // MARK: - Button Styles
@@ -624,14 +537,19 @@ extension View {
 /// The disabled state is drawn, not ignored. Without it a disabled button
 /// looks exactly like a working one, and the only feedback for a tap is
 /// nothing happening — which reads as a broken app, and was reported as one.
+///
+/// The label is white where white clears the WCAG 2.2 AA 4.5:1 on the fill
+/// (as on `primaryFilled`), and black on a fill too light for it (`primary`,
+/// `sage`, `mist`): whenever white falls short, black clears 4.5:1.
 struct ZenButtonStyle: ButtonStyle {
     let color: Color
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.self) private var environment
 
     @MainActor func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.headline)
-            .foregroundColor(.white)
+            .foregroundColor(isEnabled ? labelColor : .white)
             .padding(.horizontal, 24)
             .padding(.vertical, 14)
             .background(
@@ -642,6 +560,23 @@ struct ZenButtonStyle: ButtonStyle {
             .opacity(isEnabled ? 1 : 0.7)
             .scaleEffect(configuration.isPressed && isEnabled ? 0.97 : 1)
             .animation(.easeInOut(duration: 0.15), value: configuration.isPressed)
+    }
+
+    @MainActor private var labelColor: Color {
+        Self.whiteClearsContrast(on: color.resolve(in: environment)) ? .white : .black
+    }
+
+    /// Whether white text on `fill` reaches 4.5:1, from the fill's WCAG
+    /// relative luminance.
+    static func whiteClearsContrast(on fill: Color.Resolved) -> Bool {
+        let luminance = 0.2126 * linearized(fill.red) + 0.7152 * linearized(fill.green) + 0.0722 * linearized(fill.blue)
+        return 1.05 / (luminance + 0.05) >= 4.5
+    }
+
+    /// An sRGB channel (0–1) on the linear scale relative luminance uses.
+    private static func linearized(_ channel: Float) -> Double {
+        let value = Double(channel)
+        return value <= 0.04045 ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4)
     }
 }
 
@@ -666,8 +601,10 @@ struct ZenSecondaryButtonStyle: ButtonStyle {
 }
 
 extension ButtonStyle where Self == ZenButtonStyle {
+    /// With no colour, the fill is `primaryFilled`, the accent darkened for
+    /// the white label.
     @MainActor static func zen(_ color: Color? = nil) -> ZenButtonStyle {
-        let color = color ?? AppTheme.primary
+        let color = color ?? AppTheme.primaryFilled
         return ZenButtonStyle(color: color)
     }
 }

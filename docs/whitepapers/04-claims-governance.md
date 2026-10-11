@@ -21,7 +21,7 @@ Emuqu answers each with build-time checks, shell and Python scripts that almost 
 - **A constants-hash version lock.** The 155 numeric constants of two designated scoring files are hashed with SHA-256 (Secure Hash Algorithm, 256-bit). The build fails if the digest moves while the scoring version stays the same. Every stored score carries its version; older records decode to an explicit `unversioned` sentinel.
 - **A machine-checked science register.** A JSON (JavaScript Object Notation) inventory classifies 19 heuristics into a closed status vocabulary defined in the register itself: 3 `validated` (the register's label for a use backed by a peer-reviewed result or checked against reference data on every build), 4 `supported-transfer` and 12 `awaiting-validation`. Each entry states the wording copy may and may not use, and every score-adjusting function found by a name scan must be claimed or waived.
 - **Gates that test the gates.** Each gate that needs no build must go red on a planted violation (64 plants), fail closed on temp-file errors, and be named in the full-CI workflow. A separate harness applies 125 targeted mutations that named test suites must catch.
-- **One-way budget ratchets.** Each CI budget file may move only in the tightening direction its filename declares, unless a commit trailer acknowledges the loosening.
+- **One-way budget ratchets.** Each integer CI budget file may move only in the tightening direction its filename declares, unless a commit trailer acknowledges the loosening. At this revision a non-integer value is skipped, so the views-coverage floor (43.5) and a deleted budget file are not compared (Section 3.6.2).
 
 The parts form one chain: a change to a constant in a designated scoring file forces a version change, which forces an edit of the register's permitted wording, which the regulated-claim perimeter of Paper 3, *A Measurement-Grounded Assistant with a Multilingual Regulated-Claim Perimeter* ([link](03-grounded-health-assistant.md)), polices for prohibited vocabulary. Section 4 compares the published tools this builds on, and Section 5 states what is new.
 
@@ -131,6 +131,8 @@ constant edited ──► hash moves ──► [gate] version must change
 9. Print the number of constants hashed, the hash and the version, whatever the result.
 10. **Violation rule:** if `current_hash != recorded_hash` **and** `version == recorded_version`, report "scoring constants changed while the version stayed the same" and exit 1.
 
+*Limitation at this revision.* The gate passes whenever `version != recorded_version`, and nothing requires the baseline line to be rewritten when the version is bumped. A version bump without a baseline update therefore leaves the lock open for every later constant change under the new version, until someone records the new (version, hash) pair. "A change to a constant forces a version change" holds for the first change after each baseline update.
+
 **Why it works.** A score's meaning is the set of numbers that produced it, so the version should change exactly when those numbers change. The hash captures the numbers and nothing else. Stripping comments means the rationale written beside a constant can be improved freely without a version bump. Sorting per file means reorganizing code is free too, while a renamed or retuned constant is not. Hashing the literal text rather than a parsed value is the conservative choice: `60` becoming `60.0` is treated as a change, so the gate never has to decide whether two spellings are equal. The gate does not bump the version itself. A version is a name stamped on users' data, and requiring a person to choose the new name makes each algorithm change a deliberate, reviewable act. Sixteen hexadecimal characters keep the baseline on one human-readable line while leaving accidental collisions out of practical reach. Exit code 2 for a missing input separates "cannot measure" from "measured a violation", so neither is ever reported as clean.
 
 #### 3.1.2 Ranking-weight confinement
@@ -148,7 +150,7 @@ The same script also confines a ranking key. The probable-cause list orders cand
 | Construction | A new `ScoreBreakdown` defaults its `scoringVersion` field to the current version |
 | Decoding | A stored breakdown with no `scoringVersion` key decodes to the literal string `unversioned`, never to the current version. Scores from before the stamp may come from the v1 algorithm (which preceded v2.may2026) or from v2.may2026, because the app offered a v1-to-v2 history recompute the user may or may not have run. |
 | Derived copies | Code that rebuilds a breakdown copies the version field forward. This covers the vitals refresh after scoring and the stripped copy prepared for iCloud sync. |
-| Display | The recovery-score detail screen shows "Scored by v3.1.oct2026" (the stored value), or "Scored before score versions were recorded" for `unversioned`. Beneath it is a fixed line saying the inputs are research-informed and the weights and bands are calibrated, not outcome-validated. |
+| Display | The recovery-score detail screen shows "Scored by v3.1.oct2026" (the stored value), or "Scored before score versions were recorded" for `unversioned`. At this revision a legacy session with a stored score but no stored breakdown is shown with a breakdown recomputed on display, which carries the current version, so its old score appears above "Scored by v3.1.oct2026". Beneath it is a fixed line saying the inputs are research-informed and the weights and bands are calibrated, not outcome-validated. |
 | Assistant | The in-app assistant's fact catalog (key `score.algorithm.version`) and its context block report the current version string and describe the v1 weighting older history may carry. |
 
 **Why it works.** Freezing and versioning each stored score keeps history attributable: a user comparing this month with last month can see whether the same algorithm produced both. The `unversioned` sentinel is the honest default for old records. Their true version is unknowable, because a recompute may or may not have run, and labeling them with the current version would assert something false. Carrying the stamp through every derived copy matters because a stamp dropped on sync or refresh would quietly relabel old scores as new. Placing the stamp next to the fixed "calibrated, not outcome-validated" line puts the version and the evidence status in front of the user together.
@@ -285,7 +287,7 @@ The gates run with `set -uo pipefail` but not `-e`, because several rely on `gre
 *Helper library.*
 
 - `gate_mktemp label` creates `${TMPDIR:-/tmp}/label.XXXXXX` with an explicit template, which behaves the same under BSD and GNU `mktemp`. If creation fails, the path is empty, or the file is not writable, it prints the reason and calls `exit 70` (EX_OSERR).
-- `gate_mktemp_dir` does the same for directories.
+- `gate_mktemp_dir` creates a directory and fails closed the same way, but at this revision it calls `mktemp -d -t label`, the BSD-only form: GNU `mktemp` rejects it, so the two mutation harnesses that use it exit 70 at startup off macOS.
 - `gate_require_nonempty` exits 70 when an input the gate is about to parse is missing or empty.
 
 The temp-file helpers are called inside `$( )`, which is a subshell, so their `exit` cannot stop the caller. Every such call site must therefore append `|| exit $?`.
@@ -323,12 +325,12 @@ For each mutation:
 2. If the baseline result is 2, retry once. If the baseline is still not 0, print SKIP with the reason.
 3. Back up the file and apply the mutation. Each mutation asserts that its original text occurs exactly once, so a mutation cannot silently land in a doc comment or the wrong place. If it cannot be applied, print SKIP.
 4. Run the suite and restore.
-5. A non-zero result is PASS ("caught"). A zero result is FAIL ("SURVIVED — <suite> asserts nothing about this").
+5. A non-zero result is PASS ("caught"). A zero result is FAIL ("SURVIVED — <suite> asserts nothing about this"). At this revision the build-failure code is not separated here: a mutation that does not compile, or a build failure during the mutated run, also counts as caught.
 6. At the end, **any FAIL or any SKIP exits 1**. "A skip is not a pass."
 
 This harness needs a simulator and a build per mutation. It is not part of `make ci`, and no CI workflow runs it; it is run by hand when analysis or storage code changes.
 
-**Why it works.** For a physiology score, the important question is not what fraction of random mutants die but whether a specific wrong formula would be caught. Each curated mutation is a plausible scientific error (the wrong threshold, the wrong statistic, the missing detrend), and naming its suite turns a survivor into a precise finding: this suite does not assert this behavior. Running the suite alone keeps attribution exact. Classifying build failures separately stops a broken build from counting as a catch, and treating every skip as a failure stops an unapplied mutation from passing silently.
+**Why it works.** For a physiology score, the important question is not what fraction of random mutants die but whether a specific wrong formula would be caught. Each curated mutation is a plausible scientific error (the wrong threshold, the wrong statistic, the missing detrend), and naming its suite turns a survivor into a precise finding: this suite does not assert this behavior. Running the suite alone keeps attribution exact. Classifying build failures separately stops a broken baseline build from being read as a red suite (the mutated run does not yet make that distinction; step 5), and treating every skip as a failure stops an unapplied mutation from passing silently.
 
 #### 3.5.2 Leaked-mutation detection and the tree lock
 
@@ -367,14 +369,14 @@ This gate runs on every push to main and every pull request.
 2. **No baseline.** If `BUDGET_REQUIRE_BASELINE` is set, exit 1 ("refusing to report enforcement that did not happen"). Otherwise print a skip notice and exit 0. The same applies to an all-zero SHA (a new or force-pushed branch) and to a ref that does not resolve.
 3. **Acknowledgments.** Collect them from every commit message in `baseline..HEAD`, using the case-insensitive regex `^budget-raise-ok:[[:space:]]*[^[:space:]]+`. Keep only the path token.
 4. **Comparison.** For each `*.txt` file directly in the CI directory, in sorted order:
-   - Read the current value. It must match `^[0-9]+$` once whitespace is removed; otherwise skip the file.
+   - Read the current value. It must match `^[0-9]+$` once whitespace is removed; otherwise skip the file. The views-coverage floor holds 43.5, so at this revision it is never compared, and a budget file deleted from the tree is not compared either.
    - Read the value at the baseline with `git show`. A file absent at the baseline is a new budget and is skipped. A non-integer baseline value is skipped too.
    - Equal values pass.
    - **Direction** comes from the filename. A basename starting with `min_` is a floor, and a decrease loosens it. Any other file is a ceiling, and an increase loosens it.
    - A loosening whose exact path appears among the acknowledged paths prints `ALLOWED`. Any other loosening is a violation. A tightening prints `ratcheted`.
 5. Any violation exits 1, with instructions to pay the debt or add `budget-raise-ok: <path> <reason>`.
 
-**CI wiring of the baseline.** The full-CI workflow uses an explicit baseline input if one is given, and otherwise the parent commit. On a root commit there is no parent: if the budget files in the working tree have uncommitted edits, the workflow compares them with the root commit itself; otherwise it prints a notice and skips, because there is nothing to compare. Whenever a baseline exists, it sets the require flag, and a baseline that does not resolve to a commit is a hard failure. The per-push workflow passes the pull-request target on a pull request, and the parent commit with `BUDGET_REQUIRE_BASELINE=1` on a push to main. A push to main therefore cannot skip the comparison.
+**CI wiring of the baseline.** The full-CI workflow uses an explicit baseline input if one is given, and otherwise the parent commit. On a root commit there is no parent: if the budget files in the working tree have uncommitted edits, the workflow compares them with the root commit itself; otherwise it prints a notice and skips, because there is nothing to compare. Whenever a baseline exists, it sets the require flag, and a baseline that does not resolve to a commit is a hard failure. The per-push workflow passes the pull-request target on a pull request, and the parent commit with `BUDGET_REQUIRE_BASELINE=1` on a push to main. A push to main therefore cannot skip the comparison, but it compares only the last commit of the push: a budget raised in an earlier commit of a multi-commit push is already in the baseline and is not seen.
 
 #### 3.6.3 Documentation may not restate a ratcheting value
 
@@ -411,7 +413,7 @@ The **evidence report** script prints, in seconds and without building, live cou
 
 ### 3.8 How the parts form one chain
 
-Figure 2.1 shows the sequence. A developer who edits a numeric threshold in a designated scoring-constant file fails scoring governance until the version changes; the new version fails the science register until its `scoring_version` and the affected entries' status, evidence and `allowed_language` are revisited; new or removed score-adjusting functions fail discovery or the stale-claim check; and new user-facing copy passes through the regulated-claim perimeter. Every gate involved is proven to go red, to fail closed and to be named in the full-CI workflow.
+Figure 2.1 shows the sequence. A developer who edits a numeric threshold in a designated scoring-constant file fails scoring governance until the version changes (once per baseline update; Section 3.1.1); the new version fails the science register until its `scoring_version` and the affected entries' status, evidence and `allowed_language` are revisited; new or removed score-adjusting functions fail discovery or the stale-claim check; and new user-facing copy passes through the regulated-claim perimeter. Every gate involved is proven to go red, to fail closed and to be named in the full-CI workflow.
 
 **Why it works.** Each gate is small and cheap. Their value is the coupling: the event that changes what a score means, a change to a hashed scoring constant, triggers in order a new name for the algorithm, a stamp on the user's data, and a forced review of what may be said about it.
 
@@ -456,7 +458,7 @@ Each statement gives only the part not found in a prior-art search made on 2026-
 
 *Earliest dated record:* flow-recovery dba6fcc, 2026-05-01 (first form, a precursor: a unit test that pinned the version string of a versioned scoring-parameters value and its six score-band values, failing if a value changed without a version change); emuqu-dev f2e6ed1, 2026-09-03 (current form, the hash gate).
 
-**N2 (Section 3.1.3). Persisting the scoring-version string on every stored score breakdown and showing it to the user.** Records written before the field existed decode to an explicit `unversioned` sentinel rather than to the current version; the stamp is carried through every derived copy; and the score-detail screen renders the stored stamp, or "Scored before score versions were recorded", next to a fixed statement that the weights are calibrated, not outcome-validated.
+**N2 (Section 3.1.3). Persisting the scoring-version string on every stored score breakdown and showing it to the user.** Records written before the field existed decode to an explicit `unversioned` sentinel rather than to the current version; the stamp is carried through every derived copy; and the score-detail screen renders the stored stamp, or "Scored before score versions were recorded", next to a fixed statement that the weights are calibrated, not outcome-validated. (At the described revision, a legacy session with no stored breakdown is still displayed under the current version; Section 3.1.3.)
 
 *Builds on:* version identifiers on machine-learning models in model cards and registries [10][11]; adds a version stamped on each stored consumer score and shown to the user. No wearable vendor documentation found describes score versioning (searched: WHOOP, Oura, Garmin and Polar public documentation).
 

@@ -179,7 +179,7 @@
    "deps": {
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.hrvExplanation()": "4d1d09f023be2e94",
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.sleepExplanation()": "e0508e0701d3359f",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.vitalsExplanation()": "fe09fd00a96f29d8"
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.vitalsExplanation()": "a5c68353f911c54a"
    }
   },
   {
@@ -361,7 +361,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryDetailCopy.sleepHRAboveBaselineFormat(_:)": "afa9704fd2f909f3",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveVitals": "3f7a05407cdf0f45"
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveVitals": "550dba4166eca919"
    }
   },
   {
@@ -380,15 +380,19 @@
   },
   {
    "key": "func RecoveryScoreDetailView.vitalsExplanation()",
-   "hash": "f0e06e22584b91ef",
-   "does": "Vitals explanation: HR-above-baseline card when vitals status is normal and HR is high; otherwise normal-vitals card or 'Vitals above baseline' card for elevated/warning.",
+   "hash": "935fd9632817a5e8",
+   "does": "Vitals explanation: HR-above-baseline card when status is normal and HR is high; the Blood Oxygen card when status is elevated by low SpO2 alone; for .normal, the within-usual-range card only when every measured vital was compared (else nil, no card); 'Vitals above baseline' for breathing/temperature elevation or warning.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveVitals",
     "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isEmpty",
     "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.status",
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.sleepHRAboveBaselineExplanation()",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryDetailCopy.normalVitalsExplanation(_:)"
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryDetailCopy.normalVitalsExplanation(_:)",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isRespiratoryElevated",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isTemperatureElevated",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryDetailCopy.lowSpO2Explanation",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.everyMeasuredVitalCompared(_:)"
    ],
    "reads": [],
    "writes": [],
@@ -396,66 +400,61 @@
     {
      "at": "+1",
      "cond": "effectiveVitals nil or empty",
-     "effect": "nil (only when the analysis meanHR is 0 and no stored/fresh vitals)"
+     "effect": "nil"
     },
     {
      "at": "+2",
      "cond": "status normal and HR above baseline",
-     "effect": "returns the sleep-HR card"
+     "effect": "sleep-HR card"
     },
     {
-     "at": "+4",
+     "at": "+3",
+     "cond": "status .elevated with neither breathing nor temperature elevated",
+     "effect": "lowSpO2Explanation"
+    },
+    {
+     "at": "+7",
      "cond": "case .normal",
-     "effect": "normalVitalsExplanation (claims HR/vitals within usual range)"
+     "effect": "nil unless everyMeasuredVitalCompared; then normalVitalsExplanation"
     },
     {
-     "at": "+6",
+     "at": "+9",
      "cond": "case .elevated, .warning",
-     "effect": "'Vitals above baseline' card"
-    },
-    {
-     "at": "+10",
-     "cond": "status == .warning (badge)",
-     "effect": "badge 'Pay attention' else 'Watch'"
-    },
-    {
-     "at": "+11",
-     "cond": "status == .warning (colour)",
-     "effect": "wongAttention else wongCaution"
+     "effect": "'Vitals above baseline' card; warning: 'Pay attention' / wongAttention, else 'Watch' / wongCaution"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "effectiveVitals is never empty once the analysis has a meanHR (strap HR always fills restingHeartRate), so the vitals card always renders; with no meanHRBaseline/SD in baselineStats, sleepHRAboveBaselineExplanation returns nil and the .normal path tells the user 'Only sleep heart rate was measured last night, and it is within your usual range' (or 'Every vital … within your usual range') without any comparison having been made.",
-     "evidence": [
-      "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift:188",
-      "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift:189",
-      "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift:166",
-      "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift:620",
-      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:221"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "A low SpO2 alone makes status .elevated (RecoveryVitals.swift:86), and the card then says 'Vitals above baseline … above your usual range' for a value that is below normal.",
-     "evidence": [
-      "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift:193",
-      "Emuqu/Sources/Models/RecoveryVitals.swift:86"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isEmpty": "b04c6e75ce5a48c2",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isRespiratoryElevated": "cddbe4f7df16f20a",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isTemperatureElevated": "336841edea75a7be",
     "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.status": "ca0501f437b2e6eb",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryDetailCopy.normalVitalsExplanation(_:)": "a3f66795a49cc2b6",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.everyMeasuredVitalCompared(_:)": "7c90b6ccfeab85fc",
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.sleepHRAboveBaselineExplanation()": "193908002a4418c9",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveVitals": "3f7a05407cdf0f45"
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryDetailCopy.lowSpO2Explanation": "6e2973480897e307",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveVitals": "550dba4166eca919"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.everyMeasuredVitalCompared(_:)",
+   "hash": "a5fced8d1a5cebc0",
+   "does": "True when each vital present was actually compared: sleep HR only with meanHRBaseline and meanHRSD > 0, breathing and temperature only with their baselines (deviation non-nil); SpO2 is always compared against its floor.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.respiratoryDeviation",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.wristTemperatureDeviation"
+   ],
+   "reads": [
+    "mem:RecoveryScoreDetailView.baselineStats"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.respiratoryDeviation": "a41bd06056c51819",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.wristTemperatureDeviation": "34436198eb68624e"
    }
   },
   {
@@ -531,14 +530,14 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.scoringVersionLine": "28b7a4a190ecf3a7",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.scoringVersionLine": "e765635777db6913",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
    }
   },
   {
    "key": "var RecoveryScoreDetailView.scoringVersionLine",
-   "hash": "ea7e5e8526340ff4",
-   "does": "'Scored before score versions were recorded' for unversioned breakdowns, else 'Scored by <version>'.",
+   "hash": "7d59952689efb02c",
+   "does": "'Scored before score versions were recorded' when the version is unknown (unversioned breakdown, or a frozen score with no stored breakdown, where the breakdown shown is today's recompute); else 'Scored by <version>'.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.breakdown"
@@ -548,26 +547,18 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "breakdown.scoringVersion == ScoringVersion.unversioned",
-     "effect": "pre-versioning text; otherwise 'Scored by <version string>'"
-    }
-   ],
-   "flags": [
+     "cond": "recoveryScore == nil || scoreBreakdown != nil",
+     "effect": "false: version not recorded"
+    },
     {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "For a session with a frozen recoveryScore but no stored scoreBreakdown, `breakdown` is the live recompute whose scoringVersion defaults to ScoringVersion.current, so the screen says 'Scored by v3.1.oct2026' beside a headline score that an older algorithm produced — the opposite of the provenance comment's requirement that a historical record show the version that produced it.",
-     "evidence": [
-      "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift:258",
-      "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift:279",
-      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:151",
-      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:179",
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:120"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+2",
+     "cond": "recorded and scoringVersion != .unversioned",
+     "effect": "false: pre-versioning text; true: 'Scored by <version>'"
     }
    ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.breakdown": "897060435fb36112"
    }
@@ -752,7 +743,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryDetailCopy.spo2PenaltyText(points:value:)": "e323e85a90f012e3",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.spo2Penalty": "4ee743f85b86bb62",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.spo2Penalty": "1fe10b86bf416ee7",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
     "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
    }
@@ -1212,6 +1203,22 @@
      "effect": "short HR-only sentence; else sentence adding 'Breathing and temperature are in range'"
     }
    ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var RecoveryDetailCopy.lowSpO2Explanation",
+   "hash": "b3969a0054b4796a",
+   "does": "Explanation card for low SpO2 with breathing and temperature in range: title 'Blood Oxygen (SpO₂)', the vitals-penalty explainer body, badge 'Watch' in wongCaution.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"

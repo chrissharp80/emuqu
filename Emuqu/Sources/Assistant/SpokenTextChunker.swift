@@ -9,15 +9,16 @@ import Foundation
 /// **Contract.** LLM provider deltas land here via `append(delta:)`.
 /// When the buffer contains at least one sentence-ending character
 /// (`.`, `!`, `?`, `\n`; a `.` that could be a decimal point waits for
-/// the next character, and one inside a markdown link or a URL is not an
-/// ender) the chunker peels everything up to the last
+/// the next character, and a `.`, `!` or `?` inside a markdown link or a
+/// URL is not an ender) the chunker peels everything up to the last
 /// ender, strips speech-hostile markdown, and returns it as a single
 /// chunk ready to hand to `AVSpeechSynthesizer`. The un-terminated tail
 /// remains buffered for the next delta. On turn end, `finalize()` flushes
 /// the remainder.
 ///
-/// This mirrors the prior in-class behavior exactly — callers that fed
-/// deltas and flushed at sentence boundaries get identical chunks.
+/// It began as a straight extraction of the controller's in-class
+/// chunking; the decimal-point and link/URL rules came later and move some
+/// cuts (a "." in "42.3" or in a link's address no longer ends a chunk).
 final class SpokenTextChunker {
     /// Set of characters that mark sentence boundaries for chunking.
     private static let sentenceEnders: Set<Character> = [".", "!", "?", "\n"]
@@ -70,15 +71,17 @@ final class SpokenTextChunker {
     /// followed by a digit ("42.3"), or one after a digit that is the last
     /// buffered character (the fraction may arrive in the next delta).
     /// Cutting there would speak "42." and "3" as two utterances. A "."
-    /// followed by a letter ("polar.com", "e.g") or inside a link or URL is
-    /// not an ender either: cutting a markdown link at the first dot of its
-    /// address left a half link the markdown stripping no longer recognised,
-    /// and the voice read the brackets and the address aloud.
+    /// followed by a letter ("polar.com", "e.g") is not an ender either, and
+    /// no ".", "!" or "?" inside a link or URL is ("https://x.com/a?b=1",
+    /// "[Why?](…)"): cutting a markdown link inside it left a half link the
+    /// markdown stripping no longer recognised, and the voice read the
+    /// brackets and the address aloud. A newline always ends a chunk.
     private func isSentenceBoundary(at index: String.Index) -> Bool {
         let character = pendingBuffer[index]
         guard Self.sentenceEnders.contains(character) else { return false }
-        guard character == "." else { return true }
+        guard character != "\n" else { return true }
         guard !isInsideLinkOrURL(at: index) else { return false }
+        guard character == "." else { return true }
         let next = pendingBuffer.index(after: index)
         if next < pendingBuffer.endIndex { return !pendingBuffer[next].isNumber && !pendingBuffer[next].isLetter }
         guard index > pendingBuffer.startIndex else { return true }
@@ -87,9 +90,13 @@ final class SpokenTextChunker {
 
     /// Whether `index` sits inside a markdown link that has not closed yet
     /// (in the label, or in the "(url" part) or inside a bare URL token.
+    /// Reads back from `index` only as far as it needs (the start of the
+    /// current token, the last "["), rather than splitting the whole buffer
+    /// for every candidate ender.
     private func isInsideLinkOrURL(at index: String.Index) -> Bool {
         let before = pendingBuffer[..<index]
-        let token = before.split(whereSeparator: \.isWhitespace).last ?? ""
+        let tokenStart = before.lastIndex(where: \.isWhitespace).map { before.index(after: $0) } ?? before.startIndex
+        let token = before[tokenStart...]
         if token.contains("://") || token.hasPrefix("www.") { return true }
         guard let open = before.lastIndex(of: "[") else { return false }
         let link = before[open...]
@@ -115,8 +122,9 @@ final class SpokenTextChunker {
     }
 
     /// Regex rewrites, in order:
-    ///   • single `*` / `_` as emphasis, only between word chars so math like
-    ///     "5 * 3" survives
+    ///   • a single `*` between letters, or `_` between word chars, as
+    ///     emphasis; never next to a digit, so math like "5*3" and "5 * 3"
+    ///     survives
     ///   • `*word*` emphasis around whole words: the asterisks hug the text
     ///     ("*really*"), which the spaced math above never does
     ///   • leading list markers ("- foo", "* foo", "+ foo")
@@ -124,7 +132,7 @@ final class SpokenTextChunker {
     ///   • ATX headers (#, ##, ###)
     ///   • markdown links: [label](url) → label
     private static let markdownPatterns: [(String, String)] = [
-        (#"(?<=\w)\*(?=\w)"#, ""),
+        (#"(?<=\p{L})\*(?=\p{L})"#, ""),
         (#"(?<=\w)_(?=\w)"#, ""),
         (#"(?<![\w*])\*(?=\S)([^*\n]+?)(?<=\S)\*(?![\w*])"#, "$1"),
         (#"(?m)^\s*[-*+]\s+"#, ""),

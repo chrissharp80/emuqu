@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift",
- "hash": "ff872004d47b5625",
+ "hash": "a7e79a43fa1de514",
  "role": "Frequency-domain HRV: resamples clean RR to 4 Hz with a natural cubic spline, runs Welch PSD (256-sample Hann segments, 50% overlap, per-segment linear detrend) for LF/HF, a separate 1024-sample pass for VLF when the window is >=10 min, falls back to a single zero-padded periodogram for short signals, and integrates band powers. Also owns the process-wide vDSP DFT setup cache.",
  "types": [
   "FrequencyDomainAnalyzer: enum — namespace for spectral analysis and DFT-setup cache",
@@ -10,24 +10,13 @@
   "mem:FrequencyDomainAnalyzer.dftSetupCache (OSAllocatedUnfairLock<[Int: OpaquePointer]>, never evicted)",
   "mem:FrequencyDomainAnalyzer.resampleFrequency = 4.0",
   "mem:FrequencyDomainAnalyzer.vlfRange/lfRange/hfRange (0.003..<0.04, 0.04..<0.15, 0.15...0.4 Hz)",
-  "mem:FrequencyDomainAnalyzer.vlfMinDuration = minimumVLFWindowMinutes*2 = 10 min",
+  "mem:FrequencyDomainAnalyzer.vlfMinDuration = 10 min (its own constant)",
   "mem:FrequencyDomainAnalyzer.defaultWelchSegmentLength = 256",
   "mem:FrequencyDomainAnalyzer.vlfWelchSegmentLength = 1024",
   "mem:FrequencyDomainAnalyzer.welchOverlap = 0.5"
  ],
- "toplevel": "Static lets initialised from HRVConstants.FrequencyBands (Constants.swift:170-178). The DFT cache is a global lock-guarded dictionary shared with RespirationAnalyzer (RespirationAnalysis.swift:55); setups are created on demand and leaked for the app lifetime.",
- "flags": [
-  {
-   "kind": "hack",
-   "sev": "low",
-   "text": "vlfMinDuration doubles HRVConstants.FrequencyBands.minimumVLFWindowMinutes (5.0) in place, so the constant named 'minimum VLF window' is not the gate actually applied (10 min).",
-   "evidence": [
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift:114",
-    "Emuqu/Sources/Utilities/Constants.swift:178"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "Static lets: band ranges from HRVConstants.FrequencyBands (Constants.swift), the 10-min VLF gate defined here. The DFT cache is a global lock-guarded dictionary shared with RespirationAnalyzer (RespirationAnalysis.swift:55); setups are created on demand and leaked for the app lifetime.",
+ "flags": [],
  "units": [
   {
    "key": "func FrequencyDomainAnalyzer.getDFTSetup(size:)",
@@ -86,12 +75,11 @@
   },
   {
    "key": "func FrequencyDomainAnalyzer.computeFrequencyDomain(_:flags:windowStart:windowEnd:)",
-   "hash": "99eac4118af2371d",
-   "does": "Frequency metrics for series[windowStart..<windowEnd]: validates bounds against points and flags, needs >=120 points and >=60 non-artifact beats, then hands (midpoint seconds, RR ms) pairs to computeFromCleanPairs.",
+   "hash": "67fe96fba01b04c4",
+   "does": "Frequency metrics for series[windowStart..<windowEnd]: validates bounds against points and flags, needs >=120 points and >=60 non-artifact beats, then hands (beat midpoint seconds = (t_ms + rr/2)/1000, RR ms) pairs to computeFromCleanPairs.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFromCleanPairs(times:rrValues:)",
-    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.midpointMs"
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFromCleanPairs(times:rrValues:)"
    ],
    "reads": [],
    "writes": [],
@@ -119,9 +107,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFromCleanPairs(times:rrValues:)": "c1608ecf0b3e784d",
-    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.midpointMs": "f0542bc9ef0a60d7",
-    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)": "c275ddb86778fcf0"
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFromCleanPairs(times:rrValues:)": "c1608ecf0b3e784d"
    }
   },
   {

@@ -1,9 +1,9 @@
 {
  "file": "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift",
- "hash": "c2ddf6d9c241fd9c",
+ "hash": "6587b9ef5167308f",
  "role": "Rebuilds a workout whose recording died (or a user-supplied start time) from Apple Health's passive samples: finds sub-60 s workout stubs in the archive, resolves the bout end from exercise minutes/steps, and fills HR, cadence, distance, pace, METs and flights-climbed elevation into an HRVSession.",
  "types": [
-  "HealthWorkoutImporter.InterruptedSession: struct (Identifiable, Sendable, Equatable) — an archived workout stub (<60 s captured) eligible for rebuild",
+  "HealthWorkoutImporter.InterruptedSession: struct (Identifiable, Sendable, Equatable) — an archived workout stub (<60 s captured) eligible for rebuild, with the stub's tags and notes",
   "HealthWorkoutImporter.RebuildFailure: enum (Error, Equatable) — noActivityAfterStart | noSamplesAtAll",
   "HealthWorkoutImporter: extension — rebuild path"
  ],
@@ -43,16 +43,17 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.workout(withID:)": "a9fd947f3b8a3587",
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.stub(from:archive:)": "b1e24f42adde21ef",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.workout(withID:)": "fab8fd632a71b48c",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.workouts(matching:limit:sortDescriptors:reading:)": "824f51d54645bda5",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.stub(from:archive:)": "eee6554209b57590",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.entries(from:to:)": "c85ce67badfb610a",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
    "key": "func HealthWorkoutImporter.stub(from:archive:)",
-   "hash": "c36a8e4918d3a33c",
-   "does": "Turns one archive entry into an InterruptedSession when it has an end date, captured 0..<60 s, and a stored session whose workoutMetadata.sport is readable; otherwise logs why and returns nil.",
+   "hash": "18aa9156bd0ce765",
+   "does": "Turns one archive entry into an InterruptedSession (carrying the stored stub's tags and notes) when it has an end date, captured 0..<60 s, and a stored session whose workoutMetadata.sport is readable; otherwise logs why and returns nil.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
@@ -82,8 +83,8 @@
     },
     {
      "at": "+13",
-     "cond": "stored session has workoutMetadata.sport",
-     "effect": "return InterruptedSession; otherwise noteUnrebuildable logs (unreadable vs no sport) and nil"
+     "cond": "stored session read and has workoutMetadata.sport",
+     "effect": "return InterruptedSession with the stub's tags/notes; otherwise noteUnrebuildable logs (unreadable vs no sport) and nil"
     }
    ],
    "flags": [],
@@ -137,19 +138,26 @@
   },
   {
    "key": "func HealthWorkoutImporter.rebuild(_:)",
-   "hash": "88cfbc22bcc4a87b",
-   "does": "Rebuilds an interrupted stub by calling rebuild(startingAt:sport:replacing:) with the stub's start, sport and id (so the result replaces the stub).",
+   "hash": "9f023f344a8b9c7a",
+   "does": "Rebuilds an interrupted stub by calling rebuild(startingAt:sport:replacing:) with the stub's start, sport and id (so the result replaces the stub), and on success puts the stub's tags and notes on the rebuilt session.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.rebuild(startingAt:sport:replacing:)"
    ],
    "reads": [],
    "writes": [],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "rebuild succeeded",
+     "effect": "Result.map copies stub.tags/notes onto the session; a failure passes through unchanged"
+    }
+   ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.session(for:)": "c3f6621e4cf76e10",
     "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.rebuild(startingAt:sport:replacing:)": "edd6cd517cecacda",
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.stub(from:archive:)": "b1e24f42adde21ef"
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.stub(from:archive:)": "eee6554209b57590"
    }
   },
   {
@@ -207,15 +215,15 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.session(for:)": "9798f3e1c844a016",
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.stepWindows(from:to:)": "1c403117d9da8a6b",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.session(for:)": "c3f6621e4cf76e10",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.stepWindows(from:to:)": "f4e216ac03db5ba9",
     "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.applyRebuiltDistance(from:to:sport:to:)": "d29bb1b24c6a7b7d",
     "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.applyRebuiltSignals(from:to:sport:to:)": "52644c50332cee06",
     "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.boutEnd(from:to:steps:)": "0d7fa82d592d561d",
     "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.failure(whenBoutNotFoundWith:)": "024555b660039acb",
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.rebuiltTrack(startDate:sport:end:steps:)": "1eebf5b326330743",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.rebuiltTrack(startDate:sport:end:steps:)": "454397712c8a505e",
     "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.sport(for:isIndoor:)": "ea7d8ada44a71fa0",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.buildSession(from:source:replacing:)": "4e9e6cb48f33445e",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.buildSession(from:source:replacing:)": "f1a4266e2463267c",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
     "EmuquTests/OverpassClientTests.swift::var Result.failure": "0476d3f57d94bf98"
    }
@@ -242,7 +250,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.end(ofBoutStartingAt:activity:maxGap:maxDuration:)": "c435a9794e639fe8",
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.end(ofBoutStartingAt:activity:maxGap:maxDuration:)": "2a4e5e60482a8f2f",
     "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.quantityWindows(_:unit:from:to:)": "8226cd347b01ac2a"
    }
   },
@@ -268,7 +276,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.session(for:)": "9798f3e1c844a016",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.session(for:)": "c3f6621e4cf76e10",
     "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.applyElevation(flights:to:)": "40345cd3665f8b59",
     "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.applySpeedAndEffort(speed:effort:start:to:)": "dc0ef1bf5dc32fe2",
     "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.cumulativeSum(_:unit:from:to:)": "cccd6750c89a9fdd",
@@ -334,8 +342,8 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.session(for:)": "9798f3e1c844a016",
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.bySecond(_:start:seconds:transform:)": "06148eb688bd9e80",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.session(for:)": "c3f6621e4cf76e10",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.bySecond(_:start:seconds:transform:)": "2e0afd3034948ba7",
     "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.filled(_:pace:mets:)": "bf950557813e4bd5",
     "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.pace(fromMetersPerSecond:)": "a97b5f3bae7fcc48"
    }
@@ -391,17 +399,19 @@
   },
   {
    "key": "func HealthWorkoutImporter.bySecond(_:start:seconds:transform:)",
-   "hash": "1ecee5110bd6f09f",
-   "does": "Expands each finite, transform-accepted window to every second offset it covers (clamped to [0, seconds-1]) in a dictionary; later windows overwrite earlier ones on overlap.",
+   "hash": "85ec207be4e2f748",
+   "does": "Expands each finite, transform-accepted window to every second offset it covers (clamped to [0, seconds-1]) in a dictionary, taking windows in finestLast order so where they overlap the shortest window wins, whatever order HealthKit returned them in.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.finestLast(_:)"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+7",
-     "cond": "for each window",
-     "effect": "iterate all windows"
+     "cond": "for each window in finestLast order",
+     "effect": "iterate all windows, longest first"
     },
     {
      "at": "+8",
@@ -416,23 +426,13 @@
     {
      "at": "+12",
      "cond": "for each second in from...to",
-     "effect": "write the value (overwrites prior window's value)"
+     "effect": "write the value (a later, finer window overwrites)"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Raw HKSampleQuery windows from iPhone and Watch overlap; bySecond keeps whichever window is iterated last (sortDescriptors nil), so per-second pace/METs depends on HealthKit's unspecified result order.",
-     "evidence": [
-      "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift:288",
-      "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift:367"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.windows(_:unit:)": "9fd4c54cd4d3feeb"
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.windows(_:unit:)": "9fd4c54cd4d3feeb",
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.finestLast(_:)": "4f3257d471dc1475"
    }
   },
   {
@@ -453,17 +453,17 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.session(for:)": "9798f3e1c844a016"
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.session(for:)": "c3f6621e4cf76e10"
    }
   },
   {
    "key": "func HealthWorkoutImporter.rebuiltTrack(startDate:sport:end:steps:)",
-   "hash": "6a3826b604f38d32",
-   "does": "Builds a route-less ImportedWorkoutTrack for [startDate,end]: heart rate fetched over the bout and cadence from the step windows overlapping the bout.",
+   "hash": "e375ccc081cf90ff",
+   "does": "Builds a route-less ImportedWorkoutTrack for [startDate,end]: heart rate fetched over the bout and cadence on every second of the bout covered by an overlapping step window.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.heartRateSamples(from:to:)",
-    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.cadenceSamples(from:)"
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.cadenceSamples(from:coveringFrom:to:)"
    ],
    "reads": [
     "hk:heartRate"
@@ -473,7 +473,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.heartRateSamples(from:to:)": "fa5649482a1577d2",
-    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.cadenceSamples(from:)": "616cbbca36fd521c",
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.cadenceSamples(from:coveringFrom:to:)": "472d150727a93d69",
     "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.sport(for:isIndoor:)": "ea7d8ada44a71fa0"
    }
   },
@@ -499,7 +499,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.session(for:)": "9798f3e1c844a016",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.session(for:)": "c3f6621e4cf76e10",
     "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.totalDistance(from:to:sport:)": "c944b5480fdb06b7",
     "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.sport(for:isIndoor:)": "ea7d8ada44a71fa0"
    }

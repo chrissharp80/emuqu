@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Analysis/RouteLibrary.swift",
- "hash": "74cc2bb1613f86a8",
+ "hash": "88e96c9baa5435da",
  "role": "Recognises whether the live workout GPS track follows a route saved in SavedRouteStore, in forward or reverse direction, by mean nearest-neighbour fit of a sampled live track to a thinned prefix of the saved track.",
  "types": [
   "RouteLibrary: enum (@MainActor) — namespace for route-matching constants and geometry",
@@ -12,25 +12,12 @@
   "static let matchToleranceMeters = 30",
   "static let supportedSports = [.run,.trailRun,.walk,.hike,.bike]",
   "static let maxScoredPoints = 300",
-  "static let prefixSpacingMeters = 5"
+  "static let prefixSpacingMeters = 5",
+  "static let startGateMeters = 150",
+  "static let prefixOvershootMeters = 200"
  ],
- "toplevel": "Only static constants; no stored mutable state. The start-point cheap reject (150 m) and prefix overshoot (+200 m) are inline magic numbers in scoreDirection.",
- "flags": [
-  {
-   "kind": "broken",
-   "sev": "med",
-   "text": "Reverse-direction matches rebuild the Route from CLLocation(latitude:longitude:) points that drop the saved altitude, so Route.fromGPX sees altitude 0 everywhere: the reversed Route has no climbs and zero ascent/descent. The comment says the reverse Route is built so the climb queue reflects climbs in this direction; in practice WorkoutRecorder binds a climb-less plannedRoute and computeUpcomingClimb never cues a climb on a reverse-run saved route.",
-   "evidence": [
-    "Emuqu/Sources/Analysis/RouteLibrary.swift:98",
-    "Emuqu/Sources/Analysis/RouteLibrary.swift:108",
-    "Emuqu/Sources/Models/Route.swift:140",
-    "Emuqu/Sources/Models/Route.swift:153",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift:128",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift:152"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "Only static constants; no stored mutable state.",
+ "flags": [],
  "units": [
   {
    "key": "func RouteLibrary.findMatch(currentTrack:sport:store:)",
@@ -85,7 +72,7 @@
     {
      "kind": "untested",
      "sev": "med",
-     "text": "No test calls RouteLibrary.findMatch, scoreDirection, candidates, evenSample or thinned (grep of EmuquTests finds none; RouteLibraryGeometryTests covers only trackPrefix/meanNearestDistance/nearestDistance), so the reverse-direction climb loss at :98/:108 and the 150 m start gate are unverified.",
+     "text": "No test calls RouteLibrary.findMatch, scoreDirection, candidates, location(of:), evenSample or thinned (RouteLibraryGeometryTests covers only trackPrefix/meanNearestDistance/nearestDistance), so the reverse-direction climb queue and the start gate are unverified.",
      "evidence": [
       "Emuqu/Sources/Analysis/RouteLibrary.swift:65",
       "EmuquTests/RouteLibraryGeometryTests.swift:41"
@@ -94,7 +81,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.candidates(for:liveTrack:liveTraveled:)": "ae47b22baaeb221b",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.candidates(for:liveTrack:liveTraveled:)": "8dece32d13bcd895",
     "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "ed55e0f71de4cd6c",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "d183aa1e85ebbd65",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
@@ -104,11 +91,12 @@
   },
   {
    "key": "func RouteLibrary.candidates(for:liveTrack:liveTraveled:)",
-   "hash": "781ec7e9aa730c9c",
-   "does": "Converts a SavedRoute to a Route, builds a lat/lon-only CLLocation track from its trackpoints, and returns up to two Matches: forward against the saved Route and reverse against a Route rebuilt from the reversed track.",
+   "hash": "1a062a013aae1d61",
+   "does": "Converts a SavedRoute to a Route, rebuilds a CLLocation track from its trackpoints with each point's saved altitude (location(of:)), and returns up to two Matches: forward against the saved Route (with its enriched climbs) and reverse against a Route rebuilt by Route.fromGPX from the reversed track, whose climb detection now sees the real altitudes. Reverse climbs carry no road names (the library's geocoding pass names only forward climbs).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRoute.toRoute()",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.location(of:)",
     "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.scoreDirection(liveTrack:savedTrack:liveTraveled:saved:route:direction:)",
     "Emuqu/Sources/Models/Route.swift::func Route.fromGPX(name:track:)"
    ],
@@ -123,40 +111,44 @@
    ],
    "flags": [
     {
-     "kind": "broken",
-     "sev": "med",
-     "text": "Track rebuilt with CLLocation(latitude:longitude:) discards altitudeMeters, so the reverse Route built by Route.fromGPX has no climbs and 0 ascent/descent (forward keeps the original toRoute climbs).",
-     "evidence": [
-      "Emuqu/Sources/Analysis/RouteLibrary.swift:98",
-      "Emuqu/Sources/Analysis/RouteLibrary.swift:108"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
      "kind": "spec-mismatch",
      "sev": "med",
-     "text": "Docs promise reverse-direction runs get the full climb queue with road names (FEATURES.md:50 'in either direction ... next 5 climbs ahead ... reverse-geocoded street name'; ARCHITECTURE.md:1330-1332 and FLOWCHART.md:1059-1061 'climb queue reflects the climbs the user will actually hit'). Code rebuilds the reverse Route from CLLocation(latitude:longitude:) (altitude 0) so it has no climbs, and even with altitude it would carry no enrichedClimbs road names because Route.fromGPX never sets roadName.",
+     "text": "Docs promise reverse-direction runs get the full climb queue with road names (FEATURES.md:50 'in either direction ... next 5 climbs ahead ... reverse-geocoded street name'). The reverse Route now has its climbs (altitude is kept), but they carry no road names: SavedRouteStore's enrichment geocodes only the forward climbs and Route.fromGPX never sets roadName.",
      "evidence": [
-      "Emuqu/Sources/Analysis/RouteLibrary.swift:98",
       "Emuqu/Sources/Analysis/RouteLibrary.swift:108",
       "Emuqu/Sources/Models/Route.swift:203",
-      "docs/FEATURES.md:50",
-      "docs/ARCHITECTURE.md:1330"
+      "Emuqu/Sources/Models/SavedRoute.swift:226",
+      "docs/FEATURES.md:50"
      ],
-     "found": "second read"
+     "found": "second read; narrowed in fix pass b03 once altitude was kept"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.scoreDirection(liveTrack:savedTrack:liveTraveled:saved:route:direction:)": "535a7a574b00e80a",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.location(of:)": "6a51044ce4dd5bb2",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.scoreDirection(liveTrack:savedTrack:liveTraveled:saved:route:direction:)": "3cf43ac9e169d575",
     "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoints(session:track:iso:)": "a784bf4553e314a2",
-    "Emuqu/Sources/Models/Route.swift::func Route.fromGPX(name:track:)": "5bd959aa42155c68",
+    "Emuqu/Sources/Models/Route.swift::func Route.fromGPX(name:track:)": "f86b9993b7802976",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRoute.toRoute()": "539ccc30635f66ec"
    }
   },
   {
+   "key": "func RouteLibrary.location(of:)",
+   "hash": "52deee1aa7ad9cf0",
+   "does": "A saved Route.Point as a CLLocation carrying its latitude, longitude and altitudeMeters (accuracies 0, timestamp distantPast — unused by the distance and climb math).",
+   "entry": null,
+   "calls": [
+    "ext:CoreLocation.CLLocation.init(coordinate:altitude:horizontalAccuracy:verticalAccuracy:timestamp:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
    "key": "func RouteLibrary.scoreDirection(liveTrack:savedTrack:liveTraveled:saved:route:direction:)",
-   "hash": "1f80d7feefeaf00e",
-   "does": "Scores one direction: rejects when either track is empty or the saved start is >150 m from the live start; otherwise takes the saved prefix of (live distance + 200 m), thinned to 5 m spacing, computes the mean nearest distance from up to 300 evenly sampled live points, and returns a Match when it is <=30 m.",
+   "hash": "91f7e8ffd56552ff",
+   "does": "Scores one direction: rejects when either track is empty or the saved start is more than startGateMeters (150 m) from the live start; otherwise takes the saved prefix of (live distance + prefixOvershootMeters, 200 m), thinned to prefixSpacingMeters (5 m), computes the mean nearest distance from up to maxScoredPoints (300) evenly sampled live points, and returns a Match when it is <= matchToleranceMeters (30 m).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.trackPrefix(_:meters:)",
@@ -174,27 +166,16 @@
     },
     {
      "at": "+12",
-     "cond": "live start within 150 m of saved start",
-     "effect": "continue; otherwise nil (route started mid-way is never recognised)"
+     "cond": "live start within startGateMeters of saved start",
+     "effect": "continue; otherwise nil (a workout started partway round a saved loop is not recognised, as documented on startGateMeters)"
     },
     {
      "at": "+15",
-     "cond": "mean distance <= 30 m",
+     "cond": "mean distance <= matchToleranceMeters",
      "effect": "return Match; otherwise nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "hack",
-     "sev": "low",
-     "text": "Start-point gate (150 m) and prefix overshoot (+200 m) are unnamed magic numbers; a workout started mid-loop never matches.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/RouteLibrary.swift:126",
-      "Emuqu/Sources/Analysis/RouteLibrary.swift:127"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.evenSample(_:count:)": "9ef79a4e10fc1022",
     "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.meanNearestDistance(from:to:)": "11504b577601b637",

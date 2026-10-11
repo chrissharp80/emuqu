@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/ExportAndArchiveViews.swift",
- "hash": "cc448b2cdf9a4519",
+ "hash": "a27e01400e474997",
  "role": "Two settings screens: ExportDataView (RR-interval CSV, summary CSV and full JSON export to tmp, offered via ShareLink) and ArchiveDiagnosticsView (index listing, file-system scan, repair, clear-all, RR storage audit, MetricKit/memory trace links).",
  "types": [
   "ExportDataView: struct (View) — data export screen",
@@ -8,27 +8,29 @@
   "ExportHeader: struct (Encodable, local in envelopeHeader) — JSON export envelope header"
  ],
  "state": [
-  "mem:ExportDataView.isExporting/exportURL/exportError/exportShortfall (@State)",
+  "mem:ExportDataView.isExporting/exportURL/exportError/exportShortfall/exportTask (@State)",
   "file:tmp/Emuqu_RR_<yyyyMMdd_HHmmss>.csv",
   "file:tmp/Emuqu_Summary_<yyyyMMdd_HHmmss>.csv",
   "file:tmp/Emuqu_Export_<yyyyMMdd_HHmmss>.json",
   "mem:ArchiveDiagnosticsView.diagnosticInfo/isRepairing/showingRepairConfirm/showingClearConfirm/repairResult/showingResult/rrAuditReport/rrAuditRunning (@State)",
-  "file:<group.com.chrissharp.flowrecovery>/<AppConfig.archiveDirectoryName> (scanned / wiped)"
+  "file:<group.com.chrissharp.flowrecovery>/<AppConfig.archiveDirectoryName> (scanned / wiped)",
+  "mem:ArchiveDiagnosticsView.metricKitHistory/memoryTrace (@State, loaded once per appear)",
+  "static ArchiveDiagnosticsView.nonSessionFileNames (index, deleted list and CloudKitSyncState sidecars)"
  ],
  "toplevel": "diagnosticInfo initial value is localized 'Loading...'. ExportDataView reached from SettingsPages+Data.swift:252 and PaywallView.swift:416; ArchiveDiagnosticsView from SettingsPages+DiagnosticActions.swift:306.",
  "flags": [],
  "units": [
   {
    "key": "var ExportDataView.body",
-   "hash": "01e426ea6153ca69",
-   "does": "List of export options, exported-file and statistics sections; overlay spinner while exporting; onDisappear deletes the export file; alert 'Export failed' bound to exportError != nil.",
+   "hash": "8f159f6998a53c10",
+   "does": "List of export options, exported-file and statistics sections; overlay spinner while exporting; onDisappear runs closeScreen (cancels a running export, deletes the finished file); alert 'Export failed' bound to exportError != nil.",
    "entry": "SwiftUI body; .onDisappear calls removeExportFile",
    "calls": [
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ExportDataView.exportRrIntervalsCsvSection",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ExportDataView.exportedFileSection",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ExportDataView.statisticsSection",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ExportDataView.exportingOverlay",
-    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.removeExportFile()",
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.closeScreen()",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ExportDataView.exportErrorMessage",
     "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
@@ -47,7 +49,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.removeExportFile()": "eabd012c9219d4a4",
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.closeScreen()": "08d378df4c948bf3",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ExportDataView.exportErrorMessage": "22f6ca157c72cc21",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ExportDataView.exportRrIntervalsCsvSection": "82182886b44e8c6f",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ExportDataView.exportedFileSection": "fd90655697193454",
@@ -193,7 +195,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.exportRRData()": "7cf05a3cfb77b3db"
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.exportRRData()": "c615feab0e75d8cd"
    }
   },
   {
@@ -211,7 +213,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.exportCSV()": "b83e9f9184b02177"
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.exportCSV()": "cf90b40204047213"
    }
   },
   {
@@ -229,7 +231,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.exportAllData()": "18bacdc4c990b470"
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.exportAllData()": "be02a51a8f81ea08"
    }
   },
   {
@@ -323,8 +325,8 @@
   },
   {
    "key": "func ExportDataView.exportRRData()",
-   "hash": "d20d70fd60b77630",
-   "does": "Starts RR CSV export: beginExport() then Task { await runRRCSVExport() }.",
+   "hash": "7f8c400b6a3954a8",
+   "does": "Starts RR CSV export: beginExport() then exportTask = Task { await runRRCSVExport() }.",
    "entry": "Called from RR export button",
    "calls": [
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.beginExport()",
@@ -336,7 +338,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.beginExport()": "101913ee84d0dae0",
-    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.runRRCSVExport()": "a80e297649ae16a0"
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.runRRCSVExport()": "3eadcdbc8c602f51"
    }
   },
   {
@@ -355,7 +357,25 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.removeExportFile()": "eabd012c9219d4a4"
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.removeExportFile()": "8315ead3eb5f43da"
+   }
+  },
+  {
+   "key": "func ExportDataView.closeScreen()",
+   "hash": "15b4fc93d065fc1a",
+   "does": "On disappear: cancels the running export task (finishExport then deletes its file on arrival) and deletes the finished export file.",
+   "entry": "ExportDataView.onDisappear",
+   "calls": [
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.removeExportFile()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:ExportDataView.exportTask (cancelled)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.removeExportFile()": "8315ead3eb5f43da"
    }
   },
   {
@@ -379,20 +399,7 @@
      "effect": "true: nil it and remove file; false: return"
     }
    ],
-   "flags": [
-    {
-     "kind": "privacy",
-     "sev": "low",
-     "text": "Cleanup only covers exportURL at the moment of onDisappear. If the user leaves the screen while an export is still running, runRRCSVExport/runFullExport later call finishExport on the gone view, the new plaintext health-data file in tmp is never deleted by this screen.",
-     "evidence": [
-      "Emuqu/Sources/Views/ExportAndArchiveViews.swift:39",
-      "Emuqu/Sources/Views/ExportAndArchiveViews.swift:206",
-      "Emuqu/Sources/Views/ExportAndArchiveViews.swift:229",
-      "Emuqu/Sources/Views/ExportAndArchiveViews.swift:378"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
@@ -422,13 +429,13 @@
   },
   {
    "key": "func ExportDataView.runRRCSVExport()",
-   "hash": "36b49981111f06f9",
-   "does": "Builds tmp URL Emuqu_RR_<timestamp>.csv, runs streamRRCSV in a detached userInitiated task, then on main sets exportShortfall (total - unreadable vs total) and finishExport; on throw logs, deletes the partial file and failExport.",
+   "hash": "79d362a6ae9c3a91",
+   "does": "Snapshots archive.entries once (walk and total), builds tmp URL Emuqu_RR_<timestamp>.csv, runs streamRRCSV over that snapshot in a detached userInitiated task, then on main sets exportShortfall (total - unreadable vs total) and finishExport; on throw logs, deletes the file and failExport.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.timestampedName(prefix:ext:)",
-    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.streamRRCSV(to:archive:)",
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.streamRRCSV(to:archive:entries:)",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.shortfallNote(written:total:)",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.finishExport(url:)",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.failExport(_:)",
@@ -444,7 +451,7 @@
    ],
    "branches": [
     {
-     "at": "+13",
+     "at": "+16",
      "cond": "streamRRCSV threw (file create/handle open/header write)",
      "effect": "catch: debugLog, remove temp file, set exportError via failExport; no catch: shortfall + finish"
     }
@@ -455,9 +462,9 @@
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.failExport(_:)": "97d0433c8a203935",
-    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.finishExport(url:)": "01f53676ec02d7f7",
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.finishExport(url:)": "712eba45bec07ef1",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.shortfallNote(written:total:)": "6f556ccdd2443048",
-    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.streamRRCSV(to:archive:)": "395598071ae618b3",
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.streamRRCSV(to:archive:entries:)": "414e2a9465f4728d",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.timestampedName(prefix:ext:)": "0b68393de380a42d",
     "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
    }
@@ -491,16 +498,15 @@
    "deps": {}
   },
   {
-   "key": "func ExportDataView.streamRRCSV(to:archive:)",
-   "hash": "753a6848d67584bf",
-   "does": "Creates the tmp file, writes header 'session_date,timestamp_ms,rr_ms,session_type', then for each archive entry (inside autoreleasepool) writes its RR rows; counts unreadable sessions and beats, logs, returns unreadable count. Handle close failure is logged via attempt.",
+   "key": "func ExportDataView.streamRRCSV(to:archive:entries:)",
+   "hash": "9e232b796b984b2e",
+   "does": "Creates the tmp file, writes header 'session_date,timestamp_ms,rr_ms,session_type', then for each entry of the given snapshot (inside autoreleasepool) writes its RR rows; counts unreadable sessions and beats, logs, returns unreadable count. Handle close failure is logged via attempt.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.machineDateFormatter(_:)",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.writeRRRows(for:archive:dateFormatter:handle:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
     "archive:SessionArchive.entries",
@@ -523,16 +529,6 @@
    ],
    "flags": [
     {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "The total passed for the shortfall note is captured from archive.entries in runRRCSVExport (222) while the loop re-reads archive.entries here (262); a session archived or deleted between the two reads makes 'written' = total - unreadable wrong.",
-     "evidence": [
-      "Emuqu/Sources/Views/ExportAndArchiveViews.swift:222",
-      "Emuqu/Sources/Views/ExportAndArchiveViews.swift:262"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
      "kind": "untested",
      "sev": "low",
      "text": "streamRRCSV/writeRRRows/writeRRChunk (the RR CSV that RRDataImporter+FlowHRV re-imports, incl. the session_type column) have no test; the only test touching ExportDataView is a snapshot of the idle screen.",
@@ -546,7 +542,6 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "4ca4c631cc8c2212",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.machineDateFormatter(_:)": "554c0af886f79e07",
@@ -625,8 +620,8 @@
   },
   {
    "key": "func ExportDataView.exportCSV()",
-   "hash": "5bf281a1edc3af1e",
-   "does": "Starts summary CSV export: beginExport() then Task { await runSummaryCSVExport() }.",
+   "hash": "e0b488d4b8d3866b",
+   "does": "Starts summary CSV export: beginExport() then exportTask = Task { await runSummaryCSVExport() }.",
    "entry": "Called from summary export button",
    "calls": [
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.beginExport()",
@@ -672,7 +667,7 @@
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.failExport(_:)": "97d0433c8a203935",
-    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.finishExport(url:)": "01f53676ec02d7f7",
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.finishExport(url:)": "712eba45bec07ef1",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.summaryCSV(entries:)": "b0282cb16b648bf8",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.timestampedName(prefix:ext:)": "0b68393de380a42d",
     "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
@@ -697,16 +692,17 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.summaryCSVRow(_:dateFormatter:)": "e5e6b33ac273907f"
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.summaryCSVRow(_:dateFormatter:)": "e79719258cf1ce65"
    }
   },
   {
    "key": "func ExportDataView.summaryCSVRow(_:dateFormatter:)",
-   "hash": "5bf70b80c1257f0a",
-   "does": "Formats one entry: quoted ISO date and session type, recoveryScore %.1f and meanRMSSD %.2f in POSIX decimal (empty when nil), tags joined by ';' quoted, notes with newlines replaced by spaces quoted.",
+   "hash": "a463559acbe34d5b",
+   "does": "Formats one entry: quoted ISO date and session type, recoveryScore %.1f and meanRMSSD %.2f in POSIX decimal (empty when nil), tags joined by ';' and notes (newlines → spaces) made formula-safe and quoted.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.csvQuoted(_:)"
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.csvQuoted(_:)",
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.formulaSafe(_:)"
    ],
    "reads": [],
    "writes": [],
@@ -727,23 +723,31 @@
      "effect": "nil: '' used; else notes with \\n → space"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Notes/tags are RFC-4180 quoted but not neutralised against spreadsheet formula injection: a note starting with '=', '+', '-' or '@' is evaluated as a formula when the CSV is opened in Excel/Numbers.",
-     "evidence": [
-      "Emuqu/Sources/Views/ExportAndArchiveViews.swift:344",
-      "Emuqu/Sources/Views/ExportAndArchiveViews.swift:346"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
-    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.csvQuoted(_:)": "22a5c45ea00380b4"
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.csvQuoted(_:)": "22a5c45ea00380b4",
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.formulaSafe(_:)": "40b4b2bc5c62293c"
    }
+  },
+  {
+   "key": "func ExportDataView.formulaSafe(_:)",
+   "hash": "c5f8448833567660",
+   "does": "Prefixes an apostrophe to text starting with '=', '+', '-', '@', tab or CR (OWASP CSV-injection guard) so spreadsheets show it as text; other text unchanged.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "empty or first char not a formula trigger",
+     "effect": "returned unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "func ExportDataView.csvQuoted(_:)",
@@ -759,8 +763,8 @@
   },
   {
    "key": "func ExportDataView.exportAllData()",
-   "hash": "1b748ffdce9ef4f1",
-   "does": "Starts full JSON export: beginExport() then Task { await runFullExport() }.",
+   "hash": "c695971f02dbc513",
+   "does": "Starts full JSON export: beginExport() then exportTask = Task { await runFullExport() }.",
    "entry": "Called from JSON export button",
    "calls": [
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.beginExport()",
@@ -814,7 +818,7 @@
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.failExport(_:)": "97d0433c8a203935",
-    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.finishExport(url:)": "01f53676ec02d7f7",
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.finishExport(url:)": "712eba45bec07ef1",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.shortfallNote(written:total:)": "6f556ccdd2443048",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.streamExport(to:archive:entries:userFacts:)": "1857f238a6f1adf8",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.timestampedName(prefix:ext:)": "0b68393de380a42d",
@@ -823,18 +827,28 @@
   },
   {
    "key": "func ExportDataView.finishExport(url:)",
-   "hash": "f96f4d80ce05cfbd",
-   "does": "On main: sets exportURL and clears isExporting.",
+   "hash": "56b105173bbd154c",
+   "does": "On main: clears isExporting; if the export's task was cancelled (screen closed) deletes the file at url instead of offering it, else sets exportURL.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)"
+   ],
    "reads": [],
    "writes": [
-    "mem:ExportDataView.exportURL",
-    "mem:ExportDataView.isExporting"
+    "mem:ExportDataView.exportURL/isExporting",
+    "file:tmp export (deleted when cancelled)"
    ],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "Task.isCancelled (screen closed)",
+     "effect": "deletes the file, exportURL left nil"
+    }
+   ],
    "flags": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
   },
   {
    "key": "func ExportDataView.failExport(_:)",
@@ -1071,10 +1085,10 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ArchiveDiagnosticsView.actionsSection2": "24d863f4cf4801fc",
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ArchiveDiagnosticsView.actionsSection2": "e235c8e06fca77bb",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ArchiveDiagnosticsView.demoSessionSection": "94a986d5ab1fd10c",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ArchiveDiagnosticsView.rrStorageAuditSection": "5235a11fa911b4ec",
-    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ArchiveDiagnosticsView.systemDiagnosticsSection": "0ab7928b0d81c7ef"
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ArchiveDiagnosticsView.systemDiagnosticsSection": "c219383344700074"
    }
   },
   {
@@ -1095,8 +1109,8 @@
   },
   {
    "key": "var ArchiveDiagnosticsView.actionsSection2",
-   "hash": "6b001af1688ba8cb",
-   "does": "Section 'Actions' with refresh, repair (disabled while repairing) and clear-all buttons.",
+   "hash": "0c9a870a67216558",
+   "does": "Section 'Actions' with refresh, repair and clear-all buttons; repair and clear-all are disabled while a repair runs.",
    "entry": "SwiftUI evaluates it while rendering the parent view body",
    "calls": [
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ArchiveDiagnosticsView.refreshButton",
@@ -1107,20 +1121,7 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "race",
-     "sev": "low",
-     "text": "Only the Repair button is disabled while isRepairing. Clear All Archive Data stays enabled, so wipeArchiveDirectory (no archiveLock) can delete the directory while repairArchive, which holds the lock, is rebuilding and then saving index.json into it.",
-     "evidence": [
-      "Emuqu/Sources/Views/ExportAndArchiveViews.swift:576",
-      "Emuqu/Sources/Views/ExportAndArchiveViews.swift:578",
-      "Emuqu/Sources/Views/ExportAndArchiveViews.swift:758",
-      "Emuqu/Sources/Storage/Archive+Repair.swift:21"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ArchiveDiagnosticsView.clearAllArchiveDataButton": "d070b47e87fb23a1",
@@ -1215,7 +1216,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ArchiveDiagnosticsView.scanFileSystem()": "c4744bb3edca8900"
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ArchiveDiagnosticsView.scanFileSystem()": "fc86f92b3a71529b"
    }
   },
   {
@@ -1281,12 +1282,12 @@
   },
   {
    "key": "func ArchiveDiagnosticsView.scanFileSystem()",
-   "hash": "d5b591eca1a5bca8",
-   "does": "Snapshots entry count and sets diagnosticInfo to fileSystemReport computed on a detached task.",
+   "hash": "ee6723d03e29f0cb",
+   "does": "Snapshots the index's file names and sets diagnosticInfo to fileSystemReport computed on a detached task.",
    "entry": "Scan button",
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
-    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ArchiveDiagnosticsView.fileSystemReport(archiveEntryCount:)"
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ArchiveDiagnosticsView.fileSystemReport(indexedFileNames:)"
    ],
    "reads": [
     "archive:SessionArchive.entries"
@@ -1298,17 +1299,17 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
-    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ArchiveDiagnosticsView.fileSystemReport(archiveEntryCount:)": "1cf2e63fa256c7c6"
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ArchiveDiagnosticsView.fileSystemReport(indexedFileNames:)": "1cf2e63fa256c7c6"
    }
   },
   {
-   "key": "func ArchiveDiagnosticsView.fileSystemReport(archiveEntryCount:)",
-   "hash": "109f0d3559fa9f09",
+   "key": "func ArchiveDiagnosticsView.fileSystemReport(indexedFileNames:)",
+   "hash": "a8146ec961baf54c",
    "does": "Lists the App Group archive directory and returns its path plus fileCensus, or an error string.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ArchiveDiagnosticsView.containerUnavailableMessage",
-    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ArchiveDiagnosticsView.fileCensus(_:archiveEntryCount:)",
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ArchiveDiagnosticsView.fileCensus(_:indexedFileNames:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [
@@ -1330,7 +1331,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ArchiveDiagnosticsView.fileCensus(_:archiveEntryCount:)": "3eba1c87670614e8",
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ArchiveDiagnosticsView.fileCensus(_:indexedFileNames:)": "1f0abc31f397c217",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ArchiveDiagnosticsView.containerUnavailableMessage": "94f11d97ec029fd8"
    }
   },
@@ -1351,9 +1352,9 @@
    }
   },
   {
-   "key": "func ArchiveDiagnosticsView.fileCensus(_:archiveEntryCount:)",
-   "hash": "a106ddae384d9b41",
-   "does": "Counts .json files not containing 'index'/'deleted' as session files, .encrypted files, index.json presence; appends encryptedFileReport, index entry count and abs(jsonFiles - entries) as 'Files not in the index'.",
+   "key": "func ArchiveDiagnosticsView.fileCensus(_:indexedFileNames:)",
+   "hash": "9d1332c26849fae5",
+   "does": "Counts .json files other than nonSessionFileNames (index, deleted list, CloudKit sync sidecars) as session files, .encrypted files and index.json presence; appends encryptedFileReport, the index entry count and the number of session files whose name no index entry carries ('Files not in the index').",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ArchiveDiagnosticsView.encryptedFileReport(_:)",
@@ -1363,35 +1364,12 @@
    "writes": [],
    "branches": [
     {
-     "at": "+8",
+     "at": "+9",
      "cond": "index.json found",
-     "effect": "present/missing line"
+     "effect": "'present', else 'missing'"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "The 'Session files' count includes the CloudKit sidecars sync_state.json, pending_uploads.json and quarantined_uploads.json, which live in the same directory (Archive.swift:345-353, CloudKitSyncManager.swift:596); with iCloud sync on, the count is overstated by up to 3 and 'Files not in the index' (an abs() difference) reports phantom orphans.",
-     "evidence": [
-      "Emuqu/Sources/Views/ExportAndArchiveViews.swift:687",
-      "Emuqu/Sources/Views/ExportAndArchiveViews.swift:699",
-      "Emuqu/Sources/Storage/Archive.swift:351"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Besides the three sidecars named in the first-pass flag, CloudKitSyncState also writes local_only_sessions.json into the archive directory, so up to 4 non-session files are counted as 'Session files'. 'Files not in the index' is abs(jsonFiles - entries), so index entries whose files are missing are also reported as 'files not in the index'.",
-     "evidence": [
-      "Emuqu/Sources/Views/ExportAndArchiveViews.swift:687",
-      "Emuqu/Sources/Views/ExportAndArchiveViews.swift:699",
-      "Emuqu/Sources/Storage/CloudKitSyncState.swift:51"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ArchiveDiagnosticsView.encryptedFileReport(_:)": "48d0ea02fd0447d4"
@@ -1431,13 +1409,15 @@
   },
   {
    "key": "func ArchiveDiagnosticsView.performRepair()",
-   "hash": "f9e8628e940ffbfd",
-   "does": "Sets isRepairing, runs SessionArchive.repairArchive() on a detached task (deletes .encrypted files, rebuilds index from .json files, saves index), then sets result message with recovered count, shows result alert and refreshes diagnostics.",
+   "hash": "ca02ca1dee38c1f9",
+   "does": "Sets isRepairing, notes the index size, runs SessionArchive.repairArchive() on a detached task (deletes .encrypted files, rebuilds index from .json files, saves index), posts the archive-changed signal, then reports 'N sessions recovered' as rebuilt size minus the earlier size (never below 0), shows the result and refreshes diagnostics.",
    "entry": "Repair alert 'Repair' button",
    "calls": [
     "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.repairArchive()",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ArchiveDiagnosticsView.refreshDiagnostics()",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()"
    ],
    "reads": [
     "file:archive dir"
@@ -1459,52 +1439,35 @@
       "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift:497"
      ],
      "found": "first read, upheld on second"
-    },
-    {
-     "kind": "coupling",
-     "sev": "low",
-     "text": "After the index is rebuilt nothing calls collector.notifyArchiveChanged(), unlike clearAllData (743); screens keyed on ArchiveSignal keep showing the pre-repair session list until another archive write.",
-     "evidence": [
-      "Emuqu/Sources/Views/ExportAndArchiveViews.swift:723",
-      "Emuqu/Sources/Views/ExportAndArchiveViews.swift:743"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "The result says 'Repair complete. N sessions recovered.' but repairArchive returns index.count, the total number of entries after the rebuild, not how many were recovered. TroubleshootingPage's repair message (SettingsPages+Diagnostics.swift:503) has the same problem.",
-     "evidence": [
-      "Emuqu/Sources/Views/ExportAndArchiveViews.swift:725",
-      "Emuqu/Sources/Storage/Archive+Repair.swift:36",
-      "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift:503"
-     ],
-     "found": "second read"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "1c38f37d10093863",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.repairArchive()": "c85791267b532f9c",
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.repairArchive()": "7f0719dde14f31e9",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ArchiveDiagnosticsView.refreshDiagnostics()": "3976bbadecc8b0ef"
    }
   },
   {
    "key": "func ArchiveDiagnosticsView.clearAllData()",
-   "hash": "22958d0c62e29ca7",
-   "does": "Runs wipeArchiveDirectory on a detached task; on success resets the archive's in-memory index and bumps ArchiveSignal; shows outcome message and refreshes diagnostics.",
+   "hash": "93d0c1f40b4c9998",
+   "does": "Runs wipeArchiveDirectory on a detached task; on success resets the archive's in-memory index and CloudKitSyncManager's local sync state (its sidecar files were in the wiped directory) and bumps ArchiveSignal; shows outcome message and refreshes diagnostics. RawRRBackup is a separate store and is left alone.",
    "entry": "Clear alert 'Clear Everything' button",
    "calls": [
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ArchiveDiagnosticsView.wipeArchiveDirectory()",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.resetInMemoryStateAfterPurge()",
     "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()",
-    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ArchiveDiagnosticsView.refreshDiagnostics()"
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ArchiveDiagnosticsView.refreshDiagnostics()",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.resetLocalSyncState()"
    ],
    "reads": [],
    "writes": [
-    "file:<app group>/<archiveDirectoryName> (deleted + recreated)",
     "archive:SessionArchive in-memory index (reset)",
-    "notif:flowRecoveryArchiveChanged (via ArchiveSignal)",
-    "mem:ArchiveDiagnosticsView.repairResult"
+    "file:<app group>/<archiveDirectoryName> (deleted + recreated)",
+    "mem:ArchiveDiagnosticsView.repairResult",
+    "mem:CloudKitSyncManager sync state (reset)",
+    "notif:flowRecoveryArchiveChanged (via ArchiveSignal)"
    ],
    "branches": [
     {
@@ -1523,22 +1486,12 @@
       "Emuqu/Sources/Views/ExportAndArchiveViews.swift:742"
      ],
      "found": "first read, upheld on second"
-    },
-    {
-     "kind": "coupling",
-     "sev": "med",
-     "text": "The wipe deletes the whole archive directory, which also holds CloudKitSyncManager's sync_state.json / pending_uploads.json / quarantined_uploads.json (Archive.swift:345-353), but CloudKitSyncManager's in-memory state is not reset, so its uploaded/pending sets survive and are written back on its next save, out of step with the emptied archive. RawRRBackup is also left untouched.",
-     "evidence": [
-      "Emuqu/Sources/Views/ExportAndArchiveViews.swift:751",
-      "Emuqu/Sources/Storage/Archive.swift:345",
-      "Emuqu/Sources/Storage/CloudKitSyncManager.swift:596"
-     ],
-     "found": "first read, upheld on second"
     }
    ],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "1c38f37d10093863",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.resetInMemoryStateAfterPurge()": "680e37edf08e252a",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.resetLocalSyncState()": "68bf143978c6bac0",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ArchiveDiagnosticsView.refreshDiagnostics()": "3976bbadecc8b0ef",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ArchiveDiagnosticsView.wipeArchiveDirectory()": "5aaf333466e29f4a",
     "EmuquTests/WorkoutTickLogicTests.swift::func WorkoutTickLogicTests.cleared(_:)": "405b128d24c6a5b0"
@@ -1763,13 +1716,14 @@
   },
   {
    "key": "var ArchiveDiagnosticsView.systemDiagnosticsSection",
-   "hash": "5a26b30f33477c0f",
-   "does": "Section 'System Diagnostics' with explanation, keyboard-capture link and diagnosticsLinks.",
-   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "hash": "3015a31788ac547c",
+   "does": "Section 'System Diagnostics' with explanation, keyboard-capture link and diagnosticsLinks; a .task loads the diagnostic files once per appear.",
+   "entry": ".task on appear",
    "calls": [
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ArchiveDiagnosticsView.captureKeyboardPerformanceProfileSection",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ArchiveDiagnosticsView.diagnosticsLinks",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ArchiveDiagnosticsView.loadDiagnosticFiles()"
    ],
    "reads": [],
    "writes": [],
@@ -1777,19 +1731,41 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ArchiveDiagnosticsView.loadDiagnosticFiles()": "f24a603700b24b34",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ArchiveDiagnosticsView.captureKeyboardPerformanceProfileSection": "cf7ea619f1ddb4d1",
-    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ArchiveDiagnosticsView.diagnosticsLinks": "5d11415cc04573f2",
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ArchiveDiagnosticsView.diagnosticsLinks": "898a271b494fd275",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
    }
   },
   {
-   "key": "var ArchiveDiagnosticsView.diagnosticsLinks",
-   "hash": "17d477d20fcc3c0c",
-   "does": "Reads MetricKit history and the last 1000 memory-trace samples from SystemDiagnosticsManager on every evaluation; shows 'No diagnostic data yet…' when both empty, else the two links.",
-   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "key": "func ArchiveDiagnosticsView.loadDiagnosticFiles()",
+   "hash": "1465c3fb0a96c9d6",
+   "does": "Reads MetricKit history and the last 1000 memory-trace samples from SystemDiagnosticsManager into @State.",
+   "entry": "systemDiagnosticsSection .task",
    "calls": [
     "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.readMetricKitHistory()",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.readRecentMemoryTrace(limit:)",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.readRecentMemoryTrace(limit:)"
+   ],
+   "reads": [
+    "file:MetricKit JSONL / memory trace (tails)"
+   ],
+   "writes": [
+    "mem:ArchiveDiagnosticsView.metricKitHistory/memoryTrace"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.readMetricKitHistory()": "0738a50dce829631",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.readRecentMemoryTrace(limit:)": "305a731977df20f5"
+   }
+  },
+  {
+   "key": "var ArchiveDiagnosticsView.diagnosticsLinks",
+   "hash": "ce14f46f931a69ab",
+   "does": "From the loaded metricKitHistory / memoryTrace state: 'No diagnostic data yet…' when both empty, else the two links.",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ArchiveDiagnosticsView.metricKitHistoryLink(_:)",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ArchiveDiagnosticsView.memoryTraceLink(_:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
@@ -1801,28 +1777,14 @@
    "writes": [],
    "branches": [
     {
-     "at": "+5",
+     "at": "+3",
      "cond": "history and trace both empty",
-     "effect": "true: explanatory caption; false: links (each self-gated)"
+     "effect": "explanatory text; else links"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "readMetricKitHistory reads and parses the whole MetricKit JSONL synchronously on the main actor inside a view builder, and re-runs on every body evaluation of this section (e.g. each time diagnosticInfo or rrAuditRunning changes).",
-     "evidence": [
-      "Emuqu/Sources/Views/ExportAndArchiveViews.swift:890",
-      "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift:518"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.readMetricKitHistory()": "08accf9ad227752f",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.readRecentMemoryTrace(limit:)": "a26593368b9b7383",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ArchiveDiagnosticsView.memoryTraceLink(_:)": "859f5cf85599e1c7",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ArchiveDiagnosticsView.metricKitHistoryLink(_:)": "d0a5a9abe3264e3d",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
@@ -1891,7 +1853,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ArchiveDiagnosticsView.performRepair()": "99270567be015bf2"
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ArchiveDiagnosticsView.performRepair()": "f23750028110c5a8"
    }
   },
   {
@@ -1909,7 +1871,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ArchiveDiagnosticsView.clearAllData()": "97a3aca7652cb3bd"
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ArchiveDiagnosticsView.clearAllData()": "18938d5e0e80bc11"
    }
   },
   {

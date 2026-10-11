@@ -59,7 +59,8 @@ struct RecoveryVitals: Codable, Sendable, Equatable {
         return deviation > 2.0
     }
 
-    /// Is SpO2 concerning? (<95% or high variability)
+    /// Is SpO2 concerning? (average below 95%; `oxygenSaturationMin` is not
+    /// consulted)
     var isSpO2Concerning: Bool {
         guard let spo2 = oxygenSaturation else { return false }
         return spo2 < 95.0

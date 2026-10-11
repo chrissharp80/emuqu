@@ -67,10 +67,12 @@ extension RRDataImporter {
         return []
     }
 
-    /// A Double array is converted (some exports write seconds); an Int array is
-    /// already milliseconds. Values outside `storableRRRange` are dropped.
+    /// A numeric array, converted like every other format: values under 10 are
+    /// seconds, the rest milliseconds. `JSONSerialization` hands numbers over
+    /// as `NSNumber`, which bridges to `Double` whether the file wrote 800 or
+    /// 0.8, so one `[Double]` read covers both. Values outside
+    /// `storableRRRange` are dropped.
     private func numericArray(_ value: Any?) -> [Int]? {
-        if let values = value as? [Double] { return values.compactMap { Self.storableRR(convertToMilliseconds($0)) } }
-        return (value as? [Int])?.compactMap { Self.storableRR($0) }
+        (value as? [Double])?.compactMap { Self.storableRR(convertToMilliseconds($0)) }
     }
 }

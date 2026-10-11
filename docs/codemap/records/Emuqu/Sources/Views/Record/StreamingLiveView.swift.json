@@ -1,11 +1,9 @@
 {
  "file": "Emuqu/Sources/Views/Record/StreamingLiveView.swift",
- "hash": "aaeb44d2f07912ae",
- "role": "Live views for a quick streaming reading: StreamingProgressPanel (countdown, breathing mandala, live HR, voice-guide toggle, Stop now; installs the countdown-complete handler), StreamingStatsRow + StreamingStatPill (beats/elapsed/avg RR pills) and LiveDataPanel (current HR, live RR waveform and stats).",
+ "hash": "706e6716fcc7bf5d",
+ "role": "Live views for a quick streaming reading: StreamingProgressPanel (countdown, breathing mandala, live HR, voice-guide toggle, Stop now; installs the countdown-complete handler) and LiveDataPanel (current HR, live RR waveform and stats).",
  "types": [
   "StreamingProgressPanel: struct — View; quick-reading surface, isolated so per-second updates re-render only this view",
-  "StreamingStatsRow: struct — View; beats/elapsed/avg-RR pills (never instantiated)",
-  "StreamingStatPill: struct — View; value/label pill",
   "LiveDataPanel: struct — View; current HR + LiveWaveformView/LiveStatsCard once >10 RR points"
  ],
  "state": [
@@ -14,16 +12,6 @@
  ],
  "toplevel": "No globals. Inputs are observable StreamingLifecycle / PolarManager / BreathingAudioManager references plus the RRCollector and a stopStreaming closure.",
  "flags": [
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "StreamingStatsRow is never instantiated: grep -rn StreamingStatsRow over the repo (app and tests) finds only its declaration. Its pills (beats, elapsed, avg RR) are unreachable, and StreamingStatPill is only used by it.",
-   "evidence": [
-    "Emuqu/Sources/Views/Record/StreamingLiveView.swift:141",
-    "Emuqu/Sources/Views/Record/StreamingLiveView.swift:189"
-   ],
-   "found": "first read, upheld on second"
-  },
   {
    "kind": "spec-mismatch",
    "sev": "med",
@@ -34,6 +22,18 @@
     "Emuqu/Sources/Collection/RRCollector+Streaming.swift:148"
    ],
    "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "USERS_MANUAL (Quick Reading Section) documents a progress ring with live HR in the centre, a stats row (beats, elapsed, average RR) and a \"Stop Early\" button; the panel has none of these (HR is a small row, the button reads \"Stop now\"; the unused stats row was deleted). The manual needs updating (handoff).",
+   "evidence": [
+    "docs/USERS_MANUAL.md:361",
+    "docs/USERS_MANUAL.md:364",
+    "docs/USERS_MANUAL.md:365",
+    "Emuqu/Sources/Views/Record/StreamingLiveView.swift:64"
+   ],
+   "found": "fix batch b24"
   }
  ],
  "units": [
@@ -75,7 +75,7 @@
    "deps": {
     "Emuqu/Sources/Collection/BreathingAudioManager.swift::var BreathingAudioManager.isEnabled": "7b36a148ef3441fd",
     "Emuqu/Sources/Views/Record/StreamingLiveView.swift::func StreamingProgressPanel.installAutoCompleteHandler()": "7dd2a7372c95cbe1",
-    "Emuqu/Sources/Views/Record/StreamingLiveView.swift::var StreamingProgressPanel.v2Body": "e551e9625d02711e"
+    "Emuqu/Sources/Views/Record/StreamingLiveView.swift::var StreamingProgressPanel.v2Body": "97e2cb4948e53dc4"
    }
   },
   {
@@ -109,7 +109,7 @@
   {
    "key": "var StreamingProgressPanel.v2Body",
    "hash": "0ab55d04e2f79d97",
-   "does": "Countdown, 16-second slow-paced breathing mandala whose phase drives BreathingAudioManager.updatePhase, live HR, voice toggle and Stop-now row.",
+   "does": "Countdown, slow-paced breathing mandala (5.5 breaths/min, ~11 s cycle) whose phase drives BreathingAudioManager.updatePhase, live HR, voice toggle and Stop-now row.",
    "entry": "SwiftUI subview",
    "calls": [
     "Emuqu/Sources/Views/Record/StreamingLiveView.swift::var StreamingProgressPanel.timeRemainingReadout",
@@ -122,21 +122,7 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Comment says 'A 16-second breathing cycle, 8s in and 8s out', but slowPacedBreathing builds the mandala with cycleDuration 60/5.5 ≈ 10.9 s (5.5 breaths/min, as docs/FEATURES.md:91 says).",
-     "evidence": [
-      "Emuqu/Sources/Views/Record/StreamingLiveView.swift:45",
-      "Emuqu/Sources/Views/Record/StreamingLiveView.swift:48",
-      "Emuqu/Sources/Views/BreathingMandalaView.swift:255",
-      "Emuqu/Sources/Views/BreathingMandalaView.swift:256",
-      "docs/FEATURES.md:91"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/BreathingAudioManager.swift::func BreathingAudioManager.updatePhase(_:)": "5e94a6572b4b5481",
     "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.slowPacedBreathing(onPhaseUpdate:)": "1d763d418079e0a2",
@@ -286,184 +272,6 @@
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.wongOptimalText": "6e537adbf549c0ed",
     "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
-   }
-  },
-  {
-   "key": "var StreamingStatsRow.body",
-   "hash": "2079dacbf88b9fbf",
-   "does": "Row of beats, elapsed and avg-RR pills. Never instantiated.",
-   "entry": "SwiftUI view body (no call site)",
-   "calls": [
-    "Emuqu/Sources/Views/Record/StreamingLiveView.swift::var StreamingStatsRow.beatsPill",
-    "Emuqu/Sources/Views/Record/StreamingLiveView.swift::var StreamingStatsRow.elapsedPill",
-    "Emuqu/Sources/Views/Record/StreamingLiveView.swift::var StreamingStatsRow.averageRRPill"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "StreamingStatsRow is never instantiated: grep -rn StreamingStatsRow over the repo (app and tests) finds only its declaration. Its pills (beats, elapsed, avg RR) are unreachable, and StreamingStatPill is only used by it.",
-     "evidence": [
-      "Emuqu/Sources/Views/Record/StreamingLiveView.swift:141",
-      "Emuqu/Sources/Views/Record/StreamingLiveView.swift:189"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "USERS_MANUAL documents a quick-reading stats row (beats, elapsed, average RR), a progress ring with live HR in the centre and a 'Stop Early' button; the shipped StreamingProgressPanel has none of these (StreamingStatsRow is never instantiated, HR is a small row, the button reads 'Stop now').",
-     "evidence": [
-      "docs/USERS_MANUAL.md:361",
-      "docs/USERS_MANUAL.md:364",
-      "docs/USERS_MANUAL.md:365",
-      "Emuqu/Sources/Views/Record/StreamingLiveView.swift:64",
-      "Emuqu/Sources/Views/Record/StreamingLiveView.swift:141"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Views/Record/StreamingLiveView.swift::var StreamingStatsRow.averageRRPill": "be55367ca16df4c4",
-    "Emuqu/Sources/Views/Record/StreamingLiveView.swift::var StreamingStatsRow.beatsPill": "ae7a2cb009d161cf",
-    "Emuqu/Sources/Views/Record/StreamingLiveView.swift::var StreamingStatsRow.elapsedPill": "6a65d26a73634546"
-   }
-  },
-  {
-   "key": "var StreamingStatsRow.beatsPill",
-   "hash": "6c4f8f324f8b32b5",
-   "does": "Beats pill: pausedBeatCount + polarManager.streamedRRCount.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/Record/StreamingLiveView.swift::var StreamingStatPill.body",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [
-    "mem:StreamingLifecycle.pausedBeatCount",
-    "mem:PolarManager.streamedRRCount"
-   ],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "StreamingStatsRow is never instantiated: grep -rn StreamingStatsRow over the repo (app and tests) finds only its declaration. Its pills (beats, elapsed, avg RR) are unreachable, and StreamingStatPill is only used by it.",
-     "evidence": [
-      "Emuqu/Sources/Views/Record/StreamingLiveView.swift:141",
-      "Emuqu/Sources/Views/Record/StreamingLiveView.swift:189"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.pausedBeatCount": "56176d78ce5cfd35",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Record/StreamingLiveView.swift::var StreamingStatPill.body": "def132cb8311b948",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
-   }
-  },
-  {
-   "key": "var StreamingStatsRow.elapsedPill",
-   "hash": "2898d784f304c985",
-   "does": "Elapsed pill m:ss from streamingElapsedSeconds.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/Record/StreamingLiveView.swift::var StreamingStatPill.body",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [
-    "mem:StreamingLifecycle.streamingElapsedSeconds"
-   ],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "StreamingStatsRow is never instantiated: grep -rn StreamingStatsRow over the repo (app and tests) finds only its declaration. Its pills (beats, elapsed, avg RR) are unreachable, and StreamingStatPill is only used by it.",
-     "evidence": [
-      "Emuqu/Sources/Views/Record/StreamingLiveView.swift:141",
-      "Emuqu/Sources/Views/Record/StreamingLiveView.swift:189"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingElapsedSeconds": "7bf2ba3c9c305fc2",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Record/StreamingLiveView.swift::var StreamingStatPill.body": "def132cb8311b948"
-   }
-  },
-  {
-   "key": "var StreamingStatsRow.averageRRPill",
-   "hash": "1191a9d8b3822867",
-   "does": "Average of the last 20 RR intervals (ms, %.0f) once more than 5 points exist.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/Record/StreamingLiveView.swift::var StreamingStatPill.body",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [
-    "mem:PolarManager.recentRRPoints"
-   ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "recentRRPoints.count > 5",
-     "effect": "true: avg RR pill; false: nothing"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "StreamingStatsRow is never instantiated: grep -rn StreamingStatsRow over the repo (app and tests) finds only its declaration. Its pills (beats, elapsed, avg RR) are unreachable, and StreamingStatPill is only used by it.",
-     "evidence": [
-      "Emuqu/Sources/Views/Record/StreamingLiveView.swift:141",
-      "Emuqu/Sources/Views/Record/StreamingLiveView.swift:189"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/Record/StreamingLiveView.swift::var StreamingStatPill.body": "def132cb8311b948"
-   }
-  },
-  {
-   "key": "var StreamingStatPill.body",
-   "hash": "bcad50ec1aaa53f4",
-   "does": "Value over label pill; one accessibility element '<label>: <value>'.",
-   "entry": "SwiftUI view body; only built by StreamingStatsRow (itself unreferenced)",
-   "calls": [
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "StreamingStatsRow is never instantiated: grep -rn StreamingStatsRow over the repo (app and tests) finds only its declaration. Its pills (beats, elapsed, avg RR) are unreachable, and StreamingStatPill is only used by it.",
-     "evidence": [
-      "Emuqu/Sources/Views/Record/StreamingLiveView.swift:141",
-      "Emuqu/Sources/Views/Record/StreamingLiveView.swift:189"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "6c53c4c95f5cb401",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
    }
   },
   {

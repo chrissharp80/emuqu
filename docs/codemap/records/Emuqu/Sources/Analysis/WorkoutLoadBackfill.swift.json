@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift",
- "hash": "2b8a765d5b2d4d03",
+ "hash": "89ea94ff9373502a",
  "role": "One-shot (gated) launch task that runs RouteTRIMPEstimator over the last 90 days of archived workouts lacking extrapolatedTRIMP and writes the estimate back into the archive.",
  "types": [
   "WorkoutLoadBackfill: enum (@MainActor) — the backfill sweep",
@@ -9,47 +9,36 @@
  ],
  "state": [
   "ud:FlowRecovery.workoutLoadBackfill.lastRun (Date of last completed scan, standard suite)",
-  "ud:FlowRecovery.workoutLoadBackfill.routeCountAtLastRun (saved-route count at last scan)"
+  "ud:FlowRecovery.workoutLoadBackfill.routeIdsAtLastRun (sorted, comma-joined saved-route IDs at last scan)"
  ],
  "toplevel": "",
  "flags": [],
  "units": [
   {
    "key": "func WorkoutLoadBackfill.runIfNeeded(archive:savedRouteStore:lookbackDays:)",
-   "hash": "6d4f0b964af1ef5b",
-   "does": "Launch gate: skips if the last scan was < 7 days ago and the saved-route count is unchanged; otherwise awaits run() and stamps lastRun date and current route count in UserDefaults.",
+   "hash": "63f1616ed72150f4",
+   "does": "Launch gate: fingerprints the saved routes (routeFingerprint) and returns without scanning when ranRecently says the last scan was < 7 days ago against the same route IDs; otherwise awaits run() and stamps the lastRun date and the route-ID fingerprint in UserDefaults.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift::func WorkoutLoadBackfill.routeFingerprint(_:)",
+    "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift::func WorkoutLoadBackfill.ranRecently(defaults:routeIds:)",
     "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift::func WorkoutLoadBackfill.run(archive:savedRouteStore:lookbackDays:)"
    ],
    "reads": [
-    "ud:FlowRecovery.workoutLoadBackfill.lastRun",
-    "ud:FlowRecovery.workoutLoadBackfill.routeCountAtLastRun",
     "mem:SavedRouteStore.routes"
    ],
    "writes": [
     "ud:FlowRecovery.workoutLoadBackfill.lastRun",
-    "ud:FlowRecovery.workoutLoadBackfill.routeCountAtLastRun"
+    "ud:FlowRecovery.workoutLoadBackfill.routeIdsAtLastRun"
    ],
    "branches": [
     {
-     "at": "+13",
-     "cond": "lastRun exists, < 7 days old, and route count equals last count",
+     "at": "+7",
+     "cond": "ranRecently (scanned < 7 days ago with the same route IDs)",
      "effect": "return without scanning; else run then stamp defaults"
     }
    ],
    "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "The re-scan trigger compares only the route COUNT; deleting one saved route and adding another leaves the count equal so new-route matches are not re-scanned until the 7-day window lapses.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift:39",
-      "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift:46",
-      "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift:47"
-     ],
-     "found": "first read, upheld on second"
-    },
     {
      "kind": "untested",
      "sev": "low",
@@ -58,23 +47,52 @@
       "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift:23"
      ],
      "found": "first read, upheld on second"
-    },
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "The type doc says idempotency uses 'the global lastBackfillRunDate flag'; no such name exists — the gate is the UserDefaults key FlowRecovery.workoutLoadBackfill.lastRun plus the route-count key.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift:17",
-      "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift:28",
-      "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift:29"
-     ],
-     "found": "second read"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift::func WorkoutLoadBackfill.ranRecently(defaults:routeIds:)": "6252308cc0ec612f",
+    "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift::func WorkoutLoadBackfill.routeFingerprint(_:)": "1b00bdab515da3b5",
     "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift::func WorkoutLoadBackfill.run(archive:savedRouteStore:lookbackDays:)": "45e3b81662660661",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "d183aa1e85ebbd65"
    }
+  },
+  {
+   "key": "func WorkoutLoadBackfill.ranRecently(defaults:routeIds:)",
+   "hash": "a8ee9df371dd1fd5",
+   "does": "True when UserDefaults holds a lastRun date less than 7 days old AND the stored route-ID fingerprint equals routeIds; false with no lastRun.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ud:FlowRecovery.workoutLoadBackfill.lastRun",
+    "ud:FlowRecovery.workoutLoadBackfill.routeIdsAtLastRun"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no stored lastRun Date",
+     "effect": "return false"
+    },
+    {
+     "at": "+2",
+     "cond": "lastRun < 7 days old and stored IDs equal routeIds",
+     "effect": "true; otherwise false"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutLoadBackfill.routeFingerprint(_:)",
+   "hash": "84fea21906889a06",
+   "does": "The saved routes' UUID strings, sorted and joined with commas, so the same library gives the same string in any order.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "func WorkoutLoadBackfill.run(archive:savedRouteStore:lookbackDays:)",

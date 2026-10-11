@@ -32,6 +32,20 @@ final class CloudKitLiveBackupManager {
     private let settingsManager: SettingsManager
     private let ensureZone: () async throws -> Void
 
+    /// Sessions whose live backup this device put in iCloud and has not
+    /// deleted yet. Persisted, so a night that ends after iCloud Sync was
+    /// turned off — or after a relaunch — still has its backup removed.
+    private static let backedUpKey = "cloudkit.liveBackup.awaitingDeletion"
+    private var backedUpIds: Set<String> {
+        get { Set(UserDefaults.standard.stringArray(forKey: Self.backedUpKey) ?? []) }
+        set { UserDefaults.standard.set(Array(newValue), forKey: Self.backedUpKey) }
+    }
+
+    /// The recovery list's length, and how many dated records it is chosen
+    /// from.
+    private static let recoveryLimit = 10
+    private static let listingLimit = 200
+
     init(settingsManager: SettingsManager, ensureZone: @escaping () async throws -> Void) {
         self.settingsManager = settingsManager
         self.ensureZone = ensureZone
@@ -62,6 +76,7 @@ final class CloudKitLiveBackupManager {
             Self.setPlainFields(of: record)
             let compressedData = try Self.compressedPoints(points)
             try await saveWithAsset(record, compressedData: compressedData, sessionId: sessionId)
+            backedUpIds.insert(sessionId.uuidString)
             debugLog("[CloudKit] Live backup: \(points.count) beats → iCloud (\(compressedData.count)B)")
         } catch {
             handleUploadFailure(error)
@@ -153,19 +168,24 @@ final class CloudKitLiveBackupManager {
     }
 
     /// Delete the live backup record after a session is completed and archived.
+    ///
+    /// With iCloud Sync on, or for a backup this device uploaded whatever the
+    /// setting is now: removing the user's own data from iCloud is not an
+    /// upload. No zone is created for it; a missing zone means there is
+    /// nothing to delete.
     func delete(sessionId: UUID) async {
-        guard settings.iCloudSyncEnabled else { return }
-
+        guard settings.iCloudSyncEnabled || backedUpIds.contains(sessionId.uuidString) else { return }
         do {
-            try await ensureZone()
             let recordID = CKRecord.ID(recordName: "live_\(sessionId.uuidString)", zoneID: zoneID)
             try await privateDB.deleteRecord(withID: recordID)
             debugLog("[CloudKit] Cleaned up live backup for \(sessionId.uuidString.prefix(8))")
-        } catch let error as CKError where error.code == .unknownItem {
-            // Already deleted or never uploaded
+        } catch let error as CKError where [.unknownItem, .zoneNotFound, .userDeletedZone].contains(error.code) {
+            debugLog("[CloudKit] No live backup in iCloud for \(sessionId.uuidString.prefix(8))")
         } catch {
             debugLog("[CloudKit] Failed to clean up live backup: \(error.localizedDescription)")
+            return
         }
+        backedUpIds.remove(sessionId.uuidString)
     }
 
     /// Fetch any live backups in CloudKit for recovery after device loss.
@@ -173,16 +193,18 @@ final class CloudKitLiveBackupManager {
     /// Selected on `captureDate`, which every record carries, so the query
     /// needs that field's queryable index in the production schema. It used to
     /// select on a plaintext beat count, which is no longer written.
+    ///
+    /// The newest backups by capture date: a query returns records in no set
+    /// order, so a capped query let stale backups crowd out the one the user
+    /// needs. Dates are listed first, without the beats, and only the newest
+    /// records are then fetched whole.
     func fetchAll() async -> [LiveBackupSummary] {
         guard settings.iCloudSyncEnabled else { return [] }
         do {
             try await ensureZone()
-            let (results, _) = try await privateDB.records(
-                matching: recoveryQuery,
-                inZoneWith: zoneID,
-                resultsLimit: 10
-            )
-            let backups = results.compactMap { Self.liveBackupSummary(from: $0.1) }
+            let newest = try await newestBackupIDs()
+            let fetched = try await privateDB.records(for: newest)
+            let backups = newest.compactMap { fetched[$0] }.compactMap { Self.liveBackupSummary(from: $0) }
             if !backups.isEmpty {
                 debugLog("[CloudKit] Found \(backups.count) live backup(s) in iCloud")
             }
@@ -191,6 +213,20 @@ final class CloudKitLiveBackupManager {
             debugLog("[CloudKit] Failed to fetch live backups: \(error.localizedDescription)")
             return []
         }
+    }
+
+    /// The ids of the `recoveryLimit` newest backups among up to
+    /// `listingLimit` listed by their capture date alone.
+    private func newestBackupIDs() async throws -> [CKRecord.ID] {
+        let (results, _) = try await privateDB.records(
+            matching: recoveryQuery, inZoneWith: zoneID, desiredKeys: ["captureDate"], resultsLimit: Self.listingLimit
+        )
+        var dated: [(id: CKRecord.ID, captureDate: Date)] = []
+        for (id, result) in results {
+            guard case let .success(record) = result, let captureDate = record["captureDate"] as? Date else { continue }
+            dated.append((id, captureDate))
+        }
+        return dated.sorted { $0.captureDate > $1.captureDate }.prefix(Self.recoveryLimit).map { $0.id }
     }
 
     private var recoveryQuery: CKQuery {

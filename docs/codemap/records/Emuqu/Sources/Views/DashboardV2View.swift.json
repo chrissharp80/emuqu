@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/DashboardV2View.swift",
- "hash": "7fdae4139106a42e",
+ "hash": "d01d23a3db36dd82",
  "role": "Dashboard home tab view: hero score ring, verdict, Today's Loop, feeling chip, 4 metric chips, Recent strip; owns navigation to the metric detail screens, banners, Day-14 celebration and cold-start seeding from UIStateCache / index seed.",
  "types": [
   "DashboardV2View: struct (View) — dashboard root",
@@ -9,31 +9,19 @@
  "state": [
   "ud:dashboard.day14TransitionShown (static day14ShownKey)",
   "ud:dashboard.healthNoDataNoticeDismissed (@AppStorage healthNoDataNoticeDismissed)",
-  "@State toast, navTarget, sleepEditSaveFailed, cascadeRevealed, day14BloomActive, pendingScoreChange",
+  "@State toast, navTarget, sleepEditSaveFailed, returningFromDrillIn, cascadeRevealed, day14BloomActive, pendingScoreChange",
   "@ScaledMetric headingFontSize 22, subheadingFontSize 14, rowTitleFontSize 16, rowSubtitleFontSize 12, verdictFontSize 22, baselineFontSize 17",
   "accessibility identifier \"dashboard.root\"; scroll ids \"dashboardTop\", \"dashboardTopHidden\""
  ],
- "toplevel": "Stored inputs from MainTabView.dashboardRoot (MainTabView.swift:468): sessions (35-most-recent slice, MainTabView.swift:710), totalSessionCount, seedScore, seedSummary, isActive, scrollToTopToken, onStartRecording, onViewReport, onDeleteSession/onUpdateSessionTags (default no-ops), onReanalyzeSession (optional). Environment: dependencies, RRCollector, reduceMotion, reduceTransparency.",
+ "toplevel": "Stored inputs from MainTabView.dashboardRoot (MainTabView.swift:468): sessions (35-most-recent slice, MainTabView.swift:710), totalSessionCount, seedScore, seedSummary, isActive, scrollToTopToken, onStartRecording, onViewReport, onDeleteSession/onUpdateSessionTags (default no-ops), onReanalyzeSession (optional). Environment: dependencies, RRCollector, ArchiveSignal (read by baselineNights), reduceMotion, reduceTransparency. File-scope helper nightAgeLabel(for:now:) at the end (outside the type, used by the hero caption and the HRV / Sleep chips).",
  "flags": [
   {
    "kind": "spec-mismatch",
    "sev": "low",
-   "text": "Comment says `sessions` is \"the 8-most-recent slice\"; MainTabView loads 35 (dashboardSessionLoadLimit = 35). docs/FLOWCHART.md:719 says \"Recent strip = 30 days\" while the strip covers 7 days (DashboardSessionPolicy.recentDays).",
+   "text": "docs/FLOWCHART.md:719 says \"Recent strip = 30 days\" while the strip covers 7 days (DashboardSessionPolicy.recentDays). (The code comment about the session slice now says 35, MainTabView.dashboardSessionLoadLimit.)",
    "evidence": [
-    "Emuqu/Sources/Views/DashboardV2View.swift:22",
-    "Emuqu/Sources/Views/MainTabView.swift:710",
     "docs/FLOWCHART.md:719",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift:300"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Comment on pendingScoreChange says it is \"cleared on tap or dismiss\"; the banner has no tap action, only the xmark dismiss button clears it.",
-   "evidence": [
-    "Emuqu/Sources/Views/DashboardV2View.swift:88",
-    "Emuqu/Sources/Views/DashboardV2View+Cards.swift:71"
    ],
    "found": "first read, upheld on second"
   }
@@ -68,30 +56,6 @@
    }
   },
   {
-   "key": "var DashboardV2View.trainingMetricsCache",
-   "hash": "40e34dd2162488ab",
-   "does": "Returns dependencies.analysis.trainingMetricsCache.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "trainingMetricsCache computed property is never read; its comment claims it is \"watched\" so the loop card refreshes, but every reader goes through dependencies.analysis.trainingMetricsCache directly (liveReadiness, loadVariant, loadState). grep finds no other use of the property name in DashboardV2View files.",
-     "evidence": [
-      "Emuqu/Sources/Views/DashboardV2View.swift:58",
-      "Emuqu/Sources/Views/DashboardV2View.swift:208",
-      "Emuqu/Sources/Views/DashboardV2View+Chips.swift:191"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
-  },
-  {
    "key": "var DashboardV2View.latest",
    "hash": "ab6191e2e788c801",
    "does": "First session of the slice (any type, possibly incomplete).",
@@ -101,29 +65,6 @@
    "writes": [],
    "branches": [],
    "flags": [],
-   "deps": {}
-  },
-  {
-   "key": "var DashboardV2View.latestComplete",
-   "hash": "c16f0f1259b8cd2a",
-   "does": "First session with a non-nil analysisResult.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "latestComplete is never referenced (only mentioned in a comment at DashboardV2View.swift:417); grep over the repo incl. tests finds no use.",
-     "evidence": [
-      "Emuqu/Sources/Views/DashboardV2View.swift:132",
-      "Emuqu/Sources/Views/DashboardV2View.swift:417"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   },
   {
@@ -175,30 +116,6 @@
    }
   },
   {
-   "key": "var DashboardV2View.todaysSessions",
-   "hash": "f2816a2fc8adaf40",
-   "does": "Filters sessions starting today.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "private todaysSessions is never referenced anywhere (grep returns only its declaration).",
-     "evidence": [
-      "Emuqu/Sources/Views/DashboardV2View.swift:154"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
-   }
-  },
-  {
    "key": "var DashboardV2View.cachedDashboard",
    "hash": "9ec526f4afbe5533",
    "does": "Returns UIStateCache.dashboard snapshot only while sessions is empty (cold start), else nil.",
@@ -222,8 +139,8 @@
   },
   {
    "key": "var DashboardV2View.displayedScore",
-   "hash": "003fbccc1371e339",
-   "does": "Hero score 0-100: latest overnight recoveryScore ×10 clamped; during cold start (sessions empty) cached heroScore then seedScore; else nil.",
+   "hash": "36bc27f5a73ee431",
+   "does": "Hero score 0-100: latest overnight's recoveryScore (else its readinessScore, the Recent strip's fallback for pre-persistence nights) ×10 clamped; during cold start (sessions empty) cached heroScore then seedScore; with sessions loaded but no scored overnight among them, seedScore (the index-wide latest scored overnight), so the ring is not left loading.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestOvernightComplete",
@@ -237,48 +154,24 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "latestOvernightComplete exists AND has recoveryScore",
-     "effect": "returns safeDisplayScore(score*10)"
+     "cond": "latestOvernightComplete exists AND has recoveryScore or readinessScore",
+     "effect": "returns it ×10 via safeDisplayScore"
     },
     {
      "at": "+8",
      "cond": "sessions empty",
-     "effect": "cold-start fallback"
+     "effect": "cachedDashboard?.heroScore ?? seedScore"
     },
     {
-     "at": "+9",
-     "cond": "cachedDashboard?.heroScore nil",
-     "effect": "falls back to seedScore (may also be nil); when sessions is non-empty and no overnight score, returns nil"
+     "at": "+14",
+     "cond": "sessions loaded, no scored overnight",
+     "effect": "seedScore (nil when the app was not seeded)"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "med",
-     "text": "No recency bound: latestOvernightComplete picks the most recent overnight of any age in the slice, so a user who stopped recording overnight days ago still sees that old score on the hero as today's with no date shown.",
-     "evidence": [
-      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:176",
-      "Emuqu/Sources/Views/DashboardV2View.swift:180"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "With >=14 baseline nights but no reliable overnight carrying recoveryScore inside the 35-session slice (35+ quick/workout readings since the last overnight, or legacy overnights with only readinessScore), displayedScore is nil and heroRing shows ScoreRing(.loading) indefinitely with blank verdict/Today's Loop, while the Recent strip shows readinessScore-based scores for the same days.",
-     "evidence": [
-      "Emuqu/Sources/Views/DashboardV2View.swift:180",
-      "Emuqu/Sources/Views/DashboardV2View.swift:190",
-      "Emuqu/Sources/Views/DashboardV2View+Cards.swift:315",
-      "Emuqu/Sources/Views/MainTabView.swift:710",
-      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:309"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
-    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "243c4d1d41c669f4",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "503106affd4064c8",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.cachedDashboard": "f9a9e25f79476b90",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestOvernightComplete": "f41743b582b9e9d4"
    }
@@ -298,7 +191,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)": "89445abed2b3e6c9",
-    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.displayedScore": "3ef6f8f7cd87ca76"
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.displayedScore": "01657452d21bf419"
    }
   },
   {
@@ -342,37 +235,27 @@
   },
   {
    "key": "var DashboardV2View.baselineNights",
-   "hash": "0b5411a9877e1d63",
-   "does": "Returns collector.baselineTracker.daysCollected (baseline nights, max 90).",
+   "hash": "7d6b6cf6845fbe12",
+   "does": "Reads archiveSignal.version (observation dependency, so archive writes that move the baseline re-render the dashboard), then returns collector.baselineTracker.daysCollected (baseline nights, max 90).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.daysCollected"
    ],
    "reads": [
-    "mem:BaselineTracker.historicalData"
+    "mem:ArchiveSignal.version",
+    "mem:BaselineTracker.historicalData (daysCollected)"
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "BaselineTracker is a lock-based non-Observable class, so body does not re-render when baseline nights change; the dashboard only picks up new counts when another observed input (sessions) changes.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/BaselineTracker.swift:26",
-      "Emuqu/Sources/Views/DashboardV2View.swift:220"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.daysCollected": "d383f3d97b242464"
    }
   },
   {
    "key": "var DashboardV2View.body",
-   "hash": "2e1794c94be63efc",
-   "does": "Emits a keyboard perf signpost, wraps dashboardScroll in a ScrollViewReader, sets background/accessibility id, attaches toast banner and navigationDestination(item: navTarget) → destination(for:).",
+   "hash": "e417e0dcd124a747",
+   "does": "Emits a keyboard perf signpost, wraps dashboardScroll in a ScrollViewReader, sets background/accessibility id, attaches toast banner and navigationDestination(item: navTarget) → destination(for:); marks returningFromDrillIn when navTarget is set, so the pop back is not counted as a dashboard open.",
    "entry": "SwiftUI body; navigationDestination resolves when navTarget is set",
    "calls": [
     "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:)",
@@ -381,8 +264,16 @@
     "Emuqu/Sources/Views/DashboardV2View.swift::func DashboardV2View.destination(for:)"
    ],
    "reads": [],
-   "writes": [],
-   "branches": [],
+   "writes": [
+    "mem:DashboardV2View.returningFromDrillIn @State"
+   ],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "navTarget changes to non-nil",
+     "effect": "returningFromDrillIn = true"
+    }
+   ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
@@ -409,7 +300,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::func DashboardV2View.refreshDashboard()": "b54833a4cd09e79b",
+    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::func DashboardV2View.refreshDashboard()": "750353ff2f0133c7",
     "Emuqu/Sources/Views/DashboardV2View.swift::func DashboardV2View.scrollToTop(_:)": "4b51f89480fff499",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.dashboardStack": "94b03028982f53f9",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.dashboardTopSentinel": "08a17b6be34da08c"
@@ -450,17 +341,18 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/DashboardV2View.swift::func DashboardV2View.applyPendingScoreChange(_:)": "4baf049e06e0c478",
-    "Emuqu/Sources/Views/DashboardV2View.swift::func DashboardV2View.onDashboardAppear()": "8e8346997fb5cd2e"
+    "Emuqu/Sources/Views/DashboardV2View.swift::func DashboardV2View.onDashboardAppear()": "5fb88344a78bf6fc"
    }
   },
   {
    "key": "func DashboardV2View.onDashboardAppear()",
-   "hash": "c49bbf09305ff1a9",
-   "does": "On appear: records a dashboard open if this tab is active, loads PendingScoreChange from UserDefaults, schedules the cascade reveal and checks the Day-14 celebration.",
+   "hash": "be07c938db68a041",
+   "does": "On appear: records a dashboard open if this tab is active and this is not the pop back from a pushed detail (then clears that marker), loads a PendingScoreChange only if it is recent and for the hero's overnight (read(currentSessionId:)), schedules the cascade reveal and checks the Day-14 celebration.",
    "entry": "called from sentinel onAppear",
    "calls": [
     "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.recordDashboardOpen()",
-    "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.read()",
+    "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.read(currentSessionId:now:)",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestOvernightComplete",
     "Emuqu/Sources/Views/DashboardV2View.swift::func DashboardV2View.scheduleCascadeReveal()",
     "Emuqu/Sources/Views/DashboardV2View.swift::func DashboardV2View.celebrateDay14IfNeeded()"
    ],
@@ -468,45 +360,25 @@
     "ud:PendingScoreChange.v1"
    ],
    "writes": [
+    "mem:DashboardV2View.returningFromDrillIn @State",
     "ud:telemetry.dashboardOpens",
     "ud:telemetry.lastDashboardOpenAt"
    ],
    "branches": [
     {
      "at": "+1",
-     "cond": "isActive (dashboard tab selected)",
-     "effect": "recordDashboardOpen; else no telemetry"
+     "cond": "isActive AND not returning from a drill-in",
+     "effect": "records a dashboard open; otherwise not counted"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "onAppear of the sentinel fires again every time a pushed detail (chip, history, readiness) is popped back to the dashboard, so ValidationTelemetry.dashboardOpens counts returns from drill-ins as dashboard opens, inflating the drill-in rate denominator.",
-     "evidence": [
-      "Emuqu/Sources/Views/DashboardV2View.swift:263",
-      "Emuqu/Sources/Views/DashboardV2View.swift:271",
-      "Emuqu/Sources/Services/ValidationTelemetry.swift:47"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "PendingScoreChange.Entry carries sessionId and timestamp but neither is checked: a stale entry for an older session (or one not shown on the hero) is still surfaced as \"score updated\" until dismissed.",
-     "evidence": [
-      "Emuqu/Sources/Utilities/PendingScoreChange.swift:17",
-      "Emuqu/Sources/Views/DashboardV2View.swift:275"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.recordDashboardOpen()": "147cfc1b9918c1b4",
+    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.recordDashboardOpen()": "22a0bceb1a48c133",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a",
-    "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.read()": "49052db956ceb4a5",
-    "Emuqu/Sources/Views/DashboardV2View.swift::func DashboardV2View.celebrateDay14IfNeeded()": "7137dc9f1eeef57a",
-    "Emuqu/Sources/Views/DashboardV2View.swift::func DashboardV2View.scheduleCascadeReveal()": "93504392d975ff53"
+    "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.read(currentSessionId:now:)": "8d1ad3eab3381f49",
+    "Emuqu/Sources/Views/DashboardV2View.swift::func DashboardV2View.celebrateDay14IfNeeded()": "02562c22ad939700",
+    "Emuqu/Sources/Views/DashboardV2View.swift::func DashboardV2View.scheduleCascadeReveal()": "93504392d975ff53",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestOvernightComplete": "f41743b582b9e9d4"
    }
   },
   {
@@ -535,13 +407,13 @@
    "deps": {
     "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func ScoreAppearancePolicy.stage(baselineNights:)": "ea31274f980b20bf",
-    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.baselineNights": "ccef0fea4ae889e2"
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.baselineNights": "bf5bdd7b8c73498e"
    }
   },
   {
    "key": "func DashboardV2View.celebrateDay14IfNeeded()",
-   "hash": "fe0bdb16084c6ea9",
-   "does": "If baseline nights == 14 exactly, the persisted flag is unset and a verdict exists: sets the flag, starts the bloom, shows a \"Your baseline is set\" toast after 0.3s and stops the bloom after 0.8s.",
+   "hash": "0d4e898e742e9dc6",
+   "does": "If baseline nights are in 14..<28 (score shown, not yet mature), the persisted flag is unset and a verdict exists: sets the flag, starts the bloom, shows a 'Your baseline is set' toast after 0.3 s and stops the bloom at 0.8 s. Retried on each appear until it fires once.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.baselineNights",
@@ -559,27 +431,17 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "baselineNights == scoreShownNights(14) AND flag unset AND verdict non-nil",
-     "effect": "celebrate; otherwise return with nothing"
+     "cond": "baselineNights in scoreShownNights..<fullBaselineNights AND flag unset AND verdict non-nil",
+     "effect": "celebrates once; otherwise returns"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Fires only when baselineNights equals exactly 14 at an appear; a user whose count goes from 13 to 15 between dashboard visits (e.g. merged/backfilled nights) or whose hero has no verdict that day never sees the transition, and it is not retried later.",
-     "evidence": [
-      "Emuqu/Sources/Views/DashboardV2View.swift:300"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d",
     "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.color": "dc2f3b06b79e333d",
     "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord": "36e143abcc4cadb1",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.baselineNights": "ccef0fea4ae889e2",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.baselineNights": "bf5bdd7b8c73498e",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.verdict": "3ae168b82fc438b5"
    }
   },
@@ -624,7 +486,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.heroSection": "e278305876a1c0e7",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.heroSection": "2917ff3beb225705",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.dashboardBodySections": "273dacd825fe76c6",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKitDeniedBannerIfNeeded": "e6eca905f238b05e",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.scoreChangedBannerIfNeeded": "f6d0376d630ce212"
@@ -652,9 +514,8 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::var AssistantSystemPrompt.Composed.combined": "3c86d6708fa36edc",
     "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.healthKitDeniedBanner": "e02f30fa344281c5",
-    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.baselineNights": "ccef0fea4ae889e2",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.baselineNights": "bf5bdd7b8c73498e",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "f61a7a679f5280dd"
    }
   },
@@ -703,20 +564,19 @@
    "deps": {
     "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.day1Checklist": "81e2908b58579e0f",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.daysCollected": "06a2354ea1f359d2",
-    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.revealedDashboardSections": "dd2b1a7e779ff971"
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.revealedDashboardSections": "b70193d254b57ae4"
    }
   },
   {
    "key": "var DashboardV2View.revealedDashboardSections",
-   "hash": "f2b79f9217216184",
-   "does": "Today's Loop and feedback chip (opacity/offset gated on cascadeRevealed or Reduce Motion), then chips row, recent strip and footer CTA.",
+   "hash": "45d097ac8e3c0616",
+   "does": "Today's Loop and feedback chip (opacity/offset gated on cascadeRevealed or Reduce Motion), then chips row and recent strip.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.todaysLoopSection",
     "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.feedbackChipSection",
     "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.chipsRow",
-    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.recentStripSection",
-    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.fullReportLink"
+    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.recentStripSection"
    ],
    "reads": [],
    "writes": [],
@@ -742,7 +602,6 @@
     "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.feedbackChipSection": "3ec8899bf9b78f3d",
     "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.todaysLoopSection": "421854f9b158bc62",
     "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.chipsRow": "ba170f9dcad600aa",
-    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.fullReportLink": "d4f1d0d6e6d56ebd",
     "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.recentStripSection": "a4884efd82c44627"
    }
   },
@@ -797,7 +656,7 @@
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.historyDestination": "51bc27bd55ae4207",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.hrvDestination": "957a606ddd9bee5e",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.readinessDestination": "dcae82c4c5da38c2",
-    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.sleepDestination": "ad3cae7d83df079b",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.sleepDestination": "bd8735edbf133b5d",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.vitalsDestination": "61af9eba61df8b65"
    }
   },
@@ -828,11 +687,12 @@
   },
   {
    "key": "var DashboardV2View.sleepDestination",
-   "hash": "f2bc381aa13c891b",
-   "does": "Sleep detail for the overnight session with a save-failure alert, or EmptyState.",
+   "hash": "0019c767270bcbd1",
+   "does": "Sleep detail with a save-failure alert for the session the Sleep chip shows when there is no overnight: latestOvernightComplete, else latestWithSleep; EmptyState when neither exists.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestOvernightComplete",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestWithSleep",
     "Emuqu/Sources/Views/DashboardV2View.swift::func DashboardV2View.sleepDetail(for:)",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.sleepEditFailedTitle",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.dismissAlertButton",
@@ -843,28 +703,17 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "latestOvernightComplete exists",
-     "effect": "sleepDetail + alert; else EmptyState \"No sleep data yet\""
+     "cond": "latestOvernightComplete or latestWithSleep exists",
+     "effect": "sleep detail for it; else 'No sleep data yet' EmptyState"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Sleep chip falls back to latestWithSleep when there is no overnight (sleepVariant), but tapping it routes here and shows \"No sleep data yet\" whenever latestOvernightComplete is nil, so the chip shows a duration whose detail says there is none.",
-     "evidence": [
-      "Emuqu/Sources/Views/DashboardV2View+Chips.swift:105",
-      "Emuqu/Sources/Views/DashboardV2View.swift:447",
-      "Emuqu/Sources/Views/DashboardV2View.swift:455"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/DashboardV2View.swift::func DashboardV2View.sleepDetail(for:)": "15ff7730d074e1dd",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.dismissAlertButton": "18593f44d512bcf8",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestOvernightComplete": "f41743b582b9e9d4",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestWithSleep": "004c12a9584e0185",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.sleepEditFailedMessage": "8c38551891098a56",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.sleepEditFailedTitle": "421a2614f68fd97a"
    }
@@ -1072,6 +921,46 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func nightAgeLabel(for:now:)",
+   "hash": "e1915ff2bcf33e49",
+   "does": "File-scope helper (outside DashboardV2View): age caption for a reading — nil when session is nil or its end (endDate ?? startDate) falls on today's calendar day; 1–6 days back a named relative string ('yesterday', '3 days ago', app locale); 7+ days the abbreviated date. Used by the dashboard hero caption and the HRV / Sleep chips.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "ext:RelativeDateTimeFormatter",
+    "ext:Date.FormatStyle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "session nil",
+     "effect": "nil"
+    },
+    {
+     "at": "+5",
+     "cond": "ended today (days <= 0)",
+     "effect": "nil"
+    },
+    {
+     "at": "+6",
+     "cond": "7 days or more",
+     "effect": "abbreviated date"
+    },
+    {
+     "at": "+9",
+     "cond": "1–6 days",
+     "effect": "named relative string"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
    }
   }
  ],

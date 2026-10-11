@@ -325,7 +325,7 @@
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveBodyWeightKg": "6aabde6ed09dc61f",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.bodyWeightDisplayBinding(isImperial:)": "1e05efbe982b5a11",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.bodyWeightDisplayBinding(isImperial:)": "f1f86962484235ea",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
    }
   },
@@ -466,7 +466,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.maxHRFields": "4f2a8dbc844f5c45",
-    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.maxHRFooter": "1f6ac82540b6ca35"
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.maxHRFooter": "2e774bb5372eef45"
    }
   },
   {
@@ -525,8 +525,8 @@
   },
   {
    "key": "var BiometricsSettingsPage.maxHRFooter",
-   "hash": "fa408a8a2fb4cb1c",
-   "does": "Footer stating the effective max HR and its source.",
+   "hash": "72feef4f05eda773",
+   "does": "Footer stating the effective max HR and its source, captioned with the same rule effectiveMaxHR applies (an entry under MaxHeartRate.minimumUserEntered = 80 is not the override).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR",
@@ -539,29 +539,17 @@
    "writes": [],
    "branches": [
     {
-     "at": "+4",
-     "cond": "maxHR != nil",
+     "at": "+6",
+     "cond": "maxHR set and >= 80",
      "effect": "source 'your override'"
     },
     {
-     "at": "+7",
+     "at": "+9",
      "cond": "birthday != nil",
      "effect": "source '208 − 0.7 × age'; otherwise 'default (no age set)'"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Labels the value 'your override' whenever maxHR is non-nil, but effectiveMaxHR ignores entries under the 80 bpm minimum (MaxHeartRate.minimumUserEntered), so while a value below 80 is stored the footer shows the age/default number captioned as the user's override.",
-     "evidence": [
-      "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift:331",
-      "Emuqu/Sources/Models/UserSettings+Model.swift:289",
-      "Emuqu/Sources/Analysis/MaxHeartRate.swift:94"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "848cd8a572666b81",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
@@ -585,7 +573,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.restingHRFields": "ce19c0a567253406",
-    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.restingHRFooter": "956f058b9a2dee91"
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.restingHRFooter": "00d8b93b1f804e9f"
    }
   },
   {
@@ -644,8 +632,8 @@
   },
   {
    "key": "var BiometricsSettingsPage.restingHRFooter",
-   "hash": "dee66999cae9feff",
-   "does": "Footer stating effective resting HR and its source.",
+   "hash": "628bbe63e6bc3fd6",
+   "does": "Footer stating effective resting HR and its source, captioned with the same thresholds effectiveRestingHR uses.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR",
@@ -658,30 +646,17 @@
    "writes": [],
    "branches": [
     {
-     "at": "+4",
-     "cond": "userRestingHR != nil",
+     "at": "+6",
+     "cond": "userRestingHR set and >= 30",
      "effect": "'your override'"
     },
     {
-     "at": "+7",
-     "cond": "baselineHR != nil",
+     "at": "+9",
+     "cond": "baselineHR set and > 30",
      "effect": "'HRV-derived baseline'; otherwise '60 bpm default'"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Source caption disagrees with effectiveRestingHR: an override below 30 is ignored by effectiveRestingHR but captioned 'your override', and a baselineHR ≤ 30 falls to 60 but is captioned 'HRV-derived baseline'.",
-     "evidence": [
-      "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift:390",
-      "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift:393",
-      "Emuqu/Sources/Models/UserSettings+Model.swift:278",
-      "Emuqu/Sources/Models/UserSettings+Model.swift:279"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "6de242bd745f1424",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
@@ -704,7 +679,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.lthrFields": "3b7e59943ca35303",
-    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.lthrFooter": "2167d41f78cfb325"
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.lthrFooter": "86bfdd5682fdcabc"
    }
   },
   {
@@ -754,7 +729,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR": "8d8a7ef3cdac7b54",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR": "d8f21d4214c3f50a",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.clampedIntBinding(_:range:)": "2814d93e8d89dec8",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
@@ -762,8 +737,8 @@
   },
   {
    "key": "var BiometricsSettingsPage.lthrFooter",
-   "hash": "57be302ca0b73ee9",
-   "does": "Footer stating effective LTHR and source.",
+   "hash": "99cd1b48157217de",
+   "does": "Footer stating effective LTHR and source: 'your override' when lactateThresholdHR >= 80 (the rule effectiveLTHR applies), else '0.88 × max HR'.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR",
@@ -775,8 +750,8 @@
    "writes": [],
    "branches": [
     {
-     "at": "+3",
-     "cond": "lactateThresholdHR != nil",
+     "at": "+4",
+     "cond": "lactateThresholdHR >= 80",
      "effect": "'your override'; otherwise '0.88 × max HR'"
     }
    ],
@@ -784,7 +759,7 @@
     {
      "kind": "broken",
      "sev": "low",
-     "text": "Captions the default as '0.88 × max HR', but effectiveLTHR returns max(120, 0.88 × max), so for an effective max HR below 137 the shown value is 120, not 0.88 × max; an override under 80 is also ignored yet captioned 'your override'.",
+     "text": "Captions the default as '0.88 × max HR', but effectiveLTHR returns max(120, 0.88 × max), so for an effective max HR below 137 the shown value is the 120 floor, not 0.88 × max (needs a new caption string). (The under-80 override case is fixed.)",
      "evidence": [
       "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift:448",
       "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift:450",
@@ -795,7 +770,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR": "8d8a7ef3cdac7b54",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR": "d8f21d4214c3f50a",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },

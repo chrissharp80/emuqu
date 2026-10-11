@@ -41,10 +41,16 @@ extension VoiceConversationController {
     /// the line is.
     ///
     /// The spoken-form expansions ("zone one", "per minute") are English, so
-    /// they apply only when the voice is.
+    /// they apply only when the voice is. With no voice chosen yet the
+    /// utterance speaks with the system default voice, the one for the
+    /// device's current language, so that language decides.
+    ///
+    /// A line that fails to queue gets no `didFinish`; for a scripted trigger
+    /// line that is what restores the pre-trigger state, so it is settled
+    /// here instead (`settleUnspokenTriggerLine`).
     func speak(_ text: String, voice: AVSpeechSynthesisVoice? = nil, scripted: Bool = false) {
         let chosenVoice = voice ?? bestVoice
-        let english = chosenVoice?.language.hasPrefix("en") ?? true
+        let english = (chosenVoice?.language ?? AVSpeechSynthesisVoice.currentLanguageCode()).hasPrefix("en")
         let guarded = applyHallucinationGuard(to: perimeterScrubbed(text))
         // Scripted lines (coach triggers, the recovery line) are not Flo's
         // reply, so they don't get the "Flo here. <Model>." preamble.
@@ -52,9 +58,20 @@ extension VoiceConversationController {
         let attributed = TTSTextNormalizer.normalize(isScripted ? guarded : announced(guarded), english: english)
         let utterance = Self.makeUtterance(attributed, voice: chosenVoice)
         var speakErr: NSError?
-        if !FRSafeSpeak(synthesizer, utterance, &speakErr) {
-            debugLog("[VoiceConv] synthesizer.speak failed (skipping TTS chunk): \(speakErr?.localizedDescription ?? "?")", level: .warning)
-        }
+        guard !FRSafeSpeak(synthesizer, utterance, &speakErr) else { return }
+        debugLog("[VoiceConv] synthesizer.speak failed (skipping TTS chunk): \(speakErr?.localizedDescription ?? "?")", level: .warning)
+        settleUnspokenTriggerLine()
+    }
+
+    /// A scripted trigger line (`playSpokenTriggerNow`) that failed to queue
+    /// leaves nothing playing and no `didFinish` coming, so voice would stay
+    /// in `.triggerSpeaking` with the mic shut and the talk button ignored.
+    /// Finish it as `didFinish` would have: play the next queued trigger or
+    /// restore the prior state. An AI interjection (`llmTask` set) is left to
+    /// `finishInterjection`, which settles the state when its stream ends.
+    private func settleUnspokenTriggerLine() {
+        guard state == .triggerSpeaking, llmTask == nil, !synthesizer.isSpeaking else { return }
+        finishTriggerSpeech()
     }
 
     /// One TTS utterance at the conversation rate. Pre/post delays are
@@ -414,6 +431,12 @@ extension VoiceConversationController: AVSpeechSynthesizerDelegate {
     /// Multiple alerts queued during a long user response play
     /// one-after-another instead of each restoring → re-listening → next
     /// preempting.
+    ///
+    /// A prior of `.triggerSpeaking` is a trigger that started while an
+    /// earlier one's line had finished and listening was about to resume
+    /// (its prior was a live conversation; one whose prior was idle goes
+    /// straight to `.idle`), so it resumes listening too rather than leaving
+    /// the mic running under an idle state.
     @MainActor
     func finishTriggerSpeech() {
         if !pendingTriggers.isEmpty {
@@ -422,7 +445,7 @@ extension VoiceConversationController: AVSpeechSynthesizerDelegate {
         }
         let prior = preemptedState ?? .idle
         preemptedState = nil
-        if prior == .listening || prior == .speaking {
+        if prior == .listening || prior == .speaking || prior == .triggerSpeaking {
             scheduleListenAfterAudioDrain()
         } else {
             state = .idle
@@ -584,6 +607,11 @@ extension VoiceConversationController: AVSpeechSynthesizerDelegate {
 /// runs off the main actor (the controller calls it from a detached task) and
 /// caches its answer per language for the rest of the launch.
 enum ConversationVoicePicker {
+    /// The app's language, the one the recognizer listens in
+    /// (`VoiceConversationController.recognizerLocale`) and the AI replies
+    /// in, not the device's: with the app set to Japanese on an English
+    /// phone, the reply is read by a Japanese voice.
+    ///
     /// Honors the user's "force English AI" setting for
     /// voice synthesis too. Without this a Japanese-locale phone
     /// would speak with a Japanese voice even when the AI's text was being
@@ -591,7 +619,7 @@ enum ConversationVoicePicker {
     @MainActor
     static func preferredLanguage() -> String {
         let forceEnglish = AppDependencies.current.app.settingsManager.settings.forceAIEnglish
-        return forceEnglish ? "en-US" : Locale.current.language.maximalIdentifier
+        return forceEnglish ? "en-US" : LanguageManager.appLocale.language.maximalIdentifier
     }
 
     /// The voice for `preferredLanguage`: the best installed one, or the
@@ -622,28 +650,54 @@ enum ConversationVoicePicker {
     /// in the launch is picked up at the next launch.
     private static let cache = OSAllocatedUnfairLock<[String: AVSpeechSynthesisVoice]>(initialState: [:])
 
-    /// The best installed voice for the language family (en-US, en-GB, en-AU
-    /// all match "en"), or nil when none is installed.
+    /// The best installed voice for the language (en-US, en-GB, en-AU all
+    /// speak "en"), or nil when none is installed.
     ///
     /// Novelty voices (Bahh, Cellos, Trinoids, …) and any voice flagged
     /// personal are skipped — the latter need explicit user opt-in.
     ///
-    /// Ranking is premium > enhanced > default; at equal quality it prefers
-    /// voices whose identifier doesn't include ".compact.", which are the
-    /// small / robotic legacy ones.
+    /// Ranking, most important first: the preferred script (Mandarin in
+    /// Simplified Chinese is not served by a Traditional-script Hong Kong or
+    /// Taiwan voice), then the preferred region (an en-US enhanced voice beats
+    /// an en-GB premium one for an en-US user), then quality (premium >
+    /// enhanced > default), then a voice whose identifier doesn't include
+    /// ".compact." (the small / robotic legacy ones).
     private static func bestInstalledVoice(matching preferredLanguage: String) -> AVSpeechSynthesisVoice? {
-        let langPrefix = preferredLanguage.split(separator: "-").first.map(String.init) ?? "en"
+        let wanted = VoiceLanguage(preferredLanguage)
         let candidates = AVSpeechSynthesisVoice.speechVoices().filter { voice in
-            voice.language.hasPrefix(langPrefix)
+            VoiceLanguage(voice.language).language == wanted.language
                 && !voice.voiceTraits.contains(.isNoveltyVoice)
                 && !voice.voiceTraits.contains(.isPersonalVoice)
         }
-        return candidates.sorted { a, b in
-            let qa = qualityRank(a.quality)
-            let qb = qualityRank(b.quality)
-            if qa != qb { return qa > qb }
-            return !a.identifier.contains(".compact.") && b.identifier.contains(".compact.")
-        }.first
+        return candidates.max { rank($0, for: wanted) < rank($1, for: wanted) }
+    }
+
+    /// Sort key for `bestInstalledVoice`: script match, region match,
+    /// quality, not compact.
+    private static func rank(_ voice: AVSpeechSynthesisVoice, for wanted: VoiceLanguage) -> (Int, Int, Int, Int) {
+        let language = VoiceLanguage(voice.language)
+        return (
+            language.script == wanted.script ? 1 : 0,
+            language.region == wanted.region ? 1 : 0,
+            qualityRank(voice.quality),
+            voice.identifier.contains(".compact.") ? 0 : 1
+        )
+    }
+
+    /// A BCP-47 language tag expanded to its likely script and region
+    /// ("zh-HK" → zh, Hant, HK; "en" → en, Latn, US), so tags written with
+    /// and without them compare.
+    private struct VoiceLanguage {
+        let language: String?
+        let script: String?
+        let region: String?
+
+        init(_ identifier: String) {
+            let expanded = Locale.Language(identifier: Locale.Language(identifier: identifier).maximalIdentifier)
+            language = expanded.languageCode?.identifier
+            script = expanded.script?.identifier
+            region = expanded.region?.identifier
+        }
     }
 
     static func qualityRank(_ q: AVSpeechSynthesisVoiceQuality) -> Int {

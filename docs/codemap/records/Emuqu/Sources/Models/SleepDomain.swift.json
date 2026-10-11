@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Models/SleepDomain.swift",
- "hash": "45822d527a4364cb",
+ "hash": "cb466bb91bd6f61a",
  "role": "Sleep domain vocabulary types (boundary source, validation, HR quality, segment, stage, provenance, stage interval) shared by HealthKit and the analysis layer; HealthKitManager keeps typealiases.",
  "types": [
   "SleepBoundarySource: enum String Codable — healthKit/hrValidated/hrEstimated/healthKitHREstimated/recordingBounds",
@@ -8,23 +8,12 @@
   "HRSleepQuality: struct — RMSSD-derived sleep quality",
   "SleepSegment: struct — one contiguous sleep segment",
   "SleepStage: enum — deep/core/rem/awake/unspecified",
-  "SleepStageProvenance: enum — watch/iphone/hrvDerived/userAdded/userCarved/userAdjusted",
+  "SleepStageProvenance: enum — watch/iphone/hrvDerived (repainted by HRVSleepStageClassifier)/userAdded/userCarved/userAdjusted",
   "SleepStageInterval: struct (Identifiable, Codable, Equatable) — one stage period"
  ],
  "state": [],
  "toplevel": "Type declarations with synthesized Codable; SleepStageInterval has explicit CodingKeys and decoder.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "SleepStageProvenance.hrvDerived is documented as 'inferred by SleepMergingPipeline from HR', but SleepMergingPipeline contains no HR inference; it only clips/splits/accumulates (stage augmentation lives in SleepResolver per its own doc).",
-   "evidence": [
-    "Emuqu/Sources/Models/SleepDomain.swift:79",
-    "Emuqu/Sources/Collection/SleepMergingPipeline.swift:311"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "init SleepStageInterval(stage:start:end:provenance:)",
@@ -52,34 +41,32 @@
   },
   {
    "key": "init SleepStageInterval(from:)",
-   "hash": "1b3b25f6ea29588e",
-   "does": "Decodes id, stage, start, end; provenance decodeIfPresent with .watch fallback.",
+   "hash": "4425b9667418c0f6",
+   "does": "Decodes id, start, end; stage leniently (a case this build does not know reads as .unspecified); provenance leniently when present (unknown → .watch) with .watch when missing.",
    "entry": "Decodable init when archived/CloudKit SleepData is decoded.",
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::func KeyedDecodingContainer.decodeKnown(_:forKey:unknown:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func KeyedDecodingContainer.decodeKnownIfPresent(_:forKey:unknown:)"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+6",
-     "cond": "provenance missing (??)",
-     "effect": "defaults to .watch"
-    }
-   ],
-   "flags": [
+     "at": "+3",
+     "cond": "stage raw value unknown",
+     "effect": ".unspecified"
+    },
     {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "stage is decoded strictly and provenance via decodeIfPresent, which throws on an unrecognised raw value; one interval written by a newer build with a new stage/provenance case fails the whole SleepData (and session) decode, unlike SleepEditRecord.Kind which maps unknown values to .unknown.",
-     "evidence": [
-      "Emuqu/Sources/Models/SleepDomain.swift:119",
-      "Emuqu/Sources/Models/SleepDomain.swift:122",
-      "Emuqu/Sources/Models/SleepData.swift:415",
-      "Emuqu/Sources/Models/SleepData.swift:439"
-     ],
-     "found": "second read"
+     "at": "+6",
+     "cond": "provenance missing / unknown",
+     "effect": ".watch"
     }
    ],
-   "deps": {}
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::func KeyedDecodingContainer.decodeKnown(_:forKey:unknown:)": "f1723a2f2e51bf9b",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func KeyedDecodingContainer.decodeKnownIfPresent(_:forKey:unknown:)": "c768f7a21d96a4b4"
+   }
   }
  ],
  "deps": {}

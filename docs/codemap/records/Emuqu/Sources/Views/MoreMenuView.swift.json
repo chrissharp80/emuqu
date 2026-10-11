@@ -13,33 +13,6 @@
  "flags": [],
  "units": [
   {
-   "key": "var MoreMenuView.settingsManager",
-   "hash": "a5b9ef0fa49aaa67",
-   "does": "Returns SettingsManager from dependencies.app (declared but not read by any member of MoreMenuView).",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "settingsManager is declared but nothing in MoreMenuView reads it (grep of MoreMenuView.swift finds only the declaration).",
-     "evidence": [
-      "Emuqu/Sources/Views/MoreMenuView.swift:16"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb"
-   }
-  },
-  {
    "key": "var MoreMenuView.body",
    "hash": "01215dafb857bc0c",
    "does": "Inset-grouped List of the purchase section and the four navigation rows, titled 'More'.",
@@ -261,7 +234,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/MoreMenuView.swift::var AboutFlowView.aboutText": "adac28bfc6436515",
+    "Emuqu/Sources/Views/MoreMenuView.swift::var AboutFlowView.aboutText": "ae13ea4b7d9b8e0d",
     "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
@@ -269,8 +242,8 @@
   },
   {
    "key": "var AboutFlowView.aboutText",
-   "hash": "bff5833a438fe459",
-   "does": "Three localized sentences: what the app is, data stays on the iPhone with optional encrypted iCloud sync that leaves out Apple Health readings, data leaves only in sent reports or an enabled cloud AI.",
+   "hash": "7b6031458a4c7b29",
+   "does": "Three localized sentences joined by spaces: what the app is; data stays on the iPhone with optional iCloud sync encrypted on the iPhone that leaves out Apple Health readings; beyond that data leaves only in sent reports, to an enabled cloud AI, and in the location lookups outdoor workouts and trail search make (weather, nearby roads, elevation), as the privacy policy lists.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
@@ -282,13 +255,10 @@
     {
      "kind": "spec-mismatch",
      "sev": "med",
-     "text": "About text says 'data leaves the iPhone only in reports you send or to a cloud AI you turn on', but the app's own privacy policy lists automatic sends: location rounded to ~1 km to MET Norway for weather during outdoor workouts, coordinates to Overpass for nearby roads during outdoor workouts and trail discovery, and route points to OpenTopoData for elevation lookups.",
+     "text": "The corrected third sentence ('…and in the lookups outdoor workouts and trail search make: your approximate location for weather, nearby roads and elevation…') has no Localizable.xcstrings entry yet (catalog handoff from fix batch b22), so every non-English language shows it in English and the old key is an orphan until the catalog is updated.",
      "evidence": [
-      "Emuqu/Sources/Views/MoreMenuView.swift:192",
-      "Emuqu/Sources/Views/PrivacyPolicyView.swift:217",
-      "Emuqu/Sources/Views/PrivacyPolicyView.swift:219",
-      "Emuqu/Sources/Views/PrivacyPolicyView.swift:220",
-      "Emuqu/Sources/Views/PrivacyPolicyView.swift:222"
+      "Emuqu/Sources/Views/MoreMenuView.swift:190",
+      "Emuqu/Localizable.xcstrings"
      ],
      "found": "second read"
     }

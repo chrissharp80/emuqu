@@ -12,7 +12,8 @@ import NaturalLanguage
 ///   2. **Session-sticky** — upgrades are always taken; downgrades only
 ///      within the first 3 turns of a conversation, or afterwards when
 ///      the proposal is Quick with every capability flag clear.
-///   3. **Adversarial spend cap** — per-day Tier 3 turn budget.
+///   3. **Adversarial spend cap** — per-day Tier 3 turn budget, kept in
+///      UserDefaults so relaunching the app does not reset it.
 ///
 /// The router also owns the sentence embedder (`embed`) that
 /// `CapabilityClassifier` uses for its prototype matching.
@@ -63,14 +64,14 @@ final class SmartProviderRouter {
         let requirement = AppDependencies.current.providers.capabilityClassifier.classify(message)
         let proposed = requirement.requiredTier
         let chosen = stickyTier(proposed: proposed, requirement: requirement, session: session)
-        recordTelemetry(proposed: proposed, chosen: chosen)
         debugLog("[SmartRouter] capabilities=\(requirement.debugSummary) proposed=\(proposed) → chosen=\(chosen) (turn \(session.turnCount))", level: .info)
         return chosen
     }
 
     /// Rules:
     ///   • Upgrades (proposed > current) → always allowed.
-    ///   • Within the settling window → take the proposal.
+    ///   • Within the settling window (turns 1–3; the caller counts the
+    ///     current turn before routing) → take the proposal.
     ///   • Post-settle downgrades → only when the proposal is `.quick`
     ///     and ALL four capability flags are clear (no false-positive
     ///     risk on tools/web/depth/speculation). Otherwise sticky-up.
@@ -87,7 +88,7 @@ final class SmartProviderRouter {
         session: RoutingSessionState
     ) -> Tier {
         if proposed > session.currentTier { return proposed }
-        if session.turnCount < Self.settlingTurns { return proposed }
+        if session.turnCount <= Self.settlingTurns { return proposed }
         if proposed == .quick, requirement == .none { return proposed }
         return session.currentTier
     }
@@ -97,21 +98,13 @@ final class SmartProviderRouter {
     // MARK: - Embedding
 
     /// Lazily-initialised NL contextual embedder. Created on first use
-    /// (~50ms cold) and cached for the app lifetime. Returns nil on
-    /// older OS versions or unsupported devices; `embed` falls back to
-    /// the word-vector embedder.
-    private lazy var contextualEmbedder: NLContextualEmbedding? = {
-        guard #available(iOS 17.0, *) else { return nil }
-        return Self.loadContextualEmbedder()
-    }()
+    /// (~50ms cold) and cached for the app lifetime. Nil on devices that
+    /// cannot provide one or whose assets have not downloaded yet; `embed`
+    /// then uses the word-vector embedder for the whole launch.
+    private lazy var contextualEmbedder: NLContextualEmbedding? = Self.loadContextualEmbedder()
 
     /// Create and load the contextual embedder, or nil when this device cannot
     /// provide one.
-    ///
-    /// Split out of the stored closure above, which would otherwise hold
-    /// three levels of nesting (`if #available` / `guard` / `catch`) where the
-    /// spec allows two.
-    @available(iOS 17.0, *)
     private static func loadContextualEmbedder() -> NLContextualEmbedding? {
         guard let embedder = NLContextualEmbedding(language: .english) else { return nil }
         // requestAssets() is async (downloads from CDN). If assets aren't yet
@@ -139,10 +132,15 @@ final class SmartProviderRouter {
         NLEmbedding.wordEmbedding(for: .english)
     }()
 
-    /// Mean-pooled sentence embedding. Prefers the contextual embedder and
-    /// falls through to the word-vector path when it's unavailable or throws.
+    /// Mean-pooled sentence embedding, always in one vector space per launch:
+    /// the contextual embedder's when it exists, else the word vectors'. A
+    /// text the contextual embedder fails on gets nil, not a word-vector
+    /// embedding: vectors of the two spaces differ in length and meaning, so
+    /// mixing them would corrupt a prototype centroid or zero a query's
+    /// similarity. `CapabilityClassifier` treats nil as "no embedding".
     func embed(_ text: String) -> [Double]? {
-        contextualEmbedding(text) ?? wordVectorEmbedding(text)
+        guard contextualEmbedder != nil else { return wordVectorEmbedding(text) }
+        return contextualEmbedding(text)
     }
 
     /// Average the contextual embedder's per-token vectors.
@@ -173,26 +171,12 @@ final class SmartProviderRouter {
         return sum.map { $0 / Double(vectors.count) }
     }
 
-    // MARK: - Telemetry
-
-    /// Best-effort, in-memory counters of how often each tier was
-    /// chosen and how often the classifier proposed a different tier
-    /// than the session was sticking to (an "escalation/de-escalation
-    /// signal"). Used for /diagnose-style debug overlays — never sent
-    /// off-device. Bumped from `route(...)`.
-    private(set) var tierCounts: [Tier: Int] = [.quick: 0, .auto: 0, .deep: 0]
-    private(set) var classifierProposalCounts: [Tier: Int] = [.quick: 0, .auto: 0, .deep: 0]
-    private(set) var stickinessOverrides: Int = 0
-
-    private func recordTelemetry(proposed: Tier, chosen: Tier) {
-        classifierProposalCounts[proposed, default: 0] += 1
-        tierCounts[chosen, default: 0] += 1
-        if proposed != chosen { stickinessOverrides += 1 }
-    }
-
     // MARK: - Adversarial cap
 
-    private var tier3CountByDay: [String: Int] = [:]
+    /// The day the stored Tier 3 count belongs to, and the count. Persisted
+    /// so a force-quit does not reset the daily ceiling.
+    private static let tier3DayKey = "assistant.router.tier3Day"
+    private static let tier3CountKey = "assistant.router.tier3Count"
 
     private func dayKey(_ d: Date = Date()) -> String {
         let f = DateFormatter()
@@ -206,16 +190,15 @@ final class SmartProviderRouter {
     /// turn is allowed at Tier 3; false if the daily cap is hit and
     /// the caller should downgrade to Tier 2.
     ///
-    /// `tier3CountByDay` must not keep one entry per
-    /// distinct day forever (one new key each calendar day, never
-    /// evicted), or the dictionary grows unbounded over the app's
-    /// lifetime. Only TODAY's count is ever read, so collapse the map
-    /// to a single { todayKey: count } entry — yesterday's bucket is
-    /// dead weight the moment the date rolls over.
+    /// Only TODAY's count is ever read, so one day and one count are
+    /// stored: a stored count from another day starts over at zero.
     func recordTier3UsageAndCheck() -> Bool {
+        let defaults = UserDefaults.standard
         let key = dayKey()
-        let count = (tier3CountByDay[key] ?? 0) + 1
-        tier3CountByDay = [key: count]
+        let stored = defaults.string(forKey: Self.tier3DayKey) == key ? defaults.integer(forKey: Self.tier3CountKey) : 0
+        let count = stored + 1
+        defaults.set(key, forKey: Self.tier3DayKey)
+        defaults.set(count, forKey: Self.tier3CountKey)
         return count <= Self.dailyTier3Cap
     }
 }

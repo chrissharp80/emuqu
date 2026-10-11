@@ -143,68 +143,162 @@ if len(alternatives) < 100:
     sys.exit(2)
 
 
-def probe_for(pattern_source):
-    """A concrete string the build-time regex matches.
-
-    Handles the small regex dialect the prohibited list actually uses:
-    inline (?i), \\b, \\s+, optional groups, alternations and a lookbehind.
-    """
-    s = pattern_source
-    s = s.replace("(?i)", "")
-    s = re.sub(r"\(\?<![^)]*\)", "", s)          # drop lookbehinds
-    s = re.sub(r"\(\?![^)]*\)", "", s)           # drop lookaheads
-    s = s.replace("(?:", "(")                     # non-capturing -> capturing
-    s = s.replace("\\s+", " ").replace("\\s*", "").replace("\\b", "")
-
-    # 2026-08-26 — WAS `\[([^\]])[^\]]*\]` -> first character. That takes the
-    # backslash out of `[\s-]` and produced `danger\+zone`, which matches
-    # nothing. The gate caught its own synthesiser, which is the behaviour to
-    # keep: it exits 2 and says "widen probe_for rather than skipping the rule".
-    def _class_char(match):
-        body = match.group(1)
-        if body.startswith("\\s"):
-            return " "
-        return body[1] if body.startswith("\\") else body[0]
-
-    s = re.sub(r"\[((?:\\.|[^\]])+)\]", _class_char, s)
-    s = re.sub(r"(?<=[^\\])[+*]", "", s)          # quantifier left by the above
-    # (a|b) -> a ; (a|b)? -> ""  (prefer the shortest match-preserving form)
-    while True:
-        new = re.sub(r"\(([^()|]*)\|([^()]*)\)\?", "", s)
-        new = re.sub(r"\(([^()|]*)\|[^()]*\)", r"\1", new)
-        new = re.sub(r"\(([^()|]*)\)\?", "", new)
-        new = re.sub(r"\(([^()|]*)\)", r"\1", new)
-        if new == s:
-            break
-        s = new
-    return s.replace("?", "").strip()
+WORD = "word"
 
 
+def probes_for(pattern_source, limit=5000):
+    """Every spelling the build-time regex matches, one per alternative:
+    each alternation branch, each optional part present and absent, each
+    character-class member. `*` and `{m,n}` take their minimum, `+` one
+    repetition; `\\w` stands for a placeholder word. Lookarounds, `\\b` and
+    `(?i)` are dropped."""
+    s = pattern_source.replace("(?i)", "")
+    pos = 0
+
+    def parse_alt():
+        nonlocal pos
+        branches = [parse_seq()]
+        while pos < len(s) and s[pos] == "|":
+            pos += 1
+            branches.append(parse_seq())
+        out = []
+        for b in branches:
+            out.extend(b)
+        return out
+
+    def parse_seq():
+        nonlocal pos
+        result = [""]
+        while pos < len(s) and s[pos] not in "|)":
+            atom = parse_atom()
+            atom = apply_quantifier(atom)
+            result = [a + b for a in result for b in atom]
+            if len(result) > limit:
+                raise ValueError(f"more than {limit} spellings")
+        return result
+
+    def parse_atom():
+        nonlocal pos
+        c = s[pos]
+        if c == "(":
+            pos += 1
+            if s.startswith("?<!", pos) or s.startswith("?<=", pos) or s.startswith("?!", pos) or s.startswith("?=", pos):
+                depth = 1
+                while depth:
+                    if s[pos] == "\\":
+                        pos += 2
+                        continue
+                    if s[pos] == "(":
+                        depth += 1
+                    elif s[pos] == ")":
+                        depth -= 1
+                    pos += 1
+                return [""]
+            if s.startswith("?:", pos):
+                pos += 2
+            inner = parse_alt()
+            if pos >= len(s) or s[pos] != ")":
+                raise ValueError("unbalanced group")
+            pos += 1
+            return inner
+        if c == "[":
+            end = pos + 1
+            while s[end] != "]":
+                end += 2 if s[end] == "\\" else 1
+            body = s[pos + 1:end]
+            pos = end + 1
+            out, i = [], 0
+            while i < len(body):
+                if body[i] == "\\":
+                    out.append({"s": " ", "w": WORD}.get(body[i + 1], body[i + 1]))
+                    i += 2
+                else:
+                    out.append(body[i])
+                    i += 1
+            return out
+        if c == "\\":
+            e = s[pos + 1]
+            pos += 2
+            if e == "b":
+                return [""]
+            if e == "s":
+                return [" "]
+            if e == "w":
+                return [WORD]
+            if e == "d":
+                return ["1"]
+            return [e]
+        if c == ".":
+            pos += 1
+            return ["x"]
+        pos += 1
+        return [c]
+
+    def apply_quantifier(atom):
+        nonlocal pos
+        if pos >= len(s):
+            return atom
+        q = s[pos]
+        if q == "?":
+            pos += 1
+            return [""] + atom
+        if q == "*":
+            pos += 1
+            return [""]
+        if q == "+":
+            pos += 1
+            return atom
+        if q == "{":
+            end = s.index("}", pos)
+            low = int(s[pos + 1:end].split(",")[0] or 0)
+            pos = end + 1
+            out = [""]
+            for _ in range(low):
+                out = [a + b for a in out for b in atom]
+            return out
+        return atom
+
+    out = parse_alt()
+    if pos != len(s):
+        raise ValueError(f"stopped at {pos}")
+    # `\s+` next to an optional part leaves doubled or edge spaces.
+    return sorted({re.sub(r" {2,}", " ", p).strip() for p in out} - {""})
+
+
+# Every spelling, not one per pattern. Reducing `(a|b)` to `a` checked one
+# spelling per rule, and `undiagnosed`, `curing`, `curative`, `pathological`
+# and `ischaemic` went unmatched while this gate printed clean.
 missing = []
 checked = 0
 for item in config.get("user_facing_prohibited", []):
     pattern_source = item["pattern"]
-    probe = probe_for(pattern_source)
-    if not probe:
-        continue
-    # Sanity: the probe must actually match the rule it came from, otherwise the
-    # synthesiser is wrong and this gate would pass vacuously.
     try:
-        if not re.search(pattern_source, probe, re.IGNORECASE):
-            sys.stderr.write(
-                f"check_perimeter_sync: could not synthesise a probe for {pattern_source!r} "
-                f"(got {probe!r}). Widen probe_for rather than skipping the rule.\n"
-            )
-            sys.exit(2)
-    except re.error as exc:
-        sys.stderr.write(f"check_perimeter_sync: bad pattern {pattern_source!r}: {exc}\n")
+        probes = probes_for(pattern_source)
+    except (ValueError, IndexError) as exc:
+        sys.stderr.write(f"check_perimeter_sync: cannot expand {pattern_source!r}: {exc}. "
+                         "Widen probes_for rather than skipping the rule.\n")
         sys.exit(2)
+    if not probes:
+        sys.stderr.write(f"check_perimeter_sync: no spelling synthesised for {pattern_source!r}.\n")
+        sys.exit(2)
+    for probe in probes:
+        # Sanity: the probe must match the rule it came from, otherwise the
+        # synthesiser is wrong and this gate would pass vacuously.
+        try:
+            if not re.search(pattern_source, probe, re.IGNORECASE):
+                sys.stderr.write(
+                    f"check_perimeter_sync: could not synthesise a probe for {pattern_source!r} "
+                    f"(got {probe!r}). Widen probes_for rather than skipping the rule.\n"
+                )
+                sys.exit(2)
+        except re.error as exc:
+            sys.stderr.write(f"check_perimeter_sync: bad pattern {pattern_source!r}: {exc}\n")
+            sys.exit(2)
+        checked += 1
+        if not any(rx.search(probe) for rx in alternatives):
+            missing.append((pattern_source, probe, item.get("reason", "")))
 
-    checked += 1
-    if not any(rx.search(probe) for rx in alternatives):
-        missing.append((pattern_source, probe, item.get("reason", "")))
-
-print(f"check_perimeter_sync: {checked} build-time patterns probed against "
+print(f"check_perimeter_sync: {checked} build-time spellings probed against "
       f"{len(alternatives)} lexicon alternatives.")
 
 if missing:

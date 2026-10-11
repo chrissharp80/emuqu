@@ -231,14 +231,19 @@ enum ToolRetriever {
     /// guard (which check_unchecked_sendable.sh flags). Same
     /// pattern as FeatureFlags; the lock is uncontended in practice
     /// (callers sit on the @MainActor send path) so this costs nothing.
-    private static let indexCache = OSAllocatedUnfairLock<(index: BM25Index?, hash: String?)>(
-        initialState: (nil, nil)
+    ///
+    /// Keyed by the catalog hash AND the tool list itself: the hash covers
+    /// only the registry's schema, not the compact tools handed in beside it,
+    /// and the index returns the `ToolSpec`s it was built from, so a list
+    /// that changed under an unchanged hash must rebuild it.
+    private static let indexCache = OSAllocatedUnfairLock<(index: BM25Index?, hash: String?, tools: [ToolSpec])>(
+        initialState: (nil, nil, [])
     )
 
     private static func ensureIndex(for tools: [ToolSpec], hash: String) {
         indexCache.withLock { cache in
-            if cache.hash == hash, cache.index != nil { return }
-            cache = (BM25Index(tools: tools), hash)
+            if cache.hash == hash, cache.tools == tools, cache.index != nil { return }
+            cache = (BM25Index(tools: tools), hash, tools)
         }
     }
 
@@ -295,22 +300,34 @@ enum ToolRetriever {
         guard token.count > 1 else { return }
         if stopWords.contains(token) { return }
         // Light stemming — strip common English suffixes. Not full Porter;
-        // just enough that "power"/"powers"/"powered" / "running"/"runs"
-        // all collide. Anthropic's BM25 variant uses standard
+        // just enough that "power"/"powers"/"powered" and "run"/"runs"/
+        // "running" collide. Anthropic's BM25 variant uses standard
         // tokenisation; we approximate.
         let stemmed = Self.stem(token)
         tokens.append(stemmed)
     }
 
+    /// Strips the first of "ing", "ed", "s", "ly" that leaves at least three
+    /// letters. "es" is not stripped: "times", "zones" and "rates" must stem
+    /// like "time", "zone" and "rate", which "s" alone does. After "ing" or
+    /// "ed" a doubled final consonant is undone ("running" → "run",
+    /// "stopped" → "stop"), but only for the letters English doubles before
+    /// those endings, so "falling" stays "fall".
     private static func stem(_ token: String) -> String {
         if token.count < 4 { return token }
-        let suffixes = ["ing", "ed", "s", "ly", "es"]
-        for suffix in suffixes {
-            if token.hasSuffix(suffix), token.count > suffix.count + 2 {
-                return String(token.dropLast(suffix.count))
-            }
+        for suffix in ["ing", "ed", "s", "ly"] where token.hasSuffix(suffix) && token.count > suffix.count + 2 {
+            let base = String(token.dropLast(suffix.count))
+            return suffix == "ing" || suffix == "ed" ? undoubled(base) : base
         }
         return token
+    }
+
+    private static let doubledFinals: Set<Character> = ["b", "d", "g", "m", "n", "p", "t"]
+
+    /// `base` with a doubled final consonant from `doubledFinals` made single.
+    private static func undoubled(_ base: String) -> String {
+        guard let last = base.last, base.dropLast().last == last, doubledFinals.contains(last) else { return base }
+        return String(base.dropLast())
     }
 }
 

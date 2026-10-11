@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/SleepDetailV2View.swift",
- "hash": "05311772c5e47c1b",
+ "hash": "872ae9f3998bee56",
  "role": "SwiftUI Sleep detail screen (pushed from Dashboard sleep card and MorningResultsView sleep card): sleep-score ring hero, quick stats, vitals row, sleep window + Adjust, interactive hypnogram, plus the sections declared in SleepDetailV2View+Breakdown.swift; hosts the SleepTimelineEditorView sheet and a detached 15-night trend computation.",
  "types": [
   "SleepDetailV2View: struct (View) — sleep detail screen; inputs session, sleepData, recoveryVitals, recentSessions, temperatureUnit, typicalSleepHours, userAge, onRefresh, onAdjust",
@@ -14,22 +14,12 @@
   "mem:SleepDetailV2View.refreshedVitals (@State RecoveryVitals?, HealthKit re-fetch on appear)",
   "mem:SleepDetailV2View.trendNights (@State [TrendNight], cached 15-night trend)",
   "@ScaledMetric dt9..dt22 font sizes (SleepDetailV2View.swift:20-29)",
-  "@Environment RRCollector collector (SleepDetailV2View.swift:41)"
+  "@Environment RRCollector collector (SleepDetailV2View.swift:41)",
+  "mem:SleepDetailV2View.sleepAnalysis (let SleepScienceAnalyzer.SleepAnalysis?, computed once in init)",
+  "mem:SleepDetailV2View.sleepScore (private let Double, computed once in init)"
  ],
- "toplevel": "Declares ten @ScaledMetric font sizes bound to text styles (20-29), the stored inputs (31-39) with onRefresh/onAdjust optional closures defaulting to nil, @Environment(RRCollector) and the @State properties. SleepDataIdentified.id is a fresh UUID() per wrapper (115). No #if blocks.",
+ "toplevel": "Declares ten @ScaledMetric font sizes bound to text styles (20-29), the stored inputs (session, sleepData, recoveryVitals, recentSessions, temperatureUnit, typicalSleepHours, userAge, optional onAdjust closure), the sleepAnalysis/sleepScore lets set by the explicit init, @Environment(RRCollector) and the @State properties. SleepDataIdentified.id is a fresh UUID() per wrapper. No #if blocks.",
  "flags": [
-  {
-   "kind": "dead",
-   "sev": "med",
-   "text": "onRefresh is never supplied by any caller (DashboardV2View and MorningResultsView construct the view without it; tests too), so the menu's \"Refresh sleep data\" item never renders; the toolbar menu only ever contains \"Edit sleep\", and in a context without onAdjust it is an empty menu button.",
-   "evidence": [
-    "Emuqu/Sources/Views/SleepDetailV2View.swift:38",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift:272",
-    "Emuqu/Sources/Views/DashboardV2View.swift:479-488",
-    "Emuqu/Sources/Views/MorningResultsView.swift:323-336"
-   ],
-   "found": "first read, upheld on second"
-  },
   {
    "kind": "coupling",
    "sev": "med",
@@ -81,6 +71,39 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "init SleepDetailV2View(session:sleepData:recoveryVitals:recentSessions:temperatureUnit:typicalSleepHours:userAge:onAdjust:)",
+   "hash": "4d0f5770c5a0a8d9",
+   "does": "Stores the inputs (onAdjust defaults to nil) and runs SleepScienceAnalyzer.analyze once for sleepData, keeping the analysis in sleepAnalysis and the score in sleepScore (the analysis's enhancedScore, else calculateSleepScore's zero-minute score, else 0), so body evaluations (each hypnogram scrub tick) do not re-run the analyzer.",
+   "entry": "Constructed by DashboardV2View.sleepDetail(for:), MorningResultsView.sleepDetailDestination and DetailScreenSnapshotTests.",
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyze(sleepData:userAge:typicalSleepHours:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateSleepScore(sleepData:typicalSleepHours:userAge:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SleepDetailV2View.sleepAnalysis",
+    "mem:SleepDetailV2View.sleepScore"
+   ],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "sleepData nil",
+     "effect": "analysis nil"
+    },
+    {
+     "at": "+16",
+     "cond": "analysis nil",
+     "effect": "score from calculateSleepScore (nil → 0)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateSleepScore(sleepData:typicalSleepHours:userAge:)": "042f75023c6f6a31",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyze(sleepData:userAge:typicalSleepHours:)": "61d4d4775e117e68",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.enhancedScore(of:sleepData:typicalSleepHours:)": "1a54bc3d0cfff497"
    }
   },
   {
@@ -177,49 +200,11 @@
    "deps": {}
   },
   {
-   "key": "var SleepDetailV2View.sleepScore",
-   "hash": "b0c7373081d13cc1",
-   "does": "Computes the sleep score for sleepData via RecoveryScoreCalculator.calculateSleepScore: SleepScienceAnalyzer.analyze(...).enhancedScore, or basicSleepScore when analyze returns nil (night minutes <= 0); 0 when sleepData is nil. Recomputed on every access (no caching).",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateSleepScore(sleepData:typicalSleepHours:userAge:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "calculateSleepScore returns nil (sleepData nil)",
-     "effect": "falls back to 0; heroSection shows the ring empty state in that case"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "sleepScore is an uncached computed property; each body evaluation runs SleepScienceAnalyzer.analyze about six times (sleepScore and verdict at 288, verdict twice at 306/308, computeSleepBreakdowns at 152, structureCells at 476), including on every hypnogram scrub tick, the cost the trendNights cache comment says it avoids for the trend.",
-     "evidence": [
-      "Emuqu/Sources/Views/SleepDetailV2View.swift:119-127",
-      "Emuqu/Sources/Views/SleepDetailV2View.swift:288",
-      "Emuqu/Sources/Views/SleepDetailV2View.swift:306-308",
-      "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift:182",
-      "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift:476",
-      "Emuqu/Sources/Views/SleepDetailV2View.swift:68-74"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateSleepScore(sleepData:typicalSleepHours:userAge:)": "7330a00595a0e155"
-   }
-  },
-  {
    "key": "var SleepDetailV2View.verdict",
    "hash": "f8650ed39aefcaea",
    "does": "Wraps sleepScore in a ScoreVerdict (word/colour ladder).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.sleepScore",
     "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)"
    ],
    "reads": [],
@@ -227,8 +212,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)": "89445abed2b3e6c9",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.sleepScore": "e092a243ffe6aedd"
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)": "89445abed2b3e6c9"
    }
   },
   {
@@ -245,7 +229,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.withSleepEditor(_:)": "b062406f29d3127a",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.withSleepEditor(_:)": "69ecf08c160eefe7",
     "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.sleepStack": "b52bad69e82989cb"
    }
   },
@@ -268,8 +252,8 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.refreshVitals()": "dde002d45aa3b40e",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.menuButton": "df7ba099fa47a779",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.refreshVitals()": "7d71e80389d44331",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.menuButton": "ebb36ebf447d5a02",
     "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.sleepCards": "64666d779a2d9c8f",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
    }
@@ -297,12 +281,12 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::var SleepDetailV2View.ageGroupCard": "0283d7e102fc40dc",
+    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::var SleepDetailV2View.ageGroupCard": "a297d6572648fa49",
     "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::var SleepDetailV2View.recentTrendsSection": "efaa7a2a4fb294ea",
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::var SleepDetailV2View.scoreBreakdownSection": "546b3b446ef8e601",
+    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::var SleepDetailV2View.scoreBreakdownSection": "5054c836785d83f2",
     "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::var SleepDetailV2View.sleepInsightsSection": "93d9c0e63b318983",
     "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::var SleepDetailV2View.sleepStructureCard": "527e6ae8dd24754d",
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::var SleepDetailV2View.stageBreakdownSection": "a6d099e9f9ab3912",
+    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::var SleepDetailV2View.stageBreakdownSection": "04de09603ec7f3d6",
     "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.heroSection": "587a40db694de93c",
     "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.hypnogramCard": "0732170b68cc57a4",
     "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.quickStatsRow": "5da96f49545937a4",
@@ -312,12 +296,13 @@
   },
   {
    "key": "func SleepDetailV2View.withSleepEditor(_:)",
-   "hash": "578d78f595aa88b3",
-   "does": "Attaches the SleepTimelineEditorView sheet bound to editorSleepData and a .task keyed on trendInputsKey that runs SleepDetailV2View.buildTrend on a detached userInitiated task and stores the result in trendNights.",
+   "hash": "f7eef2d7e0575f9b",
+   "does": "Attaches the SleepTimelineEditorView sheet bound to editorSleepData and a .task keyed on trendInputsKey that runs buildTrend over trendSessions on a detached userInitiated task and stores the result in trendNights unless the keyed task was cancelled meanwhile (a newer key's result is not overwritten).",
    "entry": ".sheet(item:) presents when editorSleepData is set; .task(id: trendInputsKey) runs on appear and on key change",
    "calls": [
     "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.sleepEditor(_:)",
     "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.trendInputsKey",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.trendSessions",
     "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.buildTrend(recentSessions:typicalSleepHours:userAge:)",
     "ext:Task.detached"
    ],
@@ -325,48 +310,50 @@
    "writes": [
     "mem:SleepDetailV2View.trendNights"
    ],
-   "branches": [],
-   "flags": [
+   "branches": [
     {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "The trend key omits inputs calculateSleepScore reads (napSleepMinutes for duration, boundarySource for measuredSleepEfficiency, inBedMinutes, interval contents beyond count), so an edit that changes only those leaves a stale trend bar until another key field changes; the comment on trendInputsKey says it covers the fields the score reads.",
-     "evidence": [
-      "Emuqu/Sources/Views/SleepDetailV2View.swift:218-229",
-      "Emuqu/Sources/Models/SleepData.swift:139",
-      "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift:638"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "race",
-     "sev": "low",
-     "text": "The .task assigns the detached buildTrend result without checking Task.isCancelled; Task.detached is not cancelled when SwiftUI cancels the keyed task, so a superseded computation that finishes after the newer one overwrites trendNights with the stale trend.",
-     "evidence": [
-      "Emuqu/Sources/Views/SleepDetailV2View.swift:180-191"
-     ],
-     "found": "second read"
+     "at": "+12",
+     "cond": "Task.isCancelled after the detached compute",
+     "effect": "drops the result; else assigns trendNights"
     }
    ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.buildTrend(recentSessions:typicalSleepHours:userAge:)": "52c11b2cc9db20c1",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.sleepEditor(_:)": "49d14b90561dc864",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.trendInputsKey": "7932ca791b0904e0"
+    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.buildTrend(recentSessions:typicalSleepHours:userAge:)": "0f0e654e038f7411",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.sleepEditor(_:)": "4cdc3a832c248cf5",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.trendInputsKey": "42d56835a0be2f7c",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.trendSessions": "ce371e7b0dce933c"
    }
   },
   {
+   "key": "var SleepDetailV2View.trendSessions",
+   "hash": "3b31e319bd1ad6a1",
+   "does": "recentSessions, with the viewed session prepended when the list does not contain it (the morning results list holds only earlier nights).",
+   "entry": "Read by withSleepEditor's trend task and trendInputsKey.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "recentSessions contains session.id",
+     "effect": "as is; else [session] + recentSessions"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
    "key": "func SleepDetailV2View.sleepEditor(_:)",
-   "hash": "e6acf3508ad0e9fd",
-   "does": "Builds SleepTimelineEditorView for the wrapped SleepData; onSave calls the onAdjust closure and clears editorSleepData; onRefreshFromHealthKit re-fetches sleep from HealthKit for this session's recording window (end = endDate or start+8h), returning nil on missing collector or any thrown error.",
+   "hash": "4a3697bfb06260c6",
+   "does": "Builds SleepTimelineEditorView for the wrapped SleepData; onSave calls the onAdjust closure and clears editorSleepData; onRefreshFromHealthKit re-fetches this session's recording window through refetchSleep (nil when the collector is gone or the fetch fails).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift::init SleepTimelineEditorView(sleepData:onSave:onRefreshFromHealthKit:)",
-    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift::init SleepTimelineEditorView(sleepData:onSave:onRefreshFromHealthKit:onRefreshAccepted:)",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.refetchSleep(for:from:)",
     "closure:onAdjust — set by DashboardV2View.sleepDetail (saveSleepBoundaries → collector.updateSessionSleepBoundaries) or MorningResultsView.sleepDetailDestination (vm.healthKitSleep + onAdjustSleep)"
    ],
-   "reads": [
-    "hk:HKCategoryType.sleepAnalysis"
-   ],
+   "reads": [],
    "writes": [
     "mem:SleepDetailV2View.editorSleepData"
    ],
@@ -374,24 +361,10 @@
     {
      "at": "+8",
      "cond": "collector deallocated (weak capture nil)",
-     "effect": "returns nil to the editor (editor shows its refresh-failed error); else fetches"
-    },
-    {
-     "at": "+10",
-     "cond": "session.endDate nil",
-     "effect": "recording end = startDate + 8h; else endDate"
+     "effect": "returns nil to the editor; else refetchSleep"
     }
    ],
    "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "try? discards the HealthKit error, so the editor only learns \"nil\" and cannot distinguish authorization denial from no data.",
-     "evidence": [
-      "Emuqu/Sources/Views/SleepDetailV2View.swift:210"
-     ],
-     "found": "first read, upheld on second"
-    },
     {
      "kind": "spec-mismatch",
      "sev": "low",
@@ -407,50 +380,94 @@
     }
    ],
    "deps": {
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift::init SleepTimelineEditorView(sleepData:onSave:onRefreshFromHealthKit:onRefreshAccepted:)": "db0defaca7037a9b",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.refetchSleep(for:from:)": "321f778a471c5d1e"
+   }
+  },
+  {
+   "key": "func SleepDetailV2View.refetchSleep(for:from:)",
+   "hash": "59a3c1be76447fd1",
+   "does": "Fetches sleep from HealthKit for the session's recording window (end = endDate or start + 8 h); on a thrown error logs it as a warning and returns nil.",
+   "entry": "Called from the editor's onRefreshFromHealthKit closure in sleepEditor.",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "hk:HKCategoryType.sleepAnalysis"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "session.endDate nil",
+     "effect": "end = start + 8 h"
+    },
+    {
+     "at": "+4",
+     "cond": "fetch throws",
+     "effect": "logged, returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
     "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)": "247d0472c54f578e",
-    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "f61a7a679f5280dd",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift::init SleepTimelineEditorView(sleepData:onSave:onRefreshFromHealthKit:)": "82ae616c3de4b0f7"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "f61a7a679f5280dd"
    }
   },
   {
    "key": "var SleepDetailV2View.trendInputsKey",
-   "hash": "1cf9df136ae101be",
-   "does": "Builds a fingerprint string from typicalSleepHours, userAge and, per recent session, its id plus snapshot night minutes, efficiency, deep/REM (or -1), awake minutes and stage-interval count.",
+   "hash": "7dbabe49214acdcf",
+   "does": "Fingerprint string: typicalSleepHours, userAge (or -1) and trendKeyPart of every trend session.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.trendSessions",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.trendKeyPart(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+2",
-     "cond": "session has no sleepSnapshot",
-     "effect": "contributes only its UUID string"
-    },
-    {
-     "at": "+3",
-     "cond": "deep/REM minutes nil",
-     "effect": "rendered as -1 in the key"
-    },
-    {
-     "at": "+5",
      "cond": "userAge nil",
      "effect": "rendered as -1"
     }
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.trendKeyPart(_:)": "21f0843cc6a7364b",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.trendSessions": "ce371e7b0dce933c"
+   }
+  },
+  {
+   "key": "func SleepDetailV2View.trendKeyPart(_:)",
+   "hash": "79497e8d532e57ef",
+   "does": "One session's key part: its id plus a Hasher digest of every snapshot field the sleep score reads (night, nap, in-bed and awake minutes, efficiency, boundary source, deep/REM minutes, and each stage interval's stage, start and end); the bare id without a snapshot.",
+   "entry": "Called from trendInputsKey.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no sleepSnapshot",
+     "effect": "returns the id string"
+    }
+   ],
+   "flags": [],
+   "deps": {
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.finalize()": "dd0ee2d1995fab40",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
     "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "4cec6874d7fcb65a"
    }
   },
   {
    "key": "func SleepDetailV2View.refreshVitals()",
-   "hash": "fd4dd09f0959d233",
-   "does": "Fetches recovery vitals from HealthKit relative to the session end (or start), overrides RHR with the session strap meanHR when present, and stores them in refreshedVitals unless every field is empty.",
+   "hash": "d17a71799e0546a8",
+   "does": "Fetches recovery vitals from HealthKit relative to the session end (or start), overrides RHR with the session strap meanHR when present, and stores them in refreshedVitals, or nil when every field is empty so an earlier session's reading is not kept.",
    "entry": "Called from .task(id: session.id) in sleepStack",
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::func HealthKitManager.fetchRecoveryVitals(relativeTo:)",
@@ -473,23 +490,12 @@
      "effect": "reference date = startDate"
     },
     {
-     "at": "+7",
-     "cond": "fresh vitals non-empty",
-     "effect": "assigns refreshedVitals; when empty leaves the previous value (from an earlier session.id if the task re-ran) untouched"
+     "at": "+9",
+     "cond": "fresh vitals empty",
+     "effect": "refreshedVitals = nil; else the fresh vitals"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "When session.id changes and the new fetch is empty, refreshedVitals keeps the previous session's values, so effectiveVitals merges another night's vitals.",
-     "evidence": [
-      "Emuqu/Sources/Views/SleepDetailV2View.swift:241-243",
-      "Emuqu/Sources/Views/SleepDetailV2View.swift:142"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::func HealthKitManager.fetchRecoveryVitals(relativeTo:)": "075679cbd0c44195",
     "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)": "689968153e58848a",
@@ -499,153 +505,46 @@
   },
   {
    "key": "var SleepDetailV2View.menuButton",
-   "hash": "33886e375e4e3033",
-   "does": "Toolbar Menu (ellipsis.circle) containing refreshSleepMenuItem and editSleepMenuItem with a localized accessibility label.",
+   "hash": "5637d8a26f2866ab",
+   "does": "Toolbar Menu (ellipsis.circle) holding the Edit sleep button, shown only when there is sleep data and an onAdjust closure to save the edit; nothing otherwise.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.refreshSleepMenuItem",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.editSleepMenuItem",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.editSleepButton(_:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [
     "mem:LanguageManager.shared.bundle"
    ],
    "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "When sleepData is nil (MorningResultsView with no vm.healthKitSleep, or Dashboard with no night carrying a snapshot) both menu items render nothing (onRefresh is never passed; Edit needs sleepData), so the toolbar shows an ellipsis Menu that opens empty.",
-     "evidence": [
-      "Emuqu/Sources/Views/SleepDetailV2View.swift:247-249",
-      "Emuqu/Sources/Views/SleepDetailV2View.swift:263",
-      "Emuqu/Sources/Views/SleepDetailV2View.swift:272",
-      "Emuqu/Sources/Views/MorningResultsView.swift:325"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.editSleepMenuItem": "73540b5d9239a564",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.refreshSleepMenuItem": "2a0277447d9ff901"
-   }
-  },
-  {
-   "key": "var SleepDetailV2View.refreshSleepLabel",
-   "hash": "acb839a89c3435e3",
-   "does": "Label \"Refresh sleep data\" with arrow.clockwise icon.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [
-    "mem:LanguageManager.shared.bundle"
-   ],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Only used by refreshSleepButton, which is unreachable because onRefresh is never passed by any caller.",
-     "evidence": [
-      "Emuqu/Sources/Views/SleepDetailV2View.swift:278",
-      "Emuqu/Sources/Views/SleepDetailV2View.swift:38"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
-   }
-  },
-  {
-   "key": "var SleepDetailV2View.editSleepMenuItem",
-   "hash": "a5403e7ad9ff83c6",
-   "does": "Shows an \"Edit sleep\" menu button that sets editorSleepData (presenting the editor) when sleepData exists and onAdjust is set.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [
-    "mem:LanguageManager.shared.bundle"
-   ],
-   "writes": [
-    "mem:SleepDetailV2View.editorSleepData"
-   ],
    "branches": [
     {
      "at": "+2",
-     "cond": "sleepData non-nil and onAdjust non-nil",
-     "effect": "renders the Edit button; otherwise renders nothing"
+     "cond": "sleepData non-nil and onAdjust set",
+     "effect": "renders the menu; else nothing"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.editSleepButton(_:)": "10a6e53d48552c04"
    }
   },
   {
-   "key": "var SleepDetailV2View.refreshSleepMenuItem",
-   "hash": "bb361753bebc0df3",
-   "does": "Renders refreshSleepButton when onRefresh is set.",
-   "entry": null,
+   "key": "func SleepDetailV2View.editSleepButton(_:)",
+   "hash": "4f1b1aa8a6afc691",
+   "does": "'Edit sleep' button that sets editorSleepData to the given sleep data, presenting the editor sheet.",
+   "entry": "Inside menuButton's Menu; tapped by the user.",
    "calls": [
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.refreshSleepButton(_:)"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "onRefresh non-nil",
-     "effect": "renders the refresh button; else nothing — always nothing in the app because no caller passes onRefresh"
-    }
+   "writes": [
+    "mem:SleepDetailV2View.editorSleepData"
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "The onRefresh-present branch never executes: no construction site passes onRefresh.",
-     "evidence": [
-      "Emuqu/Sources/Views/SleepDetailV2View.swift:272",
-      "Emuqu/Sources/Views/DashboardV2View.swift:479",
-      "Emuqu/Sources/Views/MorningResultsView.swift:323"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.refreshSleepButton(_:)": "57dfc11106fb25db"
-   }
-  },
-  {
-   "key": "func SleepDetailV2View.refreshSleepButton(_:)",
-   "hash": "6499c40e0fc1e21d",
-   "does": "Button that launches a Task awaiting the refresh closure.",
-   "entry": "Button action",
-   "calls": [
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.refreshSleepLabel",
-    "closure:onRefresh — never set by any caller"
-   ],
-   "reads": [],
-   "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Reached only via the never-true onRefresh branch.",
-     "evidence": [
-      "Emuqu/Sources/Views/SleepDetailV2View.swift:272"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.refreshSleepLabel": "acc543b8b542ceb5"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },
   {
@@ -655,7 +554,6 @@
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.body",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.sleepScore",
     "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.verdict",
     "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.noSleepDataSection"
    ],
@@ -672,7 +570,6 @@
    "deps": {
     "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.body": "7698d574175ed7fc",
     "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.noSleepDataSection": "d71b8b5320fe2333",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.sleepScore": "e092a243ffe6aedd",
     "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.verdict": "fb0f79a94efa67c0",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
     "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"

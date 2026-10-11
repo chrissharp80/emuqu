@@ -73,10 +73,13 @@ enum CoachVoiceGuard {
         var deflection: String { CoachVoiceGuard.deflection(for: concept.id) }
     }
 
-    /// Deflections are keyed by concept id so a lexicon addition without a
-    /// deflection is a compile-time-visible omission rather than a silent
-    /// pass-through. `CoachVoiceGuardTests.testEveryScrubbedConceptHasARule`
-    /// asserts the mapping is total.
+    /// One rule per concept in `MedicalTermLexicon.scrubFromOutput`, so every
+    /// scrubbed concept is enforced. Deflections are keyed by concept id; a
+    /// concept with no specific deflection is still scrubbed, with
+    /// `observationFallback` (see `deflection(for:)`), never passed through.
+    /// `CoachVoiceGuardTests.testDeflectionsCoverExactlyTheScrubbedConcepts`
+    /// checks that every deflection key is a scrubbed concept; nothing fails
+    /// when a new concept falls back to the generic line.
     static let rules: [Rule] = MedicalTermLexicon.scrubFromOutput.map { concept in
         Rule(concept: concept, reason: "Coach output: \(concept.id).")
     }
@@ -226,8 +229,15 @@ enum CoachVoiceGuard {
     /// reply.
     private static let everyReplyEntries: [Entry] = medicalEntries + [offensiveEntry].compactMap { $0 }
 
+    /// Nil when the concept's pattern does not compile; that drops the
+    /// concept from the perimeter, so it is logged as an error (shown under
+    /// Recent Problems) rather than only in the system console.
     private static func entry(for rule: Rule) -> Entry? {
-        MedicalTermLexicon.regex(for: rule.concept).map { (rule, $0) }
+        guard let regex = MedicalTermLexicon.regex(for: rule.concept) else {
+            debugLog("[CoachVoiceGuard] pattern for \(rule.id) failed to compile — replies are not scrubbed for it", level: .error)
+            return nil
+        }
+        return (rule, regex)
     }
 
     /// The rules that apply to `text`: every medical and offensive rule, plus
@@ -260,7 +270,8 @@ enum CoachVoiceGuard {
     /// The text is split into sentences ONCE, and each sentence is mapped
     /// through the rules independently — first matching rule wins, and a
     /// rewritten sentence is never re-examined. Sentences that match nothing
-    /// are returned byte-identical, whitespace included.
+    /// are returned byte-identical, whitespace included; only a rewritten
+    /// sentence is tidied.
     ///
     /// Not a per-rule "find first match, rewrite, re-scan the whole string"
     /// loop bounded by an iteration cap. Such a cap reads as a safety net
@@ -281,12 +292,13 @@ enum CoachVoiceGuard {
         var rebuilt = ""
         rebuilt.reserveCapacity(output.count)
         for segment in segments {
-            rebuilt += rewrite(segment, among: active, triggers: &triggers)
+            let rewritten = rewrite(segment, among: active, triggers: &triggers)
+            rebuilt += rewritten == segment ? rewritten : tidy(rewritten)
         }
         guard !triggers.isEmpty else {
             return deflectStraddlingMatch(output, segments: segments, entry: wholeTextMatch, among: active)
         }
-        return Result(scrubbed: tidy(rebuilt), triggers: triggers)
+        return Result(scrubbed: rebuilt, triggers: triggers)
     }
 
     /// The whole text matched a rule but no single sentence did, so the phrase
@@ -294,7 +306,7 @@ enum CoachVoiceGuard {
     /// newline, or a term split by the Arabic comma.
     ///
     /// Replace the sentences the match actually spans, keeping the rest of the
-    /// reply. If that is not possible, or if the result would still trip a rule,
+    /// reply byte-identical. If that is not possible, or if the result would still trip a rule,
     /// fall back to deflecting the whole message: this guard has already proved
     /// it can detect the phrase, so handing it back is not an option.
     private static func deflectStraddlingMatch(
@@ -315,7 +327,7 @@ enum CoachVoiceGuard {
         else {
             return Result(scrubbed: entry.rule.deflection, triggers: [(entry.rule.reason, output)])
         }
-        return Result(scrubbed: tidy(rebuilt),
+        return Result(scrubbed: rebuilt,
                       triggers: [(entry.rule.reason, String(output[matched]))])
     }
 
@@ -392,7 +404,7 @@ enum CoachVoiceGuard {
     private static let emphasisMarkers: Set<Character> = ["*", "_", "`"]
 
     /// Tidy double spaces / orphaned punctuation introduced by sentence
-    /// replacement. Only runs when something was actually replaced.
+    /// replacement. Only runs on text that was actually replaced.
     private static func tidy(_ text: String) -> String {
         text.replacingOccurrences(of: "  ", with: " ")
             .replacingOccurrences(of: " .", with: ".")
@@ -490,11 +502,33 @@ enum CoachVoiceGuard {
     /// publish, because a rule can only judge a whole sentence. The tail waits
     /// for its terminator.
     static func splitAtLastSentenceBoundary(_ text: String) -> (complete: String, tail: String) {
-        guard let lastTerminator = text.indices.last(where: { isSentenceTerminator(in: text, at: $0) }) else {
-            return ("", text)
-        }
-        let cut = text.index(after: lastTerminator)
+        guard let cut = lastSafeCut(in: text) else { return ("", text) }
         return (String(text[..<cut]), String(text[cut...]))
+    }
+
+    /// Terminators that can fall inside a phrase the guard deflects: a line
+    /// break (`see a\ndoctor` wrapped across lines) and the Arabic comma.
+    static let softTerminators: Set<Character> = ["\n", "،"]
+
+    /// Just past the last terminator nothing later can join to the text
+    /// before it. When the text ends in a run of soft terminators only, the
+    /// line they close waits for the next sentence: published alone, `see a\n`
+    /// would be shown and spoken before `doctor` arrived, and neither half
+    /// matches a rule. Once the next sentence completes, the scrub sees both
+    /// lines together and deflects the straddling phrase. A hard terminator
+    /// (`.`, `!`, `?`, ...) in the run ends the sentence as before.
+    private static func lastSafeCut(in text: String) -> String.Index? {
+        guard let last = text.indices.last(where: { isSentenceTerminator(in: text, at: $0) }) else { return nil }
+        guard softTerminators.contains(text[last]) else { return text.index(after: last) }
+        var runStart = last
+        while runStart > text.startIndex {
+            let previous = text.index(before: runStart)
+            let isTerminator = isSentenceTerminator(in: text, at: previous)
+            guard isTerminator || text[previous].isWhitespace else { break }
+            if isTerminator, !softTerminators.contains(text[previous]) { return text.index(after: last) }
+            runStart = previous
+        }
+        return text[..<runStart].indices.last { isSentenceTerminator(in: text, at: $0) }.map { text.index(after: $0) }
     }
 }
 

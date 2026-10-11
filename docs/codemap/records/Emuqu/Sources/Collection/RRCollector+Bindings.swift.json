@@ -45,11 +45,11 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.bindBatteryAndReconnect()": "42ed09b05a7d8151",
-    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.bindCloudSyncBaseline()": "8c539d190d3901d8",
+    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.bindCloudSyncBaseline()": "758967507706781b",
     "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.bindConnectionState()": "cc625807dc277787",
     "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.bindHealthKitSleep()": "7eed198de2f677b8",
     "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.bindPolarErrorForwarding()": "9db272eee2b63d39",
-    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.bindRecordingStateTracking()": "e41cc2acdba3e6fb",
+    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.bindRecordingStateTracking()": "83073db1026768a6",
     "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.bindSimplePropertyProxies()": "763d15f42324732e",
     "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.bindStreamingState()": "c4884d31aa68e362"
    }
@@ -83,8 +83,8 @@
   },
   {
    "key": "func CollectorSessionControl.bindRecordingStateTracking()",
-   "hash": "56c7d90a23f2cee6",
-   "does": "Observes polarManager.isRecordingOnDevice (with initial delivery): writes isCollecting and DeviceStatus.isRecordingOnDevice, and moves the recording phase idle↔deviceRecording.",
+   "hash": "abeded0b2cd4c60f",
+   "does": "Observes polarManager.isRecordingOnDevice (with initial delivery): mirrors it into DeviceStatus.isRecordingOnDevice and moves the recording phase idle↔deviceRecording. It never sets isCollecting from the strap (a strap recording alone is not a live session of this app, e.g. one left by a crash); when the strap stops while the phase is .deviceRecording it ends that device recording's collection (isCollecting=false) along with the phase.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.observe(_:initial:read:onChange:)"
@@ -94,36 +94,23 @@
     "mem:SessionState.recordingPhase"
    ],
    "writes": [
-    "mem:SessionState.isCollecting",
     "mem:DeviceStatus.isRecordingOnDevice",
-    "mem:SessionState.recordingPhase"
+    "mem:SessionState.recordingPhase",
+    "mem:SessionState.isCollecting"
    ],
    "branches": [
     {
-     "at": "+4",
+     "at": "+3",
      "cond": "strap recording AND phase is .idle",
-     "effect": "phase → .deviceRecording"
+     "effect": "phase → .deviceRecording (isCollecting untouched)"
     },
     {
-     "at": "+6",
+     "at": "+5",
      "cond": "strap not recording AND phase is .deviceRecording",
-     "effect": "phase → .idle; any other combination leaves phase"
+     "effect": "isCollecting=false and phase → .idle; any other combination leaves both"
     }
    ],
-   "flags": [
-    {
-     "kind": "coupling",
-     "sev": "high",
-     "text": "isCollecting is overwritten with the strap's isRecordingOnDevice on every change, regardless of which flow owns the strap; recovery code (strapRecordingBelongsToLiveSession, liveRecordingIds) reads isCollecting as 'this app has a live session', so an orphaned/crashed strap recording is treated as live and strap recovery is refused. It also flips isCollecting false when the strap stops during an overnight-streaming session that set it true.",
-     "evidence": [
-      "Emuqu/Sources/Collection/RRCollector+Bindings.swift:50",
-      "Emuqu/Sources/Collection/RRCollector+Recovery.swift:38",
-      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:157",
-      "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift:119"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isCollecting": "fae635a5d47df935",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase": "dab0f809cbb1be27",
@@ -274,7 +261,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.armSessionStateMirrorObservation()": "885f7ac119f35a5f",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.refreshLiveHRVSnapshotMirror()": "7ba8c48305040704"
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.refreshLiveHRVSnapshotMirror()": "19e4560b45088224"
    }
   },
   {
@@ -445,7 +432,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.handleReconnectExhaustedDuringOvernight()": "95b9ce3914a56b54",
-    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.finalizeFromPause()": "c9d07bc20111ce8a",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.finalizeFromPause()": "efe3996fe37eb94b",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "ddfd0bc6b3d69f3b",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "f5231cd4a715d649",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
@@ -489,75 +476,45 @@
   },
   {
    "key": "func CollectorSessionControl.bindCloudSyncBaseline()",
-   "hash": "986aa862b163fcd3",
-   "does": "Observes cloudSyncManager.pullVersion; when the baseline has 0 days collected, rebuilds it off-main from every archived session.",
+   "hash": "d0964794daa6976a",
+   "does": "Observes cloudSyncManager.pullVersion; when the baseline has 0 days collected and the archive holds entries, starts the collector's own off-main baseline rebuild (RRCollector.rebuildBaselineOffMain), whose main-actor commit skips if the tracker was seeded meanwhile.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.observe(_:initial:read:onChange:)",
-    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.rebuildBaselineAfterSync(archive:tracker:schedule:)"
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.rebuildBaselineOffMain(replacing:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries"
    ],
    "reads": [
     "mem:CloudKitSyncManager.pullVersion",
-    "mem:BaselineTracker.daysCollected"
+    "mem:BaselineTracker.daysCollected",
+    "archive:entries"
    ],
    "writes": [
-    "file:HRVBaseline (via tracker)"
+    "file:HRVBaseline (via tracker, in the rebuild's commit)"
    ],
    "branches": [
     {
      "at": "+2",
-     "cond": "baselineTracker.daysCollected != 0",
-     "effect": "returns; otherwise spawns detached rebuild"
+     "cond": "baselineTracker.daysCollected != 0 OR archive empty",
+     "effect": "returns; otherwise starts the rebuild"
     }
    ],
    "flags": [
     {
-     "kind": "duplicate",
+     "kind": "race",
      "sev": "low",
-     "text": "Same lightweight-decode-then-rebuildFromSessions job as RRCollector.rebuildBaselineOffMain/commitRebuiltBaseline, but without its commit-time daysCollected re-check, so a session seeded by the live path during the decode is not protected, and repeated pull bumps while still at 0 spawn concurrent full rebuilds.",
+     "text": "Repeated pull bumps while the tracker is still empty each start a full off-main decode; the commit re-check keeps only the first result, so the later decodes are wasted work.",
      "evidence": [
-      "Emuqu/Sources/Collection/RRCollector+Bindings.swift:244",
-      "Emuqu/Sources/Collection/RRCollector+Bindings.swift:255",
-      "Emuqu/Sources/Collection/RRCollector.swift:581",
-      "Emuqu/Sources/Collection/RRCollector.swift:606"
+      "Emuqu/Sources/Collection/RRCollector+Bindings.swift:251",
+      "Emuqu/Sources/Collection/RRCollector.swift:620"
      ],
-     "found": "first read, upheld on second"
+     "found": "fix batch b11"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.rebuildBaselineAfterSync(archive:tracker:schedule:)": "451a158c409b3731",
-    "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.observe(_:initial:read:onChange:)": "5ef79ca8e7bb0dc5"
-   }
-  },
-  {
-   "key": "func CollectorSessionControl.rebuildBaselineAfterSync(archive:tracker:schedule:)",
-   "hash": "317b45c2f865a264",
-   "does": "Off-main: decodes every archived session lightweight and rebuilds the baseline from them.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.rebuildFromSessions(_:sleepSchedule:)"
-   ],
-   "reads": [
-    "archive:entries",
-    "archive:session files"
-   ],
-   "writes": [
-    "file:HRVBaseline (BaselineTracker save)"
-   ],
-   "branches": [
-    {
-     "at": "+4",
-     "cond": "archive has no entries",
-     "effect": "returns"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.rebuildFromSessions(_:sleepSchedule:)": "d1901cb2aed50e88",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.rebuildBaselineOffMain(replacing:)": "bbf6d324097dbdcd",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
+    "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.observe(_:initial:read:onChange:)": "5ef79ca8e7bb0dc5"
    }
   },
   {
@@ -578,15 +535,15 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.findRecentPausedSessionOffMain(archive:maxGap:)": "36e3914cdbe2a842",
+    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.findRecentPausedSessionOffMain(archive:maxGap:)": "2b5cbff9adc6978e",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recentPausedSession": "3fb5e723b5dae6c8",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMergeGapSeconds": "a032844ad65e2bb1"
    }
   },
   {
    "key": "func CollectorSessionControl.findRecentPausedSessionOffMain(archive:maxGap:)",
-   "hash": "52d48ac06541ff34",
-   "does": "Pure off-main: among overnight archive entries within maxGap, returns the first paused session paused within maxGap, else the first complete one ended within maxGap.",
+   "hash": "bccd85332e299564",
+   "does": "Pure off-main: among overnight archive entries whose end (entry.endDate, else its start) is within maxGap, returns the first paused session paused within maxGap, else the first complete one ended within maxGap. Filtering by the end, not the start, finds a night paused or finished minutes ago that began hours earlier.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
@@ -604,38 +561,27 @@
      "effect": "returns nil"
     },
     {
-     "at": "+8",
+     "at": "+7",
+     "cond": "entry ended (endDate ?? date) before now - maxGap",
+     "effect": "not loaded"
+    },
+    {
+     "at": "+10",
      "cond": "paused session pausedDate nil",
      "effect": "treated as distantPast → excluded"
     },
     {
-     "at": "+10",
+     "at": "+12",
      "cond": "a paused candidate exists",
      "effect": "returns it (paused wins)"
     },
     {
-     "at": "+12",
+     "at": "+14",
      "cond": "complete session endDate nil",
      "effect": "treated as distantPast → excluded; none → nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "Entries are pre-filtered by entry.date (the session START) >= now - maxGap, before the pausedDate/endDate checks. A night that started more than maxGap ago (4.5 h by default) is never returned even if it was paused or completed minutes ago, so the 'Continue Recovery' card does not appear for a typical mid-night pause after 4.5 h of sleep, and the 'recently completed' branch never matches a full overnight. USERS_MANUAL.md:334 promises the card whenever the paused session is within the merge window.",
-     "evidence": [
-      "Emuqu/Sources/Collection/RRCollector+Bindings.swift:294",
-      "Emuqu/Sources/Collection/RRCollector+Bindings.swift:296",
-      "Emuqu/Sources/Collection/RRCollector+Bindings.swift:299",
-      "Emuqu/Sources/Collection/RRCollector+Bindings.swift:303",
-      "Emuqu/Sources/Storage/Archive+IndexIO.swift:287",
-      "Emuqu/Sources/Models/UserSettings+Model.swift:768",
-      "docs/USERS_MANUAL.md:334"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
@@ -723,8 +669,8 @@
   },
   {
    "key": "func CollectorSessionControl.runMergeDataLossMigrationIfNeeded()",
-   "hash": "b9633003ad24497f",
-   "does": "Unless the v6 flag is set, runs repairMergeDataLoss in a detached task and then sets the flag.",
+   "hash": "055c3b68d8439aa0",
+   "does": "Unless the v6 flag is set, runs repairMergeDataLoss in a detached task, logs repaired/failed counts, and sets the flag only when no repair failed to write (so a failed night is retried on a later launch; repaired nights read as healthy and are skipped).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery",
@@ -742,23 +688,16 @@
      "at": "+1",
      "cond": "flag already true",
      "effect": "returns"
-    }
-   ],
-   "flags": [
+    },
     {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "The flag is set after repairMergeDataLoss returns regardless of whether it stopped early or any per-session repair failed (failures return false and are logged), so failed repairs are never retried.",
-     "evidence": [
-      "Emuqu/Sources/Collection/RRCollector+Bindings.swift:392",
-      "Emuqu/Sources/Collection/RRCollector+Bindings.swift:394",
-      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:781"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+6",
+     "cond": "outcome.failed > 0",
+     "effect": "returns without setting the flag"
     }
    ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.repairMergeDataLoss()": "eda8eef6c9197858",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.repairMergeDataLoss()": "ee878a0db870963c",
     "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }

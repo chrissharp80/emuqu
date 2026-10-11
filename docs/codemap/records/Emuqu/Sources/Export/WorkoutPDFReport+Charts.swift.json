@@ -10,21 +10,7 @@
   "mem:WorkoutPDFRenderer.routeMapSize (static let 540x320)"
  ],
  "toplevel": "Extension on WorkoutPDFRenderer; RouteMapImage and Alpha1ChartScales nested types; static routeMapSize.",
- "flags": [
-  {
-   "kind": "hack",
-   "sev": "low",
-   "text": "α1 band thresholds 0.75/0.50 are hard-coded in the chart threshold lines and polyline colouring instead of HRVConstants.DFA.alpha1AerobicThreshold/alpha1AnaerobicThreshold used by alpha1Stats; changing the constant would desynchronise the chart from the statistics.",
-   "evidence": [
-    "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift:183",
-    "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift:190",
-    "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift:264",
-    "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift:265",
-    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift:415"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "func WorkoutPDFRenderer.drawHRChart(in:samples:)",
@@ -72,7 +58,7 @@
    "deps": {
     "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.drawHRCurve(ctx:points:px:py:)": "9f738061bf09d978",
     "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.drawHRYAxisTicks(plot:minY:maxY:py:)": "ac44417c02715e58",
-    "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.drawHRZoneBands(plot:minY:maxY:py:)": "3ef2116c10da05f5",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.drawHRZoneBands(plot:minY:maxY:py:)": "5bd60597a823ac15",
     "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.fillChartFrame(_:)": "a1dd6bc9bdb8f831",
     "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.hrChartPoints(_:)": "ad26ea596baaec5e",
     "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.px(_:)": "6263ca94a580dfe3",
@@ -127,8 +113,8 @@
   },
   {
    "key": "func WorkoutPDFRenderer.drawHRZoneBands(plot:minY:maxY:py:)",
-   "hash": "bfb65dd744a6ae43",
-   "does": "Fills five translucent bands at 50-60/60-70/70-80/80-90 % HRmax and 90 % to HRmax+10 bpm, skipping bands outside [minY,maxY] and clamping the rest.",
+   "hash": "ee73538ee21d1f59",
+   "does": "Fills five translucent bands at 50-60/60-70/70-80/80-90 % HRmax and an open-ended Z5 from 90 % to the top of the plot (as the zone table and zone seconds count it), skipping bands outside [minY,maxY] and clamping the rest.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -140,19 +126,7 @@
      "effect": "true: clamped rect filled; false: skipped (all skipped when userMaxHR is 0)"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Top zone is drawn up to HRmax+10 bpm, the zone table labels Z5 as 90-105 % HRmax, and hrZoneSeconds counts every HR above 90 % in Z5 — three different upper edges for the same zone in one report.",
-     "evidence": [
-      "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift:80",
-      "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift:265",
-      "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift:360"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.py(_:)": "9c895915179d2122",
     "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.userMaxHR": "49805330e3ae7d57"
@@ -205,7 +179,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.py(_:)": "9c895915179d2122",
-    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawText(_:at:font:color:)": "cf0c4a03d95a0462",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawText(_:at:font:color:)": "585e546a7f4e4bb8",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
    }
   },
@@ -258,12 +232,12 @@
     "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.alpha1ChartPoints()": "8f6da48c3490301e",
     "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.alpha1ChartScales(points:plot:)": "63f34d938704160b",
     "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.drawAlpha1Grid(ctx:plot:minY:maxY:py:)": "fa1820c79653267a",
-    "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.drawAlpha1Thresholds(ctx:plot:py:)": "e0e2601f3cace449",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.drawAlpha1Thresholds(ctx:plot:py:)": "e49177f7b1113ec2",
     "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.fillChartFrame(_:)": "a1dd6bc9bdb8f831",
     "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.px(_:)": "6263ca94a580dfe3",
     "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.py(_:)": "9c895915179d2122",
     "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.strokeAlpha1Curve(ctx:points:px:py:)": "b3be0402a5ae3483",
-    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawText(_:at:font:color:)": "cf0c4a03d95a0462",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawText(_:at:font:color:)": "585e546a7f4e4bb8",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
    }
@@ -344,7 +318,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.py(_:)": "9c895915179d2122",
-    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawText(_:at:font:color:)": "cf0c4a03d95a0462",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawText(_:at:font:color:)": "585e546a7f4e4bb8",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
     "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.divider": "3dbf0b2b37c7ac21",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
@@ -352,8 +326,8 @@
   },
   {
    "key": "func WorkoutPDFRenderer.drawAlpha1Thresholds(ctx:plot:py:)",
-   "hash": "5f7ed87c609884c7",
-   "does": "Draws dashed AT1 (0.75, sage) and AT2 (0.50, orange) reference lines with labels, then resets the dash.",
+   "hash": "b025be9152181c1c",
+   "does": "Draws dashed AT1 (HRVConstants.DFA.alpha1AerobicThreshold, 0.75, sage) and AT2 (alpha1AnaerobicThreshold, 0.50, orange) reference lines with labels, then resets the dash.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawText(_:at:font:color:)",
@@ -365,7 +339,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.py(_:)": "9c895915179d2122",
-    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawText(_:at:font:color:)": "cf0c4a03d95a0462",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawText(_:at:font:color:)": "585e546a7f4e4bb8",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },
@@ -468,7 +442,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.bandColor(_:sage:)": "b8c5d0e52171f219",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.bandColor(_:sage:)": "02e591fc4df48286",
     "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.nearestPreceding(_:in:values:)": "a66b948ebce3474d",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
    }
@@ -498,8 +472,8 @@
   },
   {
    "key": "func WorkoutPDFRenderer.bandColor(_:sage:)",
-   "hash": "0ce78f06f886783f",
-   "does": "Maps α1 to colour: ≥0.75 sage, ≥0.50 systemYellow, else orange.",
+   "hash": "1c45576424e1a832",
+   "does": "Maps α1 to colour on the HRVConstants.DFA thresholds: ≥ aerobic (0.75) sage, ≥ anaerobic (0.50) systemYellow, else orange.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -507,12 +481,12 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "α1 >= 0.75",
+     "cond": "α1 >= alpha1AerobicThreshold",
      "effect": "sage"
     },
     {
      "at": "+2",
-     "cond": "α1 >= 0.50",
+     "cond": "α1 >= alpha1AnaerobicThreshold",
      "effect": "systemYellow; else orange"
     }
    ],
@@ -521,13 +495,14 @@
   },
   {
    "key": "func WorkoutPDFRenderer.renderMapSnapshot()",
-   "hash": "4b9007d6825d054c",
-   "does": "Snapshots the track's bounding region with MKMapSnapshotter (540x320 @1x) and returns the image plus every track coordinate projected by the snapshot; nil when no track or snapshot fails (error discarded).",
+   "hash": "5db46b1a03ef9433",
+   "does": "Snapshots the track's bounding region with MKMapSnapshotter (540x320 @1x) and returns the image plus every track coordinate projected by the snapshot; nil when no track or the snapshot fails, a failure being logged at warning level (logSnapshotFailure).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.mapSnapshotOptions()",
     "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.routeMap(from:track:)",
-    "ext:MKMapSnapshotter.start"
+    "ext:MKMapSnapshotter.start",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.logSnapshotFailure(_:)"
    ],
    "reads": [],
    "writes": [
@@ -544,18 +519,40 @@
     {
      "kind": "silent-failure",
      "sev": "low",
-     "text": "The snapshot error argument is ignored (`snapshot, _`); a network/tile failure returns nil and generate() silently drops the whole Effort & Terrain page with no indication in the report.",
+     "text": "A failed snapshot (network/tile error) returns nil and generate() drops the whole Effort & Terrain page; the failure is now logged at warning level (Troubleshooting > Recent Problems) but the report itself still says nothing about the missing page.",
      "evidence": [
-      "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift:283",
-      "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift:292",
+      "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift:289",
       "Emuqu/Sources/Export/WorkoutPDFReport.swift:121"
      ],
      "found": "first read, upheld on second"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.logSnapshotFailure(_:)": "61a613762c4a942d",
     "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.mapSnapshotOptions()": "7109b1cf814cfba1",
     "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.routeMap(from:track:)": "0645c04b4d9ac553"
+   }
+  },
+  {
+   "key": "func WorkoutPDFRenderer.logSnapshotFailure(_:)",
+   "hash": "5cc16724e384f3e4",
+   "does": "Logs a non-nil snapshot error at warning level ('Map snapshot failed, Effort & Terrain page omitted'); nothing for nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "error nil",
+     "effect": "returns"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {

@@ -1,11 +1,13 @@
 {
  "file": "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift",
- "hash": "fb7845e817d0745d",
+ "hash": "f6c1fe026c7d3233",
  "role": "Extension of HRVSleepStageClassifier: 3-point stage smoothing, window→interval construction, a percentile helper, and the Apple Watch augmentation path that repaints only the Watch's own intervals where HRV evidence overrides the Watch stage.",
  "types": [
   "HRVSleepStageClassifier: extension — smoothing, intervals, augmentation"
  ],
- "state": [],
+ "state": [
+  "mem:HRVSleepStageClassifier.tieOrder = [deep, rem, core, unspecified, awake] (dominantStage tie-break)"
+ ],
  "toplevel": "",
  "flags": [],
  "units": [
@@ -44,8 +46,8 @@
   },
   {
    "key": "func HRVSleepStageClassifier.buildIntervals(windows:stages:)",
-   "hash": "3c2811ded1ad8d0b",
-   "does": "Joins consecutive windows of the same stage into SleepStageIntervals; a stage change or a time gap between windows (dropped window) closes the interval at the previous window's end.",
+   "hash": "8b6fe0e34b66dced",
+   "does": "Joins consecutive windows of the same stage into SleepStageIntervals tagged .hrvDerived (inferred from beat intervals, not Watch); a stage change or a time gap between windows (dropped window) closes the interval at the previous window's end.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)"
@@ -64,23 +66,7 @@
      "effect": "append interval, start new"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "buildIntervals creates SleepStageIntervals without a provenance, so they take the init default `.watch` (SleepDomain.swift:94). Every standalone-classified night (SleepResolver row 2, HRSleepEstimator) therefore carries stages labelled as Apple Watch: SleepDetailV2View's 'stages estimated from heart-beat intervals ... accuracy is unknown' disclaimer, which keys on `.hrvDerived`, never shows for them, and the timeline editor labels the source 'Watch'. SleepResolver.inferStagesFromRR's doc says it returns stages tagged `.hrvDerived`.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift:44",
-      "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift:50",
-      "Emuqu/Sources/Models/SleepDomain.swift:94",
-      "Emuqu/Sources/Analysis/SleepResolver.swift:618",
-      "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift:565",
-      "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift:579",
-      "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift:185"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "ec3d6b9cd4d65d48"
    }
@@ -162,9 +148,9 @@
     "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.applyAugmentationDecisions(windows:watchStages:scores:)": "45d9f53143a57ecf",
     "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.applyOverrides(_:to:)": "fe7221112260bf0c",
     "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.augmentationResult(intervals:augmentations:epochs:)": "59bbc6775a66d956",
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.dominantStage(in:watchIntervals:)": "7ef3e67455e0e356",
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.buildFeatureWindows(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "e5152bee7dc8280c",
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.computeWindowScores(_:sleepStartMs:)": "ca56192b37a63184",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.dominantStage(in:watchIntervals:)": "76f462eeb01a8576",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.buildFeatureWindows(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "21b30303ee6cdb18",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.computeWindowScores(_:sleepStartMs:)": "ce4e4c3f550a3ea6",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
@@ -266,7 +252,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.augmentationScore(for:in:)": "b512a5b8eeb6c3a5",
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.decideAugmentedStage(watch:score:)": "4a02331fc5d9c8ed"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.decideAugmentedStage(watch:score:)": "623a185074dd83eb"
    }
   },
   {
@@ -299,8 +285,8 @@
   },
   {
    "key": "func HRVSleepStageClassifier.decideAugmentedStage(watch:score:)",
-   "hash": "7f7b21a9f4fa3126",
-   "does": "Per-Watch-stage override rules: core/unspecified → augmentedFromCore; awake → REM if LF/HF available, REM > 0.68 and awake < 0.80; deep → REM if LF/HF available, REM > 0.72 and deep < 0.40; REM → deep if deep > 0.72 and REM < 0.40 (no LF/HF gate).",
+   "hash": "8527655ee2de375d",
+   "does": "Per-Watch-stage override rules: core/unspecified → augmentedFromCore; awake → REM if LF/HF available, REM > 0.68 and awake < 0.80; deep → REM if LF/HF available, REM > 0.72 and deep < 0.40; REM → deep if deep > 0.72 and the unforced REM evidence (remEvidence, else remScore) < 0.40 (no LF/HF gate), so the first-hour REM suppression is not read as opposing evidence.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.augmentedFromCore(watch:score:)"
@@ -340,7 +326,7 @@
     },
     {
      "at": "+18",
-     "cond": "deep > 0.72 && rem < 0.40",
+     "cond": "deep > 0.72 && (remEvidence ?? remScore) < 0.40",
      "effect": "true: .deep; false: keep REM"
     }
    ],
@@ -428,10 +414,12 @@
   },
   {
    "key": "func HRVSleepStageClassifier.dominantStage(in:watchIntervals:)",
-   "hash": "d1d1a83a0521200c",
-   "does": "Watch stage with the greatest overlap seconds within the window, or nil when no Watch interval overlaps.",
+   "hash": "6c93845e6012b47f",
+   "does": "Watch stage with the greatest overlap seconds within the window (an exact tie goes to the earlier stage in tieOrder: deep, rem, core, unspecified, awake), or nil when no Watch interval overlaps.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.tieRank(_:)"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
@@ -446,17 +434,21 @@
      "effect": "false: skip"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "On an exact duration tie between two stages, Dictionary.max returns whichever key hash order yields, so the chosen dominant stage is not deterministic across runs.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift:286"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.tieRank(_:)": "36983461fd0b1872"
+   }
+  },
+  {
+   "key": "func HRVSleepStageClassifier.tieRank(_:)",
+   "hash": "55527cdca15f9a80",
+   "does": "Position of a stage in tieOrder (deep, rem, core, unspecified, awake); count when absent.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
    "deps": {}
   }
  ],

@@ -1,30 +1,19 @@
 {
  "file": "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift",
- "hash": "3163f58077881a5e",
- "role": "One per-workout training load for every screen: HealthWorkoutSummary.userScaledLoad = effectiveLoad against resting/max HR anchors, with the latest Apple Health resting HR cached in-process.",
+ "hash": "596ff871450611d6",
+ "role": "One per-workout training load for every screen: HealthWorkoutSummary.userScaledLoad = effectiveLoad against resting/max HR anchors, with the latest Apple Health resting HR (and when it was measured) kept across launches so loads read the same before and after a launch's first HealthKit fetch.",
  "types": [
   "HealthKitManager.WorkoutSummary (HealthWorkoutSummary): extension — userScaledLoad",
   "WorkoutLoadRestingHR: enum — anchor resolution + cached Apple resting HR"
  ],
  "state": [
-  "mem:WorkoutLoadRestingHR.lastAppleValue (OSAllocatedUnfairLock<Double?>, in-memory only)"
+  "mem:WorkoutLoadRestingHR.lastAppleValue (OSAllocatedUnfairLock<(value, at)?>, seeded from UserDefaults at first use)",
+  "ud:WorkoutLoadRestingHR.lastApple.v1 (dictionary value/at)",
+  "static maxAgeDays = 30",
+  "private static storeKey"
  ],
- "toplevel": "Static lock initialised to nil at first use.",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "lastAppleValue is in-memory and only filled when fetchAppleRestingHR runs; until then userScaledLoad uses the settings resting HR, so the same workout's load (TRIMP path) can read differently on screens rendered before vs after the first HealthKit fetch in a launch, contrary to the header's 'the same ride reads the same on each'.",
-   "evidence": [
-    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift:5",
-    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift:10",
-    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift:24",
-    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift:30",
-    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:420"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "Static lock initialised at first use from the persisted value (stored()).",
+ "flags": [],
  "units": [
   {
    "key": "var HealthKitManager.WorkoutSummary.userScaledLoad",
@@ -37,6 +26,7 @@
    ],
    "reads": [
     "mem:WorkoutLoadRestingHR.lastAppleValue",
+    "ud:WorkoutLoadRestingHR.lastApple.v1",
     "mem:UserSettings.effectiveRestingHR",
     "mem:UserSettings.effectiveMaxHR"
    ],
@@ -45,22 +35,24 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.effectiveLoad(restingHR:maxHR:)": "65bf65d390a4ab48",
-    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var WorkoutLoadRestingHR.anchors": "5cc89bb0617e7559"
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var WorkoutLoadRestingHR.anchors": "5a87ae9bacab6e90"
    }
   },
   {
    "key": "var WorkoutLoadRestingHR.anchors",
-   "hash": "79a51ff691b87a01",
-   "does": "Resolves HeartRateAnchors from the cached Apple resting HR (if any) else the settings resting HR, plus settings max HR, via the lock-backed settings snapshot.",
+   "hash": "5b9431e917b212c5",
+   "does": "Resolves HeartRateAnchors from the Apple resting HR when one measured within maxAgeDays is known (currentAppleValue: memory, seeded from UserDefaults) else the settings resting HR, plus settings max HR, via the lock-backed settings snapshot.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR",
-    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.HeartRateAnchors.resolve(appleRestingHR:settingRestingHR:settingMaxHR:)"
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.HeartRateAnchors.resolve(appleRestingHR:settingRestingHR:settingMaxHR:)",
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::func WorkoutLoadRestingHR.currentAppleValue()"
    ],
    "reads": [
     "mem:WorkoutLoadRestingHR.lastAppleValue",
+    "ud:WorkoutLoadRestingHR.lastApple.v1",
     "mem:SettingsManager.settingsSnapshot"
    ],
    "writes": [],
@@ -68,6 +60,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.HeartRateAnchors.resolve(appleRestingHR:settingRestingHR:settingMaxHR:)": "dfdd44d3d02fa987",
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::func WorkoutLoadRestingHR.currentAppleValue()": "1eb84bf85a935be1",
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "599269848673b93a",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "6de242bd745f1424",
@@ -76,20 +69,61 @@
    }
   },
   {
-   "key": "func WorkoutLoadRestingHR.record(_:)",
-   "hash": "0022214c7c9c5c5b",
-   "does": "Caches a finite positive Apple resting HR value.",
-   "entry": null,
+   "key": "func WorkoutLoadRestingHR.record(_:measuredAt:)",
+   "hash": "672564a0ab5f13ed",
+   "does": "Keeps a finite positive Apple resting HR value with its measurement date, in memory and in UserDefaults (lastApple.v1), so later launches start from it.",
+   "entry": "Called by TrainingHealthQueries.fetchAppleRestingHR with each value it reads.",
    "calls": [],
    "reads": [],
    "writes": [
-    "mem:WorkoutLoadRestingHR.lastAppleValue"
+    "mem:WorkoutLoadRestingHR.lastAppleValue",
+    "ud:WorkoutLoadRestingHR.lastApple.v1"
    ],
    "branches": [
     {
      "at": "+1",
      "cond": "value finite and > 0",
-     "effect": "false: ignored; true: stored"
+     "effect": "false: ignored; true: stored in memory and UserDefaults"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutLoadRestingHR.currentAppleValue()",
+   "hash": "7cbc88d89b001b97",
+   "does": "The kept Apple resting HR when it was measured within maxAgeDays (30) of now, else nil (the setting is used then, as trainingHeartRateAnchors does once HealthKit has no value that recent).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WorkoutLoadRestingHR.lastAppleValue"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a value is kept and is at most maxAgeDays old",
+     "effect": "returns it; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutLoadRestingHR.stored()",
+   "hash": "036b5c632ffbabff",
+   "does": "The value and date persisted under lastApple.v1, or nil when absent or malformed; seeds the in-memory lock at first use.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ud:WorkoutLoadRestingHR.lastApple.v1"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "dictionary present with Double value and at",
+     "effect": "(value, date); else nil"
     }
    ],
    "flags": [],

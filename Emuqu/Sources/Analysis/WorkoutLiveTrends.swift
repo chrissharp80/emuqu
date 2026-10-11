@@ -63,6 +63,12 @@ enum WorkoutLiveTrends {
     /// over HR so a higher second-half ratio means MORE efficient
     /// (lower HR for same speed). The reported number is the
     /// percentage drop; positive = decoupling has occurred.
+    ///
+    /// This is the LIVE estimate, from the per-second samples (mean sample
+    /// speed and HR over the two halves of active time). The finished
+    /// workout's figure is `WorkoutAnalyzer.computeDecoupling`, from the GPS
+    /// track's moving distance/time and RR-derived HR, so the two can differ
+    /// for the same run.
     static func aerobicDecouplingPercent(samples: [WorkoutSample]) -> Double? {
         guard let last = samples.last, last.offsetSec >= halfMetricsMinSeconds else { return nil }
         let mid = last.offsetSec / 2
@@ -169,21 +175,27 @@ enum WorkoutLiveTrends {
     /// across it (rise over run between the chunk's endpoints). A sample
     /// without an altitude carries the last known altitude forward; the grade
     /// is nil when no altitude is known at either endpoint, so that split is
-    /// reported at its raw pace instead of a fabricated grade.
+    /// reported at its raw pace instead of a fabricated grade. When the
+    /// chunk's start had no altitude yet, the climb is measured from the first
+    /// sample that has one and divided by the distance from THAT sample
+    /// (`altDist`), not by the whole chunk, so the grade is not understated.
     private static func kilometreSplits(_ samples: [WorkoutSample]) -> [(rawPace: Double, gradePercent: Double?, km: Double)] {
         var splits: [(rawPace: Double, gradePercent: Double?, km: Double)] = []
-        var start = (dist: 0.0, sec: 0, alt: Double?.none)
+        var start = (dist: 0.0, sec: 0, alt: Double?.none, altDist: 0.0)
         var lastAlt: Double?
         for s in samples {
             guard let d = s.distanceMeters else { continue }
             lastAlt = s.altitudeMeters ?? lastAlt
-            if start.alt == nil { start.alt = lastAlt }
+            if start.alt == nil, lastAlt != nil {
+                start.alt = lastAlt
+                start.altDist = d
+            }
             let run = d - start.dist
             guard run >= 1_000 else { continue }
             let rawPace = Double(s.offsetSec - start.sec) / (run / 1_000)
-            let grade = splitGrade(from: start.alt, to: lastAlt, run: run)
+            let grade = splitGrade(from: start.alt, to: lastAlt, run: d - start.altDist)
             splits.append((rawPace, grade, run / 1_000))
-            start = (d, s.offsetSec, lastAlt)
+            start = (d, s.offsetSec, lastAlt, d)
         }
         return splits
     }
@@ -554,7 +566,9 @@ struct WorkoutHistoryBaselines: Equatable {
     /// Sample-weighted average α1 across matched workouts that
     /// captured α1.
     let avgAlpha1: Double?
-    /// Number of matched workouts that contributed any data.
+    /// Number of matched workouts: the most recent `limit` of this sport,
+    /// whether or not each one carried distance, HR or α1. Zero means no
+    /// workout of the sport exists, not that none had data.
     let sampleCount: Int
 
     static let empty = WorkoutHistoryBaselines(

@@ -1,37 +1,17 @@
 {
  "file": "Emuqu/Sources/Views/SensorManagementSheet.swift",
- "hash": "482cef0648f3374a",
+ "hash": "8dd5493f524321b2",
  "role": "Fitness-tab 'Sensors' sheet: manage the Polar strap (pair, reconnect, disconnect, stop scan, swipe-to-forget), Stryd/FTMS foot pod or bike trainer, and Concept2 PM5, each as a List section driven by its manager's connection state.",
  "types": [
   "SensorManagementSheet: struct View — the sheet; Polar section built inline",
-  "FootPodRow: private struct View — status/badge/buttons/discovered list for FootPodManager.shared (via dependencies)",
-  "PM5Row: private struct View — same for Concept2Manager.shared",
-  "DiscoveredSensorButton: private struct View — one tap-to-pair row for a scanned device"
+  "FootPodRow: private struct View — FootPodManager (via dependencies) read into AccessorySensorRow",
+  "PM5Row: private struct View — Concept2Manager (via dependencies) read into AccessorySensorRow",
+  "AccessorySensorRow: private struct View — shared status/badge/buttons/discovered list for a BLE accessory (Link, Device, Content, Actions)",
+  "DiscoveredSensorButton: private struct View — one tap-to-pair row for a scanned device (Polar, foot pod and PM5)"
  ],
  "state": [],
  "toplevel": "No globals. Accessibility identifiers 'sensors.root' (26) and 'sensors.pairStrap' (198) used by UI tests.",
- "flags": [
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "FootPodRow and PM5Row are line-for-line the same view (status row, badge, state-driven buttons, title/color/badge switches) over two managers sharing BLEPeripheralConnecting; any fix must be made twice.",
-   "evidence": [
-    "Emuqu/Sources/Views/SensorManagementSheet.swift:298-434",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift:438-572"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "Polar discoveredDeviceButton re-implements DiscoveredSensorButton (whose doc says it renders a device 'as the Polar list shows it') without its 44pt min height / plain style.",
-   "evidence": [
-    "Emuqu/Sources/Views/SensorManagementSheet.swift:130",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift:576-596"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "var SensorManagementSheet.body",
@@ -119,17 +99,18 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var SensorManagementSheet.stateDrivenPolarButtons": "5d5a2f19933b6981"
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var SensorManagementSheet.stateDrivenPolarButtons": "21c272c7bf5d4603"
    }
   },
   {
    "key": "var SensorManagementSheet.stateDrivenPolarButtons",
-   "hash": "ad4c3b08f4d4466f",
-   "does": "Picks Polar buttons by connection state: Disconnect when connected, Stop scanning when scanning, Reconnect + Pair another when known devices exist, otherwise Pair a strap.",
+   "hash": "55ef7dbbf6c25093",
+   "does": "Picks Polar buttons by connection state: Disconnect when connected, Stop scanning when scanning, Cancel (cancelConnection) while connecting, Reconnect + Pair another when known devices exist, otherwise Pair a strap.",
    "entry": "SwiftUI evaluates it as part of the parent view's body",
    "calls": [
     "Emuqu/Sources/Views/SensorManagementSheet.swift::var SensorManagementSheet.disconnectPolarButton",
     "Emuqu/Sources/Views/SensorManagementSheet.swift::var SensorManagementSheet.stopScanningPolarButton",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var SensorManagementSheet.cancelConnectionPolarButton",
     "Emuqu/Sources/Views/SensorManagementSheet.swift::var SensorManagementSheet.reconnectButton2",
     "Emuqu/Sources/Views/SensorManagementSheet.swift::var SensorManagementSheet.pairAnotherButton3",
     "Emuqu/Sources/Views/SensorManagementSheet.swift::var SensorManagementSheet.pairStrapButton"
@@ -141,38 +122,30 @@
    "writes": [],
    "branches": [
     {
-     "at": "+2",
-     "cond": "connectionState == .connected",
-     "effect": "true: disconnect button"
+     "at": "+1",
+     "cond": "connected",
+     "effect": "Disconnect"
     },
     {
-     "at": "+4",
-     "cond": "connectionState == .scanning",
-     "effect": "true: stop-scanning button"
+     "at": "+3",
+     "cond": "scanning",
+     "effect": "Stop scanning"
     },
     {
-     "at": "+6",
-     "cond": "knownDevices non-empty",
-     "effect": "true: Reconnect + Pair another; false: Pair a strap (also the path for .connecting with no known devices; .connecting with known devices shows Reconnect + Pair another)"
-    }
-   ],
-   "flags": [
+     "at": "+5",
+     "cond": "connecting",
+     "effect": "Cancel connection attempt"
+    },
     {
-     "kind": "broken",
-     "sev": "med",
-     "text": "While connectionState == .connecting the sheet shows Reconnect + 'Pair another' (known devices) or 'Pair a strap' (none). startScanning is refused unless state is .disconnected (only a debugLog), so those scan buttons do nothing, and the sheet offers no way to cancel the attempt although PolarManager.cancelConnection exists and the Record tab's panel uses it.",
-     "evidence": [
-      "Emuqu/Sources/Views/SensorManagementSheet.swift:98",
-      "Emuqu/Sources/Views/SensorManagementSheet.swift:101",
-      "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift:37-39",
-      "Emuqu/Sources/Collection/PolarManager+Discovery.swift:17",
-      "Emuqu/Sources/Views/ConnectionPanelViews.swift:58"
-     ],
-     "found": "second read"
+     "at": "+7",
+     "cond": "known devices exist",
+     "effect": "Reconnect + Pair another; else Pair a strap"
     }
    ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var SensorManagementSheet.cancelConnectionPolarButton": "0f1faf2583bfba38",
     "Emuqu/Sources/Views/SensorManagementSheet.swift::var SensorManagementSheet.disconnectPolarButton": "41fe6e9a4b9be15b",
     "Emuqu/Sources/Views/SensorManagementSheet.swift::var SensorManagementSheet.pairAnotherButton3": "165919a9a53c7615",
     "Emuqu/Sources/Views/SensorManagementSheet.swift::var SensorManagementSheet.pairStrapButton": "e651d5c2702b0ac7",
@@ -210,6 +183,26 @@
     "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.disconnect()": "4bf10c09b5a18571",
     "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.disconnect()": "7e08aaa2301e6fe9",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteUserDisconnect()": "c9008851c9f63c04",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var SensorManagementSheet.cancelConnectionPolarButton",
+   "hash": "8ea489b7ba8e74eb",
+   "does": "Destructive \"Cancel\" button (VoiceOver \"Cancel connection\") that stops the connection attempt via polarManager.cancelConnection().",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.cancelConnection()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:PolarManager.connectionState (via cancelConnection)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.cancelConnection()": "1fcd3ad7af42afb8",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },
@@ -258,21 +251,17 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::func SensorManagementSheet.discoveredDeviceButton(_:)": "b3359c782314bf91"
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::func SensorManagementSheet.discoveredDeviceButton(_:)": "7ae0fd506263502d"
    }
   },
   {
    "key": "func SensorManagementSheet.discoveredDeviceButton(_:)",
-   "hash": "aed0f35a6dab70c9",
-   "does": "Button row with device name and 'Tap to pair' that calls polarManager.connect(deviceId:).",
+   "hash": "6df872859a568f59",
+   "does": "DiscoveredSensorButton for a scanned strap whose tap calls polarManager.connect(deviceId:).",
    "entry": "Button tap",
    "calls": [
-    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.connect(deviceId:)",
-    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.connect(deviceId:)",
-    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.ensureApiReady()",
-    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.stopScanning()",
-    "ext:PolarBleSdk connectToDevice",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var DiscoveredSensorButton.body",
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.connect(deviceId:)"
    ],
    "reads": [],
    "writes": [
@@ -286,11 +275,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.connect(deviceId:)": "be8df2807ce1e37d",
-    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.ensureApiReady()": "9cbc086a623b614c",
-    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.connect(deviceId:)": "202482ab41910e07",
-    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.stopScanning()": "1aef2b6b4e439cd1",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var DiscoveredSensorButton.body": "06602e9864df692a"
    }
   },
   {
@@ -314,17 +299,16 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::func SensorManagementSheet.knownDeviceRow(_:)": "ba441206d5ea79d0"
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::func SensorManagementSheet.knownDeviceRow(_:)": "b246d7651636a832"
    }
   },
   {
    "key": "func SensorManagementSheet.knownDeviceRow(_:)",
-   "hash": "795d32fec39ddd32",
-   "does": "Paired-device row (checkmark, name, 'Paired') with a destructive swipe action 'Forget' that removes the device from known devices and persists the list.",
+   "hash": "576e9528238e02f1",
+   "does": "Paired-device row (checkmark, name, 'Paired') with a destructive swipe action 'Forget' that calls forget(_:).",
    "entry": "Swipe action tap",
    "calls": [
-    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.removeKnownDevice(id:)",
-    "Emuqu/Sources/Collection/StrapPairingStore.swift::func StrapPairingStore.save(_:)",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::func SensorManagementSheet.forget(_:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
@@ -333,24 +317,50 @@
     "ud:UserDefaultsKeys.knownDevices (App Group suite SharedUserDefaults.appGroup)"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Forgetting the strap that is currently connected does not disconnect it; the link stays up while the known list (and title, Reconnect target) no longer contains it.",
-     "evidence": [
-      "Emuqu/Sources/Views/SensorManagementSheet.swift:167",
-      "Emuqu/Sources/Collection/PolarManager.swift:408-411"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.removeKnownDevice(id:)": "ecd617dd9604474e",
-    "Emuqu/Sources/Collection/StrapPairingStore.swift::func StrapPairingStore.save(_:)": "a106f22c64c8b583",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/SavedRoutesPage.swift::func SavedRoutesPage.swipeActions(for:)": "5f3916aa45573e3d",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::func SensorManagementSheet.forget(_:)": "7cf461aeaa35298e",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func SensorManagementSheet.forget(_:)",
+   "hash": "7fd4f04f36ca245c",
+   "does": "Forgets a paired strap: disconnects first when it is the connected strap, cancels the attempt when it is the strap being connected, then removes it from known devices (persisted).",
+   "entry": "Swipe action tap",
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.disconnect()",
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.cancelConnection()",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.removeKnownDevice(id:)"
+   ],
+   "reads": [
+    "mem:PolarManager.connectionState",
+    "mem:PolarManager.connectedDeviceId",
+    "mem:PolarManager.pendingDeviceId"
+   ],
+   "writes": [
+    "mem:PolarManager.knownDevices"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "connected to this strap",
+     "effect": "disconnect"
+    },
+    {
+     "at": "+3",
+     "cond": "connecting to this strap",
+     "effect": "cancelConnection"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.cancelConnection()": "1fcd3ad7af42afb8",
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.disconnect()": "4bf10c09b5a18571",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.removeKnownDevice(id:)": "ecd617dd9604474e",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad"
    }
   },
   {
@@ -461,7 +471,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.body": "dfd9e576e31bb400"
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.body": "10fabae9e7d28b69"
    }
   },
   {
@@ -479,7 +489,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.body": "dfd9e576e31bb400"
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.body": "10fabae9e7d28b69"
    }
   },
   {
@@ -755,396 +765,63 @@
   },
   {
    "key": "var FootPodRow.body",
-   "hash": "3d9862365f787619",
-   "does": "VStack: status row, HStack of state-driven buttons + spacer, discovered list.",
+   "hash": "092400de209711b1",
+   "does": "AccessorySensorRow fed with this row's content and actions.",
    "entry": "SwiftUI evaluates it as part of the parent view's body; created by SensorManagementSheet section",
    "calls": [
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.statusRowForFootPod",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.stateDrivenButtonsForFootPod",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.discoveredFootPods"
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var AccessorySensorRow.body",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.content",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.actions"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.discoveredFootPods": "f2bccebc14c806ca",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.stateDrivenButtonsForFootPod": "e60c7ea99f9a05bd",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.statusRowForFootPod": "0c9a9583b6b2113b"
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var AccessorySensorRow.body": "5fa0f31fe1017e16",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.actions": "8d47d7febcced655",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.content": "a475d769d075076c"
    }
   },
   {
-   "key": "var FootPodRow.discoveredFootPods",
-   "hash": "50f54bb13a7b8de2",
-   "does": "While the manager is scanning, lists discovered devices as tap-to-pair rows.",
+   "key": "var FootPodRow.content",
+   "hash": "c09b910f440ed298",
+   "does": "Row content from FootPodManager: shoeprints icon, first known device name (else \"Foot Pod / Bike Trainer\"), lastStatusLine, link state, whether a device is known, discovered devices.",
    "entry": "SwiftUI evaluates it as part of the parent view's body",
    "calls": [
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.discoveredFootPodRows"
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.manager",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::init AccessorySensorRow.Link(_: FootPodManager.ConnectionState)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [
-    "mem:FootPodManager.connectionState"
-   ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "connectionState == .scanning",
-     "effect": "true: rows (possibly empty); false: nothing"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.discoveredFootPodRows": "1c22158e204d18a3",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.manager": "71e6b374da33be1f"
-   }
-  },
-  {
-   "key": "var FootPodRow.discoveredFootPodRows",
-   "hash": "464155394c72c04a",
-   "does": "ForEach over manager.discoveredDevices building a discovered button each.",
-   "entry": "SwiftUI evaluates it as part of the parent view's body",
-   "calls": [
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::func FootPodRow.discoveredButton(_:)",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.manager"
-   ],
-   "reads": [
-    "mem:FootPodManager.discoveredDevices"
-   ],
-   "writes": [],
-   "branches": [],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::func FootPodRow.discoveredButton(_:)": "b003686e8ad84d9b",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.manager": "71e6b374da33be1f"
-   }
-  },
-  {
-   "key": "func FootPodRow.discoveredButton(_:)",
-   "hash": "f1bba8321d59930e",
-   "does": "DiscoveredSensorButton for the device whose tap calls manager.connect(deviceId:) (BLEPeripheralConnecting extension: stops scan, parks id if Bluetooth not powered on, else retrieves and connects).",
-   "entry": "Button tap inside DiscoveredSensorButton",
-   "calls": [
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var DiscoveredSensorButton.body",
-    "Emuqu/Sources/Collection/FootPodManager.swift::func BLEPeripheralConnecting.connect(deviceId:)"
-   ],
-   "reads": [],
-   "writes": [
     "mem:FootPodManager.connectionState",
-    "ble:FootPodManager peripheral"
-   ],
-   "branches": [],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func BLEPeripheralConnecting.connect(deviceId:)": "3235b50b8ba74c15",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var DiscoveredSensorButton.body": "06602e9864df692a",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.manager": "71e6b374da33be1f"
-   }
-  },
-  {
-   "key": "var FootPodRow.statusRowForFootPod",
-   "hash": "0fff5ba3a5514fd6",
-   "does": "HStack: shoeprints.fill icon in status colour, title, manager.lastStatusLine, badge.",
-   "entry": "SwiftUI evaluates it as part of the parent view's body",
-   "calls": [
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.title",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.color",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.statusBadgeForFootPod"
-   ],
-   "reads": [
+    "mem:FootPodManager.knownDevices",
+    "mem:FootPodManager.discoveredDevices",
     "mem:FootPodManager.lastStatusLine"
    ],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.body": "dfd9e576e31bb400",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.color": "14c022628fcfcb46",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.manager": "71e6b374da33be1f",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.statusBadgeForFootPod": "9ff514ecb8318633",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.title": "53f00dade84f89d5",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
-   }
-  },
-  {
-   "key": "var FootPodRow.statusBadgeForFootPod",
-   "hash": "e601eb6fa796e264",
-   "does": "Capsule badge with badge text in status colour.",
-   "entry": "SwiftUI evaluates it as part of the parent view's body",
-   "calls": [
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.badge",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.color"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.badge": "e93056ab4c24cff2",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.color": "14c022628fcfcb46",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
-   }
-  },
-  {
-   "key": "var FootPodRow.stateDrivenButtonsForFootPod",
-   "hash": "ae88e0c181fdd963",
-   "does": "Buttons by state: Disconnect when connected, Stop scanning when scanning, Reconnect + Pair another when known devices exist, else Pair.",
-   "entry": "SwiftUI evaluates it as part of the parent view's body",
-   "calls": [
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.disconnectButton2",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.stopScanningButton2",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.theyPairedButton",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.pairAnotherButton2",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.pairButton2"
-   ],
-   "reads": [
-    "mem:FootPodManager.connectionState",
-    "mem:FootPodManager.knownDevices"
-   ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "connectionState == .connected",
-     "effect": "true: disconnect"
-    },
-    {
-     "at": "+4",
-     "cond": "connectionState == .scanning",
-     "effect": "true: stop scanning"
-    },
-    {
-     "at": "+6",
-     "cond": "knownDevices non-empty",
-     "effect": "true: Reconnect + Pair another; false: Pair (also for .connecting)"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.disconnectButton2": "8228ad7dab99cf72",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.manager": "71e6b374da33be1f",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.pairAnotherButton2": "c7666c8e87f73a9e",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.pairButton2": "08ebf820b2451c6f",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.stopScanningButton2": "d05997a3abf4559c",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.theyPairedButton": "fc2b3e42afdec320"
-   }
-  },
-  {
-   "key": "var FootPodRow.disconnectButton2",
-   "hash": "d67cc145cd84c0cd",
-   "does": "Destructive 'Disconnect' calling FootPodManager.disconnect() (clears expectsLink, cancels peripheral, cleans up).",
-   "entry": "Button tap",
-   "calls": [
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.disconnect()",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [],
-   "writes": [
-    "mem:FootPodManager.connectionState",
-    "ble:FootPodManager peripheral"
-   ],
-   "branches": [],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.disconnect()": "b9ba282009a86785",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.manager": "71e6b374da33be1f"
-   }
-  },
-  {
-   "key": "var FootPodRow.stopScanningButton2",
-   "hash": "ca06b22b82ed25eb",
-   "does": "Destructive 'Stop scanning' calling FootPodManager.stopScanning().",
-   "entry": "Button tap",
-   "calls": [
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.stopScanning()",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [],
-   "writes": [
-    "mem:FootPodManager.connectionState"
-   ],
-   "branches": [],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.stopScanning()": "c063452b4734ba39",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.manager": "71e6b374da33be1f"
-   }
-  },
-  {
-   "key": "var FootPodRow.theyPairedButton",
-   "hash": "d47b17ac92842dae",
-   "does": "'Reconnect' calling FootPodManager.reconnectLast() (connects to knownDevices.first; no-op if none).",
-   "entry": "Button tap",
-   "calls": [
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.reconnectLast()",
-    "Emuqu/Sources/Collection/FootPodManager.swift::func BLEPeripheralConnecting.connect(deviceId:)",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [
-    "mem:FootPodManager.knownDevices"
-   ],
-   "writes": [
-    "mem:FootPodManager.connectionState"
-   ],
-   "branches": [],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func BLEPeripheralConnecting.connect(deviceId:)": "3235b50b8ba74c15",
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.reconnectLast()": "784b084b0d30c712",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.manager": "71e6b374da33be1f"
-   }
-  },
-  {
-   "key": "var FootPodRow.pairAnotherButton2",
-   "hash": "deb3e0db3752beaf",
-   "does": "'Pair another' calling FootPodManager.startScanning().",
-   "entry": "Button tap",
-   "calls": [
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.startScanning()",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [],
-   "writes": [
-    "mem:FootPodManager.connectionState",
-    "mem:FootPodManager.discoveredDevices"
-   ],
-   "branches": [],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.startScanning()": "34afac4f802e0f6d",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.manager": "71e6b374da33be1f"
-   }
-  },
-  {
-   "key": "var FootPodRow.pairButton2",
-   "hash": "79b2d7917e4a6e1f",
-   "does": "'Pair' calling FootPodManager.startScanning().",
-   "entry": "Button tap",
-   "calls": [
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.startScanning()",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [],
-   "writes": [
-    "mem:FootPodManager.connectionState",
-    "mem:FootPodManager.discoveredDevices"
-   ],
-   "branches": [],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.startScanning()": "34afac4f802e0f6d",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.manager": "71e6b374da33be1f"
-   }
-  },
-  {
-   "key": "var FootPodRow.title",
-   "hash": "0e200feb326bae59",
-   "does": "First known device name or 'Foot Pod / Bike Trainer'.",
-   "entry": "SwiftUI evaluates it as part of the parent view's body",
-   "calls": [
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [
-    "mem:FootPodManager.knownDevices"
-   ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "knownDevices.first?.name ?? 'Foot Pod / Bike Trainer'",
-     "effect": "no known device uses the default title"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.manager": "71e6b374da33be1f"
-   }
-  },
-  {
-   "key": "var FootPodRow.color",
-   "hash": "28c44d2ff92b2d8d",
-   "does": "Status colour: connected green; connecting/scanning blue; disconnected gray (no known devices) or orange.",
-   "entry": "SwiftUI evaluates it as part of the parent view's body",
-   "calls": [],
-   "reads": [
-    "mem:FootPodManager.connectionState",
-    "mem:FootPodManager.knownDevices"
-   ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "case .connected",
-     "effect": "green"
-    },
-    {
-     "at": "+3",
-     "cond": "case .connecting, .scanning",
-     "effect": "blue"
-    },
-    {
-     "at": "+4",
-     "cond": "case .disconnected",
-     "effect": "knownDevices check"
-    },
-    {
-     "at": "+5",
-     "cond": "knownDevices.isEmpty",
-     "effect": "true: gray; false: orange"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.manager": "71e6b374da33be1f"
-   }
-  },
-  {
-   "key": "var FootPodRow.badge",
-   "hash": "9f5fe634cf7e9c83",
-   "does": "Badge text: 'Connected', 'Connecting', 'Scanning', or when disconnected 'Not paired' (no known devices) / 'Off'.",
-   "entry": "SwiftUI evaluates it as part of the parent view's body",
-   "calls": [
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [
-    "mem:FootPodManager.connectionState",
-    "mem:FootPodManager.knownDevices"
-   ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "case .connected",
-     "effect": "'Connected'"
-    },
-    {
-     "at": "+3",
-     "cond": "case .connecting",
-     "effect": "'Connecting'"
-    },
-    {
-     "at": "+4",
-     "cond": "case .scanning",
-     "effect": "'Scanning'"
-    },
-    {
-     "at": "+5",
-     "cond": "case .disconnected / knownDevices.isEmpty ternary",
-     "effect": "empty: 'Not paired'; else 'Off'"
-    }
-   ],
-   "flags": [],
-   "deps": {
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::init AccessorySensorRow.Link(_: FootPodManager.ConnectionState)": "f6728a5e0d389a12",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.manager": "71e6b374da33be1f"
+   }
+  },
+  {
+   "key": "var FootPodRow.actions",
+   "hash": "4c72c3a01c68f0cc",
+   "does": "Row actions bound to FootPodManager: disconnect, stopScanning, reconnectLast, startScanning, connect(deviceId:).",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.manager"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
     "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.manager": "71e6b374da33be1f"
    }
   },
@@ -1172,397 +849,381 @@
   },
   {
    "key": "var PM5Row.body",
-   "hash": "8dd9e38b11440346",
-   "does": "VStack: status row, HStack of state-driven buttons + spacer, discovered list.",
+   "hash": "092400de209711b1",
+   "does": "AccessorySensorRow fed with this row's content and actions.",
    "entry": "SwiftUI evaluates it as part of the parent view's body; created by SensorManagementSheet section",
    "calls": [
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.statusRowForRower",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.stateDrivenButtonsForRower",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.discoveredErgs"
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var AccessorySensorRow.body",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.content",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.actions"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.discoveredErgs": "4eefdbc7c570f766",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.stateDrivenButtonsForRower": "740a24ef0f58d7a5",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.statusRowForRower": "3ebe51dd1bfdd9ea"
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var AccessorySensorRow.body": "5fa0f31fe1017e16",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.actions": "801dd1e2924bb554",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.content": "05857a8e23973d8c"
    }
   },
   {
-   "key": "var PM5Row.discoveredErgs",
-   "hash": "99c75508199f6bf8",
-   "does": "While the manager is scanning, lists discovered devices as tap-to-pair rows.",
+   "key": "var PM5Row.content",
+   "hash": "0a1b826f2776050b",
+   "does": "Row content from Concept2Manager: rower icon, first known erg name (else \"Concept2 PM5\"), lastStatusLine, link state, whether an erg is known, discovered ergs.",
    "entry": "SwiftUI evaluates it as part of the parent view's body",
    "calls": [
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.discoveredErgRows"
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.manager",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::init AccessorySensorRow.Link(_: Concept2Manager.ConnectionState)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [
-    "mem:Concept2Manager.connectionState"
-   ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "connectionState == .scanning",
-     "effect": "true: rows (possibly empty); false: nothing"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.discoveredErgRows": "e03ebe20ccda97bb",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.manager": "f2f98b5d04ff4fa7"
-   }
-  },
-  {
-   "key": "var PM5Row.discoveredErgRows",
-   "hash": "856763d2551dc79a",
-   "does": "ForEach over manager.discoveredDevices building a discovered button each.",
-   "entry": "SwiftUI evaluates it as part of the parent view's body",
-   "calls": [
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::func PM5Row.discoveredButton(_:)",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.manager"
-   ],
-   "reads": [
-    "mem:Concept2Manager.discoveredDevices"
-   ],
-   "writes": [],
-   "branches": [],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::func PM5Row.discoveredButton(_:)": "1447fd0c61c0805e",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.manager": "f2f98b5d04ff4fa7"
-   }
-  },
-  {
-   "key": "func PM5Row.discoveredButton(_:)",
-   "hash": "1b06c99b31aea6e2",
-   "does": "DiscoveredSensorButton for the device whose tap calls manager.connect(deviceId:) (BLEPeripheralConnecting extension: stops scan, parks id if Bluetooth not powered on, else retrieves and connects).",
-   "entry": "Button tap inside DiscoveredSensorButton",
-   "calls": [
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var DiscoveredSensorButton.body",
-    "Emuqu/Sources/Collection/FootPodManager.swift::func BLEPeripheralConnecting.connect(deviceId:)"
-   ],
-   "reads": [],
-   "writes": [
     "mem:Concept2Manager.connectionState",
-    "ble:Concept2Manager peripheral"
-   ],
-   "branches": [],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func BLEPeripheralConnecting.connect(deviceId:)": "3235b50b8ba74c15",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var DiscoveredSensorButton.body": "06602e9864df692a",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.manager": "f2f98b5d04ff4fa7"
-   }
-  },
-  {
-   "key": "var PM5Row.statusRowForRower",
-   "hash": "86b0020b68c45754",
-   "does": "HStack: figure.rower icon in status colour, title, manager.lastStatusLine, badge.",
-   "entry": "SwiftUI evaluates it as part of the parent view's body",
-   "calls": [
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.title",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.color",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.statusBadgeForRower"
-   ],
-   "reads": [
+    "mem:Concept2Manager.knownDevices",
+    "mem:Concept2Manager.discoveredDevices",
     "mem:Concept2Manager.lastStatusLine"
    ],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.body": "dfd9e576e31bb400",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.color": "856babbf7a314253",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.manager": "f2f98b5d04ff4fa7",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.statusBadgeForRower": "9ff514ecb8318633",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.title": "f03ddd557da28d18",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
-   }
-  },
-  {
-   "key": "var PM5Row.statusBadgeForRower",
-   "hash": "b0fd3ae7d125a4f1",
-   "does": "Capsule badge with badge text in status colour.",
-   "entry": "SwiftUI evaluates it as part of the parent view's body",
-   "calls": [
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.badge",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.color"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.badge": "1920dcd406234fc5",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.color": "856babbf7a314253",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
-   }
-  },
-  {
-   "key": "var PM5Row.stateDrivenButtonsForRower",
-   "hash": "100abad7452e30c1",
-   "does": "Buttons by state: Disconnect when connected, Stop scanning when scanning, Reconnect + Pair another when known devices exist, else Pair.",
-   "entry": "SwiftUI evaluates it as part of the parent view's body",
-   "calls": [
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.disconnectButton",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.stopScanningButton",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.reconnectButton",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.pairAnotherButton",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.pairButton"
-   ],
-   "reads": [
-    "mem:Concept2Manager.connectionState",
-    "mem:Concept2Manager.knownDevices"
-   ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "connectionState == .connected",
-     "effect": "true: disconnect"
-    },
-    {
-     "at": "+4",
-     "cond": "connectionState == .scanning",
-     "effect": "true: stop scanning"
-    },
-    {
-     "at": "+6",
-     "cond": "knownDevices non-empty",
-     "effect": "true: Reconnect + Pair another; false: Pair (also for .connecting)"
-    }
-   ],
-   "flags": [],
-   "deps": {
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.disconnectButton": "7a5f452a8f5d3541",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.manager": "f2f98b5d04ff4fa7",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.pairAnotherButton": "826face12ab94d2e",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.pairButton": "41387dc7af406412",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.reconnectButton": "3e62b80e598d8fae",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.stopScanningButton": "0b4d37042a88d1cb"
-   }
-  },
-  {
-   "key": "var PM5Row.disconnectButton",
-   "hash": "8e12cb1735eb57d9",
-   "does": "Destructive 'Disconnect' calling Concept2Manager.disconnect() (clears expectsLink, cancels peripheral, cleans up).",
-   "entry": "Button tap",
-   "calls": [
-    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.disconnect()",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [],
-   "writes": [
-    "mem:Concept2Manager.connectionState",
-    "ble:Concept2Manager peripheral"
-   ],
-   "branches": [],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.disconnect()": "118b776d5e4d9528",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::init AccessorySensorRow.Link(_: Concept2Manager.ConnectionState)": "47322e78577e5181",
     "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.manager": "f2f98b5d04ff4fa7"
    }
   },
   {
-   "key": "var PM5Row.stopScanningButton",
-   "hash": "c99c268233d6b6af",
-   "does": "Destructive 'Stop scanning' calling Concept2Manager.stopScanning().",
-   "entry": "Button tap",
-   "calls": [
-    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.stopScanning()",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [],
-   "writes": [
-    "mem:Concept2Manager.connectionState"
-   ],
-   "branches": [],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.stopScanning()": "cd2a8668172269eb",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.manager": "f2f98b5d04ff4fa7"
-   }
-  },
-  {
-   "key": "var PM5Row.reconnectButton",
-   "hash": "407290c2c75d73ad",
-   "does": "'Reconnect' calling Concept2Manager.reconnectLast() (connects to knownDevices.first; no-op if none).",
-   "entry": "Button tap",
-   "calls": [
-    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.reconnectLast()",
-    "Emuqu/Sources/Collection/FootPodManager.swift::func BLEPeripheralConnecting.connect(deviceId:)",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [
-    "mem:Concept2Manager.knownDevices"
-   ],
-   "writes": [
-    "mem:Concept2Manager.connectionState"
-   ],
-   "branches": [],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.reconnectLast()": "68b4511dae9ba503",
-    "Emuqu/Sources/Collection/FootPodManager.swift::func BLEPeripheralConnecting.connect(deviceId:)": "3235b50b8ba74c15",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.manager": "f2f98b5d04ff4fa7"
-   }
-  },
-  {
-   "key": "var PM5Row.pairAnotherButton",
-   "hash": "85e75b78679d35c8",
-   "does": "'Pair another' calling Concept2Manager.startScanning().",
-   "entry": "Button tap",
-   "calls": [
-    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.startScanning()",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [],
-   "writes": [
-    "mem:Concept2Manager.connectionState",
-    "mem:Concept2Manager.discoveredDevices"
-   ],
-   "branches": [],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.startScanning()": "826a95110434a973",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.manager": "f2f98b5d04ff4fa7"
-   }
-  },
-  {
-   "key": "var PM5Row.pairButton",
-   "hash": "f47cf31493d0e4f1",
-   "does": "'Pair' calling Concept2Manager.startScanning().",
-   "entry": "Button tap",
-   "calls": [
-    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.startScanning()",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [],
-   "writes": [
-    "mem:Concept2Manager.connectionState",
-    "mem:Concept2Manager.discoveredDevices"
-   ],
-   "branches": [],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.startScanning()": "826a95110434a973",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.manager": "f2f98b5d04ff4fa7"
-   }
-  },
-  {
-   "key": "var PM5Row.title",
-   "hash": "a9b2c52cf11d2da4",
-   "does": "First known device name or 'Concept2 PM5'.",
+   "key": "var PM5Row.actions",
+   "hash": "4c72c3a01c68f0cc",
+   "does": "Row actions bound to Concept2Manager: disconnect, stopScanning, reconnectLast, startScanning, connect(deviceId:).",
    "entry": "SwiftUI evaluates it as part of the parent view's body",
    "calls": [
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.manager"
    ],
-   "reads": [
-    "mem:Concept2Manager.knownDevices"
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.manager": "f2f98b5d04ff4fa7"
+   }
+  },
+  {
+   "key": "init AccessorySensorRow.Link(_: FootPodManager.ConnectionState)",
+   "hash": "725f5ceea7e108d4",
+   "does": "Maps FootPodManager.ConnectionState case for case onto Link.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init AccessorySensorRow.Link(_: Concept2Manager.ConnectionState)",
+   "hash": "138d31641aaccc56",
+   "does": "Maps Concept2Manager.ConnectionState case for case onto Link.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AccessorySensorRow.body",
+   "hash": "069d52c5c0d5a636",
+   "does": "VStack: status row, HStack of state-driven buttons + spacer, discovered devices.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var AccessorySensorRow.statusRow",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var AccessorySensorRow.stateDrivenButtons",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var AccessorySensorRow.discoveredRows"
    ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var AccessorySensorRow.discoveredRows": "2cc4a25f4748f210",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var AccessorySensorRow.stateDrivenButtons": "ec92eacee7d2b1dc",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var AccessorySensorRow.statusRow": "8991ef99d2757729"
+   }
+  },
+  {
+   "key": "var AccessorySensorRow.discoveredRows",
+   "hash": "b049a45cc908a8c7",
+   "does": "While scanning, one discoveredButton per discovered device.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::func AccessorySensorRow.discoveredButton(_:)"
+   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+1",
-     "cond": "knownDevices.first?.name ?? 'Concept2 PM5'",
-     "effect": "no known device uses the default title"
+     "cond": "scanning",
+     "effect": "list shown; else nothing"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.manager": "f2f98b5d04ff4fa7"
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::func AccessorySensorRow.discoveredButton(_:)": "a9320f8f2c953ef2"
    }
   },
   {
-   "key": "var PM5Row.color",
-   "hash": "28c44d2ff92b2d8d",
-   "does": "Status colour: connected green; connecting/scanning blue; disconnected gray (no known devices) or orange.",
+   "key": "func AccessorySensorRow.discoveredButton(_:)",
+   "hash": "607bd129055bb92f",
+   "does": "DiscoveredSensorButton for one device whose tap calls actions.connect(device.id).",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var DiscoveredSensorButton.body",
+    "closure:actions.connect"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var DiscoveredSensorButton.body": "06602e9864df692a"
+   }
+  },
+  {
+   "key": "var AccessorySensorRow.statusRow",
+   "hash": "7cd63c75d3209d2e",
+   "does": "Icon tinted by color, title and status line, and the status badge.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var AccessorySensorRow.color",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var AccessorySensorRow.statusBadge"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var AccessorySensorRow.body": "5fa0f31fe1017e16",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var AccessorySensorRow.color": "9a0bb6198a87d881",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var AccessorySensorRow.statusBadge": "9d23bc2b520b4a56",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var AccessorySensorRow.statusBadge",
+   "hash": "6a6907d1c38944ce",
+   "does": "Capsule badge with the badge text tinted by color.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var AccessorySensorRow.badge",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var AccessorySensorRow.color"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var AccessorySensorRow.badge": "9e63178649453650",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var AccessorySensorRow.color": "9a0bb6198a87d881",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var AccessorySensorRow.stateDrivenButtons",
+   "hash": "76595721ba76dba5",
+   "does": "Disconnect when connected, Stop scanning when scanning, Reconnect + Pair another when a device is known, otherwise Pair.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var AccessorySensorRow.disconnectButton",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var AccessorySensorRow.stopScanningButton",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var AccessorySensorRow.reconnectButton",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var AccessorySensorRow.pairAnotherButton",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var AccessorySensorRow.pairButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "connected",
+     "effect": "Disconnect"
+    },
+    {
+     "at": "+3",
+     "cond": "scanning",
+     "effect": "Stop scanning"
+    },
+    {
+     "at": "+5",
+     "cond": "device known",
+     "effect": "Reconnect + Pair another; else Pair"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var AccessorySensorRow.disconnectButton": "fbefe3bf8f0ba481",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var AccessorySensorRow.pairAnotherButton": "805d28577e5271ff",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var AccessorySensorRow.pairButton": "836f4eb091b09156",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var AccessorySensorRow.reconnectButton": "a3eeda283f9f3114",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var AccessorySensorRow.stopScanningButton": "ca112da1464d2b5a"
+   }
+  },
+  {
+   "key": "var AccessorySensorRow.disconnectButton",
+   "hash": "d52734e4bb376659",
+   "does": "Destructive \"Disconnect\" button calling actions.disconnect.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "closure:actions.disconnect"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var AccessorySensorRow.stopScanningButton",
+   "hash": "8a1bd2e5cbbc9fde",
+   "does": "Destructive \"Stop scanning\" button calling actions.stopScanning.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "closure:actions.stopScanning"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var AccessorySensorRow.reconnectButton",
+   "hash": "4001cd9c0fcca38e",
+   "does": "\"Reconnect\" button calling actions.reconnect.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "closure:actions.reconnect"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var AccessorySensorRow.pairAnotherButton",
+   "hash": "88e035db7b90ebb5",
+   "does": "\"Pair another\" button calling actions.startScanning.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "closure:actions.startScanning"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var AccessorySensorRow.pairButton",
+   "hash": "189e01c4be5865f5",
+   "does": "\"Pair\" button calling actions.startScanning.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "closure:actions.startScanning"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var AccessorySensorRow.color",
+   "hash": "fea60259dfee2ef9",
+   "does": "Green connected, blue connecting/scanning, orange disconnected with a known device, gray otherwise.",
    "entry": "SwiftUI evaluates it as part of the parent view's body",
    "calls": [],
-   "reads": [
-    "mem:Concept2Manager.connectionState",
-    "mem:Concept2Manager.knownDevices"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+2",
-     "cond": "case .connected",
+     "cond": "connected",
      "effect": "green"
     },
     {
      "at": "+3",
-     "cond": "case .connecting, .scanning",
+     "cond": "connecting/scanning",
      "effect": "blue"
     },
     {
      "at": "+4",
-     "cond": "case .disconnected",
-     "effect": "knownDevices check"
-    },
-    {
-     "at": "+5",
-     "cond": "knownDevices.isEmpty",
-     "effect": "true: gray; false: orange"
+     "cond": "disconnected",
+     "effect": "orange if a device is known, else gray"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.manager": "f2f98b5d04ff4fa7"
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42"
    }
   },
   {
-   "key": "var PM5Row.badge",
-   "hash": "9f5fe634cf7e9c83",
-   "does": "Badge text: 'Connected', 'Connecting', 'Scanning', or when disconnected 'Not paired' (no known devices) / 'Off'.",
+   "key": "var AccessorySensorRow.badge",
+   "hash": "3f944b1bc9b134a6",
+   "does": "\"Connected\" / \"Connecting\" / \"Scanning\", or when disconnected \"Off\" with a known device and \"Not paired\" without.",
    "entry": "SwiftUI evaluates it as part of the parent view's body",
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
-   "reads": [
-    "mem:Concept2Manager.connectionState",
-    "mem:Concept2Manager.knownDevices"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+2",
-     "cond": "case .connected",
-     "effect": "'Connected'"
+     "cond": "connected",
+     "effect": "\"Connected\""
     },
     {
      "at": "+3",
-     "cond": "case .connecting",
-     "effect": "'Connecting'"
+     "cond": "connecting",
+     "effect": "\"Connecting\""
     },
     {
      "at": "+4",
-     "cond": "case .scanning",
-     "effect": "'Scanning'"
+     "cond": "scanning",
+     "effect": "\"Scanning\""
     },
     {
      "at": "+5",
-     "cond": "case .disconnected / knownDevices.isEmpty ternary",
-     "effect": "empty: 'Not paired'; else 'Off'"
+     "cond": "disconnected",
+     "effect": "\"Off\" if known, else \"Not paired\""
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.manager": "f2f98b5d04ff4fa7"
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },
   {

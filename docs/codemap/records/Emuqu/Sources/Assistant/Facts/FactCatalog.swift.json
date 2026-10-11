@@ -9,7 +9,7 @@
   "FactEntry: enum — one catalog entry (fixed, parameterized, composite, action)",
   "FactEntry: extension — factories fixed/fixedAsync/parameterized/composite/action/actionAsync",
   "FactNamespaceResolver: protocol — namespace + entries",
-  "FactNamespaceResolver: extension — resolve/resolveAsync/matchPattern default implementations"
+  "FactNamespaceResolver: extension — resolve(_:registry:)/resolveAsync/matchPattern default implementations"
  ],
  "state": [],
  "toplevel": "Only type declarations and protocol extension defaults; conditional '#if canImport(CryptoKit) import CryptoKit' (unused in this file).",
@@ -31,8 +31,8 @@
   },
   {
    "key": "var FactEntry.display",
-   "hash": "61064cc84f9a7249",
-   "does": "Catalog display string: the key for fixed/composite/action; for parameterized, the pattern with $date/$ordinal/$id/$period/$namespace replaced by the example.",
+   "hash": "1dcb14c4330d22ae",
+   "does": "Catalog display string: the key for fixed/composite/action; for parameterized, the pattern with its $placeholder (any name, regex \\$[A-Za-z_]+) replaced by the example.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -46,7 +46,7 @@
     {
      "at": "+3",
      "cond": "case .parameterized",
-     "effect": "replaces five named placeholders with the example"
+     "effect": "replaces the placeholder with the example"
     },
     {
      "at": "+9",
@@ -59,101 +59,7 @@
      "effect": "returns key"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "display substitutes only $date/$ordinal/$id/$period/$namespace; catalog patterns also use $n, $tag, $sport, $params, $seconds, $topic, $daily_trimp (which stay raw), and $namespace is used by no entry. Only caller is a test label.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/FactCatalog.swift:184",
-      "Emuqu/Sources/Assistant/Facts/FactCatalog.swift:188",
-      "EmuquTests/FactCatalogValidationTests.swift:134"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {}
-  },
-  {
-   "key": "var FactEntry.description",
-   "hash": "ffd84b34ac61ae15",
-   "does": "Returns the entry's description string for every case.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "case .fixed or .parameterized",
-     "effect": "description d"
-    },
-    {
-     "at": "+3",
-     "cond": "case .composite",
-     "effect": "d"
-    },
-    {
-     "at": "+4",
-     "cond": "case .action",
-     "effect": "d"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No caller of FactEntry.description in app or tests (toolSpec(for:) pattern-matches the case instead).",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/FactCatalog.swift:194",
-      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:457"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
-  },
-  {
-   "key": "var FactEntry.valueType",
-   "hash": "5721a95927e268fd",
-   "does": "Value-type label: stored valueType for fixed/composite, 'Record' for parameterized and action.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "case .fixed",
-     "effect": "stored t"
-    },
-    {
-     "at": "+3",
-     "cond": "case .parameterized",
-     "effect": "'Record'"
-    },
-    {
-     "at": "+4",
-     "cond": "case .composite",
-     "effect": "stored t"
-    },
-    {
-     "at": "+5",
-     "cond": "case .action",
-     "effect": "'Record'"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No caller of .valueType anywhere in the repo, so the valueType strings every entry declares are never read.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/FactCatalog.swift:202"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -192,72 +98,6 @@
    "deps": {}
   },
   {
-   "key": "var FactEntry.dependencies",
-   "hash": "7461ddc5bcb5a59b",
-   "does": "Declared dependency keys for composites; [] for other cases.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "fixed/parameterized/action",
-     "effect": "[]"
-    },
-    {
-     "at": "+3",
-     "cond": "composite",
-     "effect": "deps"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Comment says the CI validation suite uses this property; FactCatalogValidationTests pattern-matches .composite(...deps...) directly and nothing calls .dependencies.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/FactCatalog.swift:222",
-      "Emuqu/Sources/Assistant/Facts/FactCatalog.swift:225",
-      "EmuquTests/FactCatalogValidationTests.swift:101"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
-  },
-  {
-   "key": "var FactEntry.isAction",
-   "hash": "0f64901333db9ffd",
-   "does": "True for .action entries.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "self is .action",
-     "effect": "true; else false"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Comment says isAction is used by the schema builder and prompt overlay; no code references .isAction (dead).",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/FactCatalog.swift:232",
-      "Emuqu/Sources/Assistant/Facts/FactCatalog.swift:236"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)": "cc67ad9762ace28b"
-   }
-  },
-  {
    "key": "func FactEntry.syncPathUnavailable(key:)",
    "hash": "10715e705737e751",
    "does": "Builds the .missing(.internalError) envelope saying the fact resolves asynchronously and must go through resolveTool.",
@@ -280,8 +120,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.description": "74081e170e07f5b1",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.valueType": "cbcb9ac297f40af4"
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.resolve(_:registry:)": "a8e38e40811c02b5"
    }
   },
   {
@@ -295,8 +134,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.description": "74081e170e07f5b1",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.valueType": "cbcb9ac297f40af4"
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.resolve(_:registry:)": "a8e38e40811c02b5"
    }
   },
   {
@@ -310,8 +148,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.description": "74081e170e07f5b1",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.valueType": "cbcb9ac297f40af4"
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.resolve(_:registry:)": "a8e38e40811c02b5"
    }
   },
   {
@@ -325,7 +162,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.description": "74081e170e07f5b1"
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.resolve(_:registry:)": "a8e38e40811c02b5"
    }
   },
   {
@@ -339,9 +176,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.dependencies": "9a30e9aee8cc5980",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.description": "74081e170e07f5b1",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.valueType": "cbcb9ac297f40af4"
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.resolve(_:registry:)": "a8e38e40811c02b5"
    }
   },
   {
@@ -371,46 +206,6 @@
    "deps": {
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)": "cc67ad9762ace28b",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.description": "74081e170e07f5b1"
-   }
-  },
-  {
-   "key": "func FactNamespaceResolver.resolve(_:)",
-   "hash": "8e17968598b24872",
-   "does": "Sync resolve without a registry: walks entries and returns the first non-nil resolveEntry (composites skipped because registry is nil).",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Assistant/Facts/FactKey.swift::var FactKey.rendered",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.resolveEntry(_:key:rendered:registry:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "for each entry",
-     "effect": "iterates entries in order"
-    },
-    {
-     "at": "+3",
-     "cond": "resolveEntry returned a value",
-     "effect": "returns it; nil after all entries"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No caller: the registry and tests always call resolve(_:registry:) (FactResolverRegistry.swift:126,129).",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/FactCatalog.swift:423",
-      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:126"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.resolveEntry(_:key:rendered:registry:)": "d69565c0c9ccb59e",
-    "Emuqu/Sources/Assistant/Facts/FactKey.swift::var FactKey.rendered": "8cf4f8bb456d2ce2"
    }
   },
   {
@@ -522,15 +317,15 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.compositeValue(_:rendered:key:registry:body:)": "86e9844148fa04b2",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.compositeValue(_:rendered:key:registry:body:)": "11b31d8e23eaed37",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.matchPattern(_:against:)": "c6623fdcef3ec69d",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.syncValue(of:key:)": "c7c08efe669907df"
    }
   },
   {
    "key": "func FactNamespaceResolver.compositeValue(_:rendered:key:registry:body:)",
-   "hash": "f51038a1fd528288",
-   "does": "Sync composite value: literal key exact-match runs body(nil); parameterized key pattern-matches and runs body(param).",
+   "hash": "ffe0980985421e45",
+   "does": "Sync composite value: literal key exact-match runs body(nil); parameterized key must match the pattern with no extra tail tokens, then runs body(param).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.matchPattern(_:against:)",
@@ -551,8 +346,8 @@
     },
     {
      "at": "+8",
-     "cond": "pattern does not match",
-     "effect": "nil; else body(param) — tail tokens after the pattern are ignored"
+     "cond": "pattern does not match, or tokens follow it",
+     "effect": "nil (no such key); else body(param)"
     }
    ],
    "flags": [],
@@ -637,13 +432,13 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.awaitedValue(of:)": "8fb3b56126f6a366",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.compositeValueAsync(_:dependencies:rendered:key:registry:body:)": "f0b3d56418ecd00f",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.compositeValueAsync(_:dependencies:rendered:key:registry:body:)": "7118e8bf23ca6003",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.matchPattern(_:against:)": "c6623fdcef3ec69d"
    }
   },
   {
    "key": "func FactNamespaceResolver.compositeValueAsync(_:dependencies:rendered:key:registry:body:)",
-   "hash": "fe9e9a738a7ad22e",
+   "hash": "67eb2b480084718c",
    "does": "Async composite value: matches literal/parameterized key, substitutes the captured param into each declared dependency, prefetches them via registry.withPrefetchedChildren, then runs the sync body.",
    "entry": null,
    "calls": [
@@ -656,37 +451,25 @@
    "writes": [],
    "branches": [
     {
-     "at": "+10",
+     "at": "+9",
      "cond": "composite key contains '('",
-     "effect": "pattern-match path (see 551); else literal path (554)"
+     "effect": "pattern-match path; else literal path"
     },
     {
-     "at": "+11",
-     "cond": "pattern does not match",
-     "effect": "nil; else param = captured (tail ignored)"
+     "at": "+10",
+     "cond": "pattern does not match, or tokens follow it",
+     "effect": "nil; else param = captured"
     },
     {
-     "at": "+14",
+     "at": "+13",
      "cond": "literal key != rendered",
      "effect": "nil; else param nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "A parameterized composite matched by prefix ignores the tail: 'x.y(7d).anything' returns the whole composite rather than missing, so a mistyped nested key gets a plausible but unrequested record.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/FactCatalog.swift:551",
-      "Emuqu/Sources/Assistant/Facts/FactCatalog.swift:589"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.matchPattern(_:against:)": "c6623fdcef3ec69d",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.substitutingPlaceholder(in:with:)": "0859c864be046b81",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.dependencies": "9a30e9aee8cc5980",
     "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.withPrefetchedChildren(_:run:)": "f41e63eb78c43b1d"
    }
   },

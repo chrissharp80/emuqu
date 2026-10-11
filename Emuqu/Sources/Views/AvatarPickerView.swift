@@ -46,12 +46,16 @@ struct AvatarPickerView: View {
         }
     }
 
+    /// The selection is cleared once the load finishes, so picking the same
+    /// photo again (a retry after a failure) still changes the binding and
+    /// reaches `onChange`.
     private func pick(_ newItem: PhotosPickerItem?) {
         guard let newItem else { return }
         processing = true
         Task {
             await loadAndStoreImage(from: newItem)
             processing = false
+            pickerItem = nil
         }
     }
 
@@ -75,8 +79,8 @@ struct AvatarPickerView: View {
         }
     }
 
-    /// Downscale to 256×256 (aspect-fill), JPEG-encode at 0.7 quality. Net
-    /// payload is typically 15–60 KB.
+    /// Downscale to 256×256 pixels (aspect-fill), JPEG-encode at 0.7 quality.
+    /// Net payload is typically 15–60 KB.
     private func compressedAvatar(_ raw: UIImage) async -> Data? {
         let target = CGSize(width: 256, height: 256)
         let scaled = await Task.detached { downscale(raw, to: target) }.value
@@ -84,11 +88,15 @@ struct AvatarPickerView: View {
     }
 }
 
+/// Renders at scale 1, so `size` is in pixels: the default format would use
+/// the screen scale and store a 768×768 JPEG on a 3× iPhone.
 private func downscale(_ image: UIImage, to size: CGSize) -> UIImage {
     let scale = max(size.width / image.size.width, size.height / image.size.height)
     let scaled = CGSize(width: image.size.width * scale, height: image.size.height * scale)
     let origin = CGPoint(x: (size.width - scaled.width) / 2, y: (size.height - scaled.height) / 2)
-    let renderer = UIGraphicsImageRenderer(size: size)
+    let format = UIGraphicsImageRendererFormat()
+    format.scale = 1
+    let renderer = UIGraphicsImageRenderer(size: size, format: format)
     return renderer.image { _ in
         image.draw(in: CGRect(origin: origin, size: scaled))
     }

@@ -42,20 +42,4 @@ extension RecoveryScoreCalculator {
     static func readinessLabel(for score: Double) -> String {
         ReadinessScoring.readinessLabel(for: score)
     }
-
-    static func displayReadinessLabel(for score: Double) -> String {
-        ReadinessScoring.displayReadinessLabel(for: score)
-    }
-
-    static func tenScaleClamped(_ score: Double) -> Double {
-        ReadinessScoring.tenScaleClamped(score)
-    }
-
-    static func readinessMessage(
-        for rawReadiness: Double, acuteChronicRatio: Double? = nil
-    ) -> String {
-        ReadinessScoring.readinessMessage(
-            for: rawReadiness, acuteChronicRatio: acuteChronicRatio
-        )
-    }
 }

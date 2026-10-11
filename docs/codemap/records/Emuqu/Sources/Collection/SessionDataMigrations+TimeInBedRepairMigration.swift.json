@@ -47,17 +47,6 @@
    ],
    "flags": [
     {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Main-actor loop that retrieves (decrypts) every overnight in the archive synchronously, unlike loadArchivedSessions which moves this off the main actor for the same reason.",
-     "evidence": [
-      "Emuqu/Sources/Collection/SessionDataMigrations+TimeInBedRepairMigration.swift:24",
-      "Emuqu/Sources/Collection/SessionDataMigrations+TimeInBedRepairMigration.swift:34",
-      "Emuqu/Sources/Collection/SessionDataMigrations.swift:69-71"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
      "kind": "untested",
      "sev": "low",
      "text": "No test calls runTimeInBedRepairIfNeeded (grep EmuquTests finds none).",
@@ -69,18 +58,18 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Collection/SessionDataMigrations+TimeInBedRepairMigration.swift::func SessionDataMigrations.repairTimeInBed(_:)": "452ed9acb66c37c0",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TimeInBedRepairMigration.swift::func SessionDataMigrations.repairTimeInBed(_:)": "4afd57cf5867fa6b",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
    "key": "func SessionDataMigrations.repairTimeInBed(_:)",
-   "hash": "f89089462986706a",
-   "does": "Retrieves the session; when its snapshot is stage-built (timeInBedIsSleepPlusAwake) and inBedMinutes differs from nightSleep+awake, replaces the snapshot with withTimeInBedFromSleepAndAwake(), archives, and calls recomputeScoreOnly; returns whether corrected.",
+   "hash": "64735bd4bba2899c",
+   "does": "Retrieves the session off the main actor; when its snapshot is stage-built (timeInBedIsSleepPlusAwake) and inBedMinutes differs from nightSleep+awake, replaces the snapshot with withTimeInBedFromSleepAndAwake(), archives, and calls recomputeScoreOnly; returns whether corrected.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)",
+    "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.retrieveOffMain(_:caller:)",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.timeInBedIsSleepPlusAwake",
     "Emuqu/Sources/Models/SleepData.swift::func SleepData.withTimeInBedFromSleepAndAwake()",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
@@ -111,12 +100,12 @@
    "deps": {
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.retrieveOffMain(_:caller:)": "50bd7e7643b1b046",
     "Emuqu/Sources/Models/SleepData.swift::func SleepData.withTimeInBedFromSleepAndAwake()": "c12eaf4ae29bd507",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.timeInBedIsSleepPlusAwake": "d424247ba89e3198",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.recomputeScoreOnly(sessionId:)": "5084c288e2d38543",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.recomputeScoreOnly(sessionId:)": "f4833d1bfb0fd760",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "f0a309cc2b24de13",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   }

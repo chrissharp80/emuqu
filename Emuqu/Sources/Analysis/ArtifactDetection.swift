@@ -7,12 +7,14 @@ final class ArtifactDetector: Sendable {
     struct Config {
         /// Window size for rolling median (beats)
         var windowSize: Int = HRVConstants.Artifacts.windowSize
-        /// Threshold for ectopic detection (ratio from median)
+        /// Threshold for ectopic detection (ratio from median), on both sides
         var ectopicThreshold: Double = 0.20
-        /// Threshold for missed beat detection (ratio from median)
+        /// Threshold for missed beat detection (ratio from median, long side)
         var missedThreshold: Double = 0.50
-        /// Threshold for extra beat detection (ratio from median)
-        var extraThreshold: Double = 0.30
+        /// Threshold for extra beat detection (ratio from median, short side):
+        /// a beat shorter than median × (1 − extraThreshold) is an extra
+        /// detection.
+        var extraThreshold: Double = 0.50
         /// Minimum RR interval (ms)
         var minRR: Int = HRVConstants.RRInterval.minimum
         /// Maximum RR interval (ms)
@@ -33,76 +35,55 @@ final class ArtifactDetector: Sendable {
     /// - Parameter series: The RR series to analyze
     /// - Returns: Array of artifact flags for each point
     func detectArtifacts(in series: RRSeries) -> [ArtifactFlags] {
-        let points = series.points
-        guard !points.isEmpty else { return [] }
-        let medians = computeRollingMedian(points.map { Double($0.rr_ms) }, windowSize: config.windowSize)
-        var flags = [ArtifactFlags]()
-        flags.reserveCapacity(points.count)
-        for i in 0 ..< points.count {
-            flags.append(classify(rrMs: points[i].rr_ms, median: medians[i]))
-        }
-        return flags
+        let rrMs = series.points.map(\.rr_ms)
+        let medians = referenceMedians(rrMs)
+        return rrMs.indices.map { classify(rrMs: rrMs[$0], median: medians[$0]) }
     }
 
-    /// One beat, against the rolling median of its neighbourhood.
+    /// Whether the beat is within the physiological range; one outside it is
+    /// a technical artifact.
+    private func isInRange(_ rrMs: Int) -> Bool {
+        rrMs >= config.minRR && rrMs <= config.maxRR
+    }
+
+    /// The rolling median each beat is judged against, taken over the
+    /// in-range beats only: a dropout (0 ms) or a 5 s gap is a technical
+    /// artifact and must not drag the reference for the valid beats around
+    /// it. An out-of-range beat's entry is 0 and is never read, since
+    /// `classify` rejects it first.
+    private func referenceMedians(_ rrMs: [Int]) -> [Double] {
+        let validIndices = rrMs.indices.filter { isInRange(rrMs[$0]) }
+        let validMedians = computeRollingMedian(validIndices.map { Double(rrMs[$0]) }, windowSize: config.windowSize)
+        var medians = Array(repeating: 0.0, count: rrMs.count)
+        for (median, index) in zip(validMedians, validIndices) {
+            medians[index] = median
+        }
+        return medians
+    }
+
+    /// One beat, against the rolling median of its neighbourhood. The bands
+    /// are symmetric around the median: shorter than (1 − extraThreshold) is
+    /// an extra detection, longer than (1 + missedThreshold) a missed beat,
+    /// and any other deviation beyond `ectopicThreshold` on either side an
+    /// ectopic — which on the long side covers a post-ectopic compensatory
+    /// pause (classically 20–50% long), so it can't inflate RMSSD via a large
+    /// successive difference.
+    ///
+    /// Every flag carries confidence 1.0: each band is a hard threshold, and
+    /// the classifier has no graded certainty to report.
     private func classify(rrMs: Int, median: Double) -> ArtifactFlags {
-        // Technical artifacts: out of physiological range.
-        guard rrMs >= config.minRR, rrMs <= config.maxRR else {
-            return ArtifactFlags(isArtifact: true, type: .technical, confidence: 1.0)
-        }
+        guard isInRange(rrMs) else { return ArtifactFlags(isArtifact: true, type: .technical, confidence: 1.0) }
         let rr = Double(rrMs)
-        let ratio = abs(rr - median) / median
         if rr < median * (1 - config.extraThreshold) {
-            return shortBeatFlags(rr: rr, median: median, ratio: ratio)
+            return ArtifactFlags(isArtifact: true, type: .extra, confidence: 1.0)
         }
-        if rr > median * (1 + config.ectopicThreshold) {
-            return longBeatFlags(rr: rr, median: median, ratio: ratio)
+        if rr > median * (1 + config.missedThreshold) {
+            return ArtifactFlags(isArtifact: true, type: .missed, confidence: 1.0)
         }
-        if ratio > config.ectopicThreshold {
-            // General deviation beyond ectopic threshold.
-            return ArtifactFlags(
-                isArtifact: true, type: .ectopic,
-                confidence: min(1.0, ratio / config.ectopicThreshold)
-            )
+        if abs(rr - median) / median > config.ectopicThreshold {
+            return ArtifactFlags(isArtifact: true, type: .ectopic, confidence: 1.0)
         }
         return .clean
-    }
-
-    /// Shorter than expected: a very short beat is an extra detection, a
-    /// moderately short one may be ectopic.
-    private func shortBeatFlags(rr: Double, median: Double, ratio: Double) -> ArtifactFlags {
-        let confidence = min(1.0, ratio / config.extraThreshold)
-        guard rr >= median * 0.5 else {
-            return ArtifactFlags(isArtifact: true, type: .extra, confidence: confidence)
-        }
-        return ArtifactFlags(
-            isArtifact: ratio > config.ectopicThreshold, type: .ectopic, confidence: confidence
-        )
-    }
-
-    /// Longer than expected: a missed beat above the missed threshold,
-    /// otherwise an ectopic.
-    ///
-    /// Symmetric long-beat ectopic gate. The short
-    /// side flags an ectopic at deviation > 0.20 (config.ectopicThreshold); if
-    /// the long side only typed a beat as `.missed` above 0.50
-    /// (config.missedThreshold), leaving the gap 0.20–0.50 to the generic
-    /// `ratio > 0.20` branch. That made the long side's ectopic decision depend
-    /// on branch ordering rather than an explicit symmetric rule — a
-    /// post-ectopic compensatory pause (classically 20–50% long) is exactly the
-    /// case that must be excluded so it can't inflate RMSSD via a large
-    /// successive difference.
-    private func longBeatFlags(rr: Double, median: Double, ratio: Double) -> ArtifactFlags {
-        guard rr <= median * (1 + config.missedThreshold) else {
-            return ArtifactFlags(
-                isArtifact: true, type: .missed,
-                confidence: min(1.0, ratio / config.missedThreshold)
-            )
-        }
-        return ArtifactFlags(
-            isArtifact: true, type: .ectopic,
-            confidence: min(1.0, ratio / config.ectopicThreshold)
-        )
     }
 
     /// Calculate artifact percentage for a window
@@ -123,7 +104,9 @@ final class ArtifactDetector: Sendable {
 
     // MARK: - Private
 
-    /// Compute rolling median for each position.
+    /// Compute rolling median for each position, over the beat itself and
+    /// `windowSize / 2` beats on each side (51 beats for the default 50),
+    /// fewer at the ends of the series.
     /// Uses an insertion-sorted sliding window: O(n * w) total — each step
     /// removes one element and inserts one via binary search, avoiding a
     /// full re-sort per position.

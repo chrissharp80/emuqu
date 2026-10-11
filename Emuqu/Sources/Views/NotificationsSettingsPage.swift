@@ -18,6 +18,7 @@ struct NotificationsSettingsPage: View {
     @Environment(\.dependencies) var dependencies
     private var settingsManager: SettingsManager { dependencies.app.settingsManager }
     @State private var systemAuthDenied: Bool = false
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         withSchedulerSync(withChrome(bodyContent))
@@ -41,6 +42,12 @@ struct NotificationsSettingsPage: View {
             .scrollContentBackground(.hidden)
             .background(AppTheme.background.ignoresSafeArea())
             .task { await checkAuthorisationStatus() }
+            // Back from iOS Settings with the page still open: re-read the
+            // permission so the banner follows a grant or a denial made there.
+            .onChange(of: scenePhase) { _, phase in
+                guard phase == .active else { return }
+                Task { await checkAuthorisationStatus() }
+            }
     }
 
     /// Format is not watched: the set-time push carries no score, so only
@@ -284,29 +291,19 @@ struct NotificationsSettingsPage: View {
     }
 
     /// What the user will actually receive: in Fixed mode the number-free
-    /// set-time push, in Smart mode the wake push in the chosen format.
+    /// set-time push, in Smart mode the wake push in the chosen format,
+    /// resolved by the same rule the scheduler sends with (`.auto` becomes
+    /// full or teaser by the night count).
     private var previewBody: String {
         guard settingsManager.settings.dailyReportDelivery == .smart else {
             return MorningNotificationScheduler.buildPayload().1
         }
-        switch effectiveFormat() {
-        case .full:
-            return String(localized: "Recovery 84 · A good score — normal training fits today.", bundle: LanguageManager.appBundle)
-        case .teaser:
-            return String(localized: "Your recovery is in.", bundle: LanguageManager.appBundle)
-        case .auto:
-            return String(localized: "Your recovery is in.", bundle: LanguageManager.appBundle)  // unreachable; effectiveFormat resolves it.
-        }
-    }
-
-    private func effectiveFormat() -> UserSettings.DailyReportFormat {
-        switch settingsManager.settings.dailyReportFormat {
-        case .full: return .full
-        case .teaser: return .teaser
-        case .auto:
-            // The same rule the scheduler sends with.
-            return MorningNotificationScheduler.resolvedFormat(.auto, archive: AppDependencies.current.storage.sessionArchive)
-        }
+        let format = MorningNotificationScheduler.resolvedFormat(
+            settingsManager.settings.dailyReportFormat, archive: dependencies.storage.sessionArchive
+        )
+        return format == .full
+            ? String(localized: "Recovery 84 · A good score — normal training fits today.", bundle: LanguageManager.appBundle)
+            : String(localized: "Your recovery is in.", bundle: LanguageManager.appBundle)
     }
 
     @MainActor

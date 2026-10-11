@@ -14,18 +14,6 @@
   {
    "kind": "spec-mismatch",
    "sev": "low",
-   "text": "Header comment says the router forwards to resolveAsync and 'the user gets identical answers', but read results here go through gatedReadResult (no 2 s discard) while the same facts reached by underlying tool names go through FactResolverRegistry.resolveTool which discards results >2 s (budgetOverrun); the two paths return different results for a slow awaitable fact.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift:16",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift:109",
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:365",
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:413"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
    "text": "Action-tool count is stated inconsistently: AssistantViewModel says 'up to 16 action tools' while allowedActionNames holds 18; docs/FLO_ARCHITECTURE.md:216 lists the allowed actions but omits assistant_artifacts_add / assistant_artifacts_update_status.",
    "evidence": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:166",
@@ -87,106 +75,41 @@
    }
   },
   {
-   "key": "func CompactToolRouter.schemaHash(registry:)",
-   "hash": "d93189779ebff10c",
-   "does": "JSON-encodes the compact schema with sorted keys and returns its SHA-256 hex, or 'unknown' if encoding fails.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.schema(registry:)",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.sha256Hex(_:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+4",
-     "cond": "attempt(encoder.encode(specs)) returned nil (encode threw)",
-     "effect": "returns 'unknown'; otherwise returns sha256Hex of the bytes"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No caller anywhere in the repo (app or tests; grep 'schemaHash'). The per-turn cache-drift check instead hashes the FULL registry catalog (FactResolverRegistry.catalogHash) although the compact schema is what is actually sent, so drift diagnostics watch the wrong bytes.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift:82",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:524"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same encode-sorted-keys-then-sha256 body as FactResolverRegistry.catalogHash.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift:82",
-      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:228"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.schema(registry:)": "923c2c42ab3aa043",
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.sha256Hex(_:)": "17f7751609beb7b3",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
-   }
-  },
-  {
    "key": "func CompactToolRouter.resolveTool(name:argsJSON:)",
-   "hash": "fb822be7d669d062",
-   "does": "Resolves a model tool call: first tries the compact read-tool router; if it handled the name, passes the value through registry.gatedReadResult (rate limit, 80 KB cap, slow-log) with the measured elapsed time. Otherwise forwards the call to registry.resolveTool (actions and legacy per-entry tool names).",
+   "hash": "bc32e36fdf012769",
+   "does": "Resolves a model tool call: first tries the compact read-tool router; if it handled the name, passes the value through registry.gatedReadResult (rate limit, 80 KB cap, slow-log; no time-budget discard, like registry.resolveTool). Otherwise forwards only names in allowedActionNames to registry.resolveTool and refuses any other name with missing(invalidParameter, 'unknown tool').",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveReadTool(name:argsJSON:)",
     "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.gatedReadResult(toolName:argsJSON:value:elapsed:)",
     "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveTool(name:argsJSON:)"
    ],
-   "reads": [],
+   "reads": [
+    "mem:CompactToolRouter.allowedActionNames"
+   ],
    "writes": [],
    "branches": [
     {
      "at": "+3",
      "cond": "resolveReadTool returned non-nil (name is a compact read tool)",
-     "effect": "returns gatedReadResult(value); otherwise falls through to registry.resolveTool"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "hack",
-     "sev": "low",
-     "text": "The action allow-list is enforced only when building the schema; dispatch forwards ANY name to registry.resolveTool, so an action not in allowedActionNames (e.g. location_roads_ahead) or any per-entry read tool name is still executed if a provider emits it.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift:113",
-      "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift:412",
-      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:349"
-     ],
-     "found": "first read, upheld on second"
+     "effect": "returns gatedReadResult(value)"
     },
     {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Doc comment (lines 101-103) and docs/FLO_ARCHITECTURE.md:218 say compact read results pass the registry's 'time budget'; gatedReadResult only logs when elapsed > 0.5 s and never enforces the 2 s budget that FactResolverRegistry.resolveTool applies.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift:101",
-      "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift:109",
-      "docs/FLO_ARCHITECTURE.md:218",
-      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:79",
-      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:365"
-     ],
-     "found": "second read"
+     "at": "+8",
+     "cond": "name not in allowedActionNames",
+     "effect": "returns missing(invalidParameter, 'unknown tool'); else registry.resolveTool"
     }
    ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveReadTool(name:argsJSON:)": "78a8c63c082ead05",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveReadTool(name:argsJSON:)": "5b445ae929800bf5",
     "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.gatedReadResult(toolName:argsJSON:value:elapsed:)": "e215c6a75e5ffda3",
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveTool(name:argsJSON:)": "6ee535086f75f636"
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveTool(name:argsJSON:)": "41058973459b65bf"
    }
   },
   {
    "key": "func CompactToolRouter.capabilityIndex()",
-   "hash": "1a9e1d0e957d6819",
+   "hash": "1bb27bb8809f870d",
    "does": "Builds the system-prompt 'What you can retrieve (data tools)' block: a fixed instruction paragraph followed by one '- name: purpose' line per read tool, where purpose is the description up to the first '. ' truncated to 170 chars + '…'.",
    "entry": null,
    "calls": [
@@ -197,8 +120,8 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "description contains no '. ' separator (components.first nil never happens; first always exists)",
-     "effect": "uses the first component; the ?? fallback to the full description is never taken because components(separatedBy:) always returns at least one element"
+     "cond": "description contains '. '",
+     "effect": "purpose = text before the first '. '; otherwise the whole description"
     },
     {
      "at": "+3",
@@ -206,17 +129,7 @@
      "effect": "truncates to 170 chars and appends '…'; otherwise uses it whole"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "The '?? spec.description' fallback can never run: components(separatedBy:) always returns at least one element, so .first is never nil.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift:129"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools()": "bcdfe76edb3db08e",
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.spec(_:_:_:required:)": "a7ea67282406ff00"
@@ -258,7 +171,7 @@
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools3b()": "c09bedf8904a0e29",
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools4()": "c9471f0e78ee67dc",
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools4b()": "49cb402c9fd36adf",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools5()": "704c898dcc667e54",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools5()": "514f829cbf4c4195",
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools5b()": "99e988caa8064dbe",
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools6()": "c69484f1647af960",
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools6b()": "fe2fc06b9541478a",
@@ -428,8 +341,8 @@
   },
   {
    "key": "func CompactToolRouter.readTools5()",
-   "hash": "70ce2a58fa9fe900",
-   "does": "Static data: returns the ToolSpec rows for get_training_load (required which; date, period, sport, daily_trimp, params), built with spec(...).",
+   "hash": "4bd0a487c1899d39",
+   "does": "Static data: returns the ToolSpec rows for get_training_load (required which — the description lists 'snapshot' among the variants without calling it a default; date, period, sport, daily_trimp, params), built with spec(...).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.spec(_:_:_:required:)"
@@ -570,31 +483,31 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveAppState(args:)": "cf3c33adc46c6405",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveAssistantState(args:)": "9a2ed26eb2c74519",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveAssistantState(args:)": "c6e3c0bbd2427df1",
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveBaseline(args:)": "7c95961fe1e51344",
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveBreadcrumbs(args:)": "5d66c972a5a46138",
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveHRV(args:)": "d208947d66521335",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveListWorkouts(args:)": "b045f1517c8f49ff",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveListWorkouts(args:)": "fafc12d6f4ba3588",
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveRecovery(args:)": "0890ffb754af61ff",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveRoutes(args:)": "99d93815a19f9c50",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveScoreMeta(args:)": "b3303d87811c83c4",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveRoutes(args:)": "3bcfa69e1a776bad",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveScoreMeta(args:)": "95e9d4be0ec09755",
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveSession(args:)": "209e7a910e455bc0",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveSleep(args:)": "d6398c406122b610",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveSleep(args:)": "28a7766574c0b962",
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveTags(args:)": "e772e61c460d4a55",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveTrainingLoad(args:)": "936d17d79e4e2d2b",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveUser(args:)": "98afc9b737ca0f94",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveWalks(args:)": "64ab5dd3f31374e9",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveTrainingLoad(args:)": "d2f70200c46b2eb2",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveUser(args:)": "c7ca59c46ba7ecc5",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveWalks(args:)": "898ef38c29f43277",
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveWorkout(args:)": "1cc121fe168b6eec",
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveWorkoutLive(args:)": "a52c5326d0e9f5be"
    }
   },
   {
    "key": "func CompactToolRouter.resolveReadTool(name:argsJSON:)",
-   "hash": "3cf1208204a8949c",
-   "does": "Parses argsJSON to [String:String]; if the name is in the uniform table, awaits that resolver; otherwise handles get_today, get_vitals, get_healthkit and lookup_fact directly via registry.resolveAsync; returns nil for any other name.",
+   "hash": "4a41d511fa1891a6",
+   "does": "Parses argsJSON with FactResolverRegistry.stringArgs(fromJSON:) (JSON booleans as true/false); if the name is in the uniform table, awaits that resolver; otherwise handles get_today, get_vitals, get_healthkit and lookup_fact directly via registry.resolveAsync; returns nil for any other name.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.parseArgs(_:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.stringArgs(fromJSON:)",
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::var CompactToolRouter.uniformReadResolvers",
     "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)",
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveHealthKitTool(field:)"
@@ -645,15 +558,15 @@
     {
      "at": "+16",
      "cond": "default: any other name",
-     "effect": "returns nil so resolveTool forwards to registry.resolveTool"
+     "effect": "returns nil so resolveTool checks the action allow-list"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.parseArgs(_:)": "0972d16b20ee916c",
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveHealthKitTool(field:)": "c1a7759ff97f1f43",
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::var CompactToolRouter.uniformReadResolvers": "cc72d58eaa885627",
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)": "67e3ca45fab7d9e6"
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)": "67e3ca45fab7d9e6",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.stringArgs(fromJSON:)": "9b7e976c5e59c057"
    }
   },
   {

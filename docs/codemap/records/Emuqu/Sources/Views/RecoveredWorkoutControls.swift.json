@@ -32,25 +32,13 @@
      "effect": "no endDate: duration 0 → endMinutes 1"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "With no endDate or a duration under ~1.5 min, endMinutes=1 and maxMinutes=2, so changed (1 < 1.5) is true and Save is enabled although the user moved nothing; tapping it asks to re-finalize at 60 s, which can be longer than the session.",
-     "evidence": [
-      "Emuqu/Sources/Views/RecoveredWorkoutControls.swift:27",
-      "Emuqu/Sources/Views/RecoveredWorkoutControls.swift:33",
-      "Emuqu/Sources/Views/RecoveredWorkoutControls.swift:36"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
-   "key": "var RecoveredWorkoutTrimControl.maxMinutes",
-   "hash": "5bb1787e9b0e0e1a",
-   "does": "Slider upper bound: max(2, rounded duration minutes).",
+   "key": "var RecoveredWorkoutTrimControl.durationMinutes",
+   "hash": "377f2a8f07996415",
+   "does": "Session length in minutes (endDate ?? startDate minus startDate, so 0 without an end).",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -59,24 +47,58 @@
     {
      "at": "+1",
      "cond": "session.endDate ?? startDate",
-     "effect": "no endDate: duration 0 → 2"
+     "effect": "no endDate: 0"
     }
    ],
    "flags": [],
    "deps": {}
   },
   {
-   "key": "var RecoveredWorkoutTrimControl.changed",
-   "hash": "5f592cc8b6d90d55",
-   "does": "True when the slider is more than 0.5 min below the max.",
+   "key": "var RecoveredWorkoutTrimControl.maxMinutes",
+   "hash": "a78d9246c1d796d1",
+   "does": "Slider upper bound: max(2, rounded durationMinutes), so the range is never empty.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.durationMinutes"
+   ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.maxMinutes": "6baf41e2f3f217dd"
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.durationMinutes": "aec1a981228ced4a"
+   }
+  },
+  {
+   "key": "var RecoveredWorkoutTrimControl.untrimmedMinutes",
+   "hash": "ab63ec6d23e6a5e1",
+   "does": "Where the slider starts: max(1, rounded durationMinutes) (same as the init).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.durationMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.durationMinutes": "aec1a981228ced4a"
+   }
+  },
+  {
+   "key": "var RecoveredWorkoutTrimControl.changed",
+   "hash": "c7efc04503872810",
+   "does": "True only when the slider is below its untrimmed start, so a recording under ~1.5 min (range 1...2) is never offered a trim the user did not make.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.untrimmedMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.untrimmedMinutes": "ad14e2bc981ee9ad"
    }
   },
   {
@@ -96,7 +118,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func recoveryCard(_:tint:fill:stroke:)": "b3cd845286e8734b",
-    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.saveTrimButton": "9ba8164c637ce52b",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.saveTrimButton": "dc3263e7d1eec373",
     "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.trimEndControl": "c05e2538530b024e",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
@@ -117,7 +139,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.maxMinutes": "6baf41e2f3f217dd",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.maxMinutes": "227bb7871c7b6ace",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
    }
   },
@@ -146,25 +168,11 @@
       "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:194"
      ],
      "found": "second read"
-    },
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "The trim control is documented for crash-recovered workouts but the host shows it on every workout summary; Save runs WorkoutRecoveryService.recover(reason: .appCrashed), whose buildMetadata sets partialDataReason = reason, so trimming a normal workout permanently labels it crash-recovered (partial-data banner, 'partial' load captions).",
-     "evidence": [
-      "Emuqu/Sources/Views/RecoveredWorkoutControls.swift:10",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:309",
-      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:188",
-      "Emuqu/Sources/Services/WorkoutRecoveryService.swift:478",
-      "Emuqu/Sources/Views/FitnessPostSummaryView.swift:235",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:485"
-     ],
-     "found": "second read"
     }
    ],
    "deps": {
     "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.bodyLabel": "ebd41163c349eb5c",
-    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.changed": "b1207d1c877a815a"
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.changed": "fda48960cfd244c2"
    }
   },
   {
@@ -195,7 +203,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.changed": "b1207d1c877a815a",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.changed": "fda48960cfd244c2",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
    }
   },

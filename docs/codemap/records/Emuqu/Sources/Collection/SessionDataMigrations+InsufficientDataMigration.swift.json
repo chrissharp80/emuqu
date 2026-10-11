@@ -13,14 +13,13 @@
  "units": [
   {
    "key": "func SessionDataMigrations.runInsufficientDataMigrationIfNeeded()",
-   "hash": "6457b2d62f0e71b9",
-   "does": "If the flag is unset and a full (all-nights) recovery baseline exists, loads all archived sessions, filters candidates, and for each candidate with a prior-nights baseline flips it to .insufficient and rescores when the gate matches; then sets the flag and logs counts.",
+   "hash": "404be0f861b8dcf7",
+   "does": "If the flag is unset and a full (all-nights) recovery baseline exists, loads all archived sessions, filters candidates, and rescores each one the insufficient-data gate matches (rescoreIfInsufficient), yielding between; then sets the flag and logs counts.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.loadArchivedSessions()",
     "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift::func SessionDataMigrations.insufficientDataCandidates(in:defaults:)",
-    "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.scoringBaseline(for:)",
-    "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift::func SessionDataMigrations.rescoreIfInsufficient(_:baseline:)",
+    "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift::func SessionDataMigrations.rescoreIfInsufficient(_:)",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
@@ -31,66 +30,48 @@
    ],
    "writes": [
     "ud:didRunInsufficientDataMigration_v1",
-    "archive:SessionArchive.archive(_:) (full-session overwrite, skipSameNightMerge false, no reupload)",
-    "notif:flowRecoveryArchiveChanged (posted by SessionArchive.archive)"
+    "archive:SessionArchive.update (in place, no reupload)",
+    "notif:flowRecoveryArchiveChanged (posted by SessionArchive.update)"
    ],
    "branches": [
     {
      "at": "+2",
-     "cond": "migration flag already set",
-     "effect": "return immediately; otherwise continue"
+     "cond": "flag already set",
+     "effect": "return"
     },
     {
      "at": "+4",
-     "cond": "BaselineTracker.recoveryBaselineStats (all stored nights) is nil",
-     "effect": "log and return WITHOUT setting the flag, so the next launch retries; otherwise continue"
+     "cond": "no all-nights baseline",
+     "effect": "log, return (retry next launch)"
     },
     {
      "at": "+8",
-     "cond": "insufficientDataCandidates returns nil (no candidates; flag already set by callee)",
-     "effect": "return; otherwise iterate candidates"
+     "cond": "no candidates (flag set by callee)",
+     "effect": "return"
     },
     {
-     "at": "+10",
-     "cond": "for each candidate session",
-     "effect": "compute prior-nights baseline, maybe rescore, Task.yield()"
-    },
-    {
-     "at": "+12",
-     "cond": "prior-nights baseline exists AND rescoreIfInsufficient returned true",
-     "effect": "increment rescored count; a candidate without a prior baseline (early nights) is skipped silently and never revisited because the flag is set at the end"
+     "at": "+11",
+     "cond": "rescoreIfInsufficient wrote",
+     "effect": "count it"
     }
    ],
    "flags": [
     {
-     "kind": "race",
-     "sev": "med",
-     "text": "All sessions are loaded up front, then each rescored copy is written back with archive(_:) after yields; any archive update made to that session in between (sleep/vitals refresh, feeling edit, CloudKit pull) is overwritten by the stale copy. ReanalysisService.persistSnapshot explicitly re-reads to avoid this; this path does not.",
-     "evidence": [
-      "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift:30",
-      "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift:36",
-      "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift:75",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:597-599"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
      "kind": "untested",
      "sev": "low",
-     "text": "No test drives the per-session rescore path: CollectorMigrationParityTests only checks gating/candidates for this migration; the stale-copy write-back and the rescore values are unpinned.",
+     "text": "No test drives the per-session rescore path: CollectorMigrationParityTests only checks gating/candidates for this migration; the in-place write and the rescore values are unpinned.",
      "evidence": [
       "EmuquTests/CollectorMigrationParityTests.swift:150",
       "EmuquTests/CollectorMigrationParityTests.swift:172"
      ],
-     "found": "second read"
+     "found": "first read, upheld on second"
     }
    ],
    "deps": {
     "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats": "9916669422d3e401",
     "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift::func SessionDataMigrations.insufficientDataCandidates(in:defaults:)": "e12895bfb0d3ad29",
-    "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift::func SessionDataMigrations.rescoreIfInsufficient(_:baseline:)": "dd087f1f3e263c05",
+    "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift::func SessionDataMigrations.rescoreIfInsufficient(_:)": "4999c62921b831f9",
     "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.loadArchivedSessions()": "126051022cf23c3b",
-    "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.scoringBaseline(for:)": "0ae7470dd30e42f8",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
@@ -121,144 +102,85 @@
    }
   },
   {
-   "key": "func SessionDataMigrations.rescoreIfInsufficient(_:baseline:)",
-   "hash": "4b7e9e3791af0c63",
-   "does": "Applies ReanalysisService.hasInsufficientData with baseline RMSSD = exp(lnRmssdMean); on match sets hrvDataQuality = .insufficient, rescores against baseline, and archives; returns whether written.",
+   "key": "func SessionDataMigrations.rescoreIfInsufficient(_:)",
+   "hash": "a7d2ccfa3b0f6df8",
+   "does": "Gate: the night has an analysis, a prior-nights baseline (ReanalysisService.scoringBaseline) and matches ReanalysisService.hasInsufficientData against that baseline's RMSSD. On a match it applies, under the archive lock to the archived copy as it is at the write (an edit saved since the load is kept), hrvDataQuality = .insufficient and the baseline rescore; returns whether written.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.scoringBaseline(for:)",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.hasInsufficientData(session:analysisResult:baselineRmssd:)",
-    "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift::func SessionDataMigrations.applyBaselineRescore(_:result:baseline:)",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)",
+    "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift::func SessionDataMigrations.applyBaselineRescore(_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
-   "reads": [],
+   "reads": [
+    "mem:BaselineTracker.historicalData",
+    "archive:session (current copy, in update)"
+   ],
    "writes": [
-    "archive:SessionArchive.archive(_:) (full-session overwrite, skipSameNightMerge false, no reupload)",
-    "notif:flowRecoveryArchiveChanged (posted by SessionArchive.archive)"
+    "archive:SessionArchive.update (in place, no reupload)",
+    "notif:flowRecoveryArchiveChanged (posted by SessionArchive.update)"
    ],
    "branches": [
     {
      "at": "+1",
-     "cond": "session has no analysisResult",
+     "cond": "no analysis, no prior-nights baseline, or the gate does not match",
      "effect": "return false"
     },
     {
-     "at": "+2",
-     "cond": "gate does not match (RMSSD >= baseline, or window long enough and session organized/long enough)",
-     "effect": "return false; otherwise mutate and archive"
-    },
-    {
-     "at": "+14",
-     "cond": "archive throws",
-     "effect": "error logged via debugLog, return false (session left unchanged on disk)"
+     "at": "+13",
+     "cond": "update throws (e.g. session gone)",
+     "effect": "logged, return false"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift::func SessionDataMigrations.applyBaselineRescore(_:result:baseline:)": "10473891992c7526",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.hasInsufficientData(session:analysisResult:baselineRmssd:)": "52495eb9fe13e172",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift::func SessionDataMigrations.applyBaselineRescore(_:)": "3d58217827f350d8",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.hasInsufficientData(session:analysisResult:baselineRmssd:)": "4bed759bea771946",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.scoringBaseline(for:)": "a4ac31ef462d476b",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "e021c7f17b266931",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
-   "key": "func SessionDataMigrations.applyBaselineRescore(_:result:baseline:)",
-   "hash": "329f3e548327a528",
-   "does": "Recomputes the composite with useBaselineHRV true, the session's stored sleep and raw vitalsSnapshot, current settings and the acceptance ANS balance; writes recoveryScore (0-10), scoreBreakdown and frozenReadiness onto the session.",
+   "key": "func SessionDataMigrations.applyBaselineRescore(_:)",
+   "hash": "bb61b95e5ab2545d",
+   "does": "Rescores the (now .insufficient) night through ReanalysisService.rescoredBreakdown — the one re-score every reanalysis runs: baseline HRV stands in for the night's own, scoring vitals swap in the strap's nocturnal HR, the acceptance ANS balance is kept, and the staleness penalty is anchored at the night's end (referenceDate), not today — then writes recoveryScore (0-10), scoreBreakdown and frozenReadiness.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoringConfiguration(from:)",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.rescoredBreakdown(of:result:training:referenceDate:)",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)",
-    "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift::func SessionDataMigrations.ansBalance(_:)"
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)"
    ],
    "reads": [
-    "mem:SettingsManager.settings"
+    "mem:BaselineTracker.historicalData",
+    "mem:settings (scoring config, typical sleep hours) via ReanalysisService providers"
    ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+6",
-     "cond": "trainingSnapshot ?? result.trainingContext",
-     "effect": "uses the frozen snapshot; falls back to the analysis result's training context when the snapshot is nil"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "med",
-     "text": "Third copy of the rescore recipe (also TrainingRecalibration.applyRescore and ReanalysisService.rescoreBreakdown) and it diverges: it passes the raw vitalsSnapshot, whereas ReanalysisService uses scoringVitals (strap nocturnal HR swapped in for daytime resting HR), so the migration can produce a different score than a later reanalysis of the same night.",
-     "evidence": [
-      "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift:98",
-      "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift:150",
-      "Emuqu/Sources/Services/ReanalysisService.swift:583-596"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "broken",
-     "sev": "high",
-     "text": "Rescore passes no referenceDate, so RecoveryScoreCalculator.calculateWithBreakdown uses Date() and the baseline-staleness penalty is measured from the prior-nights baseline's last point (the night before the session) to NOW; every archived night older than ~7 days gets 5-20 points deducted from its HRV score, lowering the stored recoveryScore of historic nights. ReanalysisService.rescoreBreakdown passes referenceDate: session.endDate ?? startDate for exactly this reason.",
-     "evidence": [
-      "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift:94-106",
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:484",
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift:61",
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift:79-91",
-      "Emuqu/Sources/Utilities/Constants+RecoveryScore.swift:71-75",
-      "Emuqu/Sources/Services/ReanalysisService.swift:603-605"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)": "18aa103b513d602d",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)": "ca2be1737136e0d8",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoringConfiguration(from:)": "5bd1e51efadaa4a7",
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
-    "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift::func SessionDataMigrations.ansBalance(_:)": "862823230b38d939",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)": "7aa853f03a8994f8",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "245c2d41dcd0a692"
-   }
-  },
-  {
-   "key": "func SessionDataMigrations.ansBalance(_:)",
-   "hash": "d296db378a192635",
-   "does": "Returns pnsIndex - snsIndex from the analysis ANS metrics, or nil when either is missing.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+1",
-     "cond": "pnsIndex or snsIndex missing",
-     "effect": "return nil; otherwise the difference"
-    }
-   ],
-   "flags": [
+     "cond": "no analysisResult",
+     "effect": "returns unchanged"
+    },
     {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same pns-sns helper is declared seven times (this file, TrainingRecalibration, ReanalysisService x3, MorningProcessingService, MorningSessionPipeline).",
-     "evidence": [
-      "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift:114",
-      "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift:171",
-      "Emuqu/Sources/Services/ReanalysisService.swift:568",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:188",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:432",
-      "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:397",
-      "Emuqu/Sources/Collection/RRCollector+Analysis.swift:79"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+2",
+     "cond": "trainingSnapshot nil",
+     "effect": "uses the analysis result's training context"
+    },
+    {
+     "at": "+5",
+     "cond": "endDate nil",
+     "effect": "reference date = startDate"
     }
    ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)": "18aa103b513d602d",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)": "7aa853f03a8994f8",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.rescoredBreakdown(of:result:training:referenceDate:)": "4ccb0b70925cce6e"
    }
   }
  ],

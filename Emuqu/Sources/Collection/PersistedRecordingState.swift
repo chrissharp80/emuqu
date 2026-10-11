@@ -50,7 +50,9 @@ struct PersistedRecordingState: Codable, Equatable {
             do {
                 return try JSONDecoder().decode(PersistedRecordingState.self, from: data)
             } catch {
-                debugLog("[PersistedRecordingState] Failed to decode: \(error)")
+                // A warning: an undecodable record means the interrupted-
+                // session prompt cannot appear for it.
+                debugLog("[PersistedRecordingState] Failed to decode: \(error)", level: .warning)
             }
         }
 

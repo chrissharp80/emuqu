@@ -8,7 +8,7 @@
   "RoutingMode: enum — quick/auto/deep/manual AI routing",
   "TemperatureUnit: enum — Celsius/Fahrenheit conversions",
   "AppearanceTheme: enum (@MainActor) — light/dim/dark",
-  "ColorTheme: enum (@MainActor) — accent colors",
+  "ColorTheme: enum (@MainActor) — accent colors with localized display names",
   "SessionMergeMode: enum — off/default/custom"
  ],
  "state": [],
@@ -570,64 +570,6 @@
     }
    ],
    "flags": [],
-   "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
-   }
-  },
-  {
-   "key": "var ColorTheme.description",
-   "hash": "b54dc2f4a80c54c8",
-   "does": "Localized mood tagline per color theme.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+3",
-     "cond": "blue",
-     "effect": "'Trust & calm'"
-    },
-    {
-     "at": "+4",
-     "cond": "teal",
-     "effect": "'Fresh & balanced'"
-    },
-    {
-     "at": "+5",
-     "cond": "indigo",
-     "effect": "'Deep & focused'"
-    },
-    {
-     "at": "+6",
-     "cond": "purple",
-     "effect": "'Premium & insightful'"
-    },
-    {
-     "at": "+7",
-     "cond": "rose",
-     "effect": "'Warm & energetic'"
-    },
-    {
-     "at": "+8",
-     "cond": "orange",
-     "effect": "'Bold & vibrant'"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "ColorTheme.description is never read: the color swatch UI shows only displayName (SettingsView+Appearance.swift:124,134); description is used only for AppearanceTheme.",
-     "evidence": [
-      "Emuqu/Sources/Models/UserSettings.swift:228",
-      "Emuqu/Sources/Views/SettingsView+Appearance.swift:134"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }

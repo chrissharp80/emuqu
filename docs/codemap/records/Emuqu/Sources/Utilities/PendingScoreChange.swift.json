@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Utilities/PendingScoreChange.swift",
- "hash": "52d2e4f5867cdbd8",
- "role": "Single-slot UserDefaults record of the most recent meaningful auto-rescore delta (prior/new score) so the dashboard can show a 'score changed' banner; posts a notification when written.",
+ "hash": "d7e7f82b1ef0f047",
+ "role": "Single-slot UserDefaults record of the most recent meaningful auto-rescore delta (prior/new score) so the dashboard can show a 'score changed' banner; posts a notification when written; reads drop notices older than 12 h or for another session.",
  "types": [
   "PendingScoreChange: enum — namespace for write/read/clear",
   "PendingScoreChange.Entry: struct Codable — sessionId, priorScore, newScore (0-10 scale), reason, timestamp",
@@ -9,15 +9,16 @@
  ],
  "state": [
   "ud:PendingScoreChange.v1 (standard suite, JSON-encoded Entry)",
-  "notif:pendingScoreChangeWritten (raw name 'FlowRecoveryPendingScoreChangeWritten', object = Entry)"
+  "notif:pendingScoreChangeWritten (raw name 'FlowRecoveryPendingScoreChangeWritten', object = Entry)",
+  "static maxAge = 12 h"
  ],
- "toplevel": "Entry gets synthesized Codable used by write/read. Notification.Name extension declares pendingScoreChangeWritten.",
+ "toplevel": "Entry gets synthesized Codable used by write/read. maxAge constant. Notification.Name extension declares pendingScoreChangeWritten.",
  "flags": [],
  "units": [
   {
    "key": "func PendingScoreChange.write(_:)",
-   "hash": "482c3c06ae149c90",
-   "does": "JSON-encodes the Entry into UserDefaults key PendingScoreChange.v1 (overwriting any previous entry) and always posts .pendingScoreChangeWritten with the entry as object.",
+   "hash": "de7eac18385d066b",
+   "does": "JSON-encodes the Entry into UserDefaults key PendingScoreChange.v1 (overwriting any previous entry) and, only when that succeeded, posts .pendingScoreChangeWritten with the entry as object.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
@@ -33,63 +34,83 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "encoding succeeded",
-     "effect": "stores data; on encode failure attempt() logs a warning and nothing is stored, but the notification is still posted so an on-screen dashboard shows the banner while a later read() returns the old/no entry"
+     "cond": "encoding failed",
+     "effect": "attempt() logs a warning; nothing is stored and no notification is posted"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Notification is posted even when encoding failed, so the live banner (DashboardV2View observer) and the persisted slot can disagree; banner would vanish on next onAppear read.",
-     "evidence": [
-      "Emuqu/Sources/Utilities/PendingScoreChange.swift:27",
-      "Emuqu/Sources/Utilities/PendingScoreChange.swift:30",
-      "Emuqu/Sources/Views/DashboardV2View.swift:264"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
    }
   },
   {
    "key": "func PendingScoreChange.read()",
-   "hash": "0ab52a042d6c9b29",
-   "does": "Reads and decodes the Entry from UserDefaults key PendingScoreChange.v1; returns nil if absent or undecodable.",
+   "hash": "966a7f079146961c",
+   "does": "Returns the stored notice through read(currentSessionId: nil): decoded and no older than maxAge (12 h), else cleared and nil. No session check.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.read(currentSessionId:now:)"
+   ],
+   "reads": [
+    "ud:PendingScoreChange.v1"
+   ],
+   "writes": [
+    "ud:PendingScoreChange.v1"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "Notices now expire after 12 h, but the dashboard still calls read() with no session (DashboardV2View.onDashboardAppear), so within that window a 'score updated 67 → 74' notice for a session other than the one the dashboard shows is still surfaced; read(currentSessionId:now:) supports the check once the dashboard passes latestOvernightComplete?.id.",
+     "evidence": [
+      "Emuqu/Sources/Utilities/PendingScoreChange.swift:47",
+      "Emuqu/Sources/Utilities/PendingScoreChange.swift:54",
+      "Emuqu/Sources/Views/DashboardV2View.swift:275"
+     ],
+     "found": "second read; narrowed by the 12 h expiry fix"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.read(currentSessionId:now:)": "8d1ad3eab3381f49"
+   }
+  },
+  {
+   "key": "func PendingScoreChange.read(currentSessionId:now:)",
+   "hash": "904e3205fc015df1",
+   "does": "Reads and decodes the Entry from UserDefaults key PendingScoreChange.v1; returns it only when it is for currentSessionId (when given) and between 0 and maxAge (12 h) old at now. An undecodable, stale or other-session entry is cleared and nil returned.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.isCurrent(_:currentSessionId:now:)",
+    "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.clear()",
     "ext:UserDefaults.data",
     "ext:JSONDecoder.decode"
    ],
    "reads": [
     "ud:PendingScoreChange.v1"
    ],
-   "writes": [],
+   "writes": [
+    "ud:PendingScoreChange.v1"
+   ],
    "branches": [
     {
      "at": "+1",
      "cond": "no data stored under the key",
-     "effect": "returns nil; otherwise decodes with try? — a decode failure is swallowed to nil (no log)"
-    }
-   ],
-   "flags": [
+     "effect": "returns nil"
+    },
     {
-     "kind": "broken",
-     "sev": "med",
-     "text": "Entry.sessionId and Entry.timestamp are written but never read anywhere: read() has no age or session check and the dashboard shows the banner whenever any entry exists (DashboardV2View.swift:275, :356), so a 'score updated 67 → 74' notice for an old session persists across days/sessions until the user taps dismiss.",
-     "evidence": [
-      "Emuqu/Sources/Utilities/PendingScoreChange.swift:33",
-      "Emuqu/Sources/Utilities/PendingScoreChange.swift:17",
-      "Emuqu/Sources/Utilities/PendingScoreChange.swift:21",
-      "Emuqu/Sources/Views/DashboardV2View.swift:275",
-      "Emuqu/Sources/Views/DashboardV2View.swift:356"
-     ],
-     "found": "second read"
+     "at": "+2",
+     "cond": "decode fails (logged by attempt) or the entry is not current",
+     "effect": "clears the key and returns nil"
     }
    ],
-   "deps": {}
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5",
+    "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.clear()": "8fbaff62da395806",
+    "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.isCurrent(_:currentSessionId:now:)": "0f2cf125260519c5"
+   }
   },
   {
    "key": "func PendingScoreChange.clear()",
@@ -104,6 +125,29 @@
     "ud:PendingScoreChange.v1"
    ],
    "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PendingScoreChange.isCurrent(_:currentSessionId:now:)",
+   "hash": "41c81b6d2c841fdb",
+   "does": "True when the entry's sessionId matches currentSessionId (or none is given) and its timestamp is 0…maxAge seconds before now.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a currentSessionId is given and differs from the entry's",
+     "effect": "returns false"
+    },
+    {
+     "at": "+3",
+     "cond": "age negative (clock moved back) or over maxAge",
+     "effect": "returns false"
+    }
+   ],
    "flags": [],
    "deps": {}
   }

@@ -37,8 +37,8 @@ import Foundation
 ///   dashboard says").
 ///
 /// The composer reads `Signals` and decides what to do per block:
-/// suppress the dashboard cache block, inject a `# User-asserted
-/// values (use these)` block, etc. The detector itself is neutral —
+/// suppress the dashboard cache block, inject a `# User-stated
+/// values (authoritative — fresher than any cache)` block, etc. The detector itself is neutral —
 /// it only reports observation, not policy.
 enum UserCorrectionDetector {
     struct Signals {
@@ -130,6 +130,12 @@ enum UserCorrectionDetector {
     /// match is blanked before `hr` is tried.
     private static let metricsLongestFirst = knownMetrics.sorted { $0.count > $1.count }
 
+    /// Names that double as units, so a number right before them is that
+    /// unit's quantity and the number after belongs to something else:
+    /// "slept 7 hr 30 min" (hours), "160 bpm 30 minutes later". These are
+    /// read as a metric name only when no number precedes them.
+    private static let unitLikeMetrics: Set<String> = ["hr", "bpm", "watts", "calories"]
+
     /// Only statements count: a question ("what was my hr at 5 am?") quotes
     /// no value the user is asserting.
     private static func collectAssertedValues(text: String, into signals: inout Signals) {
@@ -167,26 +173,44 @@ enum UserCorrectionDetector {
     /// The value of the last "metric [connector] number" in `text`, plus the
     /// text with every such match blanked out. A number that is a clock time
     /// ("5 am", "11 pm", "5:30") is not a value; "at" is not a connector for
-    /// the same reason ("sleep at 11"). With `connectorRequired`, the number
+    /// the same reason ("sleep at 11"). Pace alone also takes min:sec
+    /// ("pace was 5:30" → 5.5 minutes). With `connectorRequired`, the number
     /// must follow one of the connectors ("recovery is 45", not "recovery 45").
     private static func extractValue(
         for metric: String, in text: String, connectorRequired: Bool = false
     ) -> (value: Double, remainder: String)? {
-        let escaped = NSRegularExpression.escapedPattern(for: metric)
-        let number = "(-?\\d+(?:\\.\\d+)?)(?!\\.?\\d)(?!:\\d)(?!\\s*(?:(?:am|pm|o'clock)\\b|a\\.m\\.|p\\.m\\.))"
-        let connector = "(?:is|of|=|:|was|being)" + (connectorRequired ? "" : "?")
-        let pattern = "(?i)\\b\(escaped)\\b\\s*" + connector + "\\s*" + number
+        let pattern = valuePattern(for: metric, connectorRequired: connectorRequired)
         guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else {
             return nil
         }
         let ns = text as NSString
         let matches = regex.matches(in: text, range: NSRange(location: 0, length: ns.length))
         guard let last = matches.last, last.numberOfRanges >= 2,
-              let value = Double(ns.substring(with: last.range(at: 1))) else { return nil }
+              let value = parseValue(ns.substring(with: last.range(at: 1))) else { return nil }
         let remainder = regex.stringByReplacingMatches(
             in: text, range: NSRange(location: 0, length: ns.length), withTemplate: " "
         )
         return (value, remainder)
+    }
+
+    /// The "metric [connector] number" regex for one metric. A unit-like name
+    /// (`unitLikeMetrics`) must not follow a number; `pace` also accepts a
+    /// min:sec number.
+    private static func valuePattern(for metric: String, connectorRequired: Bool) -> String {
+        let escaped = NSRegularExpression.escapedPattern(for: metric)
+        let notAfterNumber = unitLikeMetrics.contains(metric) ? "(?<![\\d.])(?<![\\d.]\\s)(?<![\\d.]\\s\\s)" : ""
+        let digits = metric == "pace" ? "(\\d{1,2}:[0-5]\\d|-?\\d+(?:\\.\\d+)?)" : "(-?\\d+(?:\\.\\d+)?)"
+        let number = digits + "(?!\\.?\\d)(?!:\\d)(?!\\s*(?:(?:am|pm|o'clock)\\b|a\\.m\\.|p\\.m\\.))"
+        let connector = "(?:is|of|=|:|was|being)" + (connectorRequired ? "" : "?")
+        return "(?i)" + notAfterNumber + "\\b\(escaped)\\b\\s*" + connector + "\\s*" + number
+    }
+
+    /// A captured number as a Double; "m:ss" becomes minutes (5:30 → 5.5).
+    private static func parseValue(_ raw: String) -> Double? {
+        let parts = raw.split(separator: ":")
+        guard parts.count == 2 else { return Double(raw) }
+        guard let minutes = Double(parts[0]), let seconds = Double(parts[1]) else { return nil }
+        return minutes + seconds / 60
     }
 
     // MARK: - Intent detection
@@ -218,8 +242,14 @@ enum UserCorrectionDetector {
         "that's incorrect"
     ]
 
+    /// Lowercased, with the typographic apostrophe (U+2019, iOS smart
+    /// punctuation) folded to "'" so "don’t" matches the phrase lists.
+    private static func foldedLowercase(_ text: String) -> String {
+        text.lowercased().replacingOccurrences(of: "\u{2019}", with: "'")
+    }
+
     private static func isDashboardContradiction(text: String) -> Bool {
-        let lower = text.lowercased().replacingOccurrences(of: "\u{2019}", with: "'")
+        let lower = foldedLowercase(text)
         return dashboardContradictionPhrases.contains { lower.contains($0) }
             || startsWithCorrectionReply(lower)
     }
@@ -265,8 +295,12 @@ enum UserCorrectionDetector {
         "stop calling tools",
         "do not fetch",
         "don't fetch",
-        "do not call",
-        "don't call",
+        "do not call the tool",
+        "do not call tools",
+        "do not call any tool",
+        "don't call the tool",
+        "don't call tools",
+        "don't call any tool",
         "use these numbers",
         "use those numbers",
         "use the data i gave you",
@@ -285,7 +319,6 @@ enum UserCorrectionDetector {
         // reading from" even without a fresh value being given.
         // Suppressing the cache block forces the model to either
         // ask a clarifying question or stop quoting it.
-        "stop saying that",
         "stop saying",
         "stop telling me",
         "quit saying",
@@ -294,7 +327,7 @@ enum UserCorrectionDetector {
     ]
 
     private static func isExplicitOverride(text: String) -> Bool {
-        let lower = text.lowercased()
+        let lower = foldedLowercase(text)
         return explicitOverridePhrases.contains { lower.contains($0) }
     }
 
@@ -343,6 +376,9 @@ enum UserCorrectionDetector {
         case "acwr": return String(format: "%.2f", value)
         case "atl", "ctl", "rmssd", "sdnn", "hr", "bpm", "rhr":
             return String(format: "%.1f", value)
+        case "pace" where value >= 0:
+            let totalSeconds = Int((value * 60).rounded())
+            return String(format: "%d:%02d", totalSeconds / 60, totalSeconds % 60)
         default:
             return String(format: "%g", value)
         }

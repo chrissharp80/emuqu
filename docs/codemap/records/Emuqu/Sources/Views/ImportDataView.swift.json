@@ -1,13 +1,13 @@
 {
  "file": "Emuqu/Sources/Views/ImportDataView.swift",
- "hash": "963c2180fc6ef9d5",
+ "hash": "56ee076ba9f0b9ce",
  "role": "Settings > Data sheet that lets the user pick a CSV/JSON/TXT file of RR intervals (Kubios, Elite HRV summary, Emuqu multi-session export, plain RR), preview it, analyse a single recording or batch-import many into the archive.",
  "types": [
   "ImportDataView: struct (View) — import screen; state, body, results cover; logic lives in +Actions/+Preview extensions",
   "ImportInfoRow: struct (View) — label/value row used in previews"
  ],
  "state": [
-  "@State showingFilePicker, importResult, eliteHRVResult, flowHRVResult, importedSession, isImporting, isAnalyzing, isSavingBatch, errorMessage, showingResults, batchImportProgress, importStatusMessage, flowNewSessions, eliteNewSessions, cachedRecentSessions (view-local)",
+  "@State showingFilePicker, importResult, eliteHRVResult, flowHRVResult, importedSession, isImporting, isAnalyzing, isSavingBatch, errorMessage, showingResults, batchImportProgress, importStatusMessage, flowNewSessions, eliteNewSessions, cachedRecentSessions, importRecordingDate (user-set start of a dateless file), importedSleep (measured sleep for the unsaved reading) (view-local)",
   "let importer = RRDataImporter() (per-view instance)",
   "@Environment(RRCollector.self) collector, @Environment(\\.dismiss)"
  ],
@@ -35,7 +35,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.handleFileSelection(_:)": "e8e93648f888c9b9",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.handleFileSelection(_:)": "36b068e1b61c3337",
     "Emuqu/Sources/Views/ImportDataView.swift::var ImportDataView.cancelToolbarItem": "eaacc5658bcfd241",
     "Emuqu/Sources/Views/ImportDataView.swift::var ImportDataView.importStack": "254093e0ca888cf1",
     "Emuqu/Sources/Views/ImportDataView.swift::var ImportDataView.importedResultsCover": "cfdac09eabf733d0",
@@ -103,7 +103,7 @@
    "deps": {
     "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.eliteHRVPreviewSection(_:)": "6590ccfd1b8224b6",
     "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.flowHRVPreviewSection(_:)": "f37639dd35037432",
-    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.importPreviewSection(_:)": "1547a8c59922e08a"
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.importPreviewSection(_:)": "76382dd31c5a6999"
    }
   },
   {
@@ -209,51 +209,36 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ImportDataView.swift::func ImportDataView.importedResults(session:result:)": "5a0367cc7ad47aaa",
+    "Emuqu/Sources/Views/ImportDataView.swift::func ImportDataView.importedResults(session:result:)": "db85a705286bc8b3",
     "Emuqu/Sources/Views/ImportDataView.swift::var ImportDataView.saveImportToolbarItem": "cbfbc7aded638ef0"
    }
   },
   {
    "key": "func ImportDataView.importedResults(session:result:)",
-   "hash": "3e2c377e3e1a40cd",
-   "does": "Builds MorningResultsView with the imported session/result and cachedRecentSessions; onDiscard clears the import; onUpdateSleep forwards edited sleep boundaries to RRCollector.updateSessionSleepBoundaries for the session id.",
+   "hash": "23e86116c8d4b391",
+   "does": "Builds MorningResultsView with the imported session/result and cachedRecentSessions; onDiscard clears the import; onUpdateSleep (measured Apple Health sleep handed over by the results screen) is kept in importedSleep and applied to the reading when Done saves it, since the unsaved reading is not in the archive yet.",
    "entry": "SwiftUI view builder; closures fired by MorningResultsView buttons",
    "calls": [
     "Emuqu/Sources/Views/MorningResultsView.swift::init MorningResultsView(session:result:recentSessions:onDiscard:onDelete:onReanalyze:onUpdateTags:onReanalyzeAt:onApplyManualResult:onUpdateSleep:onAdjustSleep:onUnlinkSegment:linkedSegments:)",
-    "Emuqu/Sources/Views/ImportDataView.swift::func ImportDataView.discardImport()",
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)"
+    "Emuqu/Sources/Views/ImportDataView.swift::func ImportDataView.discardImport()"
    ],
    "reads": [
     "mem:ImportDataView @State (view-local)"
    ],
    "writes": [
-    "archive:updateSessionSleepBoundaries (only if the session id is already archived)"
+    "mem:ImportDataView.importedSleep"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "med",
-     "text": "onUpdateSleep passes the imported session's id to updateSessionSleepBoundaries before the session has been saved (it is only archived when Done is tapped), so a sleep edit on the unsaved imported reading targets an id the archive does not hold yet; ReanalysisService.updateSessionSleepBoundaries then returns false ('not in archive') and the Bool is discarded here, so a sleep edit on the unsaved imported reading is silently dropped and never reaches the importedSession that Done later saves.",
-     "evidence": [
-      "Emuqu/Sources/Views/ImportDataView.swift:122",
-      "Emuqu/Sources/Views/ImportDataView.swift:123",
-      "Emuqu/Sources/Views/ImportDataView+Actions.swift:281",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:292"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "ed8abe89df2283be",
-    "Emuqu/Sources/Views/ImportDataView.swift::func ImportDataView.discardImport()": "65bd369a8ad2b74f",
+    "Emuqu/Sources/Views/ImportDataView.swift::func ImportDataView.discardImport()": "e96de0a448e12cdb",
     "Emuqu/Sources/Views/MorningResultsView.swift::init MorningResultsView(session:result:recentSessions:onDiscard:onDelete:onReanalyze:onUpdateTags:onReanalyzeAt:onApplyManualResult:onUpdateSleep:onAdjustSleep:onUnlinkSegment:linkedSegments:)": "708e5b20f5522dc7"
    }
   },
   {
    "key": "func ImportDataView.discardImport()",
-   "hash": "f7e30b691bcc0116",
-   "does": "Clears importedSession and importResult and closes the results cover (Discard).",
+   "hash": "900d37fe683e2acc",
+   "does": "Clears importedSession, any pending measured sleep and importResult and closes the results cover (Discard).",
    "entry": "closure from MorningResultsView onDiscard",
    "calls": [],
    "reads": [],
@@ -294,7 +279,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.saveImportedSession()": "cdd920c6fd691ac0"
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.saveImportedSession()": "74b5da5b64d17cb1"
    }
   },
   {

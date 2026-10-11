@@ -84,24 +84,25 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)": "c9b14f11b904eab6",
-    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::func ScoreBreakdownCard.factorAccessibilityLabel(_:)": "c20b9480a720723f",
+    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::func ScoreBreakdownCard.factorAccessibilityLabel(_:)": "b35189a54626041b",
     "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::func ScoreBreakdownCard.factorBar(_:)": "25b70a135b6307a5",
-    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::func ScoreBreakdownCard.factorHeader(_:)": "5edb9433ce145bb3",
+    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::func ScoreBreakdownCard.factorHeader(_:)": "458bbc74a7520ae2",
     "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
    }
   },
   {
    "key": "func ScoreBreakdownCard.factorAccessibilityLabel(_:)",
-   "hash": "88b436953af6a593",
-   "does": "Builds VoiceOver text: factor name, display score out of 100, impact word, weight percent (rounded) and detail.",
+   "hash": "8f8dd2f9de687dc8",
+   "does": "Builds VoiceOver text: factor name, display score out of 100, impact word, weight percent from weightPercent (rounded) and detail.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryDetailCopy.factorName(_:)",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
     "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)",
-    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit"
+    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit",
+    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::func ScoreBreakdownCard.weightPercent(_:)"
    ],
    "reads": [],
    "writes": [],
@@ -124,56 +125,61 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "4b09e0431d20aa06",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "df038a321f56f948",
     "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)": "c9b14f11b904eab6",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::func ScoreBreakdownCard.weightPercent(_:)": "380fbaaffb8db785",
     "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d",
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryDetailCopy.factorName(_:)": "64f3780feb471390"
    }
   },
   {
    "key": "func ScoreBreakdownCard.factorHeader(_:)",
-   "hash": "bbefb86799fa45a6",
-   "does": "Row header: impact-coloured dot, localized factor name, display score, and '× N%' weight using Int(weight*100) (truncation).",
+   "hash": "1ce1a5a1a3b7fa19",
+   "does": "Row header: impact-coloured dot, localized factor name, display score, and '× N%' weight from weightPercent (rounded, as VoiceOver reads it).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::func ScoreBreakdownCard.factorColor(_:)",
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryDetailCopy.factorName(_:)",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)",
+    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::func ScoreBreakdownCard.weightPercent(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [
     {
-     "kind": "broken",
-     "sev": "low",
-     "text": "The visible weight truncates Int(weight*100) while the VoiceOver label rounds ((weight*100).rounded()), so a non-integer percentage weight shows one value on screen and announces another.",
-     "evidence": [
-      "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift:77",
-      "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift:58"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
      "kind": "duplicate",
      "sev": "low",
-     "text": "Factor header/bar/detail rows duplicate RecoveryScoreDetailView's breakdownHeader/breakdownBar, which round the weight ((weight*100).rounded()) where this card truncates, so the same factor can show different weight percentages on the two screens.",
+     "text": "Factor header/bar rows duplicate RecoveryScoreDetailView's breakdownHeader/breakdownBar layout; both now round the weight, but the detail screen formats it itself instead of calling weightPercent (handoff from fix batch b22), so the two can drift again.",
      "evidence": [
-      "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift:77",
+      "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift:63",
       "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift:345"
      ],
      "found": "second read"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "4b09e0431d20aa06",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "df038a321f56f948",
     "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::func ScoreBreakdownCard.factorColor(_:)": "8f918dcd5b1fb07f",
+    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::func ScoreBreakdownCard.weightPercent(_:)": "380fbaaffb8db785",
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryDetailCopy.factorName(_:)": "64f3780feb471390",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
     "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
    }
+  },
+  {
+   "key": "func ScoreBreakdownCard.weightPercent(_:)",
+   "hash": "d5116a228b23788f",
+   "does": "A factor's weight as a whole percent, rounded (Int((weight*100).rounded())) — the one formatting the card's header and its VoiceOver label use, matching the recovery-score detail screen's rounding.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "func ScoreBreakdownCard.factorBar(_:)",

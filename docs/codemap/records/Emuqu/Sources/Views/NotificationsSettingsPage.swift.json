@@ -1,27 +1,16 @@
 {
  "file": "Emuqu/Sources/Views/NotificationsSettingsPage.swift",
- "hash": "96f6fe36cfb61cc6",
+ "hash": "f16148d751310056",
  "role": "Settings → Notifications screen: denied-permission banner, Daily morning report (enable, Smart/Fixed delivery, time, Auto/Full/Teaser format) with a live preview, workout coach, mile-marker check-ins, route turn alerts and a no-marketing statement; keeps MorningNotificationScheduler in sync with the daily-report settings.",
  "types": [
   "NotificationsSettingsPage: struct View"
  ],
  "state": [
-  "@State systemAuthDenied (line 20) — local banner flag"
+  "@State systemAuthDenied — local banner flag",
+  "@Environment scenePhase — triggers the permission re-read on return to active"
  ],
  "toplevel": "Doc comment states the former alerts section (HRV anomaly, battery-low, sync failure) was removed because it was never wired. Reached from SettingsView.swift:287, SettingsSearchIndex.swift:222 and MainTabView.swift:514.",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "systemAuthDenied is refreshed only on .task (page appearance) and when the daily-report toggle turns on; if the user leaves to iOS Settings and grants/denies permission while this page stays on screen, the banner does not update until the page is re-entered.",
-   "evidence": [
-    "Emuqu/Sources/Views/NotificationsSettingsPage.swift:43",
-    "Emuqu/Sources/Views/NotificationsSettingsPage.swift:61",
-    "Emuqu/Sources/Views/NotificationsSettingsPage.swift:316"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "var NotificationsSettingsPage.settingsManager",
@@ -54,7 +43,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::func NotificationsSettingsPage.withChrome(_:)": "edfedc6863e64bc4",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::func NotificationsSettingsPage.withChrome(_:)": "73e0c72cc9ba5410",
     "Emuqu/Sources/Views/NotificationsSettingsPage.swift::func NotificationsSettingsPage.withSchedulerSync(_:)": "c1b3b327c8715899",
     "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.bodyContent": "e5e63299ea4c1862"
    }
@@ -89,16 +78,22 @@
   },
   {
    "key": "func NotificationsSettingsPage.withChrome(_:)",
-   "hash": "646d4599b1d5cbc4",
-   "does": "Adds title 'Notifications', hidden scroll background over AppTheme.background and a .task that checks notification authorization.",
-   "entry": "SwiftUI .task runs checkAuthorisationStatus on appear.",
+   "hash": "68bf64269de92822",
+   "does": "Adds title 'Notifications', hidden scroll background over AppTheme.background, a .task that checks notification authorization, and a scenePhase observer that re-checks it whenever the app becomes active again (e.g. back from iOS Settings with the page open).",
+   "entry": "SwiftUI .task on appear and onChange(of: scenePhase)",
    "calls": [
     "Emuqu/Sources/Views/NotificationsSettingsPage.swift::func NotificationsSettingsPage.checkAuthorisationStatus()",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
    "writes": [],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "phase != .active",
+     "effect": "ignored; active → checkAuthorisationStatus"
+    }
+   ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
@@ -424,7 +419,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.previewBody": "5aae24a2ae7bdd60",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.previewBody": "1cfb0a6400825053",
     "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
@@ -720,106 +715,38 @@
   },
   {
    "key": "var NotificationsSettingsPage.previewBody",
-   "hash": "f5c4e5bdcbd2e1c7",
-   "does": "Preview text: for Fixed delivery the scheduler's number-free set-time body; for Smart, a sample full readout 'Recovery 84 · A good score — normal training fits today.' or the teaser 'Your recovery is in.' per effectiveFormat().",
+   "hash": "6269c1110907357e",
+   "does": "Preview text: for Fixed delivery the scheduler's number-free set-time body; for Smart, the chosen format resolved by MorningNotificationScheduler.resolvedFormat against the environment dependencies' archive (.auto → full after 30 nights, else teaser): the sample full readout 'Recovery 84 · A good score — normal training fits today.' when full, else the teaser 'Your recovery is in.'",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.buildPayload()",
-    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::func NotificationsSettingsPage.effectiveFormat()",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.resolvedFormat(_:archive:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [
-    "mem:SettingsManager.settings.dailyReportDelivery"
+    "mem:SettingsManager.settings.dailyReportDelivery",
+    "mem:SettingsManager.settings.dailyReportFormat"
    ],
    "writes": [],
    "branches": [
     {
      "at": "+1",
      "cond": "dailyReportDelivery != .smart (guard)",
-     "effect": "returns MorningNotificationScheduler.buildPayload().1; Smart continues to the format switch"
-    },
-    {
-     "at": "+5",
-     "cond": "effective format .full",
-     "effect": "returns the sample score line"
+     "effect": "returns buildPayload().1"
     },
     {
      "at": "+7",
-     "cond": "effective format .teaser",
-     "effect": "returns 'Your recovery is in.'"
-    },
-    {
-     "at": "+9",
-     "cond": "effective format .auto",
-     "effect": "returns the teaser text; unreachable because effectiveFormat never returns .auto"
+     "cond": "resolved format == .full",
+     "effect": "sample score line; else teaser"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "The .auto case cannot occur: effectiveFormat resolves .auto through resolvedFormat, which returns only .full or .teaser (the code comment admits it).",
-     "evidence": [
-      "Emuqu/Sources/Views/NotificationsSettingsPage.swift:297",
-      "Emuqu/Sources/Services/MorningNotificationScheduler.swift:244"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.buildPayload()": "15eb08f1045f2698",
-    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::func NotificationsSettingsPage.effectiveFormat()": "fd56782a125d3e39",
-    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.settingsManager": "13ba281ff932109a"
-   }
-  },
-  {
-   "key": "func NotificationsSettingsPage.effectiveFormat()",
-   "hash": "4d3fa915bf9f6175",
-   "does": "Returns the stored dailyReportFormat, resolving .auto via MorningNotificationScheduler.resolvedFormat against AppDependencies.current.storage.sessionArchive (full once there are 30 distinct reliable overnight nights, else teaser).",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.resolvedFormat(_:archive:)",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive"
-   ],
-   "reads": [
-    "mem:SettingsManager.settings.dailyReportFormat",
-    "archive:SessionArchive.entries (overnight, reliable)"
-   ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": ".full",
-     "effect": "returns .full"
-    },
-    {
-     "at": "+3",
-     "cond": ".teaser",
-     "effect": "returns .teaser"
-    },
-    {
-     "at": "+4",
-     "cond": ".auto",
-     "effect": "returns resolvedFormat(.auto, archive:) — .full or .teaser"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Re-implements resolvedFormat's .full/.teaser pass-through switch instead of calling resolvedFormat for every format, and reads the archive from the AppDependencies.current global while the rest of the page uses the environment dependencies.",
-     "evidence": [
-      "Emuqu/Sources/Views/NotificationsSettingsPage.swift:303",
-      "Emuqu/Sources/Services/MorningNotificationScheduler.swift:247",
-      "Emuqu/Sources/Views/NotificationsSettingsPage.swift:308"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.resolvedFormat(_:archive:)": "1056fa14292f3976",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive": "2c8002649ba22b7f",
     "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.settingsManager": "13ba281ff932109a"

@@ -54,7 +54,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.compute(samples:userMaxHR:)": "4d83f75c70219d1d",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.computeCurrentGradePercent()": "a1e57b6f155af66b",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.computeCurrentGradePercent()": "4e64847ead1e7037",
     "Emuqu/Sources/Collection/WorkoutRecorder+TickerForwarding.swift::func WorkoutRecorder.validCourse(_:)": "7b3ae4380b1e8357",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location": "ae4b37ede53adc9c",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.samplesView": "da27f0b18ac388b1",
@@ -65,8 +65,8 @@
   },
   {
    "key": "func WorkoutAIContextBuilder.buildContext(sport:)",
-   "hash": "badb0d8709679a27",
-   "does": "Builds the full WorkoutAIContext handed to the voice coach/AI each tick: HR, peak, max HR, DFA alpha1/band/fit/status, distance, pace/speed, cadence, power, foot pod, METs, split paces, position/heading/altitude/GPS accuracy, elevation gain, grade, upcoming climb, route topology, weather, strap state and silence, road/locality/address, session average HR, live trends (reverse split, HR drift, HR slope, decoupling, cadence drift, GAP, split GAPs), fade projection, cached historical baselines/readiness/training projection, recovery hours, zone seconds, cached race predictions, units, target zone, thresholds and breach seconds. hrDriftPercent is always nil.",
+   "hash": "6fa997a31a447bad",
+   "does": "Builds the full WorkoutAIContext handed to the voice coach/AI each tick: HR, peak, max HR, DFA alpha1/band/fit/status, the recorder's fused distance (max of GPS/pedometer/foot pod/erg — the number the UI, broker snapshot and thresholds show), pace/speed, cadence, power, foot pod, METs, split paces, position/heading/altitude/GPS accuracy, elevation gain, grade, upcoming climb, route topology, weather, strap state and silence, road/locality/address, session average HR, live trends (reverse split, HR drift, HR slope, decoupling, cadence drift, GAP, split GAPs), fade projection, cached historical baselines/readiness/training projection, recovery hours, zone seconds, cached race predictions, units, target zone, thresholds and breach seconds. hrDriftPercent is always nil.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.contextInputs()",
@@ -96,12 +96,13 @@
     "Emuqu/Sources/Collection/WorkoutRecorder+TickerForwarding.swift::func WorkoutRecorder.liveProjectedMinutesUntilFade()",
     "Emuqu/Sources/Collection/WorkoutRecorder+TickerForwarding.swift::func WorkoutRecorder.liveRecoveryHoursNeeded()",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.targetZone"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.targetZone",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.distanceMeters"
    ],
    "reads": [
     "mem:WorkoutHR.currentHR",
     "mem:LiveDFAAnalyzer.currentAlpha1",
-    "mem:WorkoutLocationManager.distanceMeters",
+    "mem:WorkoutMotion.distanceMeters",
     "mem:WorkoutMotion.*",
     "mem:WeatherService.current",
     "mem:PolarManager.connectionState",
@@ -117,22 +118,7 @@
     "mem:WorkoutRecorder.lastRouteProgressIndex"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "distanceMeters in the coach context is recorder.location.distanceMeters (GPS only) while the UI, the assistant broker snapshot and ThresholdSignals use recorder.distanceMeters (max of GPS/pedometer/foot pod/erg, WorkoutRecorder+Ticker.swift:500-505). WorkoutMileMarkerEngine and the split rules in WorkoutTriggerEngine consume context.distanceMeters, so on treadmill/indoor pedometer or foot-pod workouts (no GPS started) mile markers and split cues never fire and the voice coach/MetricsVerifier see 0 m while the screen shows distance; outdoors cues are keyed to a different distance than displayed.",
-     "evidence": [
-      "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift:74",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:700",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:503",
-      "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift:168",
-      "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:597",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:338"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
     "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.dominantZone(zoneSecs:zoneTotal:)": "974008587ee9d034",
@@ -144,10 +130,10 @@
     "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentHRSlopeBpm(samples:)": "1a2acd292c92e3fd",
     "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentSplitGradeAdjustedPaces(samples:)": "1122afa640f4dade",
     "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.reverseSplitDeltaSecPerKm(samples:)": "d3babc3e12405319",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.sampleCount(for:from:to:)": "4f00a2cb9ab6b0f5",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.sampleCount(for:from:to:)": "2dc1cfa3ae220984",
     "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "99b5dc9d71b51468",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.computeRouteTopology(currentLocation:)": "423f9b1068760a99",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.computeRouteTopology(currentLocation:)": "e0e8484df92d3474",
     "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.computeUpcomingClimb(currentLocation:)": "618e44952796b998",
     "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.contextInputs()": "c24c30d724d9c7fa",
     "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.recentSplitPacesSecPerKm()": "10835a1c66544cfe",
@@ -159,6 +145,7 @@
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.currentHR": "5527e82ea1d21c1e",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.currentPaceSecPerKm": "f8ad7952229f7b8e",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.currentSpeedMS": "3ca046840e972fc1",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.distanceMeters": "8f046be425d7cf41",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.footPodActive": "c783733cbe74fe58",
@@ -168,7 +155,7 @@
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.targetZone": "c3e90b3ab0e837fa",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
     "Emuqu/Sources/Services/RoadGeocodingService.swift::var RoadGeocodingService.RoadContext.compactAddress": "dfc0c02aeeb3da4b",
-    "Emuqu/Sources/Services/RoadGeocodingService.swift::var RoadGeocodingService.RoadContext.nearestIntersection": "a46cf43c59a92ca5",
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::var RoadGeocodingService.RoadContext.nearestIntersection": "2694eefe7a845b2c",
     "Emuqu/Sources/Services/WeatherService.swift::var WeatherService.current": "3c98a28f4b3b6c1a",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.userMaxHR": "49805330e3ae7d57",
@@ -201,8 +188,8 @@
   },
   {
    "key": "func WorkoutAIContextBuilder.attemptAutoRouteDetection(sport:)",
-   "hash": "4c9c6e9ecd6ed971",
-   "does": "One-shot saved-route auto-binding: once the live track is >=500 m (RouteLibrary.detectionTriggerMeters) marks detection attempted, asks RouteLibrary.findMatch against the saved-route store and, on a match, binds plannedRoute, marks auto-detected, stores direction and logs. Only tried once per workout whatever the outcome.",
+   "hash": "ebb6861c22acaf60",
+   "does": "Saved-route auto-binding: once the live track reaches the later of 500 m (RouteLibrary.detectionTriggerMeters) and nextRouteDetectionAtMeters, schedules the next attempt another 500 m on, asks RouteLibrary.findMatch against the saved-route store and, on a match, binds plannedRoute, marks auto-detected, stores direction and logs. Retried every further 500 m while nothing matches, so a loop joined after a warm-up leg is still recognised; the ticker stops calling once a route is bound.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location",
@@ -212,10 +199,11 @@
    ],
    "reads": [
     "mem:WorkoutLocationManager.track",
-    "mem:SavedRouteStore"
+    "mem:SavedRouteStore",
+    "mem:WorkoutRecorder.nextRouteDetectionAtMeters"
    ],
    "writes": [
-    "mem:WorkoutRecorder.routeDetectionAttempted",
+    "mem:WorkoutRecorder.nextRouteDetectionAtMeters",
     "mem:WorkoutRecorder.plannedRoute",
     "mem:WorkoutRecorder.plannedRouteWasAutoDetected",
     "mem:WorkoutRecorder.plannedRouteDirection"
@@ -223,13 +211,13 @@
    "branches": [
     {
      "at": "+3",
-     "cond": "traveled < 500 m",
-     "effect": "returns without marking attempted"
+     "cond": "traveled < max(500 m, nextRouteDetectionAtMeters)",
+     "effect": "returns without trying"
     },
     {
      "at": "+6",
      "cond": "no matching saved route",
-     "effect": "returns (attempt already consumed)"
+     "effect": "returns; next attempt after 500 m more track"
     },
     {
      "at": "+16",
@@ -237,21 +225,9 @@
      "effect": "log suffix \"(reverse)\"; else empty"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Detection is single-shot: routeDetectionAttempted is set true before findMatch (line 120) and the ticker only calls it while !routeDetectionAttempted (WorkoutRecorder+Ticker.swift:792), so if the first ~500 m of track does not match (e.g. a warm-up leg before joining a saved loop) the route is never recognised later in the workout; USERS_MANUAL.md:1064-1066 says saved routes are recognised once ~500 m of matching movement is covered.",
-     "evidence": [
-      "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift:120",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:792",
-      "docs/USERS_MANUAL.md:1064"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.findMatch(currentTrack:sport:store:)": "26547ccaed8e1da6",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.findMatch(currentTrack:sport:store:)": "5d0533a9a1f15147",
     "Emuqu/Sources/Collection/WorkoutRecorder+GeometryForwarding.swift::func WorkoutRecorder.trackLengthMeters(_:)": "efae66cde836e3ff",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location": "ae4b37ede53adc9c",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.plannedRoute": "5e139adcaa347944",
@@ -326,14 +302,15 @@
   },
   {
    "key": "func WorkoutAIContextBuilder.computeRouteTopology(currentLocation:)",
-   "hash": "2bd77ba5f0b6478f",
-   "does": "Builds RouteTopology for a bound route: up to 5 climbs starting ahead, their total gain, route max altitude, GPS altitude above route min, steepest grade ahead, metres to peak (negative when behind) and up to 5 upcoming turns.",
+   "hash": "6133c837e3c34495",
+   "does": "Builds RouteTopology for a bound route: up to 5 climbs starting ahead, the ascent remaining (their gain plus the pro-rated rest of a climb the user is part-way up, climbInProgress), route max altitude, GPS altitude above route min, steepest grade ahead (the current climb's included), metres to peak (negative when behind) and up to 5 upcoming turns.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.routeProgress(at:on:)",
     "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.climbsAhead(on:pastDistance:)",
     "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.metersToPeak(route:altitudes:routeMax:progress:)",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.computeUpcomingTurns(route:fromDistanceAlongMeters:)"
+    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.computeUpcomingTurns(route:fromDistanceAlongMeters:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.climbInProgress(on:pastDistance:)"
    ],
    "reads": [
     "mem:WorkoutRecorder.plannedRoute"
@@ -348,30 +325,25 @@
      "effect": "returns nil"
     },
     {
-     "at": "+6",
+     "at": "+7",
      "cond": "route has no trackpoints",
      "effect": "?? 0 for routeMax"
     },
     {
-     "at": "+11",
+     "at": "+10",
+     "cond": "not on a climb (??)",
+     "effect": "ascent remaining starts from 0"
+    },
+    {
+     "at": "+12",
      "cond": "route has no trackpoints",
      "effect": "?? 0 for route min altitude"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "climbsAhead keeps only climbs whose start is beyond the user, so while the user is part-way up a climb its remaining gain is excluded from totalAscentRemainingMeters and steepestGradeAheadPercent, under-reporting the ascent left to the AI coach.",
-     "evidence": [
-      "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift:194",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift:181"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoints(session:track:iso:)": "a784bf4553e314a2",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.climbInProgress(on:pastDistance:)": "329eebfdd15362c0",
     "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.climbsAhead(on:pastDistance:)": "656cb588c2399785",
     "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.computeUpcomingTurns(route:fromDistanceAlongMeters:)": "d43abbc597ac4854",
     "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.metersToPeak(route:altitudes:routeMax:progress:)": "be19d8ac105ce9b5",
@@ -388,6 +360,28 @@
    "reads": [],
    "writes": [],
    "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/Route.swift::var Route.Climb.lengthMeters": "9201abd22a88cf21"
+   }
+  },
+  {
+   "key": "func WorkoutAIContextBuilder.climbInProgress(on:pastDistance:)",
+   "hash": "aca96489601ed90e",
+   "does": "The climb whose span contains pastDistance (the user is part-way up it), as its gain pro-rated to the length still ahead and its average grade; nil when not on a climb or the climb has no length.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/Route.swift::var Route.Climb.lengthMeters"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a climb spans pastDistance and has length > 0",
+     "effect": "(gain × share ahead, grade); else nil"
+    }
+   ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Models/Route.swift::var Route.Climb.lengthMeters": "9201abd22a88cf21"
@@ -525,7 +519,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.climbsAhead(on:pastDistance:)": "656cb588c2399785",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.computeRouteTopology(currentLocation:)": "423f9b1068760a99",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.computeRouteTopology(currentLocation:)": "e0e8484df92d3474",
     "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.metersToPeak(route:altitudes:routeMax:progress:)": "be19d8ac105ce9b5",
     "Emuqu/Sources/Models/Route.swift::var Route.Climb.lengthMeters": "9201abd22a88cf21",
     "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13"
@@ -625,13 +619,13 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.applyBreachTick(_:signals:)": "efaeaec740ebb643",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.thresholdSignals(sport:)": "7dbd5fd9bdf4dddf"
+    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.thresholdSignals(sport:)": "cdb2cea54070b0e8"
    }
   },
   {
    "key": "func WorkoutAIContextBuilder.thresholdSignals(sport:)",
-   "hash": "e29696044677f6c8",
-   "does": "Samples HR, %maxHR zone, power, sport FTP, pace, alpha1, cadence, recorder.distanceMeters, wall-clock seconds since sessionStartDate, elevation gain and grade.",
+   "hash": "530bab4d77c16e01",
+   "does": "Samples HR, %maxHR zone, power, sport FTP, pace, alpha1, cadence, recorder.distanceMeters, the visible workout clock (recorder.elapsedSeconds, stopped while paused; nil before the session has a start date), elevation gain and grade.",
    "entry": null,
    "calls": [
     "closure:WorkoutRecorder.settingsProvider",
@@ -641,7 +635,8 @@
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.currentPaceSecPerKm",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.distanceMeters",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.computeCurrentGradePercent()"
+    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.computeCurrentGradePercent()",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds"
    ],
    "reads": [
     "mem:WorkoutHR.currentHR",
@@ -649,30 +644,20 @@
     "mem:WorkoutMotion.cadenceStepsPerMin",
     "mem:LiveDFAAnalyzer.currentAlpha1",
     "mem:WorkoutRecorder.sessionStartDate",
-    "mem:SettingsManager.settings"
+    "mem:SettingsManager.settings",
+    "mem:WorkoutLifecycle.elapsedSeconds"
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "elapsedSec for thresholds is wall-clock time since sessionStartDate, which keeps counting through pauses, while the elapsed time the user sees (lifecycle.elapsedSeconds) stops while paused; an \"elapsed\" threshold therefore fires early after any pause, unlike elevation which was deliberately aligned with the visible number.",
-     "evidence": [
-      "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift:408",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift:389",
-      "Emuqu/Sources/Collection/WorkoutLifecycle.swift:43"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.hrMaxZone(hr:maxHR:)": "002b2d335bd91ea4",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.computeCurrentGradePercent()": "a1e57b6f155af66b",
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.hrMaxZone(hr:maxHR:)": "6ec78123269abbc8",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.computeCurrentGradePercent()": "4e64847ead1e7037",
     "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.sportFTP(for:settings:)": "f0fc91068b327c86",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "d9315eaf78873e8c",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.currentPaceSecPerKm": "f8ad7952229f7b8e",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.distanceMeters": "8f046be425d7cf41",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "ad61e93456f590a4",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.settingsProvider": "962bc6e493a1aa94",
@@ -798,9 +783,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.decimatedBreadcrumbFixes(track:origin:)": "b7e07fe80e34b03a",
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.decimatedBreadcrumbFixes(track:origin:)": "1cc665d81cc80dfe",
     "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.breadcrumbLabel(sport:start:)": "62cc347ef5f19cb7",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.archive(_:)": "852043f9a6e193e7",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.archive(_:)": "0b3031d99a2f34a3",
     "Emuqu/Sources/Services/BreadcrumbStore.swift::init BreadcrumbFix(from:)": "bfaeb7475391b53c",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
@@ -857,15 +842,17 @@
   },
   {
    "key": "func WorkoutAIContextBuilder.computeCurrentGradePercent()",
-   "hash": "96ddd33750d703bb",
-   "does": "Grade % over the trailing ~100 m of the GPS track using raw GPS altitude (CLLocation.altitude): nil for <2 fixes or <50 m window, 0 when |rise| < 2 m, else rise/metres*100.",
+   "hash": "35b596084cc5a11f",
+   "does": "Grade % over the trailing ~100 m of the GPS track, the rise taken from the barometer when it covers the window (gradeWindowRise; GPS altitude only without one): nil for <2 fixes or <50 m window, 0 when |rise| < 2 m, else rise/metres*100.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location",
-    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.trailingGradeWindow(track:)"
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.trailingGradeWindow(track:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.gradeWindowRise(from:to:)"
    ],
    "reads": [
-    "mem:WorkoutLocationManager.track"
+    "mem:WorkoutLocationManager.track",
+    "mem:WorkoutLocationManager.barometricSamples"
    ],
    "writes": [],
    "branches": [
@@ -882,7 +869,7 @@
     {
      "at": "+5",
      "cond": "track.last nil",
-     "effect": "nil (unreachable after count guard, per comment line 512)"
+     "effect": "nil (unreachable after count guard)"
     },
     {
      "at": "+9",
@@ -890,22 +877,34 @@
      "effect": "returns 0; else grade"
     }
    ],
-   "flags": [
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.trailingGradeWindow(track:)": "d7ee1d90ee46ab06",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.gradeWindowRise(from:to:)": "bdd4eddbe01102e2",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location": "ae4b37ede53adc9c"
+   }
+  },
+  {
+   "key": "func WorkoutAIContextBuilder.gradeWindowRise(from:to:)",
+   "hash": "e1538aa42c11f1c6",
+   "does": "Altitude change across the grade window: from the barometer (last sample at or before the window's first fix to the newest sample; ±0.5 m, pause-shifted like the elevation gain) when one exists, else the two GPS fixes' altitude difference.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location"
+   ],
+   "reads": [
+    "mem:WorkoutLocationManager.barometricSamples"
+   ],
+   "writes": [],
+   "branches": [
     {
-     "kind": "broken",
-     "sev": "med",
-     "text": "Grade uses raw GPS altitude over a ~100 m window with a 2 m floor, though the same codebase documents GPS altitude noise of +/-5-10 m (and line 510 says one sample swings +/-5 m) and switched elevation to the barometer for that reason; a single noisy fix gives several % of phantom grade, which feeds the AI context, grade-adjusted pace and grade thresholds.",
-     "evidence": [
-      "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift:521",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift:524",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift:510",
-      "Emuqu/Sources/Collection/WorkoutLocationManager.swift:83"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+2",
+     "cond": "a barometer sample at/before the start fix and a newest sample exist",
+     "effect": "barometric rise; else GPS altitude rise"
     }
    ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.trailingGradeWindow(track:)": "9349fa417eb2ebae",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location": "ae4b37ede53adc9c"
    }
   }

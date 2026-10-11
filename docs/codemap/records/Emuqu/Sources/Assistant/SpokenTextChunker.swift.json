@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Assistant/SpokenTextChunker.swift",
- "hash": "42945cea30157e7b",
+ "hash": "52654a32e2e4d259",
  "role": "Buffers streamed LLM text deltas and emits whole sentences (markdown stripped) for AVSpeechSynthesizer; finalize() flushes the tail.",
  "types": [
   "SpokenTextChunker: final class — sentence-boundary buffer for TTS"
@@ -10,19 +10,8 @@
   "mem:SpokenTextChunker.pendingBuffer (private(set) var, per instance; instance held at VoiceConversationController.textChunker)",
   "mem:SpokenTextChunker.markdownPatterns (static let regex list, lines 126-134)"
  ],
- "toplevel": "Static sentenceEnders set and the ordered markdownPatterns regex list (intra-word * and _, *word* emphasis, list markers, numbered markers, ATX headers, [label](url)->label).",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Header says the chunker 'mirrors the prior in-class behavior exactly', but the decimal/link/URL-aware boundary rules (lines 69-98) are later additions that change where chunks are cut.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/SpokenTextChunker.swift:19",
-    "Emuqu/Sources/Assistant/SpokenTextChunker.swift:77"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "Static sentenceEnders set and the ordered markdownPatterns regex list (single * between letters and _ between word chars, *word* emphasis, list markers, numbered markers, ATX headers, [label](url)->label).",
+ "flags": [],
  "units": [
   {
    "key": "var SpokenTextChunker.hasPendingContent",
@@ -49,7 +38,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.drainCompletedSentence()": "e677fd446e18a926"
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.drainCompletedSentence()": "64d9912dbb97e263"
    }
   },
   {
@@ -76,7 +65,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.stripMarkdownForSpeech(_:)": "e04a3b97f7baba8b"
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.stripMarkdownForSpeech(_:)": "3c47bb71462ba089"
    }
   },
   {
@@ -119,27 +108,16 @@
      "effect": "true: nil; false: stripped chunk"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Scans every buffer index and calls isInsideLinkOrURL (which splits the whole prefix) for each '.', so each append is O(n^2) in buffered length; long unpunctuated streams get slower per delta.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/SpokenTextChunker.swift:58",
-      "Emuqu/Sources/Assistant/SpokenTextChunker.swift:90"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.isSentenceBoundary(at:)": "8894c260978577ab",
-    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.stripMarkdownForSpeech(_:)": "e04a3b97f7baba8b"
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.isSentenceBoundary(at:)": "bab492370b83ca05",
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.stripMarkdownForSpeech(_:)": "3c47bb71462ba089"
    }
   },
   {
    "key": "func SpokenTextChunker.isSentenceBoundary(at:)",
-   "hash": "e20fd9da73e03993",
-   "does": "Decides whether the character at index ends a sentence: '!', '?', '\\n' always; '.' only when not inside a link/URL, not followed by a digit/letter, and (if last char) not preceded by a digit.",
+   "hash": "165ae37fedb92fb9",
+   "does": "Decides whether the character at index ends a sentence: a newline always; '!', '?' and '.' never inside a markdown link or URL; '!' and '?' otherwise always; '.' only when not followed by a digit/letter and (if last char) not preceded by a digit.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.isInsideLinkOrURL(at:)"
@@ -154,46 +132,39 @@
     },
     {
      "at": "+3",
-     "cond": "character is '.'",
-     "effect": "false ('!', '?', newline): boundary — no link/URL check"
+     "cond": "character is a newline",
+     "effect": "true: boundary"
     },
     {
      "at": "+4",
-     "cond": "'.' is inside a markdown link or URL",
-     "effect": "true: not a boundary"
+     "cond": "inside a markdown link or URL",
+     "effect": "true: not a boundary ('.', '!' and '?' alike)"
     },
     {
-     "at": "+6",
-     "cond": "a next character exists",
-     "effect": "true: boundary only if next is neither number nor letter"
+     "at": "+5",
+     "cond": "character is '.'",
+     "effect": "false ('!', '?'): boundary"
     },
     {
      "at": "+7",
+     "cond": "a next character exists",
+     "effect": "boundary only if next is neither number nor letter"
+    },
+    {
+     "at": "+8",
      "cond": "'.' is the first buffered character",
      "effect": "true: boundary; false: boundary only if previous char is not a number (trailing '42.' waits)"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "'?' and '!' skip the link/URL check, so a URL with a query string ('https://x.com/a?b=1') or a markdown link label with '?' is cut mid-link; the half link is then not matched by the [label](url) strip pattern and its brackets/address are read aloud — the exact failure the '.' rule was added to prevent.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/SpokenTextChunker.swift:80",
-      "Emuqu/Sources/Assistant/SpokenTextChunker.swift:81",
-      "Emuqu/Sources/Assistant/SpokenTextChunker.swift:133"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.isInsideLinkOrURL(at:)": "b48749a65fa7a842"
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.isInsideLinkOrURL(at:)": "6e61789043ffde07"
    }
   },
   {
    "key": "func SpokenTextChunker.isInsideLinkOrURL(at:)",
-   "hash": "6dbba2999ed7a124",
-   "does": "True when the text before index ends in a token containing '://' or starting 'www.', or is inside an unclosed '[label' or '[label](url' markdown link.",
+   "hash": "c373520e36b6a946",
+   "does": "True when the text before index ends in a token (from the last whitespace) containing '://' or starting 'www.', or is inside an unclosed '[label' or '[label](url' markdown link. Reads back only to the token start and the last '[', not splitting the whole buffer per candidate ender.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -201,23 +172,28 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "buffer before index has a whitespace-delimited last token",
-     "effect": "false: '' token"
+     "cond": "there is whitespace before index",
+     "effect": "token starts after it; else at the buffer start"
     },
     {
-     "at": "+3",
+     "at": "+4",
      "cond": "token contains :// or starts with www.",
      "effect": "true: inside URL"
     },
     {
-     "at": "+4",
+     "at": "+5",
      "cond": "a '[' exists before index",
      "effect": "false: not inside link"
     },
     {
-     "at": "+6",
+     "at": "+7",
      "cond": "']' follows the last '['",
      "effect": "false: inside link label → true"
+    },
+    {
+     "at": "+8",
+     "cond": "text after ']' starts '](' with no ')'",
+     "effect": "true: inside the link's url part"
     }
    ],
    "flags": [],
@@ -226,7 +202,7 @@
   {
    "key": "func SpokenTextChunker.stripMarkdownForSpeech(_:)",
    "hash": "84a71c29c9a5937f",
-   "does": "Removes '**', '__', backticks, then applies markdownPatterns in order (intra-word * and _ removed, *word* emphasis unwrapped, list/number/header markers removed, [label](url)->label).",
+   "does": "Removes '**', '__', backticks, then applies markdownPatterns in order (a single * between letters and _ between word chars removed — never next to a digit, so '5*3' survives —, *word* emphasis unwrapped, list/number/header markers removed, [label](url)->label).",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -238,18 +214,7 @@
      "effect": "each regex rewrite applied in order"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Pattern `(?<=\\w)\\*(?=\\w)` deletes an unspaced multiplication sign, so '5*3' is spoken 'fifty-three'; the comment only protects the spaced form.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/SpokenTextChunker.swift:118",
-      "Emuqu/Sources/Assistant/SpokenTextChunker.swift:127"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   }
  ],

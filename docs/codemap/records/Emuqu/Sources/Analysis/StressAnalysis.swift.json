@@ -7,26 +7,12 @@
  ],
  "state": [],
  "toplevel": "All thresholds/weights come from StressNormativeConstants (Constants.swift:541) and HRVThresholds.dfaAlpha1* ; no state.",
- "flags": [
-  {
-   "kind": "broken",
-   "sev": "med",
-   "text": "fitnessAdjustedBaseline multiplies the user's PERSONAL baseline (RRCollector.swift:485 exp(lnRmssdMean)) by a VO2max multiplier (vo2 60 → ×1.2, ≥70 → ×1.3). A fit user sitting exactly at their own typical RMSSD gets ratio 0.83/0.77, falling out of the 0.85–1.15 optimal band to the acceptable band: readiness drops 1 point (+1 instead of +2) for being at baseline. The personal baseline already reflects fitness, so the adjustment double-counts it.",
-   "evidence": [
-    "Emuqu/Sources/Analysis/StressAnalysis.swift:158",
-    "Emuqu/Sources/Analysis/StressAnalysis.swift:160",
-    "Emuqu/Sources/Analysis/StressAnalysis.swift:177",
-    "Emuqu/Sources/Collection/RRCollector.swift:485",
-    "Emuqu/Sources/Utilities/Constants.swift:604"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "func StressAnalyzer.computeStressIndex(_:)",
-   "hash": "9cbc6c3730e18e38",
-   "does": "Baevsky SI from RR (ms): needs ≥20 beats (stressIndexMinRRCount), builds a 50 ms histogram anchored at min RR, Mo = modal-bin centre (s), AMo = modal count % of beats, MxDMn = range (s); returns AMo/(2·Mo·MxDMn), nil when not computable.",
+   "hash": "831f59a62858ce5f",
+   "does": "Baevsky SI from RR (ms): needs ≥20 beats (stressIndexMinRRCount), builds a 50 ms histogram anchored at min RR, Mo = modal-bin centre (s), AMo = modal count % of beats, MxDMn = range (s); returns AMo/(2·Mo·MxDMn), nil when not computable. Missing min/max or modal bin return nil (never a fabricated 0); they cannot be missing after the count guard.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.stressIndexHistogram(_:minRR:maxRR:)"
@@ -36,33 +22,18 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "rr.count >= 20",
+     "cond": "rr.count >= 20 and min/max exist",
      "effect": "false → nil"
     },
     {
-     "at": "+2",
-     "cond": "rr.min() nil (empty)",
-     "effect": "fallback 0; unreachable since count≥20"
+     "at": "+4",
+     "cond": "range > 0",
+     "effect": "false (constant RR) → nil"
     },
     {
-     "at": "+3",
-     "cond": "rr.max() nil",
-     "effect": "fallback 0; unreachable since count≥20"
-    },
-    {
-     "at": "+5",
-     "cond": "range > 0 and histogram built",
-     "effect": "false (constant RR or nil histogram) → nil"
-    },
-    {
-     "at": "+7",
-     "cond": "histogram.max() nil",
-     "effect": "fallback 0; unreachable (histogram has ≥2 bins)"
-    },
-    {
-     "at": "+8",
-     "cond": "firstIndex(of: max) nil",
-     "effect": "fallback 0; unreachable"
+     "at": "+6",
+     "cond": "histogram has a maximum and its first index",
+     "effect": "false → nil (cannot happen: the histogram has at least one bin)"
     },
     {
      "at": "+12",
@@ -70,36 +41,20 @@
      "effect": "false → nil; true → SI"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "The ?? fallbacks at 19/20/24/25 can never fire after the count≥20 guard and a non-empty histogram.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/StressAnalysis.swift:18",
-      "Emuqu/Sources/Analysis/StressAnalysis.swift:24"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.stressIndexHistogram(_:minRR:maxRR:)": "183bc72aa67b06b1"
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.stressIndexHistogram(_:minRR:maxRR:)": "9a868cb9ec112d51"
    }
   },
   {
    "key": "func StressAnalyzer.stressIndexHistogram(_:minRR:maxRR:)",
-   "hash": "daae3e8b96e075df",
-   "does": "Builds an Int histogram of RR values with 50 ms bins starting at minRR (binCount = ceil(range/50)+1); counts each interval in its bin.",
+   "hash": "9e5389768391abdf",
+   "does": "Builds an Int histogram of RR values with 50 ms bins starting at minRR (binCount = ceil(range/50)+1, at least one bin since maxRR >= minRR); counts each interval in its bin.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
-    {
-     "at": "+3",
-     "cond": "binCount > 0",
-     "effect": "false → nil; never false because ceil(...)+1 ≥ 1"
-    },
     {
      "at": "+5",
      "cond": "for each interval",
@@ -111,18 +66,7 @@
      "effect": "true → increment bin; out-of-range beats ignored (cannot occur for min..max inputs)"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "guard binCount > 0 cannot fail: ceil(non-negative)+1 ≥ 1.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/StressAnalysis.swift:36",
-      "Emuqu/Sources/Analysis/StressAnalysis.swift:37"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -151,12 +95,11 @@
   },
   {
    "key": "func StressAnalyzer.computeReadinessScore(rmssd:baselineRMSSD:alpha1:pnsIndex:snsIndex:trainingLoadAdjustment:vo2Max:)",
-   "hash": "a46cdb9778aa4231",
-   "does": "Readiness 1-10: starts at 5, adds rmssdAdjustment (vs VO2-scaled baseline or absolute bands), DFA α1 adjustment, ANS balance adjustment, and subtracts a negative trainingLoadAdjustment (raising score); clamps to [1,10]. Called by HRVAnalysisPipeline+Metrics readinessScore and stored in ANSMetrics.readinessScore.",
+   "hash": "1accee57ac682ad7",
+   "does": "Readiness 1-10: starts at 5, adds rmssdAdjustment (ratio to the personal baseline as given — no VO2max scaling, since the personal baseline already reflects fitness — or VO2-dependent absolute bands without a baseline), DFA α1 adjustment, ANS balance adjustment, and subtracts a negative trainingLoadAdjustment (raising score; documented range -2...0, positive ignored); clamps to [1,10]. Called by HRVAnalysisPipeline+Metrics readinessScore and stored in ANSMetrics.readinessScore.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.rmssdAdjustment(rmssd:baseline:vo2Max:)",
-    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.fitnessAdjustedBaseline(baselineRMSSD:vo2Max:)",
     "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.dfaAdjustment(_:)",
     "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.ansBalanceAdjustment(snsIndex:pnsIndex:)"
    ],
@@ -164,47 +107,17 @@
    "writes": [],
    "branches": [
     {
-     "at": "+19",
+     "at": "+15",
      "cond": "trainingLoadAdjustment < 0",
-     "effect": "true → score -= adj (raises score by |adj|); positive adjustments (doc says range up to +1) are ignored entirely"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Doc says trainingLoadAdjustment ranges -2..+1 but any positive value is silently ignored.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/StressAnalysis.swift:128",
-      "Emuqu/Sources/Analysis/StressAnalysis.swift:152"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.ansBalanceAdjustment(snsIndex:pnsIndex:)": "e56cc8abf2fd0ee7",
-    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.dfaAdjustment(_:)": "c68233bcb7a4c5b4",
-    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.fitnessAdjustedBaseline(baselineRMSSD:vo2Max:)": "d7975f119333bee8",
-    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.rmssdAdjustment(rmssd:baseline:vo2Max:)": "d2f4e9588cdfc0aa"
-   }
-  },
-  {
-   "key": "func StressAnalyzer.fitnessAdjustedBaseline(baselineRMSSD:vo2Max:)",
-   "hash": "d6122370c53b33da",
-   "does": "Returns baselineRMSSD × clamp(1 + (vo2-40)/100, 0.8, 1.3) when both baseline and VO2max are present; otherwise the raw baseline.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "baseline and vo2Max both non-nil",
-     "effect": "false → returns baselineRMSSD unchanged (possibly nil); true → scaled baseline"
+     "effect": "true → score -= adj (raises score by |adj|); a positive value is ignored, as the doc states"
     }
    ],
    "flags": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.ansBalanceAdjustment(snsIndex:pnsIndex:)": "e56cc8abf2fd0ee7",
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.dfaAdjustment(_:)": "c68233bcb7a4c5b4",
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.rmssdAdjustment(rmssd:baseline:vo2Max:)": "d2f4e9588cdfc0aa"
+   }
   },
   {
    "key": "func StressAnalyzer.rmssdAdjustment(rmssd:baseline:vo2Max:)",

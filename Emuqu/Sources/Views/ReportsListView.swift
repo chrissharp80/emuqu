@@ -35,11 +35,14 @@ import SwiftUI
 struct ReportsListView: View {
     @Environment(\.dependencies) var dependencies
     @Environment(RRCollector.self) private var collector
+    @Environment(ArchiveSignal.self) private var archiveSignal
     @State private var rows: [ReportRow] = []
     @State private var loading = true
     /// In-flight decode; cancelled + replaced on re-appear.
     @State private var loadTask: Task<Void, Never>?
     @State private var presentedPDF: URLWrapper?
+    /// The generated PDF on screen; deleted from tmp when its sheet closes.
+    @State private var shownPDF: URL?
     @State private var isGenerating = false
     @State private var generationError: String?
     @State private var generatingRowID: UUID?
@@ -49,14 +52,20 @@ struct ReportsListView: View {
             .navigationTitle(String(localized: "Reports", bundle: LanguageManager.appBundle))
             .navigationBarTitleDisplayMode(.inline)
             .onAppear(perform: load)
-            .sheet(item: $presentedPDF) { wrapper in
+            .onChange(of: archiveSignal.version) { load() }
+            .sheet(item: $presentedPDF, onDismiss: removeShownPDF) { wrapper in
                 PDFPreviewView(url: wrapper.url)
             }
-            .alert(String(localized: "Couldn't generate report", bundle: LanguageManager.appBundle), isPresented: .constant(generationError != nil)) {
+            .alert(String(localized: "Couldn't generate report", bundle: LanguageManager.appBundle), isPresented: errorAlertShown) {
                 Button(String(localized: "OK", bundle: LanguageManager.appBundle)) { generationError = nil }
             } message: {
                 Text(generationError ?? "")
             }
+    }
+
+    /// Any dismissal clears the error, not only the OK button.
+    private var errorAlertShown: Binding<Bool> {
+        Binding(get: { generationError != nil }, set: { if !$0 { generationError = nil } })
     }
 
     @ViewBuilder
@@ -181,13 +190,17 @@ struct ReportsListView: View {
     // MARK: - Data load
 
     /// Decodes up to 90 days of workout + overnight sessions (file read +
-    /// JSON decode + decrypt, three passes). Ran synchronously on the main
+    /// JSON decode + decrypt). Ran synchronously on the main
     /// thread in onAppear — froze the UI when opening Reports for anyone
     /// with real history. Off-main now; SessionArchive reads are lock-safe.
+    /// Runs on appear and on every archive change while the list is up; a
+    /// newer load cancels the older one's decode too, which stops between
+    /// sessions.
     private func load() {
         loadTask?.cancel()
         loadTask = Task {
-            let built = await Task.detached { Self.buildRows() }.value
+            let build = Task.detached { Self.buildRows() }
+            let built = await withTaskCancellationHandler { await build.value } onCancel: { build.cancel() }
             guard !Task.isCancelled else { return }
             await MainActor.run { publishRows(built) }
         }
@@ -209,18 +222,19 @@ struct ReportsListView: View {
         let overnightEntries = archive.entries
             .filter { $0.sessionType == .overnight && $0.date >= cutoff }
             .sorted { $0.date > $1.date }
-        let nights = reliableOvernights(overnightEntries, archive: archive)
+        let overnights = lightweightSessions(overnightEntries, archive: archive)
+        let nights = overnights.filter(\.isReliableForHRVAggregates)
         let rows = workoutRows(workoutEntries, archive: archive, nights: nights)
-            + recoveryRows(overnightEntries, archive: archive)
+            + recoveryRows(overnights)
         return rows.sorted { $0.date > $1.date }
     }
 
-    /// The reliable overnight sessions, for pairing each workout with its
-    /// night.
-    nonisolated private static func reliableOvernights(_ entries: [SessionArchiveEntry], archive: SessionArchive) -> [HRVSession] {
+    /// The overnight sessions, decoded once for both the recovery rows and
+    /// the workout pairing. Stops early when the load is superseded.
+    nonisolated private static func lightweightSessions(_ entries: [SessionArchiveEntry], archive: SessionArchive) -> [HRVSession] {
         entries.compactMap { entry -> HRVSession? in
-            guard let session = try? archive.retrieveLightweight(entry.sessionId) else { return nil }
-            return session.isReliableForHRVAggregates ? session : nil
+            guard !Task.isCancelled else { return nil }
+            return try? archive.retrieveLightweight(entry.sessionId)
         }
     }
 
@@ -239,7 +253,7 @@ struct ReportsListView: View {
     /// kind; absent → workout-only.
     nonisolated private static func workoutRows(_ entries: [SessionArchiveEntry], archive: SessionArchive, nights: [HRVSession]) -> [ReportRow] {
         entries.compactMap { entry -> ReportRow? in
-            guard let session = try? archive.retrieveLightweight(entry.sessionId) else { return nil }
+            guard !Task.isCancelled, let session = try? archive.retrieveLightweight(entry.sessionId) else { return nil }
             let overnight = nightBefore(session, in: nights)
             return ReportRow(
                 id: session.id,
@@ -258,10 +272,9 @@ struct ReportsListView: View {
     /// session is the overnight; workoutSession is required by the ReportRow
     /// shape so we use the same overnight session as a placeholder — generation
     /// code branches on `.recovery` and never reads workoutSession in that path.
-    nonisolated private static func recoveryRows(_ entries: [SessionArchiveEntry], archive: SessionArchive) -> [ReportRow] {
-        entries.compactMap { entry -> ReportRow? in
-            guard let session = try? archive.retrieveLightweight(entry.sessionId) else { return nil }
-            return ReportRow(
+    nonisolated private static func recoveryRows(_ overnights: [HRVSession]) -> [ReportRow] {
+        overnights.map { session in
+            ReportRow(
                 id: session.id,
                 date: session.startDate,
                 kind: .recovery,
@@ -282,21 +295,39 @@ struct ReportsListView: View {
         Task.detached(priority: .userInitiated) { await renderAndPublish(inputs) }
     }
 
+    /// A render that fails may have left a partial PDF behind; it goes.
     private func renderAndPublish(_ inputs: GenerationInputs) async {
         do {
             try await Self.renderReport(inputs)
             await MainActor.run { finishGeneration(url: inputs.pdfURL, error: nil) }
         } catch {
+            Self.removeTemporaryPDF(inputs.pdfURL)
             await MainActor.run { finishGeneration(url: nil, error: error.localizedDescription) }
         }
     }
 
     @MainActor
     private func finishGeneration(url: URL?, error: String?) {
-        if let url { presentedPDF = URLWrapper(url: url) }
+        if let url {
+            presentedPDF = URLWrapper(url: url)
+            shownPDF = url
+        }
         generationError = error
         isGenerating = false
         generatingRowID = nil
+    }
+
+    /// The PDF holds health data and each tap writes a new one, so it is
+    /// deleted once its preview (and any share from it) is closed.
+    private func removeShownPDF() {
+        guard let url = shownPDF else { return }
+        shownPDF = nil
+        Self.removeTemporaryPDF(url)
+    }
+
+    nonisolated private static func removeTemporaryPDF(_ url: URL) {
+        guard FileManager.default.fileExists(atPath: url.path) else { return }
+        attempt("ReportsListView.removeTemporaryPDF") { try FileManager.default.removeItem(at: url) }
     }
 
     /// Everything the detached render needs, captured on the main actor before
@@ -327,7 +358,7 @@ struct ReportsListView: View {
             kind: row.kind,
             workout: workout,
             overnight: row.overnightSession,
-            baselineStats: collector.baselineTracker.recoveryBaselineStats,
+            baselineStats: baselineStats(for: row.overnightSession, settings: settings),
             polyline: workout.workoutMetadata?.gpsPolyline,
             startDate: workout.startDate,
             duration: workout.duration,
@@ -340,11 +371,23 @@ struct ReportsListView: View {
         )
     }
 
+    /// The baseline as it stood for the reported night: the nights before
+    /// it (`recoveryBaselineStats(excludingNightOf:)`), not every stored
+    /// night, later ones included. With no night, the current baseline.
+    private func baselineStats(for night: HRVSession?, settings: UserSettings) -> BaselineTracker.RecoveryBaselineStats? {
+        let tracker = collector.baselineTracker
+        guard let night else { return tracker.recoveryBaselineStats }
+        return tracker.recoveryBaselineStats(excludingNightOf: night, sleepSchedule: settings.sleepSchedule)
+    }
+
     /// Refresh + capture training load inside the task so the
     /// report reflects archive writes since the last cache refresh (plain
     /// `live()` could freeze a stale TSB/ACWR). See
-    /// `TrainingLoadRegistry.liveRefreshed()`.
-    private static func renderReport(_ lightweightInputs: GenerationInputs) async throws {
+    /// `TrainingLoadRegistry.liveRefreshed()`. The PDF uses that live load
+    /// only for a session from today; an older one shows its frozen load.
+    /// Nonisolated, with the render steps below, so the polyline decode, the
+    /// drawing and the file move run off the main actor.
+    nonisolated private static func renderReport(_ lightweightInputs: GenerationInputs) async throws {
         let inputs = await Task.detached { withFullSessions(lightweightInputs) }.value
         let liveLoadSnapshot = await TrainingLoadRegistry.liveRefreshed()
         let track: [CLLocation] = inputs.polyline.map {
@@ -368,7 +411,11 @@ struct ReportsListView: View {
     nonisolated private static func withFullSessions(_ inputs: GenerationInputs) -> GenerationInputs {
         let archive = AppDependencies.current.storage.sessionArchive
         var full = inputs
-        full.workout = archive.retrieveOrLog(inputs.workout.id) ?? inputs.workout
+        // A recovery row's workout is its overnight, which the render does not
+        // read as a workout: one full read, not two.
+        if inputs.kind != .recovery {
+            full.workout = archive.retrieveOrLog(inputs.workout.id) ?? inputs.workout
+        }
         full.overnight = inputs.overnight.map { archive.retrieveOrLog($0.id) ?? $0 }
         full.recentOvernight = overnights(before: inputs.overnight?.startDate ?? inputs.workout.startDate, archive: archive)
         return full
@@ -379,16 +426,25 @@ struct ReportsListView: View {
     nonisolated private static let baselineNightCount = 60
 
     /// The overnight sessions before the reported night, newest first, so a
-    /// past day's report is measured against the nights before it.
+    /// past day's report is measured against the nights before it. Read
+    /// until `baselineNightCount` of them are reliable, as the auto-emailed
+    /// report does: the daily loop drops unreliable nights, and its baseline
+    /// must cover the same 60 reliable nights as the recovery score's.
     nonisolated private static func overnights(before night: Date, archive: SessionArchive) -> [HRVSession] {
-        archive.entries
+        let entries = archive.entries
             .filter { $0.sessionType == .overnight && $0.date < night }
             .sorted { $0.date > $1.date }
-            .prefix(baselineNightCount)
-            .compactMap { archive.retrieveLightweightOrLog($0.sessionId) }
+        var nights: [HRVSession] = []
+        var reliableCount = 0
+        for entry in entries where reliableCount < baselineNightCount {
+            guard let session = archive.retrieveLightweightOrLog(entry.sessionId) else { continue }
+            nights.append(session)
+            if session.isReliableForHRVAggregates { reliableCount += 1 }
+        }
+        return nights
     }
 
-    private static func renderHolistic(_ inputs: GenerationInputs, track: [CLLocation], load: TrainingLoadRegistry.TrainingLoad?) async throws {
+    nonisolated private static func renderHolistic(_ inputs: GenerationInputs, track: [CLLocation], load: TrainingLoadRegistry.TrainingLoad?) async throws {
         let report = HolisticDailyReport(
             workoutSession: inputs.workout,
             workoutTrack: track,
@@ -404,7 +460,7 @@ struct ReportsListView: View {
         try await report.generate(to: inputs.pdfURL)
     }
 
-    private static func renderWorkoutOnly(_ inputs: GenerationInputs, track: [CLLocation]) async throws {
+    nonisolated private static func renderWorkoutOnly(_ inputs: GenerationInputs, track: [CLLocation]) async throws {
         let report = WorkoutPDFReport(
             session: inputs.workout,
             track: track,
@@ -423,8 +479,8 @@ struct ReportsListView: View {
     /// Reports list never blocks on background HK auth or async sleep fetches.
     /// The frozen snapshot is what was true at the time of the morning
     /// analysis, which is exactly what a user revisiting an old report wants
-    /// to see.
-    private static func renderRecovery(_ inputs: GenerationInputs, load: TrainingLoadRegistry.TrainingLoad?) async throws {
+    /// to see; the baseline is the one before that night (`baselineStats`).
+    nonisolated private static func renderRecovery(_ inputs: GenerationInputs, load: TrainingLoadRegistry.TrainingLoad?) async throws {
         guard let overnightSession = inputs.overnight else {
             throw ReportsListError.recoverySessionMissing
         }

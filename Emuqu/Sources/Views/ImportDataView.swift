@@ -27,6 +27,14 @@ struct ImportDataView: View {
     /// button's count and the import agree.
     @State var eliteNewSessions: [RRDataImporter.EliteHRVSummaryResult.SessionSummary] = []
     @State var cachedRecentSessions: [HRVSession] = []
+    /// When a plain RR file that states no recording date was recorded, as
+    /// the user sets it in the preview. Nil until they do; Analyze waits for
+    /// it, so an old recording is never filed under the time of import.
+    @State var importRecordingDate: Date?
+    /// Apple Health's measured sleep the results screen handed over for the
+    /// unsaved imported reading. Kept here, not written to the archive (the
+    /// reading is not there yet), and applied to the reading Done saves.
+    @State var importedSleep: SleepData?
 
     let importer = RRDataImporter()
 
@@ -119,14 +127,13 @@ struct ImportDataView: View {
             result: result,
             recentSessions: cachedRecentSessions,
             onDiscard: { discardImport() },
-            onUpdateSleep: { sleepData in
-                collector.updateSessionSleepBoundaries(sessionId: session.id, sleepData: sleepData)
-            }
+            onUpdateSleep: { importedSleep = $0 }
         )
     }
 
     private func discardImport() {
         importedSession = nil
+        importedSleep = nil
         importResult = nil
         showingResults = false
     }

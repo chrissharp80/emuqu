@@ -60,11 +60,12 @@
   },
   {
    "key": "func AppleContextCompactor.compact(_:systemPromptTokens:)",
-   "hash": "b3617d0ad1e39c83",
-   "does": "Computes budget = 4096×0.70 − systemPromptTokens; if non-positive returns only the last turn with didCompact=true; else keeps the newest turns that fit and logs how many were dropped.",
+   "hash": "d3652264a58b0fbc",
+   "does": "Computes budget = 4096×0.70 − systemPromptTokens; if non-positive returns only the last turn, didCompact true only when that dropped something; else keeps the newest turns that fit, drops a leading assistant reply whose question was dropped (droppingOrphanReply), and logs how many were dropped.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.newestTurnsFitting(_:budget:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.droppingOrphanReply(_:from:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
@@ -73,27 +74,18 @@
     {
      "at": "+5",
      "cond": "budget <= 0",
-     "effect": "returns (last message only, didCompact: true) even when nothing was dropped"
+     "effect": "returns (last message only, didCompact: whether any message was dropped)"
     },
     {
-     "at": "+8",
+     "at": "+12",
      "cond": "kept fewer turns than given",
      "effect": "debugLogs dropped count; didCompact true; else false"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "When the system prompt alone exceeds the threshold, didCompact is reported true even if messages has 0 or 1 entries and nothing was dropped.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift:90"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.newestTurnsFitting(_:budget:)": "c15febfcdfc53400",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.droppingOrphanReply(_:from:)": "525345c4146c6072",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.newestTurnsFitting(_:budget:)": "4b9e1af59e6896de",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
@@ -119,25 +111,28 @@
      "effect": "break; otherwise insert at front and add cost"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Compaction drops single turns, not user/assistant pairs, and always keeps the newest turn whatever its role; docs and the compact() comment say oldest user/assistant PAIRS are dropped and the most recent USER turn is preserved. The kept transcript can start with an orphan assistant reply whose question was dropped.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift:109",
-      "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift:111",
-      "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift:72",
-      "docs/USERS_MANUAL.md:530",
-      "docs/API_REFERENCE.md:2426",
-      "docs/API_REFERENCE.md:2439"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "beb08099bb36f9f4"
    }
+  },
+  {
+   "key": "func AppleContextCompactor.droppingOrphanReply(_:from:)",
+   "hash": "4c2d4f6e8bce6b35",
+   "does": "When turns were dropped, more than one is kept and the oldest kept turn is an assistant reply, drops that reply (its question is gone); otherwise returns the turns unchanged. The newest turn always stays.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "nothing dropped, a single kept turn, or a user turn first",
+     "effect": "returns keep unchanged; else keep without its first turn"
+    }
+   ],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "func AppleContextCompactor.compactedPromptInput(messages:systemPromptTokens:)",
@@ -164,7 +159,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.compact(_:systemPromptTokens:)": "c3f0201319859f72"
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.compact(_:systemPromptTokens:)": "e4fee05924b00edd"
    }
   },
   {
@@ -347,8 +342,8 @@
   },
   {
    "key": "func AppleContextCompactor.ToolOutputAllowance.admit(_:)",
-   "hash": "b1a3a3bac4de9481",
-   "does": "Admits one tool result: if fewer than 60 tokens remain, charges and returns the spentNote; otherwise truncates to min(perCallCap, remaining) with the cut note and spends its estimated tokens.",
+   "hash": "7b0f701900741725",
+   "does": "Admits one tool result: if fewer than 60 tokens remain, charges and returns the spentNote; otherwise truncates to min(perCallCap, remaining − 8) with the cut note and spends its estimated tokens plus the 8-token entry overhead (the result's role marker, as charge counts it).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.charge(_:)",
@@ -365,19 +360,7 @@
      "effect": "charges spentNote (+8 overhead) and returns it in place of the result; else truncated result"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "admit spends only estimateTokens(capped) with no entryOverhead, while charge() — documented for results that bypass admit — adds the 8-token role marker; every admitted tool result is undercounted by 8 tokens against the 4K window (absorbed only by estimateMargin).",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift:254",
-      "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift:261",
-      "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift:258"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.charge(_:)": "38fbbdbd95349b2c",
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.spend(_:)": "19e6c049d65cfc90",

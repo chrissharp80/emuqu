@@ -8,9 +8,12 @@ extension SessionDataMigrations {
     private static let trainingRecalibrationKey = "didRunTrainingRecalibration_v1_banister064"
 
     /// One-shot: rewrite every archived session's frozen `trainingSnapshot`
-    /// using the current TRIMP formula, then rescore the session with
-    /// the corrected training context. Sessions whose scores never
-    /// depended on training are untouched.
+    /// using the current TRIMP formula, and the frozen readiness that is
+    /// derived from it. The recovery score is left as it is: the composite
+    /// does not read the training context
+    /// (`RecoveryScoreCalculator.calculateWithBreakdown`), so rescoring here
+    /// would only have moved it for reasons that have nothing to do with
+    /// training (today's settings and baseline, the time since the night).
     ///
     /// Why this exists: an earlier `HealthKitManager.WorkoutSummary.calculateTrimp`
     /// lacked the 0.64 Banister scaling factor, so CTL/ATL values
@@ -32,9 +35,9 @@ extension SessionDataMigrations {
     ///     the session's end (not "today"), the same anchor acceptance
     ///     uses. That preserves the original semantic: "how much fitness
     ///     did I have THEN?".
-    ///   • Rescoring uses the ExistingHRV path, not baseline-override,
-    ///     so HRV data quality decisions (`useBaselineHRV` etc.) stay
-    ///     true to what they were at acceptance time.
+    ///   • The corrected context is applied to the archived copy as it is at
+    ///     the write, not to the copy loaded before the HealthKit query, so
+    ///     a change saved meanwhile is kept.
     ///
     /// Runs in the background well after launch (UI has to be live
     /// first — HealthKit calls can be several hundred ms each).
@@ -44,7 +47,7 @@ extension SessionDataMigrations {
         guard let candidates = recalibrationCandidates(in: await loadArchivedSessions(), defaults: defaults) else { return }
         var touched = 0
         for session in candidates {
-            if await recalibrate(session, baseline: scoringBaseline(for: session)) { touched += 1 }
+            if await recalibrate(session) { touched += 1 }
             // Yield between sessions so the migration is fully background-
             // friendly even with hundreds of entries to walk.
             await Task.yield()
@@ -56,18 +59,12 @@ extension SessionDataMigrations {
     /// Sessions with a frozen snapshot are the only ones that carry
     /// potentially-wrong values; ones without training context skip the
     /// training term entirely and are correct as-is. Nil means there is nothing
-    /// to do this launch — either no candidates (migration marked complete) or
-    /// the baseline has not been built yet, so no night could be rescored
-    /// against its prior nights (retry next launch).
+    /// to do: no candidates, and the migration is marked complete.
     private func recalibrationCandidates(in sessions: [HRVSession], defaults: UserDefaults) -> [HRVSession]? {
         let candidates = sessions.filter { $0.trainingSnapshot != nil && Self.carriesRecoveryScore($0) }
         guard !candidates.isEmpty else {
             defaults.set(true, forKey: Self.trainingRecalibrationKey)
             debugLog("[TrainingRecalibration] No candidates — marking migration complete")
-            return nil
-        }
-        guard baselineTracker.recoveryBaselineStats != nil else {
-            debugLog("[TrainingRecalibration] No baseline stats yet — deferring to next launch")
             return nil
         }
         return candidates
@@ -81,24 +78,18 @@ extension SessionDataMigrations {
     /// that date — usually "too far back for the fetch window" — are skipped
     /// with their snapshot left alone.
     ///
-    /// The snapshot is rewritten for every such session. The rescore needs
-    /// the nights before this one; an early night with fewer than the
-    /// baseline minimum keeps its score and gets the corrected load numbers.
-    ///
     /// Returns whether the session was rewritten.
-    private func recalibrate(_ session: HRVSession, baseline: BaselineTracker.RecoveryBaselineStats?) async -> Bool {
-        guard let result = session.analysisResult else { return false }
+    private func recalibrate(_ session: HRVSession) async -> Bool {
+        guard session.analysisResult != nil else { return false }
         let anchor = Self.trainingAnchor(of: session)
         let load = await healthKit.calculateTrainingLoad(relativeTo: anchor)
         guard let newCtx = Self.recalibratedContext(load: load, anchor: anchor, old: session.trainingSnapshot) else {
             return false
         }
-        var mutable = session
-        mutable.trainingSnapshot = newCtx
-        mutable.analysisResult?.trainingContext = newCtx
-        if let baseline { applyRescore(&mutable, result: result, context: newCtx, baseline: baseline) }
         do {
-            try archive.archive(mutable)
+            try archive.update(session.id, requestingReupload: false) { stored in
+                Self.applyCorrectedContext(newCtx, to: &stored)
+            }
             return true
         } catch {
             debugLog("[TrainingRecalibration] Failed to archive \(session.id.uuidString.prefix(8)): \(error)")
@@ -123,53 +114,18 @@ extension SessionDataMigrations {
         return context
     }
 
-    /// Rescore with the corrected training context so the stored
-    /// `recoveryScore` and `scoreBreakdown` stay consistent with the new load
-    /// numbers. Everything else (HRV quality, sleep, vitals) stays as it was at
-    /// acceptance time.
-    ///
-    /// The acceptance-time ANS-balance term is preserved so only the training
-    /// context changes — omitting it would move the score by the HRV-factor ANS
-    /// adjustment on every recalibration.
-    ///
-    /// Scores off baseline for BOTH untrustworthy classes
-    /// (`.insufficient` and `.preSleep`), matching SessionAcceptance's
-    /// logic. Checking only `.insufficient` would let a re-scored `.preSleep`
-    /// session flip to trusting its awake HRV.
-    private func applyRescore(
-        _ mutable: inout HRVSession,
-        result: HRVAnalysisResult,
-        context: TrainingContext,
-        baseline: BaselineTracker.RecoveryBaselineStats
-    ) {
-        let settings = settingsManager.settings
-        let newBreakdown = RecoveryScoreCalculator.calculateWithBreakdown(
-            RecoveryScoreCalculator.ScoreInputs(
-                hrvReadiness: result.ansMetrics?.readinessScore, rmssd: result.timeDomain.rmssd,
-                meanHR: result.timeDomain.meanHR, dfaAlpha1: result.nonlinear.dfaAlpha1,
-                baselineStats: baseline, sleepData: mutable.sleepSnapshot, vitals: mutable.vitalsSnapshot,
-                typicalSleepHours: settings.typicalSleepHours
-            ),
-            trainingContext: context,
-            config: RecoveryScoreCalculator.ScoringConfiguration(from: settings),
-            useBaselineHRV: !mutable.isReliableForHRVAggregates,
-            perceivedReadiness: mutable.perceivedReadiness,
-            ansBalance: Self.ansBalance(result)
-        )
-        mutable.recoveryScore = RecoveryScoreCalculator.toTenScale(newBreakdown.compositeScore)
-        mutable.scoreBreakdown = newBreakdown
-        mutable.frozenReadiness = ReanalysisService.computeFrozenReadiness(
-            compositeScore: newBreakdown.compositeScore, trainingContext: context
-        )
+    /// The corrected context goes on the snapshot and the analysis result,
+    /// and the frozen readiness, which does read the load, is recomputed from
+    /// the night's own composite. The recovery score and its breakdown stay.
+    private static func applyCorrectedContext(_ context: TrainingContext, to stored: inout HRVSession) {
+        stored.trainingSnapshot = context
+        stored.analysisResult?.trainingContext = context
+        guard let composite = stored.scoreBreakdown?.compositeScore else { return }
+        stored.frozenReadiness = ReanalysisService.computeFrozenReadiness(compositeScore: composite, trainingContext: context)
     }
 
     /// Only sessions that were scored as a night are rescored by a migration.
     static func carriesRecoveryScore(_ session: HRVSession) -> Bool {
         (session.sessionType == .overnight || session.sessionType == .nap) && session.recoveryScore != nil
-    }
-
-    private static func ansBalance(_ result: HRVAnalysisResult) -> Double? {
-        guard let pns = result.ansMetrics?.pnsIndex, let sns = result.ansMetrics?.snsIndex else { return nil }
-        return pns - sns
     }
 }

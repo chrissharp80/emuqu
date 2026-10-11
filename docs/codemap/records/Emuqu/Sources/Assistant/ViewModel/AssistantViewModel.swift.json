@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift",
- "hash": "f9d4496d9588f9d3",
+ "hash": "7032d0c3afa31d85",
  "role": "Main-actor @Observable chat view model shared by typed chat and voice: holds turns, streaming state, consent/queued sends, cached fact registry/tool schema, and the public chat actions (send, cancel, clear, export, regenerate, remember, refresh context). ComposerState is the narrow observable the input bar binds to.",
  "types": [
   "ComposerState: class (@Observable @MainActor) — canSend + returnedDraft for the chat input bar",
@@ -29,40 +29,18 @@
   "mem:AssistantViewModel.streamGeneration",
   "mem:AssistantViewModel.cachedFactRegistry",
   "mem:AssistantViewModel.cachedFactTools",
-  "mem:AssistantViewModel.pendingDraft",
   "mem:AssistantViewModel.pendingConsentRequest",
   "mem:AssistantViewModel.nextSendIsVoice",
   "mem:AssistantViewModel.lastCatalogHash",
   "notif:flowRecoveryArchiveChanged (observed)",
   "notif:UIApplication.protectedDataDidBecomeAvailableNotification (observed)",
   "notif:UIApplication.didBecomeActiveNotification (observed)",
-  "file:<tmp>/EmuquChat-<epoch>.md (export)"
+  "mem:AssistantViewModel.pendingConsentRequest.regenerate (a held regeneration rather than a new message)",
+  "file:<tmp>/EmuquChat-<epoch>.md (export; at most one kept: removeChatExports deletes older ones and runs on Clear)",
+  "static AssistantViewModel.chatExportPrefix = \"EmuquChat-\""
  ],
- "toplevel": "AssistantViewModel.shared is created lazily on first access (static let) via init with default AppDependencies-resolved deps; no other instantiation exists in the repo (grep 'AssistantViewModel(' finds only line 38). composerState = ComposerState() and sessionState = RoutingSessionState() are stored-property initializers. pendingDraft (319) is declared but never read or written anywhere: every pendingDraft reference in the repo is AssistantInbox.pendingDraft or AssistantEmailBridge.pendingDraft.",
- "flags": [
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "AssistantViewModel.pendingDraft is never read or written; the Ask-AI prefill uses AssistantInbox.pendingDraft instead, so the doc comment 'Used by Dashboard Ask AI affordances' is false.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:319",
-    "Emuqu/Sources/Assistant/Chat/AssistantInbox.swift:17",
-    "Emuqu/Sources/Views/HistoryView.swift:365"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Doc comment says sessionState tracks 'the running summary embedding (topic-shift detection)' reset by clearConversation, but RoutingSessionState only has currentTier and turnCount.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:120",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:124",
-    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift:225"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "AssistantViewModel.shared is created lazily on first access (static let) via init with default AppDependencies-resolved deps; no other instantiation exists in the repo. composerState = ComposerState() and sessionState = RoutingSessionState() are stored-property initializers; chatExportPrefix is a static let.",
+ "flags": [],
  "units": [
   {
    "key": "func ComposerState.update(canSend:)",
@@ -81,21 +59,8 @@
      "effect": "true: assigns new value (observers notified); false: no-op"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Comment claims 'Combine's observable doesn't dedupe' but the class is an Observation @Observable, not Combine; the guard is still effective.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:18",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:13"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::var AssistantViewModel.canSend": "5991e7b484d5b439"
-   }
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "var AssistantViewModel.isStreaming",
@@ -115,7 +80,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func ComposerState.update(canSend:)": "a0a1f4777db13de5"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func ComposerState.update(canSend:)": "5b2dcbbdef51d80d"
    }
   },
   {
@@ -189,20 +154,7 @@
      "effect": "true: returns cached pair without rebuild; false: builds registry + tool schema, stores both, returns them"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Comments say the compact schema is '21 read tools + up to 16 action tools', but CompactToolRouter.allowedActionNames lists 18 action tools (and CompactToolRouter's own doc and AssistantViewModel+Routing.swift:529 say up to 18).",
-     "evidence": [
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:166",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:188",
-      "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift:24",
-      "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift:420"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func AppFactResolverFactory.build(archive:settings:)": "608c160d07cbda8d",
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.schema(registry:)": "923c2c42ab3aa043",
@@ -390,7 +342,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func ComposerState.update(canSend:)": "a0a1f4777db13de5",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func ComposerState.update(canSend:)": "5b2dcbbdef51d80d",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::var AssistantViewModel.isStreaming": "b91cb7e156c2cbfd",
     "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.observe(_:initial:read:onChange:)": "5ef79ca8e7bb0dc5"
    }
@@ -434,36 +386,6 @@
    "deps": {}
   },
   {
-   "key": "var AssistantViewModel.canSend",
-   "hash": "8499e63eb2795572",
-   "does": "Computed !isStreaming && registry.activeProviderAvailable. No code reads AssistantViewModel.canSend; the input bar reads composerState.canSend.",
-   "entry": null,
-   "calls": [],
-   "reads": [
-    "mem:AssistantViewModel.isStreaming",
-    "mem:ProviderRegistry.activeProviderAvailable"
-   ],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "AssistantViewModel.canSend has no reader in app or tests (grep 'canSend' finds only ComposerState uses and comments); it duplicates the composerState computation at 44/264.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:307",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:44",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:264",
-      "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift:118"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::var AssistantViewModel.isStreaming": "b91cb7e156c2cbfd"
-   }
-  },
-  {
    "key": "func AssistantViewModel.aiIsAllowed(disclaimerAccepted:)",
    "hash": "d9271971efe0e606",
    "does": "Static: true when disclaimerAccepted AND settings.enableAIAssistant. Used by send (refusedWhileFloIsOff) and InterjectionGate.maySend (VoiceConversationController+Control.swift:486).",
@@ -482,8 +404,8 @@
   },
   {
    "key": "func AssistantViewModel.send(text:fromVoice:)",
-   "hash": "83cc56c72923be24",
-   "does": "Entry for a user message: trims, rejects empty, refuses if Flo off/notice not accepted, answers locally if the medical guard fires, rejects with an error if the active provider is unavailable, holds the text and returns .requiresConsent if the active provider needs consent, queues behind an in-flight stream, serves voice turns from DeterministicIntent when matched, otherwise appends the user turn and dispatches to the provider.",
+   "hash": "b0b062a6d2321c4c",
+   "does": "Entry for a user message: trims, rejects empty, refuses if Flo off/notice not accepted, answers locally if the medical guard fires, rejects with an error if the active provider is unavailable, serves a voice turn from DeterministicIntent when matched and no stream is in flight (on the device, so before the consent check), holds the text and returns .requiresConsent if the active provider needs consent, queues behind an in-flight stream, otherwise appends the user turn and dispatches to the provider.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:)",
@@ -528,37 +450,25 @@
      "effect": "false: errorMessage = unavailableMessage, returns .rejectedNoProvider; true: continue"
     },
     {
-     "at": "+12",
-     "cond": "consent tracker requires consent for active provider",
-     "effect": "true: stores pendingConsentRequest(provider,text,fromVoice), returns .requiresConsent(id); false: continue"
+     "at": "+11",
+     "cond": "fromVoice AND not streaming AND servedDeterministically(trimmed)",
+     "effect": "true: deterministic answer appended, returns .dispatched; false: continue"
     },
     {
-     "at": "+16",
-     "cond": "isStreaming",
-     "effect": "true: queueBehindStream → .queued (replaces any earlier queued text); false: continue"
+     "at": "+13",
+     "cond": "consent tracker requires consent for active provider",
+     "effect": "true: stores pendingConsentRequest(provider,text,fromVoice,regenerate:false), returns .requiresConsent(id); false: continue"
     },
     {
      "at": "+17",
-     "cond": "fromVoice AND servedDeterministically(trimmed)",
-     "effect": "true: deterministic answer appended, returns .dispatched; false: dispatchToProvider, returns .dispatched"
+     "cond": "isStreaming",
+     "effect": "true: queueBehindStream → .queued (replaces any earlier queued text); false: dispatchToProvider, returns .dispatched"
     }
    ],
-   "flags": [
-    {
-     "kind": "hack",
-     "sev": "low",
-     "text": "The deterministic voice shortcut (on-device, no data leaves) is checked only after the active-provider consent gate, so a voice question that would be answered locally still returns .requiresConsent when the active cloud provider lacks consent.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:383",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:388",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:452"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "b36a2b8ea48a5e61",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.dispatchToProvider(_:fromVoice:)": "8c62009b2ebea89e",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.dispatchToProvider(_:fromVoice:)": "0a3037db116bee4f",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.medicalGuardRefused(_:)": "febc96bd0c0829d4",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.queueBehindStream(_:fromVoice:)": "fc02537d0030a3cc",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.refusedWhileFloIsOff()": "5967dcf7ab846855",
@@ -710,8 +620,8 @@
   },
   {
    "key": "func AssistantViewModel.dispatchToProvider(_:fromVoice:)",
-   "hash": "16b9f3803d5365ef",
-   "does": "Appends the user turn, saves, sets nextSendIsVoice, prewarms Apple Foundation model unless routing mode is Deep or (Manual with non-Apple active), emits a signpost and calls dispatch().",
+   "hash": "ce23f747ad27a6d9",
+   "does": "Appends the user turn, saves, sets nextSendIsVoice, prewarms the Apple Foundation model only when Apple Intelligence is the selected provider and routing is not Deep (a selected cloud always answers itself), emits a signpost and calls dispatch().",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)",
@@ -730,23 +640,12 @@
    ],
    "branches": [
     {
-     "at": "+6",
-     "cond": "mode != .deep AND (mode != .manual OR active provider is Apple)",
+     "at": "+5",
+     "cond": "active provider is Apple AND mode != .deep",
      "effect": "true: AppleFoundationProvider.prewarm(); false: no prewarm"
     }
    ],
    "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Prewarm fires for Quick/Auto even when the active provider is a non-Apple cloud, but TurnRouter.preTierDecision routes every non-Apple pick straight to the user's pick, so Apple is never used on those turns; the prewarm only loads an unused on-device model, which the init comment says contends with the keyboard.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:486",
-      "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift:156",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:197"
-     ],
-     "found": "first read, upheld on second"
-    },
     {
      "kind": "spec-mismatch",
      "sev": "low",
@@ -816,16 +715,17 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "9b3d0ecd257813a4"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "d5db8fac7d0f3243"
    }
   },
   {
    "key": "func AssistantViewModel.acknowledgeConsentAndContinue()",
-   "hash": "c826bbd9b3c922f7",
-   "does": "Consent-sheet accept: if a pending consent request exists, records acknowledgement for its provider, clears it and re-sends its text; else returns .rejectedEmpty.",
+   "hash": "61a203f0a6c5a4c9",
+   "does": "Consent-sheet accept: if a pending consent request exists, records acknowledgement for its provider and clears it; a held regeneration re-runs regenerateLast() (returns .dispatched), otherwise the text is re-sent through send(). Returns .rejectedEmpty when nothing is pending.",
    "entry": "ProviderConsentSheet onAccept (AssistantChatView.swift:296)",
    "calls": [
     "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.acknowledge(_:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.regenerateLast()",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)"
    ],
    "reads": [
@@ -838,22 +738,28 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "pendingConsentRequest is non-nil",
-     "effect": "true: acknowledge, clear, return send(...) outcome; false: return .rejectedEmpty"
+     "cond": "pendingConsentRequest is nil",
+     "effect": "return .rejectedEmpty"
+    },
+    {
+     "at": "+5",
+     "cond": "pending.regenerate",
+     "effect": "regenerateLast(), return .dispatched; else return send(...) outcome"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.acknowledge(_:)": "9fa1066b036acf46",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "9b3d0ecd257813a4",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.regenerateLast()": "4f93eee07886188a",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "d5db8fac7d0f3243",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc"
    }
   },
   {
    "key": "func AssistantViewModel.cancelPendingConsent()",
-   "hash": "34b94d6788878ad0",
-   "does": "Consent-sheet decline/dismiss: if a request is pending, clears it, returns typed (non-voice) text to the composer via returnedDraft, and sets a 'message not sent' errorMessage. No-op when nothing pending.",
+   "hash": "52c03cd64dd2ce7a",
+   "does": "Consent-sheet decline/dismiss: if a request is pending, clears it, returns a typed new message (not voice, not a held regeneration) to the composer via returnedDraft, and sets a 'message not sent' errorMessage. A declined regeneration leaves the conversation as it was (nothing was removed). No-op when nothing pending.",
    "entry": "ProviderConsentSheet onDecline and the sheet item binding set-to-nil (AssistantChatView.swift:289,297)",
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
@@ -869,28 +775,16 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "pendingConsentRequest is non-nil",
-     "effect": "false: return (no-op after accept-then-dismiss); true: continue"
+     "cond": "pendingConsentRequest is nil",
+     "effect": "return (no-op after accept-then-dismiss)"
     },
     {
      "at": "+3",
-     "cond": "!pending.fromVoice",
-     "effect": "true: composerState.returnedDraft = text; false: voice text is dropped (not restored anywhere)"
+     "cond": "!fromVoice AND !regenerate",
+     "effect": "composerState.returnedDraft = text; voice text is not put in the input bar"
     }
    ],
-   "flags": [
-    {
-     "kind": "data-loss",
-     "sev": "low",
-     "text": "When the consent gate fires inside dispatch (e.g. regenerateLast or a routed cloud), consentGateAllowsDispatch removes the last user turn from turns and keeps it only in pendingConsentRequest; declining here drops voice text entirely and for regenerate the removed assistant turn and user turn are both gone from the saved history.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:527",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:380",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:667"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
@@ -898,7 +792,7 @@
   {
    "key": "func AssistantViewModel.checkCatalogHashStability(newHash:)",
    "hash": "9cbe91b63c5f5233",
-   "does": "Debug diagnostic: logs the first catalog hash, or a warning when the tool-catalog hash differs from the previous one; always stores newHash as lastCatalogHash (defer). Called from the dispatch task (AssistantViewModel+Routing.swift:524).",
+   "does": "Diagnostic in every build: logs the first catalog hash, or a warning when the tool-catalog hash differs from the previous one; always stores newHash as lastCatalogHash (defer). Called from the dispatch task.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
@@ -921,19 +815,7 @@
      "effect": "true: return silently; false: logs a warning with both hash prefixes"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Doc calls it a 'Debug-build byte-identity check' but nothing is #if DEBUG-gated: it runs and writes a .warning log line (surfaced in Troubleshooting 'Recent Problems') in release builds on every catalog change.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:540",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:555",
-      "Emuqu/Sources/Utilities/DebugLog.swift:655"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
@@ -987,12 +869,13 @@
   },
   {
    "key": "func AssistantViewModel.clearConversation()",
-   "hash": "5b32a842577cb105",
-   "does": "Wipes the conversation: cancel(), empties turns, error, priorSummary, summarizedThroughTurnID, speakable cursors, resets sessionState tier/turnCount, clears ConversationStore, and removes 'assistant.priorSummary' from UserDefaults on a detached utility task. Does not clear pendingConsentRequest, nextSendIsVoice or lastCatalogHash.",
+   "hash": "cfb1258b71cece59",
+   "does": "Wipes the conversation: cancel() (which cancels the dispatch task, so an in-flight summary update writes nothing), empties turns, error, the held consent request, priorSummary, summarizedThroughTurnID, speakable cursors, resets sessionState tier/turnCount, clears ConversationStore, deletes chat exports from tmp, and removes 'assistant.priorSummary' from UserDefaults on a detached utility task. Does not clear nextSendIsVoice or lastCatalogHash.",
    "entry": "Clear button/alert in chat (AssistantChatView.swift:117) and DataPurgeService.deleteAll (DataPurgeService.swift:559)",
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.cancel()",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.clear()",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.removeChatExports()",
     "ext:UserDefaults.removeObject"
    ],
    "reads": [],
@@ -1005,50 +888,26 @@
     "mem:RoutingSessionState.currentTier",
     "mem:RoutingSessionState.turnCount",
     "file:conversation.json",
-    "ud:assistant.priorSummary"
+    "ud:assistant.priorSummary",
+    "mem:AssistantViewModel.pendingConsentRequest",
+    "file:<tmp>/EmuquChat-*.md (deleted)"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "privacy",
-     "sev": "low",
-     "text": "pendingConsentRequest (the held message text) survives clearConversation, including the Delete-All-My-Data path; a still-open consent sheet accepted afterwards sends the pre-wipe message.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:594",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:349",
-      "Emuqu/Sources/Services/DataPurgeService.swift:559"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "race",
-     "sev": "med",
-     "text": "clearConversation (also run by Delete All My Data) cancels the stream, but an in-flight updateSummaryWith has no cancellation check after collect: a partial summary of the wiped conversation can be assigned to priorSummary and written to UserDefaults 'assistant.priorSummary' after the clear, and is then prepended to the next conversation's system prompt.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:595",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:598",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:607",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:515",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:29",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:33",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:35",
-      "Emuqu/Sources/Services/DataPurgeService.swift:559"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.clear()": "b6bad85bf5d0fdad",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.store(extractedFacts:)": "7b61f24ad830fc87",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.cancel()": "8774a51a81a12938"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.cancel()": "8774a51a81a12938",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.removeChatExports()": "ead02054f06d2c04"
    }
   },
   {
    "key": "func AssistantViewModel.exportConversation()",
-   "hash": "48e6ba4aff1de978",
-   "does": "Writes the conversation as Markdown to tmp/EmuquChat-<epoch>.md and returns the URL; nil if there are no turns or the write fails (failure logged as warning).",
+   "hash": "60fd4fef82711f0b",
+   "does": "Deletes earlier chat exports, then writes the conversation as Markdown to tmp/EmuquChat-<epoch>.md and returns the URL; nil if there are no turns or the write fails (failure logged as warning).",
    "entry": "Chat share/export action (AssistantChatView.swift:423)",
    "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.removeChatExports()",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.conversationMarkdown()",
     "ext:String.write(to:atomically:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
@@ -1057,7 +916,8 @@
     "mem:AssistantViewModel.turns"
    ],
    "writes": [
-    "file:<tmp>/EmuquChat-<epoch>.md"
+    "file:<tmp>/EmuquChat-<epoch>.md",
+    "file:<tmp>/EmuquChat-*.md (older exports deleted)"
    ],
    "branches": [
     {
@@ -1066,25 +926,47 @@
      "effect": "true: returns nil; false: continue"
     },
     {
-     "at": "+7",
+     "at": "+8",
      "cond": "catch: Markdown write throws",
      "effect": "logs warning with error, returns nil (UI gets no file)"
     }
    ],
-   "flags": [
-    {
-     "kind": "privacy",
-     "sev": "low",
-     "text": "Each export writes the full health chat to a new file in the temporary directory and nothing deletes it; files accumulate until iOS purges tmp.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:621",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:624"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.conversationMarkdown()": "a82ea055cef5cbb4",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.removeChatExports()": "ead02054f06d2c04",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+   }
+  },
+  {
+   "key": "func AssistantViewModel.removeChatExports()",
+   "hash": "2a8bcb5337942d23",
+   "does": "Static: deletes every EmuquChat-*.md file in the temporary directory; a listing or delete failure is logged as a warning (a leftover file is retried on the next export or clear).",
+   "entry": "Also called by AssistantChatView's export share-sheet binding when the sheet closes.",
+   "calls": [
+    "ext:FileManager.contentsOfDirectory(atPath:)",
+    "ext:FileManager.removeItem(at:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/EmuquChat-*.md (deleted)"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each tmp file named EmuquChat-*.md",
+     "effect": "delete it"
+    },
+    {
+     "at": "+8",
+     "cond": "listing or a delete throws",
+     "effect": "log warning; remaining files are left."
+    }
+   ],
+   "flags": [],
+   "deps": {
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
     "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
    }
@@ -1122,10 +1004,12 @@
   },
   {
    "key": "func AssistantViewModel.regenerateLast()",
-   "hash": "d84c7a44e05932b2",
-   "does": "Regenerate: if not streaming, finds the last assistant turn; if it is not localOnly and is preceded by a user turn, removes it, saves, and calls dispatch() to re-answer.",
+   "hash": "c6473799f1926466",
+   "does": "Regenerate: returns while streaming or when Flo is off / its notice isn't accepted (refusedWhileFloIsOff sets the error); finds the last assistant turn; if it is not localOnly and is preceded by a user turn: when the selected provider still needs consent, holds the regeneration for the consent sheet without removing anything (holdRegenerationForConsent); otherwise removes the reply, saves, and calls dispatch() to re-answer.",
    "entry": "Regenerate button on the last assistant bubble (AssistantChatView+Sections.swift:255)",
    "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.refusedWhileFloIsOff()",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.holdRegenerationForConsent(userText:)",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.dispatch()"
    ],
@@ -1135,13 +1019,15 @@
    ],
    "writes": [
     "mem:AssistantViewModel.turns",
-    "file:conversation.json"
+    "file:conversation.json",
+    "mem:AssistantViewModel.errorMessage",
+    "mem:AssistantViewModel.pendingConsentRequest"
    ],
    "branches": [
     {
      "at": "+1",
-     "cond": "isStreaming",
-     "effect": "true: return; false: continue"
+     "cond": "isStreaming OR Flo off",
+     "effect": "return"
     },
     {
      "at": "+3",
@@ -1156,26 +1042,51 @@
     {
      "at": "+9",
      "cond": "index > 0 AND previous turn is .user",
-     "effect": "false: return; true: remove assistant turn, save, dispatch()"
-    }
-   ],
-   "flags": [
+     "effect": "false: return; true: continue"
+    },
     {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "regenerateLast does not run send()'s Flo-off check (refusedWhileFloIsOff); it relies on the chat UI being hidden when enableAIAssistant is off.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:657",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:376"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+10",
+     "cond": "selected provider needs consent",
+     "effect": "request held for the sheet, return; else remove assistant turn, save, dispatch()"
     }
    ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "a412e3b0848259de",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.store(extractedFacts:)": "7b61f24ad830fc87",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.dispatch()": "491aa0c3061e6d5f",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.holdRegenerationForConsent(userText:)": "c358171cdd7b6eb8",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.refusedWhileFloIsOff()": "5967dcf7ab846855",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::var AssistantViewModel.isStreaming": "b91cb7e156c2cbfd"
+   }
+  },
+  {
+   "key": "func AssistantViewModel.holdRegenerationForConsent(userText:)",
+   "hash": "1f965fc0865ca1bb",
+   "does": "When the selected provider has no data-sharing consent, holds a regeneration request (provider, the user text, regenerate: true) in pendingConsentRequest so the chat shows the consent sheet, and returns true; false when consent is on file. Routing moves turns only to consented providers, so the selected one is the only one that can need it.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)"
+   ],
+   "reads": [
+    "mem:ProviderRegistry.activeProvider",
+    "mem:ProviderConsentTracker.acknowledgedProviders"
+   ],
+   "writes": [
+    "mem:AssistantViewModel.pendingConsentRequest"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no consent needed",
+     "effect": "return false; else hold and return true."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "b36a2b8ea48a5e61",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc"
    }
   },
   {

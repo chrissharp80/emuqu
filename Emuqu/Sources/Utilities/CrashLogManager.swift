@@ -1,4 +1,5 @@
 import Foundation
+import os
 import UIKit
 
 /// Captures uncaught exceptions and signals, persists crash logs for later export
@@ -40,6 +41,18 @@ final class CrashLogManager: Sendable {
         try? String(contentsOf: previousCrashURL, encoding: .utf8)
     }
 
+    /// When this process started, as far as crash reporting is concerned: the
+    /// instance is created by `install()` at launch, before
+    /// `SystemDiagnosticsManager.install` records this launch's first sample.
+    /// Memory-trace samples stamped earlier belong to a previous process.
+    private let launchDate = Date()
+
+    /// The instance whose `install()` ran. The exception handler is a C
+    /// function pointer and cannot capture `self`, so it writes through this
+    /// instance rather than whichever one the dependency container returns at
+    /// crash time.
+    private static let installedInstance = OSAllocatedUnfairLock<CrashLogManager?>(initialState: nil)
+
     private init() {}
 
     /// Call this once at app startup to install crash handlers
@@ -48,8 +61,10 @@ final class CrashLogManager: Sendable {
         promoteCurrentCrashLog()
 
         // Install exception handler for NSExceptions and Swift errors that bridge
+        Self.installedInstance.withLock { $0 = self }
         NSSetUncaughtExceptionHandler { exception in
-            AppDependencies.current.app.crashLogManager.writeCrashLog(
+            let manager = CrashLogManager.installedInstance.withLock { $0 }
+            manager?.writeCrashLog(
                 type: "Exception",
                 name: exception.name.rawValue,
                 reason: exception.reason ?? "Unknown",
@@ -142,8 +157,7 @@ final class CrashLogManager: Sendable {
 
     /// Report banner plus the identity of the session that was cut short.
     private func sessionInfoBlock(sessionId: UUID, sessionStart: Date, sessionType: String) -> String {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS Z"
+        let dateFormatter = Self.reportDateFormatter("yyyy-MM-dd HH:mm:ss.SSS Z")
         let header = formatLogHeader(title: "EMUQU TERMINATION REPORT", timestamp: Date())
         return """
         \(header)
@@ -201,7 +215,7 @@ final class CrashLogManager: Sendable {
     /// memory trace so the user / developer can see whether the
     /// app was approaching a memory limit at termination.
     private func diagnosticContextBlock() -> String {
-        let diagnostics = Self.formatDiagnosticContext()
+        let diagnostics = Self.formatDiagnosticContext(launchedAt: launchDate)
         return """
         --------------------------------------------------------------------------------
         DIAGNOSTIC CONTEXT (last sampled before termination)
@@ -231,9 +245,7 @@ final class CrashLogManager: Sendable {
     func exportCrashLog() -> URL? {
         guard let content = previousCrashLog else { return nil }
 
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyyMMdd_HHmmss"
-        let timestamp = dateFormatter.string(from: Date())
+        let timestamp = Self.reportDateFormatter("yyyyMMdd_HHmmss").string(from: Date())
         let fileName = "Emuqu_Crash_\(timestamp).txt"
         let exportURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
 
@@ -246,35 +258,41 @@ final class CrashLogManager: Sendable {
             try scrubbed.write(to: exportURL, atomically: true, encoding: .utf8)
             return exportURL
         } catch {
+            debugLog("[CrashLogManager] Failed to write crash log export: \(error)", level: .warning)
             return nil
         }
     }
 
-    // MARK: - Private
-
-    /// One window's worth of memory + thermal history, summarized.
-    private struct TraceSummary {
-        var peakMB: Double = 0
-        var finalMB: Double = 0
-        var peakThermal: String = "nominal"
-        var warnings: Int = 0
+    /// Report dates are machine-read and compared across devices, so they use
+    /// the Gregorian calendar and POSIX locale whatever the user's settings
+    /// (a Buddhist- or Japanese-calendar device would otherwise print the era
+    /// year for `yyyy`). The time zone stays the device's own; `Z` prints it.
+    private static func reportDateFormatter(_ format: String) -> DateFormatter {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.dateFormat = format
+        return formatter
     }
+
+    // MARK: - Private
 
     /// Build the diagnostic-context block included in
     /// termination reports. Reads the most recent samples from
     /// `SystemDiagnosticsManager`'s memory_trace.jsonl and surfaces
     /// the trailing window so the user can see what the app's
     /// memory + thermal state was right before iOS killed it.
-    private static func formatDiagnosticContext() -> String {
+    private static func formatDiagnosticContext(launchedAt launch: Date) -> String {
         // Read the most recent ~30 samples (~2.5 minutes at 5 s
         // cadence — enough to see a memory-pressure ramp).
         let trace = previousProcessTrace(
-            AppDependencies.current.app.systemDiagnosticsManager.readRecentMemoryTrace(limit: 31)
+            AppDependencies.current.app.systemDiagnosticsManager.readRecentMemoryTrace(limit: 31),
+            launchedAt: launch
         )
         guard !trace.isEmpty else {
             return "No memory/thermal samples recorded for this session."
         }
-        let summary = summarize(trace: trace)
+        let summary = MemoryTraceSummary(trace: trace)
         return """
         Peak memory:        \(String(format: "%.1f", summary.peakMB)) MB (phys_footprint)
         Final memory:       \(String(format: "%.1f", summary.finalMB)) MB
@@ -287,54 +305,28 @@ final class CrashLogManager: Sendable {
         """
     }
 
-    /// The samples from before this launch. The diagnostics install records a
-    /// `launch` sample before the termination report is built, and counted,
-    /// it showed the new process's footprint as the final memory before the
-    /// kill.
-    private static func previousProcessTrace(_ trace: [[String: Any]]) -> [[String: Any]] {
-        guard let lastLaunch = trace.lastIndex(where: { $0["reason"] as? String == "launch" }) else { return trace }
-        return Array(trace[..<lastLaunch])
-    }
-
-    /// Peak memory in the window, final memory, thermal peak, and the highest
-    /// memory-warning count observed.
-    private static func summarize(trace: [[String: Any]]) -> TraceSummary {
-        var summary = TraceSummary()
-        for sample in trace {
-            if let mb = megabytes(in: sample) {
-                summary.peakMB = max(summary.peakMB, mb)
-                summary.finalMB = mb
-            }
-            summary.peakThermal = hotterThermal(summary.peakThermal, sample["thermal"] as? String)
-            summary.warnings = max(summary.warnings, sample["memory_warnings_total"] as? Int ?? 0)
+    /// The samples of the process that was killed: those stamped before this
+    /// launch, from that process's own `launch` sample on. Samples from still
+    /// older processes in the window are dropped, so they cannot inflate the
+    /// peak memory or thermal state. Sample stamps have whole-second
+    /// precision, so the cut is at the launch's whole second. Internal for
+    /// tests.
+    static func previousProcessTrace(_ trace: [[String: Any]], launchedAt launch: Date) -> [[String: Any]] {
+        let cutoff = Date(timeIntervalSinceReferenceDate: launch.timeIntervalSinceReferenceDate.rounded(.down))
+        let parser = ISO8601DateFormatter()
+        let earlier = trace.filter { sample in
+            guard let stamp = sample["ts"] as? String, let date = parser.date(from: stamp) else { return false }
+            return date < cutoff
         }
-        return summary
-    }
-
-    /// Thermal state is an ordered ladder, not a number, so "peak" means the
-    /// later rung on nominal → fair → serious → critical.
-    private static func hotterThermal(_ current: String, _ candidate: String?) -> String {
-        let order = ["nominal": 0, "fair": 1, "serious": 2, "critical": 3]
-        guard let candidate, (order[candidate] ?? 0) > (order[current] ?? 0) else { return current }
-        return candidate
-    }
-
-    /// `memory_bytes` decodes as UInt64 or Int depending on how JSONSerialization
-    /// sized the number, so both spellings are accepted.
-    private static func megabytes(in sample: [String: Any]) -> Double? {
-        if let bytes = sample["memory_bytes"] as? UInt64 { return Double(bytes) / 1_048_576 }
-        if let bytes = sample["memory_bytes"] as? Int { return Double(bytes) / 1_048_576 }
-        return nil
+        guard let ownLaunch = earlier.lastIndex(where: { $0["reason"] as? String == "launch" }) else { return earlier }
+        return Array(earlier[ownLaunch...])
     }
 
     /// Trailing 5 samples as raw timeline.
     private static func traceTimeline(_ trace: [[String: Any]]) -> [String] {
-        trace.suffix(5).map { sample in
-            let ts = (sample["ts"] as? String) ?? "?"
-            let mb = (sample["memory_mb"] as? String) ?? "?"
-            let thermal = (sample["thermal"] as? String) ?? "?"
-            let reason = (sample["reason"] as? String) ?? "?"
-            return "  \(ts) — \(mb) MB · thermal=\(thermal) · \(reason)"
+        trace.suffix(5).map { raw in
+            let sample = MemoryTraceSample(raw)
+            return "  \(sample.timestamp ?? "?") — \(sample.memoryMB ?? "?") MB · thermal=\(sample.thermal ?? "?") · \(sample.reason ?? "?")"
         }
     }
 
@@ -347,8 +339,7 @@ final class CrashLogManager: Sendable {
         guard let summary = RawRRBackup.terminationForensicsSummary(for: sessionId) else {
             return noBackupIndexExplanation
         }
-        let isoFormatter = DateFormatter()
-        isoFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss Z"
+        let isoFormatter = reportDateFormatter("yyyy-MM-dd HH:mm:ss Z")
         let lastBackupStr = summary.lastBackupTime.map { isoFormatter.string(from: $0) } ?? "(never — no incremental write completed)"
         let archiveStatus = summary.isArchived
             ? "✓ Already folded into a finalized HRVSession — recovery complete."
@@ -399,12 +390,7 @@ final class CrashLogManager: Sendable {
 
     /// Shared header for all crash/termination reports
     private func formatLogHeader(title: String, timestamp: Date) -> String {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS Z"
-
-        let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
-        let buildNumber = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"
-
+        let dateFormatter = Self.reportDateFormatter("yyyy-MM-dd HH:mm:ss.SSS Z")
         return """
         ================================================================================
         \(title)
@@ -414,20 +400,23 @@ final class CrashLogManager: Sendable {
 
         Device: \(DeviceInfo.model) (\(DeviceInfo.systemName))
         iOS Version: \(DeviceInfo.systemVersion)
-        App Version: \(appVersion) (\(buildNumber))
+        App Version: \(Bundle.main.appVersionString)
         """
     }
 
     /// Turn last run's crash files into the "previous" report: the readable
     /// exception report first, then the signal handler's addresses. An
     /// uncaught exception produces both, one per file, so neither is lost.
+    /// A previous report the user has not cleared yet (a crash or a
+    /// termination report) is kept ahead of them, as `recordTermination` does.
     private func promoteCurrentCrashLog() {
         let fm = FileManager.default
         let sources = [exceptionLogURL, crashLogURL].filter { fm.fileExists(atPath: $0.path) }
         guard !sources.isEmpty else { return }
         do {
             let reports = try sources.map { String(bytes: try Data(contentsOf: $0), encoding: .utf8) ?? "" }
-            try reports.joined(separator: "\n\n").write(to: previousCrashURL, atomically: true, encoding: .utf8)
+            let combined = ([previousCrashLog].compactMap { $0 } + reports).joined(separator: "\n\n")
+            try combined.write(to: previousCrashURL, atomically: true, encoding: .utf8)
             for url in sources { try fm.removeItem(at: url) }
         } catch {
             debugLog("[CrashLogManager] Failed to promote crash log: \(error)")
@@ -447,7 +436,8 @@ final class CrashLogManager: Sendable {
     /// no log at all, and sits until the watchdog kills it — the one outcome worse
     /// than having no handler.
     ///
-    /// The C handler calls only open/write/close, `backtrace`, and `raise`, and
+    /// The C handler calls only open/write/close, `backtrace`, `raise` and, when
+    /// a second thread crashes during the write, `pause`, and
     /// emits raw return addresses; symbolication is an offline job and the file it
     /// writes explains how. The report is terse and it actually arrives.
     ///
@@ -526,5 +516,63 @@ final class CrashLogManager: Sendable {
         } catch {
             NSLog("[CrashLogManager] could not persist crash log: %@", error.localizedDescription)
         }
+    }
+}
+
+/// Peak, final and average memory, peak thermal state and the highest
+/// memory-warning count over a window of `SystemDiagnosticsManager`
+/// memory-trace samples.
+struct MemoryTraceSummary {
+    var peakMB: Double = 0
+    var finalMB: Double = 0
+    var averageMB: Double = 0
+    var peakThermal: String = "nominal"
+    var warnings: Int = 0
+
+    init(trace: [[String: Any]]) {
+        var total = 0.0
+        var counted = 0
+        for sample in trace {
+            if let mb = Self.megabytes(in: sample) {
+                peakMB = max(peakMB, mb)
+                finalMB = mb
+                total += mb
+                counted += 1
+            }
+            peakThermal = Self.hotterThermal(peakThermal, sample["thermal"] as? String)
+            warnings = max(warnings, sample["memory_warnings_total"] as? Int ?? 0)
+        }
+        averageMB = counted > 0 ? total / Double(counted) : 0
+    }
+
+    /// Thermal state is an ordered ladder, not a number, so "peak" means the
+    /// later rung on nominal → fair → serious → critical.
+    static func hotterThermal(_ current: String, _ candidate: String?) -> String {
+        let order = ["nominal": 0, "fair": 1, "serious": 2, "critical": 3]
+        guard let candidate, (order[candidate] ?? 0) > (order[current] ?? 0) else { return current }
+        return candidate
+    }
+
+    /// `memory_bytes` decodes as UInt64 or Int depending on how JSONSerialization
+    /// sized the number, so both spellings are accepted.
+    static func megabytes(in sample: [String: Any]) -> Double? {
+        if let bytes = sample["memory_bytes"] as? UInt64 { return Double(bytes) / 1_048_576 }
+        if let bytes = sample["memory_bytes"] as? Int { return Double(bytes) / 1_048_576 }
+        return nil
+    }
+}
+
+/// The display fields of one memory-trace sample, nil when absent.
+struct MemoryTraceSample {
+    let timestamp: String?
+    let memoryMB: String?
+    let thermal: String?
+    let reason: String?
+
+    init(_ sample: [String: Any]) {
+        timestamp = sample["ts"] as? String
+        memoryMB = sample["memory_mb"] as? String
+        thermal = sample["thermal"] as? String
+        reason = sample["reason"] as? String
     }
 }

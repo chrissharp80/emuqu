@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift",
- "hash": "904f0d29d658254d",
+ "hash": "9b242776e6fe3a55",
  "role": "Post-workout DFA-α1 report: α1 chart with AT1/AT2 rules and 'beat artifact' markers, plain-English threshold summary, avg/max/min and band totals, plus a route map coloured by α1 band. Also hosts the pure, nonisolated ectopic-shadow detector, band-totals/AT1-crossing rule and sample timing shared with the workout snapshot builder and PDF.",
  "types": [
   "Alpha1ReportCards: extension — α1 report and route cards",
@@ -16,25 +16,11 @@
   "mem:Alpha1ReportCards.maxSampleGapSec = 5 (static let)",
   "mem:Alpha1Dip.windowSec=120 / approachPad=60 / recoveryPad=120 (private static lets)",
   "mem:AT1CrossDetector.warmupSec=120 / sustainSec=180",
-  "mem:UtilityServices.alpha1StatsCache (single-entry Alpha1StatsCache, read/written here)"
+  "mem:UtilityServices.alpha1StatsCache (single-entry Alpha1StatsCache, read/written here)",
+  "mem:Alpha1ReportCards.effortHeartRateRise = 10 bpm (static let)"
  ],
  "toplevel": "File-scope private helper functions (alpha1Points, alpha1StatsRow, alpha1Line, ectopicShadowFooter, alpha1StatBlock, alpha1CacheKey, logAlpha1MinProvenance (#if DEBUG body), collectCleanAlpha1Values, cleanMinMaxAvg, bandLegend). No globals.",
  "flags": [
-  {
-   "kind": "broken",
-   "sev": "med",
-   "text": "The ectopic-shadow heuristic labels ANY sub-0.75 α1 run that recovers within 120 s as a 'beat artifact' and excludes it plus 60 s before and 120 s after from AVG/MAX/MIN, band minutes and AT1 crossing — no RR artifact evidence is checked. Short genuine efforts (≤2-min intervals, hill surges) are therefore erased from the stats and the summary can read 'pure Zone-2 … α1 never crossed 0.75' for an interval session; the same exclusion feeds the stored workout snapshot and PDF.",
-   "evidence": [
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift:226",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift:287",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift:289",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift:440",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift:469",
-    "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift:75",
-    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift:385"
-   ],
-   "found": "first read, upheld on second"
-  },
   {
    "kind": "duplicate",
    "sev": "low",
@@ -101,9 +87,9 @@
    "deps": {
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1Chart(alphaPoints:ectopicShadows:)": "797f55916fbde62e",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1Hero(stats:)": "4159d9666d1d6652",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1Stats(samples:)": "f036ec591277024f",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "244ecc9ffe5baf31",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func alpha1StatsRow(stats:sampleCount:)": "081b8909cd82c036",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1Stats(samples:)": "22f7724246320d5c",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "9173c8e9337e06b4",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func alpha1StatsRow(stats:sampleCount:)": "d038d63afaca99bf",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func ectopicShadowFooter(_:)": "010c2f6dbd5db4cc",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::var Alpha1ReportCards.Alpha1Stats.distributionLabel": "21c6d81a7662648a",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::var Alpha1ReportCards.alpha1Explainer": "6e5957309aab1180",
@@ -163,7 +149,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadowMarks(_:)": "17c48da01a7c8e1d",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "244ecc9ffe5baf31",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "9173c8e9337e06b4",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func alpha1Line(_:)": "2d17a037c11e3906",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::var Alpha1ReportCards.thresholdRules": "05f8fac27b4fcc5c"
    }
@@ -198,7 +184,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "244ecc9ffe5baf31",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "9173c8e9337e06b4",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::var Alpha1ReportCards.ectopicTag": "a1687c7ce9d4a188",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
    }
@@ -253,12 +239,13 @@
   },
   {
    "key": "func Alpha1ReportCards.ectopicShadows(in:)",
-   "hash": "faa62f0878af90cb",
-   "does": "Scans samples in order; each α1 < 0.75 opens/deepens a dip, the first α1 >= 0.75 closes it and records an EctopicShadow if the dip lasted 1–120 s. Samples without α1 are skipped; a dip still open at session end is dropped. Pure, used by this card, WorkoutAnalysisSnapshotBuilder, FitnessPostSummaryView+Feeling and WorkoutPDFReport.",
+   "hash": "801ce94957a284d1",
+   "does": "Scans samples in order; each α1 < 0.75 opens/deepens a dip, the first α1 >= 0.75 closes it and records a candidate EctopicShadow if the dip lasted 1–120 s. Samples without α1 are skipped; a dip still open at session end is dropped. Candidates during which heart rate rose by >= effortHeartRateRise (10 bpm) from the approach window to the deepest point are dropped as real efforts (heartRateRose). Pure, used by this card, the α1 route colouring, WorkoutAnalysisSnapshotBuilder, FitnessPostSummaryView+Feeling and WorkoutPDFReport.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.closeDip(_:recoveredAt:into:)",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.extendDip(_:offsetSec:alpha1:)"
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.extendDip(_:offsetSec:alpha1:)",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.heartRateRose(into:in:)"
    ],
    "reads": [],
    "writes": [],
@@ -277,12 +264,53 @@
      "at": "+5",
      "cond": "alpha1 >= AT1 (0.75)",
      "effect": "closes any open dip via closeDip and continues; else extends/opens dip"
+    },
+    {
+     "at": "+11",
+     "cond": "heartRateRose for a candidate shadow",
+     "effect": "candidate dropped (kept as physiology); otherwise returned"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.closeDip(_:recoveredAt:into:)": "1ce0c50a1657a76c",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.extendDip(_:offsetSec:alpha1:)": "4bb255b7c19beecd"
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.extendDip(_:offsetSec:alpha1:)": "4bb255b7c19beecd",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.heartRateRose(into:in:)": "5bf492645993324e"
+   }
+  },
+  {
+   "key": "func Alpha1ReportCards.heartRateRose(into:in:)",
+   "hash": "fe7649ebcee7ed25",
+   "does": "True when, over samples with offset in [shadow.startSec (dip start − 60 s, clamped at 0), shadow.offsetSec (deepest point)], some heart rate is >= effortHeartRateRise (10) bpm above the lowest heart rate seen earlier in that span. Samples without heart rate are skipped, so a dip with no heart rate returns false (stays a shadow). Linear scan of all samples per call.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each sample with startSec <= offset <= deepest offset",
+     "effect": "iterates the approach + dip span"
+    },
+    {
+     "at": "+3",
+     "cond": "heartRate nil",
+     "effect": "skipped"
+    },
+    {
+     "at": "+6",
+     "cond": "hr − running minimum >= 10",
+     "effect": "returns true"
+    },
+    {
+     "at": "+8",
+     "cond": "no such rise",
+     "effect": "returns false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.Alpha1Dip.shadow(recoveredAt:)": "943912fea8ab5cbe"
    }
   },
   {
@@ -406,7 +434,7 @@
   {
    "key": "func Alpha1ReportCards.alpha1Stats(samples:)",
    "hash": "29f9ed305470fa3d",
-   "does": "Memoized α1 stats: builds a key from session id + sample shape; returns the cached value on a key match, else computes shadows, band totals/first crossing, shadow-cleaned min/max/avg, logs MIN provenance (DEBUG) and stores in the single-entry Alpha1StatsCache.",
+   "does": "Memoized α1 stats: builds a key from session id + sample shape; returns the cached value on a key match, else computes shadows, band totals/first crossing, shadow-cleaned min/max/avg, logs MIN provenance (DEBUG) and stores in the single-entry Alpha1StatsCache. The key carries no α1 values; FitnessSummaryCards.persistReanalyzedSamples, the one in-place α1 rewriter, clears the cache when it publishes re-analysed samples.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func alpha1CacheKey(sessionId:samples:)",
@@ -434,29 +462,16 @@
      "effect": "returns cached stats without recomputing; else computes and stores"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "med",
-     "text": "Cache key is (sessionId, sample count, first/last α1 offset, α1 sample count) — no α1 values. When FitnessPostSummaryView re-analyses α1 (WorkoutAlpha1Reanalyzer.applyReadings rewrites alpha1 in place) and the set of α1-bearing samples is unchanged, the card keeps showing the old avg/min/max/band minutes while the chart draws the new curve.",
-     "evidence": [
-      "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift:717",
-      "Emuqu/Sources/Views/ThresholdCards+Cards.swift:536",
-      "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift:128",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift:863"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.alpha1StatsCache": "5c68863d9d76b498",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1BandTotals(samples:shadows:)": "484f9393c91f1f3e",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "244ecc9ffe5baf31",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1BandTotals(samples:shadows:)": "10a49c142b438673",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "9173c8e9337e06b4",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func alpha1CacheKey(sessionId:samples:)": "a6c985a24e5b8c8a",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func cleanMinMaxAvg(values:)": "afa15a26d74d1af2",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func collectCleanAlpha1Values(samples:shadows:)": "692d54f6a66fd22b",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func collectCleanAlpha1Values(samples:shadows:)": "d4c78351ccc01e72",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func logAlpha1MinProvenance(min:samples:shadows:cleanCount:)": "9453f409993062ab",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func Alpha1StatsCache.lookup(key:)": "9d5110a7833cd5bc",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func Alpha1StatsCache.store(key:value:)": "08b5952efb33ae00"
@@ -531,12 +546,11 @@
   },
   {
    "key": "func Alpha1ReportCards.alpha1BandTotals(samples:shadows:)",
-   "hash": "b044ab629f8bb202",
-   "does": "Walks α1 samples, timing each with sampleSeconds (capped 5 s), skipping samples inside any shadow, accumulating band seconds and, after the 120 s warmup and until found, feeding the AT1 crossing detector. Pure; shared with the snapshot builder, Feeling card and PDF.",
+   "hash": "c3be09b89f1cd966",
+   "does": "Feeds each clean timed α1 reading from timedCleanAlpha1 (5 s-capped sampleSeconds, shadow samples left out) into the band accumulator and, after the 120 s warmup and until found, into the AT1 crossing detector. Pure; shared with the snapshot builder, Feeling card and PDF.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.sampleSeconds(at:previous:)",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.EctopicShadow.contains(offsetSec:)",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.timedCleanAlpha1(samples:shadows:)",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.Alpha1Bands.add(alpha1:dt:)",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.AT1CrossDetector.step(alpha1:sample:dt:)"
    ],
@@ -544,22 +558,12 @@
    "writes": [],
    "branches": [
     {
-     "at": "+4",
-     "cond": "for each sample",
-     "effect": "iterates"
+     "at": "+3",
+     "cond": "for each clean timed reading",
+     "effect": "adds dt to its band"
     },
     {
      "at": "+5",
-     "cond": "alpha1 nil",
-     "effect": "skipped (does not advance prevOffset)"
-    },
-    {
-     "at": "+8",
-     "cond": "offset inside any ectopic shadow",
-     "effect": "skipped after advancing prevOffset (time not counted)"
-    },
-    {
-     "at": "+10",
      "cond": "no crossing yet and offset >= 120 s",
      "effect": "steps the detector and stores its result (stays nil until mature)"
     }
@@ -580,6 +584,39 @@
    "deps": {
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.AT1CrossDetector.step(alpha1:sample:dt:)": "b34973e204f28fd0",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.Alpha1Bands.add(alpha1:dt:)": "2129bab42439ae6c",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.timedCleanAlpha1(samples:shadows:)": "36a3c2fe1f0be971"
+   }
+  },
+  {
+   "key": "func Alpha1ReportCards.timedCleanAlpha1(samples:shadows:)",
+   "hash": "1903202876c65758",
+   "does": "Each α1 sample outside every shadow, as (sample, alpha1, dt), where dt is sampleSeconds against the previous α1 sample (shadowed ones included, so time inside a dip is not handed to the next clean sample). Pure; the single timed walk behind alpha1BandTotals and collectCleanAlpha1Values.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.sampleSeconds(at:previous:)",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.EctopicShadow.contains(offsetSec:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "for each sample",
+     "effect": "iterates"
+    },
+    {
+     "at": "+8",
+     "cond": "alpha1 nil",
+     "effect": "skipped (does not advance prevOffset)"
+    },
+    {
+     "at": "+11",
+     "cond": "offset inside any shadow",
+     "effect": "skipped after advancing prevOffset; otherwise appended"
+    }
+   ],
+   "flags": [],
+   "deps": {
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.EctopicShadow.contains(offsetSec:)": "b3336f522bf914fd",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.sampleSeconds(at:previous:)": "0befeb7b3281987b"
    }
@@ -699,7 +736,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1RouteMap(segments:coords:)": "d6f3a928ea069441",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1RouteSegments(track:samples:startDate:)": "1ee253617ba46612",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1RouteSegments(track:samples:startDate:)": "a53c93b1a61fc5a7",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::var Alpha1ReportCards.alpha1BandLegend": "39a8f0e1a480b43a",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
@@ -756,11 +793,12 @@
   },
   {
    "key": "func Alpha1ReportCards.alpha1RouteSegments(track:samples:startDate:)",
-   "hash": "1718ed09d30ac378",
-   "does": "Maps every α1 sample by offset, then for each GPS fix computes its session offset, picks the band colour of the nearest earlier α1 sample and groups fixes into same-colour runs.",
+   "hash": "2284a73288d268ca",
+   "does": "Gets the clean, offset-sorted α1 readings (cleanAlpha1Readings: beat-artifact dips left out), then for each GPS fix computes its session offset, picks the band colour of the nearest earlier clean reading by binary search (bandColor) and groups fixes into same-colour runs. O(fixes × log readings) plus one shadow pass per call.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.bandColor(atOffset:alphaByOffset:sortedOffsets:)",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.cleanAlpha1Readings(_:)",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.bandColor(atOffset:readings:)",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.Alpha1SegmentBuilder.add(_:color:)",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.Alpha1SegmentBuilder.finish()"
    ],
@@ -769,93 +807,83 @@
    "branches": [
     {
      "at": "+5",
-     "cond": "track or samples empty",
+     "cond": "track empty",
      "effect": "returns []"
     },
     {
-     "at": "+8",
-     "cond": "sample has α1",
-     "effect": "added to offset map"
-    },
-    {
-     "at": "+10",
-     "cond": "no α1 samples",
+     "at": "+7",
+     "cond": "no clean α1 readings (no α1, or all in shadows)",
      "effect": "returns []"
     },
     {
-     "at": "+13",
+     "at": "+9",
      "cond": "for each fix",
      "effect": "iterates track"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Recomputed on every body evaluation with no memo (unlike alpha1Stats, whose comment records 50+ body passes per second on this screen); for each GPS fix bandColor linearly scans all sorted α1 offsets, O(fixes × α1 samples) per render (~13M iterations for a 1-hour session at 1 Hz).",
-     "evidence": [
-      "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift:505",
-      "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift:569",
-      "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift:580",
-      "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift:337"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.Alpha1SegmentBuilder.add(_:color:)": "9df40dcd535022df",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.Alpha1SegmentBuilder.finish()": "08ecf73cd0e83fc4",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.bandColor(atOffset:alphaByOffset:sortedOffsets:)": "09d1d757865f5bdd"
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.bandColor(atOffset:readings:)": "7c5a7fad01985e41",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.cleanAlpha1Readings(_:)": "5d1c004bc5774b7a"
    }
   },
   {
-   "key": "func Alpha1ReportCards.bandColor(atOffset:alphaByOffset:sortedOffsets:)",
-   "hash": "204ab1d60efcf63b",
-   "does": "Linear scan of sorted offsets for the last α1 at or before the fix offset; grey when none (fixes before first α1), sage ≥0.75, yellow ≥0.50, orange otherwise.",
+   "key": "func Alpha1ReportCards.cleanAlpha1Readings(_:)",
+   "hash": "3c6efc3ca2fee18c",
+   "does": "Computes ectopicShadows for the samples, maps offset → α1 for samples with α1 outside every shadow (last wins on a repeated offset) and returns the pairs sorted by offset.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.EctopicShadow.contains(offsetSec:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "alpha1 nil or offset inside a shadow",
+     "effect": "sample left out"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.EctopicShadow.contains(offsetSec:)": "b3336f522bf914fd",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "9173c8e9337e06b4"
+   }
+  },
+  {
+   "key": "func Alpha1ReportCards.bandColor(atOffset:readings:)",
+   "hash": "1cdcc3662e74fb0b",
+   "does": "Binary-searches the offset-sorted readings for the last one at or before the track offset; textTertiary when none, else sage for α1 >= 0.75, yellow for >= 0.50, orange below.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+2",
-     "cond": "for each sorted offset",
-     "effect": "iterates"
-    },
-    {
      "at": "+3",
-     "cond": "off <= offsetSec",
-     "effect": "updates nearest; else breaks"
-    },
-    {
-     "at": "+5",
-     "cond": "no earlier α1",
-     "effect": "returns AppTheme.textTertiary"
-    },
-    {
-     "at": "+6",
-     "cond": "a >= 0.75",
-     "effect": "sage"
+     "cond": "while low < high",
+     "effect": "binary search: reading offset <= target moves low up, else high down"
     },
     {
      "at": "+7",
-     "cond": "a >= 0.50",
-     "effect": "yellow; otherwise orange"
-    }
-   ],
-   "flags": [
+     "cond": "no reading at or before the offset",
+     "effect": "returns textTertiary"
+    },
     {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Route colouring uses raw α1 including samples inside ectopic shadows, while the band minutes, min/max and summary on the same screen exclude them; a 'beat artifact' dip paints the route yellow/orange at a spot the stats count as easy.",
-     "evidence": [
-      "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift:563",
-      "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift:581",
-      "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift:440"
-     ],
-     "found": "second read"
+     "at": "+9",
+     "cond": "α1 >= 0.75",
+     "effect": "sage"
+    },
+    {
+     "at": "+10",
+     "cond": "α1 >= 0.50",
+     "effect": "yellow; else orange"
     }
    ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
    }
@@ -937,12 +965,13 @@
   },
   {
    "key": "func alpha1StatsRow(stats:sampleCount:)",
-   "hash": "ee4e6505dfe98b49",
-   "does": "Row of AVG/MAX/MIN (2 dp) and sample-count stat blocks; '—' when a stat is nil.",
+   "hash": "85d709277aa05a66",
+   "does": "Row of AVG/MAX/MIN (2 dp, formatted with LanguageManager.appLocale) and sample-count stat blocks; '—' when a stat is nil.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func alpha1StatBlock(label:value:)",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
    ],
    "reads": [],
    "writes": [],
@@ -963,20 +992,10 @@
      "effect": "'—'"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Numbers are formatted with locale: .current instead of LanguageManager.appLocale used everywhere else, so with an in-app language override the decimal separator follows the device locale.",
-     "evidence": [
-      "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift:654",
-      "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift:399"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func alpha1StatBlock(label:value:)": "cf7b85b1e1a16f22"
    }
   },
@@ -1022,7 +1041,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "244ecc9ffe5baf31",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "9173c8e9337e06b4",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
    }
   },
@@ -1087,29 +1106,18 @@
   },
   {
    "key": "func collectCleanAlpha1Values(samples:shadows:)",
-   "hash": "56a730e0e6d56821",
-   "does": "α1 values of samples outside all shadow ranges.",
+   "hash": "8311fd56aa0913d2",
+   "does": "α1 values of the readings timedCleanAlpha1 keeps (samples with α1 outside all shadow ranges).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.EctopicShadow.contains(offsetSec:)"
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.timedCleanAlpha1(samples:shadows:)"
    ],
    "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+5",
-     "cond": "alpha1 nil",
-     "effect": "dropped"
-    },
-    {
-     "at": "+6",
-     "cond": "inside a shadow",
-     "effect": "dropped; otherwise kept"
-    }
-   ],
+   "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.EctopicShadow.contains(offsetSec:)": "b3336f522bf914fd"
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.timedCleanAlpha1(samples:shadows:)": "36a3c2fe1f0be971"
    }
   },
   {

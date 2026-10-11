@@ -7,25 +7,12 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Header says this is 'the trajectory verdict the dashboard chip shows', but the dashboard chip anchors currentCTL on yesterday and week-ago on series[count-9] (DashboardV2View+Chips), while this fact uses today's CTL and series[count-8] (the Load & Trajectory screen's method); the AI and the dashboard chip can report different verdicts.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift:5",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift:28",
-    "Emuqu/Sources/Views/DashboardV2View+Chips.swift:225",
-    "Emuqu/Sources/Views/DashboardV2View+Chips.swift:259"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "func TrainingLoadNamespace.trajectoryRecord()",
-   "hash": "bc988ce17d7e0847",
-   "does": "Resolves `training.trajectory`: reads TrainingMetricsCache.dailySeries and live load, builds the screen series, computes ramp rate, week-ago CTL (series[count-8]) and TrajectoryVerdict with user settings flags, then returns trajectory fields merged with Foster monotony/strain.",
+   "hash": "ea7b40217fc7496b",
+   "does": "Resolves `training.trajectory`: reads TrainingMetricsCache.dailySeries and live load, builds the screen series, computes ramp rate, week-ago CTL (series[count-8]) and TrajectoryVerdict with user settings flags, then returns trajectory fields plus verdict_as_of (the series' last day, which is the last stored day until today's bucket exists, while current_ctl/atl/tsb are live) merged with Foster monotony/strain.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.liveOrCached()",
@@ -61,21 +48,9 @@
      "effect": "true: weekAgoCTL = series[count-8].ctl; false: nil passed to verdict"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "When dailySeries has no bucket for today (not yet refreshed), screenSeries injects no live value, so the verdict uses the last stored day's CTL while current_ctl/atl/tsb fields report live values — the record can be internally inconsistent.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift:59",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift:30",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift:43"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.liveOrCached()": "dde23a0266529754",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.liveOrCached()": "f65f5f3d62365a97",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift::func TrainingLoadNamespace.ctlRampPerWeek(_:)": "fdb91e4f1da91114",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift::func TrainingLoadNamespace.fosterFields(_:)": "822dcbda6d218972",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift::func TrainingLoadNamespace.screenSeries(_:live:)": "50fe905b68d82edc",

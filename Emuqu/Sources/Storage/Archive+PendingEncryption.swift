@@ -29,6 +29,27 @@ func archiveWriteOptions(
     }
 }
 
+/// Write archive bytes with the protection class their format demands.
+///
+/// `archiveWriteOptions` brings the ledger in line before the write; when the
+/// write then throws, nothing new reached disk, so the id's ledger entry is
+/// put back as it was. Otherwise a failed encrypted write would leave a
+/// plaintext file no longer queued for re-encryption, and a failed plaintext
+/// write would queue bytes that were never written.
+func writeArchiveBytes(
+    _ data: Data, to url: URL,
+    format: SessionArchive.SessionFileCodec.DiskFormat,
+    sessionID: UUID
+) throws {
+    let wasPending = PendingEncryptionLedger.pending.contains(sessionID)
+    do {
+        try data.write(to: url, options: archiveWriteOptions(for: format, sessionID: sessionID))
+    } catch {
+        if wasPending { PendingEncryptionLedger.record(sessionID) } else { PendingEncryptionLedger.clear(sessionID) }
+        throw error
+    }
+}
+
 /// Re-encrypt sessions that were written without application-layer
 /// encryption because the key was unreachable at write time.
 ///

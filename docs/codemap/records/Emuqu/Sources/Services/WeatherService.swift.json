@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Services/WeatherService.swift",
- "hash": "4b87176978f56e9b",
+ "hash": "fc0299cd8bf7a72a",
  "role": "MainActor @Observable singleton that fetches current conditions from MET Norway Locationforecast 2.0 compact (rate-limited, cached against Expires, If-Modified-Since for same place) and exposes a WeatherSnapshot to the workout coach and archived workouts; plus MetNorwayForecast, the response parser and symbol→condition mapping, and the condition-name localisation table.",
  "types": [
   "WeatherService: class (@Observable @MainActor) — fetch/caching of current weather, singleton .shared",
@@ -20,12 +20,12 @@
   "mem:WeatherService.cacheTTL (static 1800 s)",
   "mem:WeatherService.minimumRequestInterval (static 600 s)",
   "mem:WeatherService.maxSnapshotAge (static 10800 s)",
-  "mem:WeatherService.userAgent (static 'Emuqu/<version> github.com/chrissharp80/emuqu')",
-  "mem:WeatherService.expiresHeader / lastModifiedHeader (static header names)",
+  "mem:WeatherService.userAgent (nonisolated static 'Emuqu/<version> github.com/chrissharp80/emuqu')",
+  "mem:WeatherService.expiresHeader / lastModifiedHeader (nonisolated static header names)",
   "net:api.met.no/weatherapi/locationforecast/2.0/compact",
   "mem:MetNorwayForecast.symbolConditions (static symbol base → English condition table)"
  ],
- "toplevel": "Header (6-22) states MET Norway terms compliance: User-Agent, 2-decimal coordinates, no repeat before Expires nor within 10 minutes, If-Modified-Since. userAgent static initializer reads Bundle.main.appVersion. Response Decodable conformance synthesized; decoder uses .iso8601 dates.",
+ "toplevel": "Header (6-22) states MET Norway terms compliance: User-Agent, 2-decimal coordinates, no repeat before Expires nor within 10 minutes, If-Modified-Since, fetches off the main thread. userAgent and the header-name statics are nonisolated (read by the nonisolated request/outcome); userAgent's initializer reads Bundle.main.appVersion. Response Decodable conformance synthesized; decoder uses .iso8601 dates.",
  "flags": [
   {
    "kind": "untested",
@@ -70,21 +70,20 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.snapshot(at:)": "7cc4a5d832b609fa"
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.snapshot(at:)": "be38fc4a723f8f8d"
    }
   },
   {
    "key": "func WeatherService.refreshIfNeeded(for:)",
-   "hash": "8795cca2b7598fdd",
-   "does": "If a location is given, no request is in flight and cacheCovers is false: rounds the coordinate to 2 decimals, sends If-Modified-Since only for the identical rounded place, records lastRequestAt, and starts a Task that fetches and applies the outcome then clears the in-flight slot.",
+   "hash": "4602835f9c8f3b17",
+   "does": "If a location is given, no request is in flight and cacheCovers is false: rounds the coordinate to 2 decimals, sends If-Modified-Since only for the identical rounded place, records lastRequestAt, and starts a main-actor Task that awaits the off-main fetch, applies the outcome and, in the same turn (defer), clears the in-flight slot.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.cacheCovers(_:)",
     "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.rounded(_:)",
     "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.isSamePlace(_:)",
     "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.fetch(at:ifModifiedSince:)",
-    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.apply(_:at:)",
-    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.clearInflightTask()"
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.apply(_:at:)"
    ],
    "reads": [
     "mem:WeatherService.inflightTask",
@@ -109,45 +108,18 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.apply(_:at:)": "ca26f90b9ed74d27",
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.apply(_:at:)": "dfcbbe5de590e2f3",
     "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.cacheCovers(_:)": "779f8bfeebe45972",
-    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.clearInflightTask()": "621c142879626ccc",
-    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.fetch(at:ifModifiedSince:)": "acd0e647db682817",
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.fetch(at:ifModifiedSince:)": "09610eee127e966f",
     "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.isSamePlace(_:)": "fe69a81f4a6db998",
-    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.outcome(data:response:)": "d57f7aa3c84b46cc",
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.outcome(data:response:)": "091e57309d81d85c",
     "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.rounded(_:)": "a0643cefe3e7fc35"
    }
   },
   {
-   "key": "func WeatherService.clearInflightTask()",
-   "hash": "0630fa236dcce867",
-   "does": "Queues a MainActor task that sets inflightTask to nil.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [
-    "mem:WeatherService.inflightTask"
-   ],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "hack",
-     "sev": "low",
-     "text": "The Task in refreshIfNeeded already inherits MainActor isolation, so the defer could clear inflightTask directly; the extra hop leaves a window where inflightTask is non-nil after apply has run.",
-     "evidence": [
-      "Emuqu/Sources/Services/WeatherService.swift:63",
-      "Emuqu/Sources/Services/WeatherService.swift:64",
-      "Emuqu/Sources/Services/WeatherService.swift:73"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
-  },
-  {
    "key": "func WeatherService.apply(_:at:)",
-   "hash": "bab5d9cb0d2ec505",
-   "does": "Applies a fetch outcome: fresh replaces forecast, notModified updates forecast.expires, failed changes nothing; then snapshots the forecast at now and, if non-nil, stores snapshot, fetchedAt=now and fetchedAtCoord.",
+   "hash": "8bd1ca11af5f4913",
+   "does": "Applies a fetch outcome to a candidate forecast: fresh → the new forecast, notModified → the held forecast with the new expires, failed → nothing. Only when the candidate yields a snapshot at now are forecast, snapshot, fetchedAt=now and fetchedAtCoord stored, together, so the stored forecast's Last-Modified always belongs to fetchedAtCoord.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.snapshot(at:)"
@@ -163,43 +135,30 @@
    ],
    "branches": [
     {
-     "at": "+2",
+     "at": "+3",
      "cond": "case .fresh",
-     "effect": "forecast = new forecast"
+     "effect": "candidate = new forecast"
     },
     {
-     "at": "+4",
+     "at": "+5",
      "cond": "case .notModified",
-     "effect": "forecast?.expires = expires (no-op when forecast nil)"
+     "effect": "no held forecast → return; else candidate = held forecast with expires updated"
     },
     {
-     "at": "+6",
+     "at": "+9",
      "cond": "case .failed",
      "effect": "returns; current keeps the previous snapshot until it ages out"
     },
     {
-     "at": "+9",
-     "cond": "forecast nil or nearest step > 3 h away",
-     "effect": "returns without updating snapshot/fetchedAt/fetchedAtCoord; otherwise stores them"
+     "at": "+12",
+     "cond": "candidate's nearest step > 3 h away (snapshot nil)",
+     "effect": "returns with forecast/snapshot/fetchedAt/fetchedAtCoord unchanged; otherwise all four stored"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "On .fresh the forecast for the new place is stored before the snapshot guard; if snapshot(at:) is nil, fetchedAtCoord still names the previous place, so a later request at that previous place sends the new place's Last-Modified as If-Modified-Since.",
-     "evidence": [
-      "Emuqu/Sources/Services/WeatherService.swift:79",
-      "Emuqu/Sources/Services/WeatherService.swift:85",
-      "Emuqu/Sources/Services/WeatherService.swift:88",
-      "Emuqu/Sources/Services/WeatherService.swift:61"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.snapshot(at:)": "7cc4a5d832b609fa",
-    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.outcome(data:response:)": "d57f7aa3c84b46cc"
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.snapshot(at:)": "be38fc4a723f8f8d",
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.outcome(data:response:)": "091e57309d81d85c"
    }
   },
   {
@@ -269,8 +228,8 @@
   },
   {
    "key": "func WeatherService.fetch(at:ifModifiedSince:)",
-   "hash": "ce1d07b3eb8d26e0",
-   "does": "Builds the request and performs it with URLSession; maps the response through outcome(); any thrown error (network, JSON) is logged and becomes .failed.",
+   "hash": "3a68665141a57a6c",
+   "does": "Nonisolated (runs off the main actor): builds the request and performs it with URLSession; maps the response through outcome(), which decodes the JSON off-main too; any thrown error (network, JSON) is logged and becomes .failed.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.request(at:ifModifiedSince:)",
@@ -294,32 +253,17 @@
      "effect": "logs warning, returns .failed"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "fetch/outcome are static members of the @MainActor class, so after the URLSession await the JSON decode (MetNorwayForecast.parse) runs on the main actor. This contradicts the header's 'Fetches never block the main thread' and ARCHITECTURE.md's 'Fetched off-main'.",
-     "evidence": [
-      "Emuqu/Sources/Services/WeatherService.swift:21",
-      "Emuqu/Sources/Services/WeatherService.swift:24",
-      "Emuqu/Sources/Services/WeatherService.swift:130",
-      "Emuqu/Sources/Services/WeatherService.swift:134",
-      "Emuqu/Sources/Services/WeatherService.swift:169",
-      "docs/ARCHITECTURE.md:1341"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.outcome(data:response:)": "d57f7aa3c84b46cc",
-    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.request(at:ifModifiedSince:)": "29c68a4cf0ee9f26",
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.outcome(data:response:)": "091e57309d81d85c",
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.request(at:ifModifiedSince:)": "2831fcfbb35cb020",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
    "key": "func WeatherService.request(at:ifModifiedSince:)",
-   "hash": "e393dbee20e40186",
-   "does": "Builds the GET URL with lat/lon formatted to 2 decimals, 8 s timeout, local cache disabled, User-Agent header and optional If-Modified-Since.",
+   "hash": "a78ec3f8440b9e69",
+   "does": "Nonisolated: builds the GET URL with lat/lon formatted to 2 decimals, 8 s timeout, local cache disabled, User-Agent header and optional If-Modified-Since.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -341,8 +285,8 @@
   },
   {
    "key": "func WeatherService.outcome(data:response:)",
-   "hash": "b2612a77612c0fb5",
-   "does": "Maps an HTTP response: 200 → fresh forecast (parse body, Last-Modified, Expires); 304 → notModified(Expires); other status logged and failed; non-HTTP → failed.",
+   "hash": "7326b44614f6f2a2",
+   "does": "Nonisolated: maps an HTTP response: 200 → fresh forecast (parse body, Last-Modified, Expires); 304 → notModified(Expires); other status logged and failed; non-HTTP → failed.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.httpDate(_:)",
@@ -420,8 +364,8 @@
   },
   {
    "key": "func MetNorwayForecast.snapshot(at:)",
-   "hash": "03bf53b34eed9f3e",
-   "does": "Picks the forecast step nearest to date and converts it to a WeatherSnapshot (wind m/s → km/h, apparent temperature nil, conditions from symbol, observedAt = date); nil when the nearest step is more than 3 h away or no steps.",
+   "hash": "f35267ba1eb65850",
+   "does": "Picks the forecast step nearest to date and converts it to a WeatherSnapshot (wind m/s → km/h, apparent temperature nil, conditions from symbol, observedAt = the step's own time); nil when the nearest step is more than 3 h away or no steps.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.conditions(forSymbol:)"
@@ -435,18 +379,7 @@
      "effect": "returns snapshot; otherwise nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "observedAt is set to the query date, not the forecast step time, so a snapshot built from a step up to 3 h away is labelled as observed now.",
-     "evidence": [
-      "Emuqu/Sources/Services/WeatherService.swift:237",
-      "Emuqu/Sources/Services/WeatherService.swift:245"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.conditions(forSymbol:)": "b052f9da6abe1efa",
     "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.hour(from:)": "49d2f1a114e03f25"

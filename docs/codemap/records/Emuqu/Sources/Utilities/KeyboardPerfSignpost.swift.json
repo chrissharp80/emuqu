@@ -42,7 +42,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.installNotificationObservers()": "497caeb96221642f"
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.installNotificationObservers()": "59a9884d0774dd05"
    }
   },
   {
@@ -207,28 +207,47 @@
   },
   {
    "key": "func KeyboardPerfSignpost.stopCapture()",
-   "hash": "5c7c891702c823d0",
-   "does": "On the queue: if capturing, clears the flag, cancels auto-stop and returns the events; then resets isCapturing and the heartbeat on the main actor. Returns [] when not capturing.",
+   "hash": "39045071e4caa0be",
+   "does": "Stops a running capture (finishCapture) and returns its events; [] when no capture was running.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.finishCapture()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.finishCapture()": "c49631d2d9443394"
+   }
+  },
+  {
+   "key": "func KeyboardPerfSignpost.finishCapture()",
+   "hash": "82b766178020da46",
+   "does": "In one queue.sync hop: if capturing, clears the flag, cancels the auto-stop, emits a capture.stop signpost and takes the events together with captureStartWall; then, if a capture was running, resets isCapturing and tears down the heartbeat on the main actor. Returns (events, start wall time); ([], .distantPast) when not capturing.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.tearDownHeartbeat()",
-    "ext:os_signpost"
+    "ext:os_signpost",
+    "ext:DispatchQueue.sync"
    ],
    "reads": [
-    "mem:KeyboardPerfSignpost.events"
+    "mem:KeyboardPerfSignpost.events",
+    "mem:KeyboardPerfSignpost.captureStartWall"
    ],
    "writes": [
     "mem:KeyboardPerfSignpost.capturing",
+    "mem:KeyboardPerfSignpost.captureAutoStopWorkItem",
     "mem:KeyboardPerfSignpost.isCapturing"
    ],
    "branches": [
     {
-     "at": "+3",
+     "at": "+2",
      "cond": "not capturing",
-     "effect": "returns (false, [])"
+     "effect": "returns (false, [], .distantPast) from the queue block"
     },
     {
-     "at": "+10",
+     "at": "+9",
      "cond": "was capturing",
      "effect": "schedules main-actor reset of isCapturing and heartbeat"
     }
@@ -240,12 +259,12 @@
   },
   {
    "key": "func KeyboardPerfSignpost.stopCaptureAndExportTrace()",
-   "hash": "35ed97ec43283dba",
-   "does": "Stops the capture, writes the events as a JSONL trace, and publishes lastTraceURL/lastTraceEventCount; nil when nothing was captured or the write fails.",
+   "hash": "ea8b5c23e7a6b2ea",
+   "does": "Stops the capture (finishCapture), writes the events as a JSONL trace whose header carries the capture's own start time, and publishes lastTraceURL/lastTraceEventCount on main; nil when nothing was captured or the write fails.",
    "entry": "KeyboardCaptureView stop (KeyboardCaptureView.swift:161) and autoStop",
    "calls": [
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.stopCapture()",
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.writeTrace(entries:)"
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.finishCapture()",
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.writeTrace(entries:startedAt:)"
    ],
    "reads": [],
    "writes": [
@@ -255,20 +274,20 @@
    ],
    "branches": [
     {
-     "at": "+3",
+     "at": "+4",
      "cond": "no entries",
      "effect": "returns nil (no trace)"
     },
     {
-     "at": "+5",
+     "at": "+6",
      "cond": "trace written",
      "effect": "publishes URL and count on main"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.stopCapture()": "8d86d05420f82f2c",
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.writeTrace(entries:)": "5dcdc89c14511cb6"
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.finishCapture()": "c49631d2d9443394",
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.writeTrace(entries:startedAt:)": "46cc8a238e59d8da"
    }
   },
   {
@@ -284,7 +303,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.stopCaptureAndExportTrace()": "1754228e69946060"
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.stopCaptureAndExportTrace()": "aced2f9b418ba80a"
    }
   },
   {
@@ -315,12 +334,12 @@
    "deps": {}
   },
   {
-   "key": "func KeyboardPerfSignpost.writeTrace(entries:)",
-   "hash": "1935fac1c42de566",
-   "does": "Builds a JSONL file (header + one line per entry) in tmp named keyboard-perf-<ISO timestamp>.jsonl; returns URL or nil on write failure.",
+   "key": "func KeyboardPerfSignpost.writeTrace(entries:startedAt:)",
+   "hash": "68afcb94c55402fe",
+   "does": "Builds a JSONL file (header with startedAt + one line per entry) in tmp named keyboard-perf-<ISO timestamp>.jsonl; returns URL or nil on write failure.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.traceHeader(entryCount:formatter:)",
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.traceHeader(entryCount:startedAt:formatter:)",
     "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.traceLine(_:)",
     "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.jsonLine(_:)",
     "ext:String.write"
@@ -339,37 +358,24 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.jsonLine(_:)": "b1d69e959af68af6",
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.traceHeader(entryCount:formatter:)": "67fc357e4241deb0",
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.traceHeader(entryCount:startedAt:formatter:)": "259b975e4179c1a7",
     "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.traceLine(_:)": "c896906a105aca7f",
     "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
    }
   },
   {
-   "key": "func KeyboardPerfSignpost.traceHeader(entryCount:formatter:)",
-   "hash": "f36f9c7afc414b3a",
-   "does": "Header dictionary: subsystem, category, captured_at, device model/system name/version, event count.",
+   "key": "func KeyboardPerfSignpost.traceHeader(entryCount:startedAt:formatter:)",
+   "hash": "7b269dbb3cac786b",
+   "does": "Header dictionary: subsystem, category, captured_at (the passed capture start), device model/system name/version, event count. Reads no queue-confined state.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DeviceInfo.swift::var DeviceInfo.model",
     "Emuqu/Sources/Utilities/DeviceInfo.swift::var DeviceInfo.systemVersion"
    ],
-   "reads": [
-    "mem:KeyboardPerfSignpost.captureStartWall"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "race",
-     "sev": "low",
-     "text": "Reads queue-confined captureStartWall from the caller's thread (main for Stop, a global queue for autoStop) without hopping onto queue, contrary to the class's confinement note.",
-     "evidence": [
-      "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift:322",
-      "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift:47"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Utilities/DeviceInfo.swift::var DeviceInfo.model": "b739712739a61e3f",
     "Emuqu/Sources/Utilities/DeviceInfo.swift::var DeviceInfo.systemVersion": "e0ba0769e57b63de"
@@ -420,8 +426,8 @@
   },
   {
    "key": "func KeyboardPerfSignpost.installNotificationObservers()",
-   "hash": "61fb65d40e51d9ba",
-   "does": "Registers block observers for keyboard will/did show/hide and text-field begin/end editing, each emitting a marker.",
+   "hash": "efb5a7056ee8cb7d",
+   "does": "Registers block observers on the main queue for keyboard will/did show/hide and for UITextField and UITextView begin/end editing (UITextView backs SwiftUI's multi-line TextField, e.g. the Coach composer), each emitting a marker.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.marker(_:)",
@@ -433,30 +439,19 @@
     "notif:UIResponder.keyboardWillHideNotification",
     "notif:UIResponder.keyboardDidHideNotification",
     "notif:UITextField.textDidBeginEditingNotification",
-    "notif:UITextField.textDidEndEditingNotification"
+    "notif:UITextField.textDidEndEditingNotification",
+    "notif:UITextView.textDidBeginEditingNotification",
+    "notif:UITextView.textDidEndEditingNotification"
    ],
    "writes": [],
    "branches": [
     {
-     "at": "+10",
+     "at": "+12",
      "cond": "for each (notification, marker) pair",
      "effect": "adds an observer"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Only UITextField begin/end-editing notifications are observed, but the Coach chat composer (the field under investigation) is TextField(axis: .vertical), which SwiftUI backs with a UITextView; its focus emits UITextView notifications, so no 'textField.didBeginEditing' marker is recorded for it, contrary to AssistantChatSupport's note that the UIKit side of the focus event is the observed textDidBeginEditing notification.",
-     "evidence": [
-      "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift:368",
-      "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift:369",
-      "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift:168",
-      "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift:99"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.marker(_:)": "fbd2f93849d01ea5"
    }

@@ -8,31 +8,8 @@
  "state": [
   "@Environment(\\.dependencies)"
  ],
- "toplevel": "Doc comment (lines 3-35) states the page is allowlisted in Tools/copy_linter/prohibited_terms.json (true: line 295) and that it contains the negation 'we are not FDA-approved' (it does not).",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Header comment justifies the copy-linter allowlist by saying the verbatim text includes 'we are not FDA-approved'; the page contains no FDA wording (scope bullets at 131-133 only say 'not a medical device' / 'does not ... diagnose').",
-   "evidence": [
-    "Emuqu/Sources/Views/RecoveryMethodologyView.swift:33",
-    "Emuqu/Sources/Views/RecoveryMethodologyView.swift:131"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "broken",
-   "sev": "low",
-   "text": "The ACWR evidence bullets cite Lolli et al. (2019) and Gabbett (2016) (lines 120-121) and the validation bullets cite Task Force (1996) (176), but none appear in the References list (213-221).",
-   "evidence": [
-    "Emuqu/Sources/Views/RecoveryMethodologyView.swift:120",
-    "Emuqu/Sources/Views/RecoveryMethodologyView.swift:121",
-    "Emuqu/Sources/Views/RecoveryMethodologyView.swift:176",
-    "Emuqu/Sources/Views/RecoveryMethodologyView.swift:213"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "Doc comment states the page is allowlisted in Tools/copy_linter/prohibited_terms.json because its text holds negated prohibited terms (\"not a medical device\", \"does not ... diagnose\").",
+ "flags": [],
  "units": [
   {
    "key": "var RecoveryMethodologyView.body",
@@ -69,7 +46,7 @@
     "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.acwrExclusionSection": "8c9f53b3877b596e",
     "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.limitsSection": "017ade0dfb604145",
     "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.methodologyTitle": "b82bb46dfbd0e582",
-    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.referencesSection": "1de287deb9d89b31",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.referencesSection": "b5ef3a31b0105179",
     "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.scopeSection": "07b63f2d36454322",
     "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.scoreInputsSection": "998bf32be0b00f68",
     "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.validationSection": "623d5b7f138af769",
@@ -289,8 +266,8 @@
   },
   {
    "key": "var RecoveryMethodologyView.referencesSection",
-   "hash": "f79de8abded45d78",
-   "does": "References heading and seven English citation strings.",
+   "hash": "561c9f8aba549329",
+   "does": "References heading and ten English citation strings, including every paper the page cites (Lolli 2019, Gabbett 2016, Task Force 1996 among them).",
    "entry": "SwiftUI view-tree evaluation",
    "calls": [
     "Emuqu/Sources/Views/RecoveryMethodologyView.swift::func RecoveryMethodologyView.heading(_:)",

@@ -68,10 +68,19 @@ struct MainTabView: View {
     /// requested while it ran, so run exactly once more when it finishes.
     @State var dashboardReloadInFlight = false
     @State var dashboardReloadPending = false
+    /// A 50 ms debounce reload is scheduled. Its own flag, not
+    /// `dashboardReloadPending`: the debounce and the in-flight trailing
+    /// reload must not clear each other's request.
+    @State var dashboardReloadDebounceScheduled = false
     /// A tab-independent reload event (foreground / archive change / CloudKit
     /// pull) arrived while the Dashboard wasn't showing — run it when it is.
     @State var dashboardReloadDeferred = false
     @State var scrollToTopToken = UUID()
+    /// Launch-only work (interrupted-workout recovery) has run. The tab
+    /// view's `.task` re-fires whenever its `.id` changes (appearance theme,
+    /// Fitness-tab toggle), and that must not re-run launch recovery or pull
+    /// the user onto the Record tab.
+    @State private var launchWorkStarted = false
 
     /// Seed `totalSessionCount` from the archive index. `SessionArchive.init`'s
     /// `loadIndex()` populates `archive.entries` synchronously BEFORE first
@@ -106,9 +115,8 @@ struct MainTabView: View {
     /// HRV PDF, daily → HolisticDailyReport (the latest workout + the
     /// overnight recording from the 36 hours before it), workout →
     /// WorkoutPDFReport (workout-only).
-    enum SendReportKind: String, Identifiable {
+    enum SendReportKind: String {
         case recovery, daily, workout
-        var id: String { rawValue }
         var label: String {
             switch self {
             case .recovery: return String(localized: "Send recovery report", bundle: LanguageManager.appBundle)
@@ -128,22 +136,13 @@ struct MainTabView: View {
     /// Five tabs.
     /// Dashboard / Record / Fitness / Coach / More.
     /// History collapses into Dashboard via the Recent strip; Trends, Settings,
-    /// Help, About live in More. The `Assistant`, `History`, `Trends`, and
-    /// `Settings` cases are not top-level tabs; they exist because deep links
-    /// and the More menu still route to them.
+    /// Help, About live in More.
     enum Tab: String, CaseIterable {
         case dashboard = "Dashboard"
         case record = "Record"
         case fitness = "Fitness"
         case coach = "Flo"  // The tab hosts the main conversational AI (Flo). The mid-workout trigger voice is what we call "Coach" (see WorkoutVoiceCoach).
         case more = "More"
-        // Retired tab IDs kept as cases for back-compat with deep links
-        // (e.g. AssistantInbox routes to .coach now, but external references
-        // to .assistant continue to compile during the migration window).
-        case assistant = "Assistant"
-        case history = "History"
-        case trends = "Trends"
-        case settings = "Settings"
 
         /// Localized display name using the current language bundle.
         func localizedName(bundle: Bundle) -> String {
@@ -155,11 +154,8 @@ struct MainTabView: View {
             case .dashboard: "heart.text.square"
             case .record: "waveform.circle"
             case .fitness: "figure.run"
-            case .coach, .assistant: "sparkles"
+            case .coach: "sparkles"
             case .more: "ellipsis.circle"
-            case .history: "list.bullet.rectangle"
-            case .trends: "chart.line.uptrend.xyaxis"
-            case .settings: "gearshape"
             }
         }
 
@@ -168,11 +164,8 @@ struct MainTabView: View {
             case .dashboard: "heart.text.square.fill"
             case .record: "waveform.circle.fill"
             case .fitness: "figure.run"
-            case .coach, .assistant: "sparkles"
+            case .coach: "sparkles"
             case .more: "ellipsis.circle.fill"
-            case .history: "list.bullet.rectangle.fill"
-            case .trends: "chart.line.uptrend.xyaxis"
-            case .settings: "gearshape.fill"
             }
         }
     }
@@ -184,17 +177,16 @@ struct MainTabView: View {
     /// root. iOS HIG's default is to preserve state; the user
     /// explicitly chose this behavior. Easy to dial back per-tab if
     /// it ever proves friction-y.
+    ///
+    /// A switch to another tab is reset by `resetPath(from:to:)` (the
+    /// `selectedTab` observer); this setter resets only a re-tap of the
+    /// active tab, which changes nothing for that observer to see. One reset
+    /// per tap, through one switch (`resetNavigationPath(for:)`).
     private var tabSelectionBinding: Binding<Tab> {
         Binding(
             get: { selectedTab },
             set: { newValue in
-                switch newValue {
-                case .dashboard: dashboardPath = NavigationPath()
-                case .record: recordPath = NavigationPath()
-                case .fitness: fitnessPath = NavigationPath()
-                case .coach, .assistant: coachPath = NavigationPath()
-                case .more, .history, .trends, .settings: morePath = NavigationPath()
-                }
+                if newValue == selectedTab { resetNavigationPath(for: newValue) }
                 selectedTab = newValue
             }
         )
@@ -205,6 +197,7 @@ struct MainTabView: View {
         let _ = dependencies.app.keyboardPerfSignpost.event("MainTabView.body")
         tabsWithObservers
             .sheet(item: $pendingReportMailURL) { reportMailSheet($0) }
+            .onChange(of: pendingReportMailURL) { sent, next in discardReportPDF(sent, next: next) }
             .alert(String(localized: "Couldn't prepare report", bundle: LanguageManager.appBundle), isPresented: .constant(reportPrepError != nil)) {
                 Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) {
                     reportPrepError = nil
@@ -240,11 +233,26 @@ struct MainTabView: View {
         }
     }
 
-    /// Recovery Score detail.
+    /// The rendered report PDF holds recovery data, so it is deleted from the
+    /// temp directory once its composer or share sheet has gone, not left for
+    /// iOS to purge.
+    private func discardReportPDF(_ sent: IdentifiableURL?, next: IdentifiableURL?) {
+        guard let sent, sent.id != next?.id else { return }
+        attempt("MainTabView.discardReportPDF") { try FileManager.default.removeItem(at: sent.url) }
+    }
+
+    /// Recovery Score detail. A session with no analysis still gets a closable
+    /// sheet saying so, never an empty one.
     @ViewBuilder
     private func reportSheet(_ session: HRVSession) -> some View {
         if let result = session.analysisResult {
             reportNavigation(session, result: result)
+        } else {
+            NavigationStack {
+                Text(String(localized: "No analysis data available", bundle: LanguageManager.appBundle))
+                    .foregroundColor(AppTheme.textSecondary)
+                    .toolbar { reportDoneToolbar }
+            }
         }
     }
 
@@ -377,12 +385,18 @@ struct MainTabView: View {
         // restoration, deep-link handoff, the AssistantInbox-driven
         // selectedTab assignment below) the binding setter is
         // bypassed. This onChange catches those.
-        switch newTab {
+        resetNavigationPath(for: newTab)
+    }
+
+    /// The one per-tab path reset, shared by the tab-bar binding (re-tap)
+    /// and `resetPath(from:to:)` (every switch).
+    private func resetNavigationPath(for tab: Tab) {
+        switch tab {
         case .dashboard: resetDashboardPath()
         case .record: recordPath = NavigationPath()
         case .fitness: fitnessPath = NavigationPath()
-        case .coach, .assistant: coachPath = NavigationPath()
-        case .more, .history, .trends, .settings: morePath = NavigationPath()
+        case .coach: coachPath = NavigationPath()
+        case .more: morePath = NavigationPath()
         }
     }
 
@@ -427,6 +441,8 @@ struct MainTabView: View {
     private func bootstrapTabs() async {
         NSLog("[MainTabView] .task fired — calling reloadDashboardSessions()")
         reloadDashboardSessions()
+        guard !launchWorkStarted else { return }
+        launchWorkStarted = true
         // Auto-recover a workout that was recording when the app
         // crashed: if the persisted flag is still set, connect the strap and merge
         // its complete on-device recording with the streamed data — no manual step.
@@ -474,8 +490,9 @@ struct MainTabView: View {
             scrollToTopToken: scrollToTopToken,
             onStartRecording: { startRecording() },
             onViewReport: { selectedReportSession = $0 },
-            onDeleteSession: { deleteSession($0) },
-            onUpdateSessionTags: { updateTags(session: $0, tags: $1, notes: $2) },
+            // No delete or tag-save closures: History, the only screen that
+            // used them, deletes and saves tags itself so it can say when
+            // either fails (`HistoryView.moveToTrash`, `saveTags`).
             onReanalyzeSession: { await reanalyzeSession($0, method: $1) }
         )
     }

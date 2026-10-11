@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Services/ReanalysisService+Sleep.swift",
  "hash": "4208487c237b9cb2",
- "role": "Extension of ReanalysisService: sleep retro-apply over all overnight sessions, manual-window reanalysis/apply, sleep-boundary updates (user edits and automatic HealthKit refreshes) with re-scoring, training-snapshot repair, and segment unlinking.",
+ "role": "Extension of ReanalysisService: sleep retro-apply over all overnight sessions (nap credit included, applied on the archived copy under the archive lock), manual-window reanalysis/apply, sleep-boundary updates (user edits and automatic HealthKit refreshes) with re-classification and re-scoring on the archived copy, training-snapshot repair, and segment unlinking.",
  "types": [
   "ReanalysisService.TrainingRepairResult: struct — counts and sample log of a training-snapshot repair"
  ],
@@ -11,29 +11,16 @@
   "mem:ReanalysisService.sampleLogLimit (private static 3)"
  ],
  "toplevel": "Only the three private static constants and TrainingRepairResult (sampleLog defaults '').",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Comments 'See deriveUseBaselineHRVOnRescore.' point to a symbol that does not exist anywhere in the repo (grep finds only these comments).",
-   "evidence": [
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:153",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:471",
-    "Emuqu/Sources/Services/ReanalysisService.swift:599"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "func ReanalysisService.retroApplySleepSettings(sessions:progress:)",
-   "hash": "8fdf0118b3c3929b",
+   "hash": "1606056a851aa01a",
    "does": "Filters sessions to overnight ones with RR data, re-runs the sleep pipeline for each (stopping on cancellation) counting rewritten sessions, reports progress, notifies archive changed, logs and returns the count.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.sessionsInRange(_:from:to:)",
-    "closure:ReanalysisService.settingsProvider — RRCollector+Reanalysis.swift:31 returns collector.settingsManager.settings",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.retroApply(to:settings:)",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.retroApply(to:)",
     "closure:ReanalysisService.onArchiveChanged — set in RRCollector+Reanalysis.swift:37 to collector.archiveSignal.notifyChanged()",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
@@ -66,22 +53,20 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.retroApply(to:settings:)": "49421bf3b8eda6ad",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.retroApply(to:)": "a963249ab53875e0",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.sessionsInRange(_:from:to:)": "0e873618a1544ec9",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
-   "key": "func ReanalysisService.retroApply(to:settings:)",
-   "hash": "abae9805f81a2862",
-   "does": "For one session: end = endDate or start+12 h; fetches fresh sleep, checks shouldRetroApply, writes boundaries/segments/snapshot, re-scores, and persists; returns whether it was written.",
+   "key": "func ReanalysisService.retroApply(to:)",
+   "hash": "7dcfbbcf0199129b",
+   "does": "For one session: end = endDate or start+12 h; fetches fresh sleep (with nap credit), checks shouldRetroApply on the sweep's copy, then hands off to persistRetroApply, which applies, re-classifies, re-scores and writes on the archived copy; returns whether it was written.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.fetchSleep(for:sessionEnd:)",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.shouldRetroApply(to:newSleep:sessionEnd:)",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applySleepBoundaries(_:to:sessionStart:)",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.rescore(_:newSleep:sessionEnd:settings:)",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.persist(_:originalID:)"
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.persistRetroApply(_:sessionId:sessionEnd:)"
    ],
    "reads": [],
    "writes": [],
@@ -102,37 +87,23 @@
      "effect": "return false (session untouched)"
     }
    ],
-   "flags": [
-    {
-     "kind": "race",
-     "sev": "med",
-     "text": "retroApply rewrites the full HRVSession copy that RRCollector.archivedSessions loaded at the start of the sweep, after an await on HealthKit per session, via archive.archive (whole-object write); any edit made to that session meanwhile (feeling, tags, sleep edit, score refresh) is overwritten. persistSnapshot in the same file re-reads from the archive for exactly this reason; retroApply does not.",
-     "evidence": [
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:38",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:43",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:198",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:595",
-      "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift:333"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applySleepBoundaries(_:to:sessionStart:)": "8b02f0b4c76e6b42",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.fetchSleep(for:sessionEnd:)": "43cd0d2d944d06a0",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.persist(_:originalID:)": "a5c26a4e1fd7e2d3",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.rescore(_:newSleep:sessionEnd:settings:)": "2238935a45f36043",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.fetchSleep(for:sessionEnd:)": "4185625c79c501ef",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.persistRetroApply(_:sessionId:sessionEnd:)": "b58e3711f31b5f00",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.shouldRetroApply(to:newSleep:sessionEnd:)": "5607f3131bedb610"
    }
   },
   {
    "key": "func ReanalysisService.fetchSleep(for:sessionEnd:)",
-   "hash": "95298c2298b005c8",
-   "does": "Fetches HealthKit sleep for the session (validated against its RR points); nil on error (logged).",
+   "hash": "354cfeae9f2e40cb",
+   "does": "Fetches HealthKit sleep for the session (validated against its RR points) and credits the day-before's qualifying nap (fetchDaytimeNapMinutes + withNapSleepMinutes), as the morning path does; nil on error (logged).",
    "entry": null,
    "calls": [
     "dyn:HealthKitServiceProtocol.fetchSleepData(for:recordingEnd:rrPoints:) → Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift:25|EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "dyn:HealthKitServiceProtocol.fetchDaytimeNapMinutes(nightAnchoredAt:)",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.withNapSleepMinutes(_:)"
    ],
    "reads": [
     "hk:sleepAnalysis"
@@ -140,28 +111,19 @@
    "writes": [],
    "branches": [
     {
-     "at": "+7",
+     "at": "+8",
+     "cond": "napMinutes > 0",
+     "effect": "true: sleep with napSleepMinutes; false: sleep as fetched"
+    },
+    {
+     "at": "+9",
      "cond": "fetchSleepData throws",
      "effect": "logged and swallowed; return nil so the session is skipped"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "Retro-apply's sleep fetch omits the prior-day nap credit that every morning-path fetch adds (fetchDaytimeNapMinutes + withNapSleepMinutes), then replaces sleepSnapshot and re-scores, so applying sleep settings retroactively drops nap minutes from 24 h sleep and can lower past recovery scores.",
-     "evidence": [
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:58",
-      "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift:160",
-      "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift:161",
-      "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:455",
-      "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:456",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:92"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.withNapSleepMinutes(_:)": "4d5c08b31b317a34",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
@@ -284,144 +246,67 @@
    }
   },
   {
-   "key": "func ReanalysisService.rescore(_:newSleep:sessionEnd:settings:)",
-   "hash": "ad5b2130595be147",
-   "does": "Recomputes recovery score/breakdown/frozen readiness against the new sleep, using frozen training context (or provider), useBaselineHRV for unreliable sessions, perceived readiness, ANS balance and referenceDate=sessionEnd.",
+   "key": "func ReanalysisService.persistRetroApply(_:sessionId:sessionEnd:)",
+   "hash": "f63795e6d7a46532",
+   "does": "Runs retroApplied on the archived copy inside SessionArchive.update (one lock, no re-upload stamp), so edits made while the sleep was being fetched are kept; then schedules a CloudKit upload of the written session. False when the update throws (logged) or the skip rules now skip the session.",
    "entry": null,
    "calls": [
-    "closure:ReanalysisService.trainingContextProvider — RRCollector+Reanalysis.swift:34 collector.createTrainingContext(relativeTo:)",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.scoreInputs(from:session:newSleep:settings:)",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)",
-    "closure:ReanalysisService.scoringConfigProvider — RRCollector+Reanalysis.swift:32 collector.currentScoringConfig",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.ansBalance(from:)",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)"
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.retroApplied(_:to:sessionEnd:)",
+    "closure:ReanalysisService.onSessionUploaded — set in RRCollector+Reanalysis.swift:40 to a CloudKitSyncManager upload",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
-    "mem:BaselineTracker baseline history"
+    "archive:SessionArchive.update"
    ],
-   "writes": [],
+   "writes": [
+    "archive:SessionArchive.update (session file + index)",
+    "notif:flowRecoveryArchiveChanged",
+    "ck:session upload"
+   ],
    "branches": [
     {
      "at": "+6",
-     "cond": "no analysisResult",
-     "effect": "return without re-scoring (sleep fields already changed)"
+     "cond": "update throws (session gone or write failed)",
+     "effect": "log, return false"
     },
     {
-     "at": "+7",
-     "cond": "trainingSnapshot nil / result.trainingContext nil",
-     "effect": "falls back to result.trainingContext, then trainingContextProvider(sessionEnd)"
+     "at": "+10",
+     "cond": "retroApplied returned nil",
+     "effect": "return false (copy left unchanged)"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "rescore(_:newSleep:...) and sleepAdjustedBreakdown build the same ScoreInputs/calculateWithBreakdown call (differing only in where typicalSleepHours comes from) and both duplicate deterministicRecoveryScore/rescoreBreakdown in ReanalysisService.swift.",
-     "evidence": [
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:141",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:455",
-      "Emuqu/Sources/Services/ReanalysisService.swift:587",
-      "Emuqu/Sources/Services/ReanalysisService.swift:653"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)": "18aa103b513d602d",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)": "ca2be1737136e0d8",
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.ansBalance(from:)": "cb86ebf8aa029ca3",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.scoreInputs(from:session:newSleep:settings:)": "654447ddd0ca27ad",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)": "7aa853f03a8994f8",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "245c2d41dcd0a692"
-   }
-  },
-  {
-   "key": "func ReanalysisService.scoreInputs(from:session:newSleep:settings:)",
-   "hash": "3b70337d266d9aa8",
-   "does": "Builds ScoreInputs from the analysis result metrics, prior-nights baseline, the new sleep, the session's vitals snapshot with strap RHR, and settings typicalSleepHours.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.scoringBaseline(for:)",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.scoringVitals(of:result:)"
-   ],
-   "reads": [
-    "mem:BaselineTracker baseline history"
-   ],
-   "writes": [],
-   "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.scoringBaseline(for:)": "593a58eec4ae46f1",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.scoringVitals(of:result:)": "584b891459e5121f"
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.retroApplied(_:to:sessionEnd:)": "0761dfd27215aa1e",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "e021c7f17b266931",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
-   "key": "func ReanalysisService.ansBalance(from:)",
-   "hash": "09792ea955514f02",
-   "does": "pnsIndex - snsIndex, nil if either missing.",
-   "entry": null,
-   "calls": [],
+   "key": "func ReanalysisService.retroApplied(_:to:sessionEnd:)",
+   "hash": "99aeb9af6cb78b65",
+   "does": "On the archived copy: re-checks shouldRetroApply (e.g. a sleep edit made meanwhile), then writes the new sleep boundaries/segments/snapshot and re-classifies and re-scores via rescoreAfterSleepChange; returns the copy, or nil when skipped.",
+   "entry": "Closure body of SessionArchive.update in persistRetroApply (runs under the archive lock).",
+   "calls": [
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.shouldRetroApply(to:newSleep:sessionEnd:)",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applySleepBoundaries(_:to:sessionStart:)",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.rescoreAfterSleepChange(_:sessionEnd:)"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+1",
-     "cond": "pns or sns nil",
+     "cond": "shouldRetroApply false",
      "effect": "return nil"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Three identical (pnsIndex - snsIndex) helpers: MorningProcessingService.ansBalance(of:), ReanalysisService.ansBalance(from:) and ReanalysisService.ansBalance(of:); the doc comments above two of them ('Compute composite recovery score.', 'Recalculate the recovery score when sleep data changes...') describe the neighbouring function, not the helper.",
-     "evidence": [
-      "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:396",
-      "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:397",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:188",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:428",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:432"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d"
-   }
-  },
-  {
-   "key": "func ReanalysisService.persist(_:originalID:)",
-   "hash": "d60f87beea8ebc35",
-   "does": "Archives the updated session (no reupload request) and schedules a CloudKit upload; returns false on archive error (logged).",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
-    "closure:ReanalysisService.onSessionUploaded — set in RRCollector+Reanalysis.swift:40 to a CloudKitSyncManager upload",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
-   ],
-   "reads": [],
-   "writes": [
-    "archive:SessionArchive.archive (session file + index)",
-    "notif:flowRecoveryArchiveChanged",
-    "ck:session upload (via onSessionUploaded)"
-   ],
-   "branches": [
-    {
-     "at": "+5",
-     "cond": "archive throws",
-     "effect": "logged; return false"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applySleepBoundaries(_:to:sessionStart:)": "8b02f0b4c76e6b42",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.rescoreAfterSleepChange(_:sessionEnd:)": "5bc35491ee393569",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.shouldRetroApply(to:newSleep:sessionEnd:)": "5607f3131bedb610"
    }
   },
   {
@@ -460,12 +345,13 @@
   },
   {
    "key": "func ReanalysisService.applyManualAnalysis(_:result:)",
-   "hash": "4ffad5b202eee5f3",
-   "does": "Applies a manually chosen analysis: hydrates, marks result isReanalysis with frozen training context, preserves the auto window result/score on the first manual pick, sets windowUserAdjusted, recomputes the deterministic score and persists.",
+   "hash": "d0d2db73acc3668d",
+   "does": "Applies a manually chosen analysis: hydrates, marks result isReanalysis with frozen training context, preserves the auto window result/score on the first manual pick, sets windowUserAdjusted, re-classifies the session against the picked window's result (reclassifyHRVQuality), recomputes the deterministic score and persists.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.hydrated(_:)",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.preserveAutoWindow(of:on:)",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.reclassifyHRVQuality(of:result:)",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applyDeterministicScore(to:result:training:)",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.persistManualAnalysis(_:originalId:)"
    ],
@@ -485,32 +371,20 @@
      "effect": "overwrites appliedResult.trainingContext; else keeps the result's own"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "applyManualAnalysis swaps in the manually picked window's result but never re-runs the insufficient/preSleep classification (automatic reanalysis does, ReanalysisService.swift:342-357), so applyDeterministicScore uses the old hrvDataQuality: a night marked .insufficient for a too-short auto window keeps substituting baseline HRV after the user picks a long window, and a .good night is never marked insufficient for a too-short manual pick.",
-     "evidence": [
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:236",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:238",
-      "Emuqu/Sources/Services/ReanalysisService.swift:342",
-      "Emuqu/Sources/Services/ReanalysisService.swift:667"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applyDeterministicScore(to:result:training:)": "a86d141e47be06fb",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applyDeterministicScore(to:result:training:)": "76fb73cf0fc053cd",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.persistManualAnalysis(_:originalId:)": "95696db27ad14052",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.preserveAutoWindow(of:on:)": "c13479e0d58edb37",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.hydrated(_:)": "3016b2dce8dcfa7e"
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.hydrated(_:)": "3016b2dce8dcfa7e",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.reclassifyHRVQuality(of:result:)": "362dbefc2239a9d8"
    }
   },
   {
    "key": "func ReanalysisService.applyDeterministicScore(to:result:training:)",
-   "hash": "04372b41dcc6bcf4",
-   "does": "Sets recoveryScore/scoreBreakdown/frozenReadiness from deterministicRecoveryScore; no-op when it returns nil.",
+   "hash": "2a38283cf0e85091",
+   "does": "Sets recoveryScore/scoreBreakdown/frozenReadiness from deterministicRecoveryScore (readiness from the given training).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.deterministicRecoveryScore(for:result:)",
@@ -520,19 +394,12 @@
     "mem:BaselineTracker baseline history"
    ],
    "writes": [],
-   "branches": [
-    {
-     "at": "+3",
-     "cond": "deterministic score nil (no result)",
-     "effect": "return; scores unchanged"
-    }
-   ],
+   "branches": [],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)": "7aa853f03a8994f8",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.deterministicRecoveryScore(for:result:)": "09eedf11859b1a4d",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "245c2d41dcd0a692"
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.deterministicRecoveryScore(for:result:)": "9f9e96d39f718c88"
    }
   },
   {
@@ -593,8 +460,8 @@
   },
   {
    "key": "func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)",
-   "hash": "f5442e4b558902c9",
-   "does": "Updates a session's sleep from SleepData: requires start and end, retrieves the session, and delegates to applySleepBoundaries; returns whether it was persisted (false on missing data, missing session, gate rejection or error).",
+   "hash": "2271e5475923e275",
+   "does": "Updates a session's sleep from SleepData: requires start and end, retrieves the session for the gate, and delegates to applySleepBoundaries, which writes on the archived copy under the archive lock; returns whether it was persisted (false on missing data, missing session, gate rejection or error).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)",
@@ -635,84 +502,92 @@
       "Emuqu/Sources/Views/ImportDataView.swift:123"
      ],
      "found": "second read"
-    },
-    {
-     "kind": "race",
-     "sev": "low",
-     "text": "retrieve (one lock) then archive (a second lock) is not atomic: an edit landing between them is overwritten by the whole-session write. SessionArchive.update(_:requestingReupload:_:) exists to do read-modify-write under one lock for exactly this case.",
-     "evidence": [
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:292",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:337",
-      "Emuqu/Sources/Storage/Archive.swift:476"
-     ],
-     "found": "second read"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applySleepBoundaries(to:sleepData:sleepStart:sleepEnd:isUserAdjustment:)": "43dd522102956b1d",
-    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applySleepBoundaries(to:sleepData:sleepStart:sleepEnd:isUserAdjustment:)": "2ed99c680a1aa771",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
    "key": "func ReanalysisService.applySleepBoundaries(to:sleepData:sleepStart:sleepEnd:isUserAdjustment:)",
-   "hash": "47f1d40db8aa3136",
-   "does": "Computes new start offset (>=0) and unclamped end offset, logs, applies the automatic-update gate unless user adjustment, writes boundaries, re-scores and persists; returns true when written.",
+   "hash": "b22a83a59f038229",
+   "does": "Computes the new start (>=0) and end offsets, logs, clamps both to the recording (clampedOffsets), applies the automatic-update gate to the clamped duration unless user adjustment, then writes, re-classifies and re-scores on the archived copy (writeSleepUpdate) and reports; returns true when written.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.logBoundaryUpdate(session:sleepStart:sleepEnd:newStartMs:newEndMs:sleepData:isUserAdjustment:)",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.clampedOffsets(startMs:endMs:of:)",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.shouldApplyAutomaticUpdate(to:sleepData:newDuration:)",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applyBoundaries(to:sleepData:newStartMs:newEndMs:isUserAdjustment:)",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.rescoreAfterSleepChange(_:sleepData:)",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.persistSleepUpdate(_:sleepData:oldMinutes:isUserAdjustment:)"
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.writeSleepUpdate(_:sleepData:onto:isUserAdjustment:)",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.reportSleepUpdate(_:sleepData:oldMinutes:isUserAdjustment:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+13",
+     "at": "+15",
      "cond": "not user adjustment and automatic gate rejects",
      "effect": "return false"
     },
     {
-     "at": "+16",
+     "at": "+19",
      "cond": "no sleepSnapshot",
      "effect": "oldMinutes = 0 for the log"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "A sleep edit or automatic sleep update rewrites sleepSnapshot and re-scores with useBaselineHRV: !isReliableForHRVAggregates, but never re-classifies hrvDataQuality; .preSleep is decided from the sleep overlap (SessionAcceptanceService.swift:75-77), so a session flagged .preSleep stays flagged (baseline HRV substituted) even after the user's edit makes the recording overlap sleep.",
-     "evidence": [
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:329",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:472",
-      "Emuqu/Sources/Services/SessionAcceptanceService.swift:75"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applyBoundaries(to:sleepData:newStartMs:newEndMs:isUserAdjustment:)": "230a12fe26d5c13d",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.clampedOffsets(startMs:endMs:of:)": "3d0ade753473bbd7",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.logBoundaryUpdate(session:sleepStart:sleepEnd:newStartMs:newEndMs:sleepData:isUserAdjustment:)": "4e01839d861ee93d",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.persistSleepUpdate(_:sleepData:oldMinutes:isUserAdjustment:)": "21305257087fbb20",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.rescoreAfterSleepChange(_:sleepData:)": "ad4e2202c4db0c2d",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.shouldApplyAutomaticUpdate(to:sleepData:newDuration:)": "3a944834a448d890",
-    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac"
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.reportSleepUpdate(_:sleepData:oldMinutes:isUserAdjustment:)": "5ace6c3f90cf9d94",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.shouldApplyAutomaticUpdate(to:sleepData:newDuration:)": "dc5efe3b2cb73316",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.writeSleepUpdate(_:sleepData:onto:isUserAdjustment:)": "bd9117ce7ab28333",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "6d761b0522590a2a"
    }
   },
   {
-   "key": "func ReanalysisService.persistSleepUpdate(_:sleepData:oldMinutes:isUserAdjustment:)",
-   "hash": "fa95632a32ee8cd8",
-   "does": "Archives the session (reupload only for user adjustments), logs minutes change, notifies archive changed on the main actor and schedules a CloudKit upload.",
+   "key": "func ReanalysisService.writeSleepUpdate(_:sleepData:onto:isUserAdjustment:)",
+   "hash": "368a9aef798e92b7",
+   "does": "Inside SessionArchive.update (one lock; re-upload stamp and request only for user adjustments): writes the clamped boundaries, segments, snapshot and user flag on the archived copy (applyBoundaries), re-classifies and re-scores it (rescoreAfterSleepChange, anchored to endDate ?? startDate); returns the session as written. Throws when the session is no longer archived or the write fails.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applyBoundaries(to:sleepData:offsets:isUserAdjustment:)",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.rescoreAfterSleepChange(_:sessionEnd:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.update"
+   ],
+   "writes": [
+    "archive:SessionArchive.update (session file + index)",
+    "notif:flowRecoveryArchiveChanged",
+    "notif:flowRecoveryArchiveSessionsNeedReupload (user adjustment only)"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "session.endDate nil",
+     "effect": "re-score anchored to startDate"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applyBoundaries(to:sleepData:offsets:isUserAdjustment:)": "6ca51dcde996b5fd",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.rescoreAfterSleepChange(_:sessionEnd:)": "5bc35491ee393569",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "e021c7f17b266931"
+   }
+  },
+  {
+   "key": "func ReanalysisService.reportSleepUpdate(_:sleepData:oldMinutes:isUserAdjustment:)",
+   "hash": "d0b431e9bba42f3c",
+   "does": "Logs the minutes change, notifies archive changed on the main actor and schedules a CloudKit upload of the written session.",
+   "entry": null,
+   "calls": [
     "closure:ReanalysisService.onArchiveChanged — set in RRCollector+Reanalysis.swift:37 to collector.archiveSignal.notifyChanged()",
     "closure:ReanalysisService.onSessionUploaded — set in RRCollector+Reanalysis.swift:40 to a CloudKitSyncManager upload",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
@@ -720,14 +595,11 @@
    ],
    "reads": [],
    "writes": [
-    "archive:SessionArchive.archive",
-    "notif:flowRecoveryArchiveChanged",
-    "notif:flowRecoveryArchiveSessionsNeedReupload (user adjustment only)",
     "ck:session upload"
    ],
    "branches": [
     {
-     "at": "+4",
+     "at": "+3",
      "cond": "isUserAdjustment",
      "effect": "log suffix ' (user adjustment)'"
     }
@@ -735,7 +607,6 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "e1a5ccaab9fa4e3e",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
@@ -766,7 +637,7 @@
   {
    "key": "func ReanalysisService.shouldApplyAutomaticUpdate(to:sleepData:newDuration:)",
    "hash": "709243e6e3808270",
-   "does": "Automatic-update gate: rejects when the session is user-adjusted and already has a snapshot, or when the sleep doesn't plausibly overlap the recording; otherwise applies only if the new duration exceeds the stored one or night minutes exceed the snapshot's.",
+   "does": "Automatic-update gate: rejects when the session is user-adjusted and already has a snapshot, or when the sleep doesn't plausibly overlap the recording; otherwise applies only if the new (clamped) duration exceeds the stored (clamped) one or night minutes exceed the snapshot's.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)",
@@ -802,22 +673,7 @@
      "effect": "snapshotMinutes = 0"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "med",
-     "text": "newDuration is computed from the UNclamped newEndMs (applySleepBoundaries:316) but compared to the stored duration, which storeClampedOffsets clamped to the recording end; when Watch sleep ends after the strap stopped (the case the clamp comment calls ordinary), every automatic refresh with identical data passes the 'more data' test and re-archives, re-scores and re-uploads the session.",
-     "evidence": [
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:316",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:321",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:384",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:386",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:395",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:124"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
     "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)": "77e23c3d71c4740e",
@@ -826,54 +682,27 @@
    }
   },
   {
-   "key": "func ReanalysisService.storeClampedOffsets(startMs:endMs:on:)",
-   "hash": "d0f4b6abe5d44417",
-   "does": "Stores sleep start/end clamped to [0, recording length], falling back to the given values when the clamp returns nil.",
+   "key": "func ReanalysisService.clampedOffsets(startMs:endMs:of:)",
+   "hash": "bfc6cb6d388fddd7",
+   "does": "Static: both offsets bounded to 0 ... recording length (recordingDurationMs: last beat end, else endDate − startDate) — the bounds SleepBoundaryResolver.clamp applies, for offsets that are always present.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.clamp(sleepStartMs:sleepEndMs:recordingDurationMs:)",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.recordingDurationMs(of:)"
    ],
    "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+4",
-     "cond": "clamped start nil",
-     "effect": "store startMs as given (unreachable: clamp returns nil only for nil input)"
-    },
-    {
-     "at": "+5",
-     "cond": "clamped end nil",
-     "effect": "store endMs as given (unreachable for the same reason)"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "SleepBoundaryResolver.clamp returns nil only for a nil input, and both inputs here are non-optional, so the `?? startMs`/`?? endMs` fallbacks never run; the comment 'an offset the clamp rejects is stored as given' describes behaviour that cannot occur.",
-     "evidence": [
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:390",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:395",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:396",
-      "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift:126"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "branches": [],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.clamp(sleepStartMs:sleepEndMs:recordingDurationMs:)": "4de5d7c899db8255",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.recordingDurationMs(of:)": "3e6a5b1c40f8577c"
    }
   },
   {
-   "key": "func ReanalysisService.applyBoundaries(to:sleepData:newStartMs:newEndMs:isUserAdjustment:)",
-   "hash": "924e15f4804d364c",
-   "does": "Writes clamped offsets, per-segment offsets (or nil for single segment), the sleep snapshot, and sets sleepUserAdjusted for user edits.",
+   "key": "func ReanalysisService.applyBoundaries(to:sleepData:offsets:isUserAdjustment:)",
+   "hash": "7492a05b8b950507",
+   "does": "Writes the clamped offsets, per-segment offsets (or nil for a single segment), the sleep snapshot, and sets sleepUserAdjusted for user edits.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.storeClampedOffsets(startMs:endMs:on:)",
     "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)"
    ],
    "reads": [],
@@ -893,77 +722,41 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.storeClampedOffsets(startMs:endMs:on:)": "f2d8ebd9fc48a0b5",
-    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344",
-    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac"
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "e9f79b449cb7a7c9",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "6d761b0522590a2a"
    }
   },
   {
-   "key": "func ReanalysisService.ansBalance(of:)",
-   "hash": "26daba19dcd3134f",
-   "does": "pnsIndex - snsIndex, nil if either missing; private to this file and used only by sleepAdjustedBreakdown (ReanalysisService+Sleep.swift:474). ReanalysisService.swift's rescoreBreakdown/deterministicRecoveryScore use their own private copy at ReanalysisService.swift:568.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "pns or sns nil",
-     "effect": "return nil"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Three identical (pnsIndex - snsIndex) helpers: MorningProcessingService.ansBalance(of:), ReanalysisService.ansBalance(from:) and ReanalysisService.ansBalance(of:); the doc comments above two of them ('Compute composite recovery score.', 'Recalculate the recovery score when sleep data changes...') describe the neighbouring function, not the helper.",
-     "evidence": [
-      "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:396",
-      "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:397",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:188",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:428",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:432"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d"
-   }
-  },
-  {
-   "key": "func ReanalysisService.rescoreAfterSleepChange(_:sleepData:)",
-   "hash": "7fe74ae24ba15a5f",
-   "does": "Recomputes recovery score, breakdown and frozen readiness after a sleep change using frozen training context; logs the new score.",
+   "key": "func ReanalysisService.rescoreAfterSleepChange(_:sessionEnd:)",
+   "hash": "88cd24abc7ef7612",
+   "does": "After a sleep snapshot change (edit, automatic update, retro-apply): re-classifies the session (reclassifyHRVQuality, so .preSleep follows the new sleep), then recomputes recovery score, breakdown and frozen readiness with rescoredBreakdown against the frozen training context, anchored to sessionEnd; logs the new score.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.reclassifyHRVQuality(of:result:)",
     "closure:ReanalysisService.trainingContextProvider — RRCollector+Reanalysis.swift:34 collector.createTrainingContext(relativeTo:)",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.sleepAdjustedBreakdown(session:result:sleepData:trainingContext:sessionEnd:)",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.rescoredBreakdown(of:result:training:referenceDate:)",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
-   "reads": [],
+   "reads": [
+    "mem:BaselineTracker baseline points"
+   ],
    "writes": [],
    "branches": [
     {
-     "at": "+3",
+     "at": "+1",
      "cond": "no analysisResult",
-     "effect": "return; sleep changed but score left as before"
+     "effect": "return; sleep changed but quality and score left as before"
     },
     {
-     "at": "+4",
-     "cond": "endDate nil",
-     "effect": "sessionEnd = startDate"
-    },
-    {
-     "at": "+5",
+     "at": "+3",
      "cond": "trainingSnapshot / result.trainingContext nil",
      "effect": "falls back to trainingContextProvider(sessionEnd)"
     },
     {
-     "at": "+14",
+     "at": "+11",
      "cond": "recoveryScore nil",
      "effect": "log prints 0.0"
     }
@@ -973,52 +766,11 @@
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)": "18aa103b513d602d",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.sleepAdjustedBreakdown(session:result:sleepData:trainingContext:sessionEnd:)": "61ef379f1364d176",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)": "7aa853f03a8994f8",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "245c2d41dcd0a692",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.reclassifyHRVQuality(of:result:)": "362dbefc2239a9d8",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.rescoredBreakdown(of:result:training:referenceDate:)": "4ccb0b70925cce6e",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "3d86c57d7f933cf7",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
-   }
-  },
-  {
-   "key": "func ReanalysisService.sleepAdjustedBreakdown(session:result:sleepData:trainingContext:sessionEnd:)",
-   "hash": "59f851c2e89d5937",
-   "does": "calculateWithBreakdown with analysis metrics, prior-nights baseline, the edited sleep, vitals snapshot with strap RHR, current typicalSleepHours, scoring config, useBaselineHRV for unreliable sessions, perceived readiness, ANS balance, referenceDate=sessionEnd.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.scoringBaseline(for:)",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.scoringVitals(of:result:)",
-    "closure:ReanalysisService.settingsProvider — RRCollector+Reanalysis.swift:31 returns collector.settingsManager.settings",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)",
-    "closure:ReanalysisService.scoringConfigProvider — RRCollector+Reanalysis.swift:32 collector.currentScoringConfig",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.ansBalance(of:)"
-   ],
-   "reads": [
-    "mem:BaselineTracker baseline history"
-   ],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "rescore(_:newSleep:...) and sleepAdjustedBreakdown build the same ScoreInputs/calculateWithBreakdown call (differing only in where typicalSleepHours comes from) and both duplicate deterministicRecoveryScore/rescoreBreakdown in ReanalysisService.swift.",
-     "evidence": [
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:141",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:455",
-      "Emuqu/Sources/Services/ReanalysisService.swift:587",
-      "Emuqu/Sources/Services/ReanalysisService.swift:653"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)": "ca2be1737136e0d8",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.ansBalance(of:)": "0928bcf309ce8689",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.scoringBaseline(for:)": "593a58eec4ae46f1",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.scoringVitals(of:result:)": "584b891459e5121f"
    }
   },
   {
@@ -1107,7 +859,7 @@
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.appendSampleLine(for:fresh:referenceDate:into:)": "2664f13420b8befe",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applyVO2MaxPreference(to:)": "03468a71070b633a",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.morningAnchor(for:)": "1923b4da45cb988a",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.persistSnapshot(_:onto:)": "12e385a22088a1bc",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.persistSnapshot(_:onto:)": "7123ab4ecafd1c50",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
@@ -1200,60 +952,41 @@
   },
   {
    "key": "func ReanalysisService.persistSnapshot(_:onto:)",
-   "hash": "d1383b850f196fcc",
-   "does": "Re-reads the session from the archive (falls back to the passed copy), writes trainingSnapshot and analysisResult.trainingContext, recomputes frozenReadiness when a breakdown exists, archives and schedules upload.",
+   "hash": "31ae34b1141da7c2",
+   "does": "Inside SessionArchive.update (one lock, no re-upload stamp): writes trainingSnapshot and analysisResult.trainingContext on the archived copy and recomputes frozenReadiness when a breakdown exists; then schedules a CloudKit upload of the written copy. Throws when the session is no longer archived or the write fails.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
     "closure:ReanalysisService.onSessionUploaded — set in RRCollector+Reanalysis.swift:40 to a CloudKitSyncManager upload"
    ],
    "reads": [
-    "archive:SessionArchive.retrieve"
+    "archive:SessionArchive.update"
    ],
    "writes": [
-    "archive:SessionArchive.archive",
+    "archive:SessionArchive.update (session file + index)",
     "notif:flowRecoveryArchiveChanged",
     "ck:session upload"
    ],
    "branches": [
     {
-     "at": "+1",
-     "cond": "archive retrieve returns nil",
-     "effect": "uses the passed session"
-    },
-    {
-     "at": "+4",
+     "at": "+5",
      "cond": "scoreBreakdown exists",
      "effect": "recompute frozenReadiness; else unchanged"
     }
    ],
-   "flags": [
-    {
-     "kind": "race",
-     "sev": "low",
-     "text": "persistSnapshot re-reads the session but retrieve and archive take the lock separately, so an edit between them is still overwritten; SessionArchive.update does the change under one lock (its doc describes this exact bug).",
-     "evidence": [
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:598",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:607",
-      "Emuqu/Sources/Storage/Archive.swift:476"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)": "7aa853f03a8994f8",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "245c2d41dcd0a692",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000"
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "3d86c57d7f933cf7",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "e021c7f17b266931"
    }
   },
   {
    "key": "func ReanalysisService.unlinkSegment(segmentId:fromSession:)",
-   "hash": "239eea040ea2c786",
-   "does": "Removes segmentId from a session's linked ids, strips the segment's beats from the merged series, archives with reupload, reanalyzes asynchronously and schedules upload; errors are logged.",
+   "hash": "988039d8e1f26de1",
+   "does": "Strips the segment's beats from the parent's merged series, then removes segmentId from linkedSessionIds, archives with reupload, reanalyzes asynchronously and schedules upload; returns true. Returns false with nothing written (link kept) when the parent or link is missing, when the segment can't be read so its beats can't be located, or when retrieve/archive throws (logged). Callers today discard the result.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)",
@@ -1274,44 +1007,46 @@
    ],
    "branches": [
     {
-     "at": "+2",
+     "at": "+3",
      "cond": "session not found",
-     "effect": "return silently"
+     "effect": "return false"
     },
     {
-     "at": "+3",
+     "at": "+4",
      "cond": "no links or segment not linked",
-     "effect": "return silently"
+     "effect": "return false"
     },
     {
      "at": "+6",
+     "cond": "stripSegmentPoints false (segment unreadable)",
+     "effect": "return false; link kept"
+    },
+    {
+     "at": "+9",
      "cond": "links empty after removal",
      "effect": "linkedSessionIds = nil"
     },
     {
-     "at": "+17",
+     "at": "+18",
      "cond": "retrieve/archive throws",
-     "effect": "logged; nothing else happens, UI gets no failure signal"
+     "effect": "log, return false"
     }
    ],
    "flags": [
     {
      "kind": "silent-failure",
      "sev": "low",
-     "text": "The link is removed and the session archived even when stripSegmentPoints bails (segment not retrievable, parent has no series, or segment duration 0), leaving the unlinked segment's beats inside the parent's series and score with no error to the user.",
+     "text": "A refused or failed unlink (segment unreadable, write error) now keeps the link and returns false, but the forwarders (RRCollector+Reanalysis.swift:679, RRCollector+ReanalysisForwarding.swift:23) return Void and the history/record screens show no error, so the user is not told the unlink did not happen (handed off).",
      "evidence": [
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:617",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:620",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:621",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:644",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:648"
+      "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift:679",
+      "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift:23"
      ],
-     "found": "first read, upheld on second"
+     "found": "fix pass"
     }
    ],
    "deps": {
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.reanalyzeAfterUnlink(_:)": "62b5f1a0de41f5a3",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.stripSegmentPoints(segmentId:from:)": "784f3eaca3df614c",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.stripSegmentPoints(segmentId:from:)": "c57a7a4316eda014",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "e1a5ccaab9fa4e3e",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
@@ -1319,8 +1054,8 @@
   },
   {
    "key": "func ReanalysisService.stripSegmentPoints(segmentId:from:)",
-   "hash": "3a328a77ba8c4ac7",
-   "does": "Loads the unlinked segment, computes its window relative to the parent series start, and replaces the parent series with points outside [segStart, segEnd].",
+   "hash": "2f3347c7317e22d8",
+   "does": "Loads the unlinked segment, computes its window relative to the parent series start, and replaces the parent series with points outside [segStart, segEnd]; returns true. False (logged at error level) only when the segment can't be read; a parent with no beats or a segment with no span has nothing to strip and returns true.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)",
@@ -1335,13 +1070,18 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "segment not retrievable or parent has no/empty series",
-     "effect": "return without stripping"
+     "cond": "segment not retrievable",
+     "effect": "log error, return false"
     },
     {
      "at": "+5",
+     "cond": "parent has no/empty series",
+     "effect": "return true without stripping"
+    },
+    {
+     "at": "+8",
      "cond": "segment duration <= 0",
-     "effect": "return without stripping"
+     "effect": "return true without stripping"
     }
    ],
    "flags": [],
@@ -1349,7 +1089,7 @@
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.segmentDurationMs(of:)": "9307f945d3d26020",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "f0a309cc2b24de13",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac"
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "6d761b0522590a2a"
    }
   },
   {

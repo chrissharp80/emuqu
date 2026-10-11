@@ -115,19 +115,20 @@ struct WebSearchNamespace: FactNamespaceResolver {
         ) {
             let enabled = AppDependencies.current.app.settingsManager.settingsSnapshot.enableWebSearch
             let hasTavilyKey = AppDependencies.current.providers.apiKeyStore.hasServiceKey(for: .tavilyWebSearch)
-            // Anthropic's `web_search_20250305` server-side tool is
-            // wired into the request body in `AnthropicProvider`.
-            // It works without a Tavily key, so as long as the
-            // active provider is Anthropic, web search IS available.
             // The resolver is invoked on the main actor by the
             // AssistantViewModel tool-use loop; `assumeIsolated`
             // satisfies the actor-isolation check on
             // `ProviderRegistry.activeProvider`.
-            let providerHasNativeSearch = MainActor.assumeIsolated {
-                AppDependencies.current.providers.providerRegistry.activeProvider.id == .anthropic
-            }
+            let providerHasNativeSearch = MainActor.assumeIsolated { Self.providerHasNativeSearch() }
             return .boolean(enabled && (hasTavilyKey || providerHasNativeSearch))
         }
+    }
+
+    /// Anthropic's `web_search_20250305` server-side tool is wired into the
+    /// request body in `AnthropicProvider` and needs no Tavily key, so on
+    /// that provider the model can search without the `web.search` action.
+    @MainActor private static func providerHasNativeSearch() -> Bool {
+        AppDependencies.current.providers.providerRegistry.activeProvider.id == .anthropic
     }
 
     private static let webAvailableDescription = """
@@ -170,7 +171,7 @@ struct WebSearchNamespace: FactNamespaceResolver {
         return searchOutcome(capturedResult, query: q, intent: intent, elapsed: elapsed)
     }
 
-    private func searchOutcome(
+    @MainActor private func searchOutcome(
         _ capturedResult: Result<[WebSearchService.Result], WebSearchService.SearchError>,
         query q: String,
         intent: WebSearchService.Intent,
@@ -216,10 +217,10 @@ struct WebSearchNamespace: FactNamespaceResolver {
             } catch let error as WebSearchService.SearchError {
                 return .failure(error)
             } catch {
-                // Non-SearchError throw is unexpected (URLSession
-                // errors are wrapped by WebSearchService); preserve
-                // the message in a typed bucket so the switch below
-                // still covers the case.
+                // WebSearchService.search lets URLSession's own errors
+                // (offline, TLS, its 12 s timeout) through unwrapped, so
+                // every transport failure lands here; keep the message
+                // in the typed .network bucket the switch below covers.
                 return .failure(.network(error.localizedDescription))
             }
         }
@@ -257,14 +258,13 @@ struct WebSearchNamespace: FactNamespaceResolver {
         ])
     }
 
-    private func searchFailure(_ error: WebSearchService.SearchError, elapsed: String) -> FactValue {
+    @MainActor private func searchFailure(_ error: WebSearchService.SearchError, elapsed: String) -> FactValue {
         switch error {
         case .notEnabled:
             debugLog("[WebSearch] FAIL .notEnabled in \(elapsed)s — enableWebSearch is off in Settings", level: .warning)
             return .missing(reason: .notRecorded, detail: "web search is disabled — user must enable it in Settings → Flo")
         case .missingKey:
-            debugLog("[WebSearch] FAIL .missingKey in \(elapsed)s — Tavily API key isn't in Keychain. Settings → Flo → Web Search.", level: .warning)
-            return .missing(reason: .notRecorded, detail: "no Tavily API key configured in Settings → Flo")
+            return missingKeyAnswer(elapsed: elapsed)
         case .rateLimited:
             debugLog("[WebSearch] FAIL .rateLimited in \(elapsed)s — Tavily 429 (free tier is 1000/mo)", level: .warning)
             return .missing(reason: .rateLimited, detail: "Tavily rate limit hit — try again in a moment")
@@ -275,6 +275,20 @@ struct WebSearchNamespace: FactNamespaceResolver {
             debugLog("[WebSearch] FAIL .decode in \(elapsed)s: \(s)", level: .warning)
             return .missing(reason: .internalError, detail: "Tavily response decode error: \(s)")
         }
+    }
+
+    /// `web.available` is true without a Tavily key on a provider with native
+    /// search, so a model that calls `web.search` anyway is pointed at the
+    /// search it does have rather than told search is unavailable.
+    @MainActor private func missingKeyAnswer(elapsed: String) -> FactValue {
+        debugLog("[WebSearch] FAIL .missingKey in \(elapsed)s — Tavily API key isn't in Keychain. Settings → Flo → Web Search.", level: .warning)
+        guard Self.providerHasNativeSearch() else {
+            return .missing(reason: .notRecorded, detail: "no Tavily API key configured in Settings → Flo")
+        }
+        return .missing(
+            reason: .notRecorded,
+            detail: "web.search needs a Tavily API key, which isn't set; the active provider searches the web natively — search directly in the conversation instead of calling web.search"
+        )
     }
 
     private static let webSearchDescription = """

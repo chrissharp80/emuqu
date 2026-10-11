@@ -1,48 +1,14 @@
 {
  "file": "Emuqu/Sources/Views/Record/QuickResultsCard.swift",
- "hash": "ec2bc60a8fe5a03b",
+ "hash": "37ad3490db824142",
  "role": "Post-reading card for a completed quick (streaming) reading: score ring and verdict from the recovery score or ANS readiness, RMSSD / Avg HR / Readiness-or-SDNN stats, View full report and Done buttons.",
  "types": [
   "QuickResultsCard: struct — View over HRVSession + HRVAnalysisResult with onViewReport / onDone closures"
  ],
  "state": [],
- "toplevel": "@Environment(\\.dependencies) is injected but only feeds the unused settingsManager property.",
- "flags": [
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "settingsManager is declared but never read anywhere in the file (grep finds only its declaration); the @Environment dependencies it wraps is otherwise unused too.",
-   "evidence": [
-    "Emuqu/Sources/Views/Record/QuickResultsCard.swift:14"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "No environment dependencies; the card reads only its inputs.",
+ "flags": [],
  "units": [
-  {
-   "key": "var QuickResultsCard.settingsManager",
-   "hash": "a5b9ef0fa49aaa67",
-   "does": "Returns dependencies.app.settingsManager; never read.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "settingsManager is declared but never read anywhere in the file (grep finds only its declaration); the @Environment dependencies it wraps is otherwise unused too.",
-     "evidence": [
-      "Emuqu/Sources/Views/Record/QuickResultsCard.swift:14"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be"
-   }
-  },
   {
    "key": "var QuickResultsCard.body",
    "hash": "65dd899b0e026def",

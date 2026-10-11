@@ -1,58 +1,41 @@
 {
  "file": "Emuqu/Sources/Views/FitnessRecordingView.swift",
- "hash": "4582cc0e2e46858d",
+ "hash": "9dcee0d35194453a",
  "role": "The live workout screen shown while a WorkoutRecorder is recording/finalizing: header with sport, beat count, mute and REC pill; interval/route/strap banners; HR hero card; deferred heavy subcards; bottom voice bar and hold-to-end button.",
  "types": [
   "FitnessRecordingView: struct — SwiftUI View for the live workout",
   "FitnessRecordingView.Labels: struct — per-language cache of 20 localized static labels"
  ],
  "state": [
-  "@Environment(\\.dependencies) dependencies (declared, unused in this view's files)",
+  "@Environment(\\.dependencies) dependencies (language revision for the Labels cache)",
   "@Environment(SettingsManager) settingsManager",
+  "let units: UnitsPreference (read once in init from UnitsPreferenceStore.current)",
   "@State holdProgress/holdTimer/isHolding",
+  "@GestureState stopPressActive (true while a finger is on the stop button; reset on end or cancel)",
   "let holdDurationSec = 1.2",
   "@State heavySubcardsReady",
   "static _labelsCache: (rev, Labels)? — mem:FitnessRecordingView._labelsCache"
  ],
- "toplevel": "Stored observed sub-objects (coach, conversation, intervals, lifecycle, workoutHR, motion, dfa) are captured in init so SwiftUI tracks their @Observable properties (comment lines 20-31).",
- "flags": [
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "@Environment(\\.dependencies) var dependencies is declared but never read in FitnessRecordingView.swift or its only extension FitnessRecordingView+Tiles.swift.",
-   "evidence": [
-    "Emuqu/Sources/Views/FitnessRecordingView.swift:13"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "The comment says the recorder 'has ZERO observable properties (all live state lives on lifecycle / workoutHR / motion / dfa)', but WorkoutRecorder is @Observable and keeps observable stored state the view reads directly: plannedRoute, plannedRouteWasAutoDetected and plannedRouteDirection, which drive the route banner.",
-   "evidence": [
-    "Emuqu/Sources/Views/FitnessRecordingView.swift:21",
-    "Emuqu/Sources/Views/FitnessRecordingView.swift:199",
-    "Emuqu/Sources/Views/FitnessRecordingView.swift:493",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift:22",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift:340",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift:351",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift:357"
-   ],
-   "found": "second read"
-  }
- ],
+ "toplevel": "Stored observed sub-objects (coach, conversation, intervals, lifecycle, workoutHR, motion, dfa) are captured in init; the comment above them says the recorder is @Observable but the live metrics are forwarders onto those sub-objects, with only a few things (planned route) on the recorder itself.",
+ "flags": [],
  "units": [
   {
    "key": "init FitnessRecordingView(recorder:onStop:)",
-   "hash": "a2156caeb00a4a2e",
-   "does": "Stores the recorder and onStop, and caches the recorder's voiceCoach, conversation, intervalController, lifecycle, workoutHR, motion and dfa sub-objects so SwiftUI observes their @Observable state directly.",
+   "hash": "b4ac0759b1a0689d",
+   "does": "Stores the recorder and onStop, reads the units preference once (UnitsPreferenceStore.current), and caches the recorder's voiceCoach, conversation, intervalController, lifecycle, workoutHR, motion and dfa sub-objects so SwiftUI observes their @Observable state directly.",
    "entry": "Constructed by FitnessTabView.stateBody (PhaseObservingStateBody recordingBody) and UncoveredScreenSnapshotTests",
-   "calls": [],
-   "reads": [],
+   "calls": [
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (App Group suite, legacy migration from standard)"
+   ],
    "writes": [],
    "branches": [],
    "flags": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d"
+   }
   },
   {
    "key": "var FitnessRecordingView.sport",
@@ -89,37 +72,6 @@
    }
   },
   {
-   "key": "var FitnessRecordingView.units",
-   "hash": "e3858dc0c83a9dc9",
-   "does": "Reads UnitsPreferenceStore.current on every access (UserDefaults read each tile render).",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current"
-   ],
-   "reads": [
-    "ud:fitness.unitsPreference (App Group suite, legacy migration from standard)"
-   ],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "A computed property that hits UserDefaults (App Group suite) on every access. It is read by several tiles on each ~1 Hz body pass, although the Labels cache comment (lines 79-87) exists precisely to avoid per-tick work.",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessRecordingView.swift:74",
-      "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift:322",
-      "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift:326",
-      "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift:330"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d"
-   }
-  },
-  {
    "key": "var FitnessRecordingView.userMaxHR",
    "hash": "120624451d285e9a",
    "does": "User's effective max HR from settings, used for zone classification.",
@@ -151,11 +103,10 @@
   },
   {
    "key": "var FitnessRecordingView.labels",
-   "hash": "7a61c78a11636721",
-   "does": "Returns the cached Labels when LanguageManager.revision matches. Otherwise builds Labels(LanguageManager.appBundle) and stores it in the static cache.",
+   "hash": "c61cc223ade7c07e",
+   "does": "Returns the cached Labels when the injected dependencies' LanguageManager.revision matches. Otherwise builds Labels(LanguageManager.appBundle) and stores it in the static cache.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
     "Emuqu/Sources/Views/FitnessRecordingView.swift::init FitnessRecordingView.Labels(_:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
@@ -173,22 +124,10 @@
      "effect": "true: return cached labels; false: rebuild and store"
     }
    ],
-   "flags": [
-    {
-     "kind": "coupling",
-     "sev": "low",
-     "text": "Reads the language revision through the global AppDependencies.current instead of the view's injected @Environment(\\.dependencies) (declared at line 13 and otherwise unused). Previews and tests with injected dependencies still read the process-global container.",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessRecordingView.swift:118",
-      "Emuqu/Sources/Views/FitnessRecordingView.swift:13"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.revision": "72da7c6a2bcd9a6b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a",
     "Emuqu/Sources/Views/FitnessRecordingView.swift::init FitnessRecordingView.Labels(_:)": "77e5f20ffccbca13"
    }
@@ -360,7 +299,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.mapCard": "9cdd5dc11b59e55e",
+    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.mapCard": "b37456358a3263c1",
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.metricTileGrid": "3bcaf0110e2e0275",
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.physiologyCard": "a06c27e48fc0a3d0",
     "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.usesGPS": "b767a95d03ccf7e8"
@@ -565,7 +504,7 @@
    "deps": {
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase": "d0bce80edccaa2fe",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.labels": "8c22ae1c36b13c91"
+    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.labels": "c81e3a2061e779fb"
    }
   },
   {
@@ -609,12 +548,12 @@
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.currentHR": "5527e82ea1d21c1e",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.peakHR": "6e06787e1d321c6d",
     "Emuqu/Sources/Views/FitnessRecordingView.swift::func FitnessRecordingView.heartRateAccessibilityLabel(hrText:zone:peakHR:)": "fc11a23327c0de43",
-    "Emuqu/Sources/Views/FitnessRecordingView.swift::func FitnessRecordingView.hrHeroBackground(_:)": "e1a6ee921e958cae",
+    "Emuqu/Sources/Views/FitnessRecordingView.swift::func FitnessRecordingView.hrHeroBackground(_:)": "361d054111b2793a",
     "Emuqu/Sources/Views/FitnessRecordingView.swift::func FitnessRecordingView.hrHeroHeader(zone:zoneColor:)": "83a78a13d9070e47",
     "Emuqu/Sources/Views/FitnessRecordingView.swift::func FitnessRecordingView.hrHeroReadout(hrText:zoneColor:)": "323a63f629385ff3",
     "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.peakHRLabel": "43b3cb206f7bfbc2",
     "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.userMaxHR": "49805330e3ae7d57",
-    "Emuqu/Sources/Views/HRZone.swift::func HRZone.classify(hr:userMaxHR:)": "26516487f738767e",
+    "Emuqu/Sources/Views/HRZone.swift::func HRZone.classify(hr:userMaxHR:)": "7ffd7f8d70e8957f",
     "Emuqu/Sources/Views/HRZone.swift::var HRZone.color": "08df8497ff6f56c8",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "d9d2d99276db5bab"
    }
@@ -662,18 +601,7 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Doc comment above this background helper describes the live interval banner ('Shows the step number… Tap the ⏭ button'), not this function. It belongs to intervalBanner (line 417).",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessRecordingView.swift:362",
-      "Emuqu/Sources/Views/FitnessRecordingView.swift:417"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
     "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
@@ -694,7 +622,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/FitnessRecordingView.swift::func FitnessRecordingView.hrZonePill(zone:zoneColor:)": "ae81684795c6ffb1",
-    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.labels": "8c22ae1c36b13c91",
+    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.labels": "c81e3a2061e779fb",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
    }
   },
@@ -735,7 +663,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.labels": "8c22ae1c36b13c91",
+    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.labels": "c81e3a2061e779fb",
     "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
    }
@@ -880,7 +808,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessRecordingView.swift::func FitnessRecordingView.routeBannerDetail(route:)": "75ccde90521f575d",
+    "Emuqu/Sources/Views/FitnessRecordingView.swift::func FitnessRecordingView.routeBannerDetail(route:)": "1baa86a79370c176",
     "Emuqu/Sources/Views/FitnessRecordingView.swift::func FitnessRecordingView.routeBannerLead(route:)": "10ced1c85b2959df",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "d9d2d99276db5bab",
@@ -921,11 +849,10 @@
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)",
-    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.units",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [
-    "ud:fitness.unitsPreference (App Group suite, legacy migration from standard)"
+    "mem:FitnessRecordingView.units (read once in init)"
    ],
    "writes": [],
    "branches": [
@@ -939,8 +866,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "ed55e0f71de4cd6c",
     "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "a36dafa82ad91f58",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.units": "18d07c7ab6b6fe4a"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },
   {
@@ -1056,7 +982,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/FitnessRecordingView.swift::func FitnessRecordingView.effortLabel(_:)": "f80b0c56fc4e3949",
-    "Emuqu/Sources/Views/FitnessRecordingView.swift::func FitnessRecordingView.paceTargetLabel(secPerKm:)": "0721f279d2712a35"
+    "Emuqu/Sources/Views/FitnessRecordingView.swift::func FitnessRecordingView.paceTargetLabel(secPerKm:)": "8c13a7206eae01e7"
    }
   },
   {
@@ -1065,11 +991,10 @@
    "does": "Formats a sec/km pace target as s/m in the user's units, '—' when invalid.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)",
-    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.units"
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)"
    ],
    "reads": [
-    "ud:fitness.unitsPreference (App Group suite, legacy migration from standard)"
+    "mem:FitnessRecordingView.units (read once in init)"
    ],
    "writes": [],
    "branches": [
@@ -1081,8 +1006,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)": "2df0cb439cc6c8c6",
-    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.units": "18d07c7ab6b6fe4a"
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)": "2df0cb439cc6c8c6"
    }
   },
   {

@@ -1,55 +1,29 @@
 {
  "file": "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift",
- "hash": "7683a4b83b81ef14",
- "role": "WindowSelector configuration and selection logic: 30-70% sleep band resolution (wall-clock to t_ms translation), two-pass artifact scanning, organized-window ranking (Tier 1 score or RMSSD), peak-capacity scan, peak-metric and manual window selection, zone merging, adaptive window sizing.",
+ "hash": "2d0997b3d3d4cfdc",
+ "role": "WindowSelector configuration and selection logic: 30-70% sleep band resolution on the series' t_ms timeline (wall-clock to t_ms translation), two-pass artifact scanning (the 15% pass when the strict pass has no organized window, or no window for peak search), organized-window ranking (Tier 1 score or RMSSD), peak-capacity scan, peak-metric and manual window selection, zone merging, adaptive window sizing.",
  "types": [
-  "WindowSelector.Config: struct — window size 400, step 40, artifact limits 0.10/0.15, minCleanBeats 300, ectopic 20%/10-beat median, band 0.30-0.70, stabilityWeight 10, isolatedSpikeRatio 1.5",
+  "WindowSelector.Config: struct — window size 400, step 40, artifact limits 0.10/0.15, minCleanBeats 300, band 0.30-0.70, stabilityWeight 10, isolatedSpikeRatio 1.5 (the ectopic gate is TimeDomainAnalyzer's)",
   "WindowSelector.OptimizationMetric: enum — rmssd/sdnn/totalPower",
-  "WindowSelector.SleepBoundaries: struct — recording and sleep boundaries",
+  "WindowSelector.SleepBoundaries: struct — recording and sleep boundaries as t_ms positions (plus durations)",
   "WindowSelector.SearchBand: struct — index range and ms limits of the band"
  ],
  "state": [
   "static WindowSelector.Config.default",
   "private static WindowSelector.minRequiredBeats = 120"
  ],
- "toplevel": "Config property defaults (S:12-76) set every selector threshold; Config.default = Config().",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "SleepBoundaries mixes coordinate origins: recordingStartMs/EndMs are absolute first/last t_ms, while actualSleepStartMs/EndMs and recordingDurationMs are 0-based offsets from the first beat (tMsOffset returns match.t_ms - first.t_ms). findSearchBand adds band fractions to the offsets and compares them with absolute t_ms, and scoredBlock's relative position mixes the same; correct only when the first beat's t_ms is 0 (true for the decoders, not guaranteed for merged/rebased series, e.g. DataSourceSelector rebases gap-fill t_ms to wallClockMs).",
-   "evidence": [
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:889",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:891",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:894",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:934",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:944",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:946",
-    "Emuqu/Sources/Collection/DataSourceSelector.swift:286"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "privacy",
-   "sev": "low",
-   "text": "logWindowRanking writes raw per-window values (tier1=, meanHR=, cv=, pos=) to debugLog while logSelectedWindow deliberately redacts the same metrics; DebugLogger.scrubPHI's metric pattern needs a word boundary before 'HR' and has no 'tier1'/'cv' key, so 'meanHR=58' and 'tier1=82.3' land unredacted in the user-exportable log when persistent logging is enabled.",
-   "evidence": [
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:342",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:399",
-    "Emuqu/Sources/Utilities/DebugLog.swift:363"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "Config property defaults (S:12-70) set every selector threshold; Config.default = Config().",
+ "flags": [],
  "units": [
   {
    "key": "func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)",
-   "hash": "15744ddd8b63f1ec",
-   "does": "Main automatic selector: resolves the 30-70% sleep band (clearing lastOrganizedZones), scans it with the strict-then-permissive artifact passes, and returns the best organized window (Tier 1 ranked with a baseline, else RMSSD) or nil; populates lastOrganizedZones as a side effect.",
+   "hash": "66e20371008d3d12",
+   "does": "Main automatic selector: clears lastOrganizedZones, resolves the 30-70% sleep band (searchBand, verbose), scans it with the strict 10% artifact pass and falls back to the permissive 15% pass when the strict pass yields no ORGANIZED window, and returns the best organized window (Tier 1 ranked with a baseline, else RMSSD) or nil; populates lastOrganizedZones as a side effect.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:)",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:)",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::var WindowSelector.lastOrganizedZones",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)"
    ],
    "reads": [],
@@ -58,30 +32,30 @@
    ],
    "branches": [
     {
-     "at": "+7",
+     "at": "+10",
      "cond": "searchBand returns nil (<120 beats, no points, or empty band)",
      "effect": "return nil"
     },
     {
-     "at": "+13",
+     "at": "+16",
      "cond": "no windows survive either artifact pass",
      "effect": "return nil; else select organized window"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:)": "59be8afe85fb26dc",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:)": "a97220d0ad2b4a93",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)": "fc73dede1bc69918"
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)": "a79e24f84613958d",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)": "0232f93dc178f77a",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)": "468913bd3621fba8",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::var WindowSelector.lastOrganizedZones": "7927a6b2a9e957c3"
    }
   },
   {
-   "key": "func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:)",
-   "hash": "0b6b5f38518ae633",
-   "does": "Clears lastOrganizedZones, requires >=120 beats, resolves sleep boundaries, logs, finds the 30-70% search band, logs it, and returns (boundaries, band) or nil.",
+   "key": "func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)",
+   "hash": "68e2b76a4a1286c4",
+   "does": "Requires >=120 beats, resolves sleep boundaries (t_ms positions), finds the 30-70% search band and returns (boundaries, band) or nil; with verbose (the organized search) it also logs the resolved boundaries and the band details. Shared by findBestWindow and findPeakMetricWindow; it does not touch lastOrganizedZones.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/WindowSelection.swift::var WindowSelector.lastOrganizedZones",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.resolveSleepBoundaries(points:sleepStartMs:wakeTimeMs:)",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.logBoundaryResolution(sleepStartMs:wakeTimeMs:boundaries:)",
@@ -89,43 +63,51 @@
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.logSearchBandDetails(band:boundaries:points:)"
    ],
    "reads": [],
-   "writes": [
-    "mem:WindowSelector.lastOrganizedZones"
-   ],
+   "writes": [],
    "branches": [
     {
-     "at": "+8",
+     "at": "+6",
      "cond": "points.count < 120",
      "effect": "log and return nil"
     },
     {
-     "at": "+12",
+     "at": "+10",
      "cond": "resolveSleepBoundaries nil (empty series)",
      "effect": "log 'No points' and return nil (unreachable after the 120-beat guard)"
     },
     {
-     "at": "+19",
+     "at": "+16",
+     "cond": "verbose",
+     "effect": "log the resolved boundaries"
+    },
+    {
+     "at": "+17",
      "cond": "findSearchBand nil",
-     "effect": "log and return nil; else log band and return"
+     "effect": "log and return nil"
+    },
+    {
+     "at": "+21",
+     "cond": "verbose",
+     "effect": "log the band; then return (boundaries, band)"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findSearchBand(points:boundaries:)": "c4a46fa3aa7d6c18",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.logBoundaryResolution(sleepStartMs:wakeTimeMs:boundaries:)": "5b1d6d5df6f235c2",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.logSearchBandDetails(band:boundaries:points:)": "23535cb8c4ec0de5",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.resolveSleepBoundaries(points:sleepStartMs:wakeTimeMs:)": "2120c0d326f5b3f7",
-    "Emuqu/Sources/Analysis/WindowSelection.swift::var WindowSelector.lastOrganizedZones": "7927a6b2a9e957c3",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findSearchBand(points:boundaries:)": "96ddc079bba05bc2",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.logBoundaryResolution(sleepStartMs:wakeTimeMs:boundaries:)": "6984a8f3a20584db",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.logSearchBandDetails(band:boundaries:points:)": "135fa81ee9f915ce",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.resolveSleepBoundaries(points:sleepStartMs:wakeTimeMs:)": "2e6265d7977be6de",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
-   "key": "func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:)",
-   "hash": "832574165c93ad8f",
-   "does": "Scans the band at the strict 10% artifact limit; only if that yields zero windows rescans at 15%; returns the windows (empty if both passes find none).",
+   "key": "func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)",
+   "hash": "a622e6859402f5b2",
+   "does": "Scans the band at the strict 10% artifact limit and returns those windows when they suffice: with requireOrganized (findBestWindow) when any is isOrganizedRecovery, else (findPeakMetricWindow) when any exists. Otherwise rescans at config.maxArtifactRate (15%), a superset of the strict windows, logs the fallback (or that none were found) and returns that scan (empty when it finds none).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanWindowsInBand(series:flags:band:boundaries:artifactRateLimit:)",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
@@ -133,22 +115,23 @@
    "branches": [
     {
      "at": "+11",
-     "cond": "strict pass found any window (usedStrict)",
-     "effect": "use strict windows; else rescan at config.maxArtifactRate 0.15"
+     "cond": "requireOrganized",
+     "effect": "strict suffices when it holds an organized window; else when it holds any window"
     },
     {
-     "at": "+17",
-     "cond": "fell back and permissive pass found windows",
-     "effect": "log the fallback"
+     "at": "+12",
+     "cond": "strict pass suffices",
+     "effect": "return the strict windows; else rescan at 15%"
     },
     {
-     "at": "+20",
-     "cond": "no windows at all",
-     "effect": "log and return []; else return windows"
+     "at": "+18",
+     "cond": "permissive scan empty",
+     "effect": "log 'no valid windows even at 15%'; else log the fallback; return the permissive windows"
     }
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "4179ba1b72db50c1",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanWindowsInBand(series:flags:band:boundaries:artifactRateLimit:)": "8f96ebd9c9885c80",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
@@ -173,21 +156,21 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.filterIsolatedSpikes(_:)": "2dd11c5fbfed7c5f",
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.filterIsolatedSpikes(_:)": "d11b6ae9135ac986",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
    "key": "func WindowSelector.selectOrganizedWindow(from:baselineStats:)",
-   "hash": "31cebaf99ab7a865",
-   "does": "Spike-filters the windows, keeps only isOrganizedRecovery ones, stores their merged time ranges in lastOrganizedZones, and builds the recovery window from them; nil when none are organized.",
+   "hash": "d9f2a7d8e1e3cfdb",
+   "does": "Spike-filters the windows (never empty for a non-empty input: edge windows are never spikes), keeps only isOrganizedRecovery ones, stores their merged time ranges in lastOrganizedZones, and builds the recovery window from them; nil when none are organized.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.withoutIsolatedSpikes(_:)",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.captureOrganizedZones(_:)",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.buildRecoveryWindow(from:sustainedWindows:baselineStats:)"
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.buildRecoveryWindow(from:baselineStats:)"
    ],
    "reads": [],
    "writes": [
@@ -195,33 +178,15 @@
    ],
    "branches": [
     {
-     "at": "+6",
-     "cond": "filteredWindows empty",
-     "effect": "use allWindows; else filtered"
-    },
-    {
-     "at": "+13",
+     "at": "+12",
      "cond": "no organized windows",
      "effect": "log and return nil (peak fallback happens in caller); else buildRecoveryWindow"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "filterIsolatedSpikes never rejects the first or last window, so a non-empty input always yields a non-empty output; the 'filteredWindows.isEmpty ? allWindows' fallback cannot fire (findBestWindow already returned on empty). Same at findPeakMetricWindow:603.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:192",
-      "Emuqu/Sources/Analysis/WindowSelection+Filters.swift:25",
-      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:96",
-      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:603"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "4179ba1b72db50c1",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.buildRecoveryWindow(from:sustainedWindows:baselineStats:)": "03c4a89850a4ce15",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.buildRecoveryWindow(from:baselineStats:)": "03c4a89850a4ce15",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.captureOrganizedZones(_:)": "39a183f513663890",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.withoutIsolatedSpikes(_:)": "966011cc38125e81",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
@@ -250,10 +215,11 @@
   },
   {
    "key": "func WindowSelector.logBoundaryResolution(sleepStartMs:wakeTimeMs:boundaries:)",
-   "hash": "4e7a43349f67ecea",
-   "does": "Logs which sleep-start/wake boundaries were used and the recording/sleep spans.",
+   "hash": "988ab02ca317f0bc",
+   "does": "Logs the boundaries as resolveSleepBoundaries resolved them (after the wall-clock translation), in minutes into the recording: the sleep start or 'using recording start', the wake or why the recording end is used, and the recording/sleep spans.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.SleepBoundaries.minutesIntoRecording(_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.formatTime(_:)"
    ],
@@ -261,48 +227,40 @@
    "writes": [],
    "branches": [
     {
-     "at": "+1",
-     "cond": "sleepStartMs present and >= 0",
-     "effect": "log offset; else log 'using recording start'"
-    },
-    {
-     "at": "+6",
-     "cond": "wake present and after sleep start",
-     "effect": "log either capped (229) or HealthKit wake; else log 'using recording end'"
+     "at": "+2",
+     "cond": "a sleep start was given",
+     "effect": "log the resolved start minute; else log 'using recording start'"
     },
     {
      "at": "+7",
-     "cond": "wake > recordingDurationMs",
-     "effect": "log capping; else log the wake offset"
-    }
-   ],
-   "flags": [
+     "cond": "no wake given",
+     "effect": "log 'using recording end'"
+    },
     {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Logs compare the raw wall-clock sleepStartMs/wakeTimeMs to recordingDurationMs, while resolveSleepBoundaries actually translates them through wallClockMs; on nights with BLE dropouts the logged decision (capped or not) can differ from what was used.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:229",
-      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:918"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+9",
+     "cond": "resolved sleep end before the recording end",
+     "effect": "log the resolved wake minute; else log that the wake was past the recording or not after sleep start and the recording end is used"
     }
    ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.formatTime(_:)": "e0b679e0e966de5c",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.SleepBoundaries.minutesIntoRecording(_:)": "7eb486f8a66ce6b0",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::var WindowSelector.SleepBoundaries.actualSleepDurationMs": "bd15fe1919501d17",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.recordingDurationMs(of:)": "3e6a5b1c40f8577c",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.recordingEndMs": "6a93f7f5417923a7"
    }
   },
   {
    "key": "func WindowSelector.logSearchBandDetails(band:boundaries:points:)",
-   "hash": "9e4150814c23f848",
-   "does": "Logs the band limits, band duration/beats and adaptive window size for diagnostics.",
+   "hash": "52060b16e8502faa",
+   "does": "Logs the band limits (minutes into the recording), band duration/beats and adaptive window size for diagnostics.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.computeAdaptiveWindowSize(beatsAvailable:compact:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.SleepBoundaries.minutesIntoRecording(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.computeAdaptiveWindowSize(beatsAvailable:compact:)"
    ],
    "reads": [],
    "writes": [],
@@ -315,6 +273,7 @@
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.SleepBoundaries.minutesIntoRecording(_:)": "7eb486f8a66ce6b0",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.computeAdaptiveWindowSize(beatsAvailable:compact:)": "fd73f7db1a3e1449",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::var WindowSelector.SearchBand.beatsInBand": "b40adc3e78e80de9",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::var WindowSelector.SleepBoundaries.actualSleepDurationMs": "bd15fe1919501d17",
@@ -341,26 +300,26 @@
    }
   },
   {
-   "key": "func WindowSelector.buildRecoveryWindow(from:sustainedWindows:baselineStats:)",
-   "hash": "08ff0ac44fc0adb9",
+   "key": "func WindowSelector.buildRecoveryWindow(from:baselineStats:)",
+   "hash": "1bd00762d9d1299a",
    "does": "Ranks organized windows (Tier 1 score vs baseline when baselineStats given, else RMSSD) and builds the RecoveryWindow from the top one; nil for an empty list.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.rankByTier1Score(_:baseline:)",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.rankByRMSSD(_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.recoveryWindow(from:sustainedWindows:)"
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.recoveryWindow(from:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+5",
+     "at": "+4",
      "cond": "baselineStats non-nil (?? fallback)",
      "effect": "rank by Tier 1 score; nil baseline uses rankByRMSSD"
     },
     {
-     "at": "+7",
+     "at": "+6",
      "cond": "ranking empty",
      "effect": "return nil; else build from first"
     }
@@ -369,7 +328,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.rankByRMSSD(_:)": "dffb11794bace6d0",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.rankByTier1Score(_:baseline:)": "f3653c3dee27ee86",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.recoveryWindow(from:sustainedWindows:)": "2e3fd74aa62b0dcc",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.recoveryWindow(from:)": "f253fc72c0248c82",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
@@ -399,14 +358,14 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)": "89cf0881d7057b9f",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.logWindowRanking(_:count:)": "26e12bd98f6803a2",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.logWindowRanking(_:count:)": "5e2328dafb98a3e8",
     "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.block(cleanBeatCount:dfaAlpha1:lfHfRatio:hrCV:)": "ea932045e1a531b7"
    }
   },
   {
    "key": "func WindowSelector.logWindowRanking(_:count:)",
-   "hash": "5bf77e34f9de09fb",
-   "does": "Logs one multi-line ranking entry with each window's Tier 1 score, RMSSD, SDNN, mean HR, a1, LF/HF, CV, position and start minute.",
+   "hash": "58ca92ceaa5f599f",
+   "does": "Logs one multi-line ranking entry: each organized window's rank, relative position and start minute, with its Tier 1 score and metrics redacted (as logSelectedWindow redacts them) because the log is user-exportable.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
@@ -417,31 +376,10 @@
     {
      "at": "+4",
      "cond": "for each ranked window",
-     "effect": "append a line"
-    },
-    {
-     "at": "+6",
-     "cond": "dfaAlpha1 nil (??)",
-     "effect": "print 'nil'"
-    },
-    {
-     "at": "+7",
-     "cond": "lfHfRatio nil (??)",
-     "effect": "print 'nil' (always, in production)"
+     "effect": "append a rank/position/minute line"
     }
    ],
-   "flags": [
-    {
-     "kind": "privacy",
-     "sev": "low",
-     "text": "Writes meanHR, tier1 score and CV values that the PHI scrubber does not match (see file flag), unlike logSelectedWindow which redacts.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:342",
-      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:399"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
     "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.block(cleanBeatCount:dfaAlpha1:lfHfRatio:hrCV:)": "ea932045e1a531b7"
@@ -470,9 +408,9 @@
    }
   },
   {
-   "key": "func WindowSelector.recoveryWindow(from:sustainedWindows:)",
-   "hash": "ea78636e917e140f",
-   "does": "Builds the RecoveryWindow from the chosen block: isConsolidated = block present in sustainedWindows and HR CV < 0.08, qualityScore = RMSSD/100, recoveryScore with stability weight, isOrganizedRecovery true, classification from the block.",
+   "key": "func WindowSelector.recoveryWindow(from:)",
+   "hash": "0823f0eb10942706",
+   "does": "Builds the RecoveryWindow from the chosen organized block: isConsolidated = HR CV < 0.08 (always true in production, where an organized block without LF/HF is HR-stable; false only for a test block organized by LF/HF), qualityScore = RMSSD/100, recoveryScore with stability weight, isOrganizedRecovery true, classification from the block.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.logSelectedWindow(finalBlock:positionPercent:isConsolidated:)",
@@ -483,20 +421,7 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "isSustained is always true (organized windows are drawn from filteredWindows, which is non-empty whenever there are windows) and every organized block already has HR CV < 0.08 (isOrganizedRecovery requires hrIsStable when lfHfRatio is nil, always in production), so isConsolidated is always true for this path.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:358",
-      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:359",
-      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:192",
-      "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift:82"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.classification": "1eff03953516f82e",
@@ -618,27 +543,13 @@
       "Emuqu/Sources/Services/ReanalysisService.swift:211"
      ],
      "found": "first read, upheld on second"
-    },
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Docs say the recovery window is nil when no organized recovery occurred ('If no organized recovery occurred, recoveryWindow will be nil'; WindowSelectionResult.recoveryWindow 'nil if no organized recovery detected'), but recoveryOrPeakFallback returns the peak-RMSSD window from the band in that case, so recoveryWindow is non-nil and hasConsolidatedRecovery (recoveryWindow != nil) would report consolidated recovery for an unorganized fallback window.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:438",
-      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:451",
-      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:481",
-      "Emuqu/Sources/Analysis/WindowSelection.swift:135",
-      "Emuqu/Sources/Analysis/WindowSelection.swift:138",
-      "Emuqu/Sources/Analysis/WindowSelection.swift:145"
-     ],
-     "found": "second read"
     }
    ],
    "deps": {
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findPeakCapacity(in:flags:)": "dda47d3b587f6267",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakCapacity(from:)": "7f3278f31052cc1b",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.recoveryOrPeakFallback(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "3fbae8e0c12c91ce",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.recoveryWindow(from:sustainedWindows:)": "2e3fd74aa62b0dcc"
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.recoveryWindow(from:)": "f253fc72c0248c82"
    }
   },
   {
@@ -664,7 +575,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "80f3df9ec13766e3",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "15efe5b42c0fbb9e",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakRMSSDFallback(in:flags:sleepStartMs:wakeTimeMs:)": "0a9af3059a900ce7",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
@@ -689,7 +600,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findPeakMetricWindow(in:flags:sleepStartMs:wakeTimeMs:metric:)": "adbb7aa7fbdaa267",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findPeakMetricWindow(in:flags:sleepStartMs:wakeTimeMs:metric:)": "4ed43aaa6681b62c",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
@@ -723,7 +634,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.scanWindows(series:flags:grid:sessionStartMs:sessionEndMs:artifactRateLimit:)": "20474a68b221cd88",
-    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.filterIsolatedSpikes(_:)": "2dd11c5fbfed7c5f",
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.filterIsolatedSpikes(_:)": "d11b6ae9135ac986",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.computeAdaptiveWindowSize(beatsAvailable:compact:)": "fd73f7db1a3e1449",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.logPeakCapacityScan(points:from:to:windowSize:)": "7484c3b4a5980280",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakCapacity(from:)": "7f3278f31052cc1b",
@@ -783,7 +694,7 @@
     {
      "at": "+8",
      "cond": "method .consolidatedRecovery",
-     "effect": "findBestWindow without baselineStats (RMSSD ranking)"
+     "effect": "findBestWindow without baselineStats (RMSSD ranking; production reaches Tier 1 ranking through findBestWindowWithCapacity instead)"
     },
     {
      "at": "+12",
@@ -798,42 +709,29 @@
     {
      "at": "+18",
      "cond": "method .peakTotalPower",
-     "effect": "findPeakMetricWindow(.totalPower) which actually uses SDNN"
+     "effect": "findPeakMetricWindow(.totalPower), ranked by SDNN as the total-power proxy"
     },
     {
-     "at": "+21",
+     "at": "+22",
      "cond": "method .custom",
      "effect": "return nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "The .consolidatedRecovery case is never reached in production: the only production caller, ReanalysisService.selectWindow, returns before calling it for that method, and tests only pass .peakRMSSD. Its comment promises Tier 1 ranking 'when a baseline exists' but the function takes no baseline, so it would always rank by RMSSD.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:562",
-      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:563",
-      "Emuqu/Sources/Services/ReanalysisService.swift:245",
-      "EmuquTests/WindowSelectionTests.swift:36"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "80f3df9ec13766e3",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findPeakMetricWindow(in:flags:sleepStartMs:wakeTimeMs:metric:)": "adbb7aa7fbdaa267"
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "15efe5b42c0fbb9e",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findPeakMetricWindow(in:flags:sleepStartMs:wakeTimeMs:metric:)": "4ed43aaa6681b62c"
    }
   },
   {
    "key": "func WindowSelector.findPeakMetricWindow(in:flags:sleepStartMs:wakeTimeMs:metric:)",
-   "hash": "a031cb7070209360",
-   "does": "Selects the window with the highest RMSSD or SDNN in the 30-70% band (strict-then-permissive artifact passes, spike filter), regardless of organization, and builds a RecoveryWindow.",
+   "hash": "edb1a273e8ff1027",
+   "does": "Selects the window with the highest RMSSD or SDNN (also for total power) in the 30-70% band — searchBand without verbose logging, the strict-then-permissive artifact passes falling back only when the strict pass finds no window, then the spike filter — regardless of organization, and builds a RecoveryWindow.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakSearchBand(points:sleepStartMs:wakeTimeMs:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.logPeakBandDetails(metric:band:)",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanPeakBand(series:flags:band:boundaries:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)",
     "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.filterIsolatedSpikes(_:)",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectPeakBlock(from:metric:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
@@ -844,120 +742,28 @@
    "branches": [
     {
      "at": "+7",
-     "cond": "peakSearchBand nil",
-     "effect": "return nil"
-    },
-    {
-     "at": "+12",
-     "cond": "no windows",
+     "cond": "searchBand nil",
      "effect": "return nil"
     },
     {
      "at": "+14",
-     "cond": "spike-filtered set empty",
-     "effect": "use all windows (unreachable: edges never removed)"
+     "cond": "no windows",
+     "effect": "return nil"
     },
     {
-     "at": "+15",
+     "at": "+17",
      "cond": "selectPeakBlock nil",
-     "effect": "log and return nil (unreachable with non-empty candidates); else build window"
+     "effect": "log and return nil (unreachable: the spike-filtered set of a non-empty input is non-empty); else build window"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.filterIsolatedSpikes(_:)": "2dd11c5fbfed7c5f",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.buildPeakRecoveryWindow(finalBlock:metric:)": "f42793c670192b4f",
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.filterIsolatedSpikes(_:)": "d11b6ae9135ac986",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.buildPeakRecoveryWindow(finalBlock:metric:)": "2b84242cefdee7dc",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.logPeakBandDetails(metric:band:)": "303f7b19c37cd9a7",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakSearchBand(points:sleepStartMs:wakeTimeMs:)": "e8f2806cce385321",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanPeakBand(series:flags:band:boundaries:)": "f6e528f275d48df4",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectPeakBlock(from:metric:)": "9482777c9d374aef",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
-   }
-  },
-  {
-   "key": "func WindowSelector.peakSearchBand(points:sleepStartMs:wakeTimeMs:)",
-   "hash": "724286f22d23cd6e",
-   "does": "Same as searchBand but without clearing lastOrganizedZones or logging boundaries: >=120 beats, resolve boundaries, find band.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.resolveSleepBoundaries(points:sleepStartMs:wakeTimeMs:)",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findSearchBand(points:boundaries:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+5",
-     "cond": "fewer than 120 beats",
-     "effect": "log and return nil"
-    },
-    {
-     "at": "+9",
-     "cond": "no boundaries",
-     "effect": "log and return nil (unreachable after count guard)"
-    },
-    {
-     "at": "+13",
-     "cond": "no band",
-     "effect": "log and return nil; else return"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Near-copy of searchBand (S:105) differing only in skipping the zone reset and logging; the 120 literal duplicates minRequiredBeats.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:105",
-      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:101",
-      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:616"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findSearchBand(points:boundaries:)": "c4a46fa3aa7d6c18",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.resolveSleepBoundaries(points:sleepStartMs:wakeTimeMs:)": "2120c0d326f5b3f7",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
-   }
-  },
-  {
-   "key": "func WindowSelector.scanPeakBand(series:flags:band:boundaries:)",
-   "hash": "22159d1ca419d7e5",
-   "does": "Two-pass strict(10%) then permissive(15%) band scan for peak selection; returns [] and logs when both are empty.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanWindowsInBand(series:flags:band:boundaries:artifactRateLimit:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+11",
-     "cond": "strict pass empty",
-     "effect": "rescan at 15%; else use strict windows"
-    },
-    {
-     "at": "+17",
-     "cond": "no windows",
-     "effect": "log and return []; else return"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Duplicates scanBandWithArtifactFallback (S:145) minus its fallback log line.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:145"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanWindowsInBand(series:flags:band:boundaries:artifactRateLimit:)": "8f96ebd9c9885c80",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)": "a79e24f84613958d",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)": "0232f93dc178f77a",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectPeakBlock(from:metric:)": "0af07c6166727d01",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
@@ -1013,19 +819,7 @@
      "effect": "log the SDNN proxy note"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "WindowSelectionMethod.peakTotalPower ('highest total spectral power') never computes spectral power; it selects by SDNN, so it is identical to peakSDNN except for the reason label.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:574",
-      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:674",
-      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:716"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
@@ -1044,21 +838,7 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "windowClassification comes from ScoredRecoveryBlock.classification, which labels any a1 in 0.75-1.0 (or no a1 with CV<8%) 'Organized Recovery' even when HR CV >= 8% makes isOrganizedRecovery false; a peak/manual window can be stored with isOrganizedRecovery=false yet classification 'Organized Recovery', which MorningResultsView shows as 'Organized'.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:681",
-      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:695",
-      "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift:112",
-      "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift:87",
-      "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift:402"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.classification": "1eff03953516f82e",
@@ -1121,8 +901,8 @@
   },
   {
    "key": "func WindowSelector.analyzeAtPosition(in:flags:targetMs:)",
-   "hash": "a75afbd3f97153ac",
-   "does": "User 'Pick Window' path: requires >=400 beats, centres a 400-beat window on the first beat at/after targetMs (pulled back at recording end), evaluates it with the artifact gate disabled (limit 1.0) and returns the manual RecoveryWindow; nil when too short, target past the end, or too little signal.",
+   "hash": "805791aa0cc69d4f",
+   "does": "User 'Pick Window' path: requires >=400 beats, centres a 400-beat window on the beat closest to targetMs (a tap before the first or past the last beat lands on it; pulled back at recording end), evaluates it with the artifact gate disabled (limit 1.0) and returns the manual RecoveryWindow; nil when too short or too little signal.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
@@ -1137,11 +917,6 @@
      "at": "+6",
      "cond": "fewer than 400 beats or empty",
      "effect": "log and return nil"
-    },
-    {
-     "at": "+13",
-     "cond": "manualWindowIndices nil (target after last beat)",
-     "effect": "return nil"
     },
     {
      "at": "+14",
@@ -1164,16 +939,17 @@
    "deps": {
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.evaluateManualWindow(series:flags:startIdx:endIdx:sessionStartMs:sessionEndMs:targetMs:)": "8beeb67749aa6428",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.manualRecoveryWindow(from:)": "0a2ae3442fdb17ac",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.manualWindowIndices(points:targetMs:)": "d1653d7e5a8cd194",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.manualWindowIndices(points:targetMs:)": "491f43d4212ed72a",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
    "key": "func WindowSelector.manualWindowIndices(points:targetMs:)",
-   "hash": "45d5d1f815d2250c",
-   "does": "Finds the first beat with t_ms >= targetMs, centres a beatsPerWindow window on it and shifts it back to fit when it would overrun the end.",
+   "hash": "a3e4258b3ed823c0",
+   "does": "Centres a beatsPerWindow window on the beat closest to targetMs (closestBeatIndex) and shifts it back to fit when it would overrun the end; always returns indices (points is non-empty).",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.closestBeatIndex(points:targetMs:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.formatTime(_:)"
    ],
@@ -1181,32 +957,45 @@
    "writes": [],
    "branches": [
     {
-     "at": "+2",
-     "cond": "no beat at/after targetMs",
-     "effect": "log 'outside recording range' and return nil"
-    },
-    {
-     "at": "+13",
+     "at": "+7",
      "cond": "window end > points.count",
      "effect": "clamp end to count and start to max(0, end-400); else keep centred window"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Comment says 'closest to target time' but it takes the first beat at or after it, and a tap past the last beat's t_ms returns nil (UI does nothing) instead of selecting the last window.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:750",
-      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:751"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.formatTime(_:)": "e0b679e0e966de5c",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.closestBeatIndex(points:targetMs:)": "2a147b370a68d41c",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
+  },
+  {
+   "key": "func WindowSelector.closestBeatIndex(points:targetMs:)",
+   "hash": "6b1d2322f315a4ea",
+   "does": "Index of the beat whose t_ms is nearest targetMs: the first beat at or after it, or the one before when that is strictly nearer; the last beat when targetMs is past the end; 0 when it is before the first beat.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no beat at/after targetMs (??)",
+     "effect": "use the last beat"
+    },
+    {
+     "at": "+2",
+     "cond": "the match is the first beat",
+     "effect": "return it"
+    },
+    {
+     "at": "+4",
+     "cond": "previous beat strictly nearer",
+     "effect": "return after - 1; else after"
+    }
+   ],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "func WindowSelector.evaluateManualWindow(series:flags:startIdx:endIdx:sessionStartMs:sessionEndMs:targetMs:)",
@@ -1229,7 +1018,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.evaluateWindow(series:flags:startIdx:endIdx:sessionStartMs:sessionEndMs:artifactRateLimit:)": "8b634b5d27eacefa",
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.evaluateWindow(series:flags:startIdx:endIdx:sessionStartMs:sessionEndMs:artifactRateLimit:)": "833d6e9a87f668b5",
     "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.formatTime(_:)": "e0b679e0e966de5c",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
@@ -1288,6 +1077,18 @@
    "deps": {}
   },
   {
+   "key": "func WindowSelector.SleepBoundaries.minutesIntoRecording(_:)",
+   "hash": "beb63edaaa222153",
+   "does": "Whole minutes from the first beat (recordingStartMs) to the given t_ms position, for log lines.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
    "key": "var WindowSelector.SearchBand.beatsInBand",
    "hash": "b245de9591bdd9bf",
    "does": "endExclusive - startIdx.",
@@ -1301,12 +1102,12 @@
   },
   {
    "key": "func WindowSelector.resolveSleepBoundaries(points:sleepStartMs:wakeTimeMs:)",
-   "hash": "39e3fa6ffc83714a",
-   "does": "Resolves recording start/end (absolute first/last t_ms) and sleep start/end as 0-based t_ms offsets: sleep start translated from wall-clock via tMsOffset (0 when absent), sleep end from wake via sleepEndOffset.",
+   "hash": "5df9f8494cd66b12",
+   "does": "Resolves every boundary as a position on the series' own t_ms timeline: recording start/end = first/last t_ms; sleep start = the t_ms of the first beat received at/after the wall-clock sleep start (tMsPosition), floored at the recording start (recording start when absent); sleep end from the wake via sleepEnd. findSearchBand and the window relative position then compare like with like whatever the first beat's t_ms is.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.tMsOffset(forWallElapsed:in:)",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.sleepEndOffset(wakeTimeMs:points:after:recordingDurationMs:)"
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.tMsPosition(forWallElapsed:in:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.sleepEnd(wakeTimeMs:points:after:recordingEndMs:)"
    ],
    "reads": [],
    "writes": [],
@@ -1317,24 +1118,24 @@
      "effect": "return nil"
     },
     {
-     "at": "+10",
+     "at": "+11",
      "cond": "sleepStartMs nil (??)",
-     "effect": "sleep start 0 (recording start); else max(0, translated offset)"
+     "effect": "sleep start = recording start; else max(recording start, translated position)"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.sleepEndOffset(wakeTimeMs:points:after:recordingDurationMs:)": "abc3fe2671575d10",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.tMsOffset(forWallElapsed:in:)": "3d767d1c59c92ffc"
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.sleepEnd(wakeTimeMs:points:after:recordingEndMs:)": "c47050580a006946",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.tMsPosition(forWallElapsed:in:)": "55041b0a54d59d93"
    }
   },
   {
-   "key": "func WindowSelector.sleepEndOffset(wakeTimeMs:points:after:recordingDurationMs:)",
-   "hash": "bce3c55148317cfa",
-   "does": "Translated wake offset clamped to the recording duration when it lies after sleep start; otherwise the recording duration.",
+   "key": "func WindowSelector.sleepEnd(wakeTimeMs:points:after:recordingEndMs:)",
+   "hash": "487d5d69e14f2bc9",
+   "does": "The wake's t_ms position (tMsPosition) clamped to the recording end when it lies after the sleep start; otherwise the recording end.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.tMsOffset(forWallElapsed:in:)"
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.tMsPosition(forWallElapsed:in:)"
    ],
    "reads": [],
    "writes": [],
@@ -1342,23 +1143,23 @@
     {
      "at": "+6",
      "cond": "wakeTimeMs nil",
-     "effect": "return recordingDurationMs"
+     "effect": "return recordingEndMs"
     },
     {
      "at": "+8",
-     "cond": "wakeOffset > sleep start",
-     "effect": "return min(wakeOffset, duration); else recordingDurationMs"
+     "cond": "translated wake > sleep start",
+     "effect": "return min(wake, recording end); else recordingEndMs"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.tMsOffset(forWallElapsed:in:)": "3d767d1c59c92ffc"
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.tMsPosition(forWallElapsed:in:)": "55041b0a54d59d93"
    }
   },
   {
-   "key": "func WindowSelector.tMsOffset(forWallElapsed:in:)",
-   "hash": "c68d17a515d189f4",
-   "does": "Maps a wall-clock offset to a t_ms offset from the first beat by finding the first beat whose wallClockMs >= firstWall + offset; identity when the series has no wall clock; recording span when the target is past the last beat.",
+   "key": "func WindowSelector.tMsPosition(forWallElapsed:in:)",
+   "hash": "560ef06f37d867f2",
+   "does": "Maps a wall-clock offset from session start onto the t_ms timeline: the t_ms of the first beat whose wallClockMs (ms since the stream/session started, the same clock as the offset) is >= the offset, skipping beats without a wall clock; the last beat's t_ms when none is; the offset itself when the series carries no wall clock (H10 internal, whose t_ms counts from session start).",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -1366,38 +1167,21 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "no points",
-     "effect": "return input unchanged"
+     "cond": "no points, or the first point has no wallClockMs",
+     "effect": "return the offset unchanged (H10 internal path)"
     },
     {
      "at": "+2",
-     "cond": "first point has no wallClockMs",
-     "effect": "return input unchanged (H10 internal path)"
+     "cond": "a beat with wallClockMs >= offset exists",
+     "effect": "return its t_ms"
     },
     {
-     "at": "+4",
-     "cond": "a beat with wallClockMs >= target exists",
-     "effect": "return its t_ms - first t_ms"
-    },
-    {
-     "at": "+7",
-     "cond": "no match / last nil (??)",
-     "effect": "return last t_ms - first t_ms (falls back to first t_ms, i.e. 0, if last were nil)"
+     "at": "+5",
+     "cond": "no match",
+     "effect": "return the last beat's t_ms"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Doc says the input is 'ms from session start' but the target is computed as firstWall + offset, i.e. relative to the first beat's wall clock; when the first beat arrives W0 ms after session start the boundaries shift later by W0. Beats with nil wallClockMs mid-series are treated as Int64.min and skipped.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:922",
-      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:932",
-      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:933"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0"
    }
@@ -1405,7 +1189,7 @@
   {
    "key": "func WindowSelector.findSearchBand(points:boundaries:)",
    "hash": "d8ccf59c507c5a09",
-   "does": "Computes the 30%-70% points of the sleep span, clamps them to the recording, and returns the index range of beats inside, or nil when empty.",
+   "does": "Computes the 30%-70% points of the sleep span (t_ms positions), clamps them to the recording's first/last t_ms, and returns the index range of beats inside, or nil when empty.",
    "entry": null,
    "calls": [],
    "reads": [],

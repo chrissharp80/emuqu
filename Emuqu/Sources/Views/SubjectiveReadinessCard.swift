@@ -10,14 +10,15 @@ struct SubjectiveReadinessCard: View {
     @State private var sliderValue: Double = 5.0
     @State private var hasSubmitted: Bool = false
 
+    /// A reading flagged `.good` reaches this card only as the results
+    /// screen's fallback for a reading with no usable HRV, so it gets the
+    /// not-enough-data explanation rather than an empty caption.
     private var qualityMessage: String {
         switch quality {
         case .preSleep:
             String(localized: "Your strap disconnected before sleep. Rate how you feel so we can estimate your recovery.", bundle: LanguageManager.appBundle)
-        case .insufficient:
+        case .insufficient, .good:
             String(localized: "Not enough HRV data for a reliable score. Rate how you feel instead.", bundle: LanguageManager.appBundle)
-        case .good:
-            ""
         }
     }
 
@@ -134,13 +135,14 @@ struct SubjectiveReadinessCard: View {
     }
 
     /// The word's colour: the slider's hue, darkened where needed to read as
-    /// text on the card.
+    /// text on the card. The top band is cyan, not the terracotta of the
+    /// bottom one, so the best and worst ratings never share a colour.
     private var labelColor: Color {
         switch Int(sliderValue.rounded()) {
         case 0 ... 2: AppTheme.terracottaText
         case 3 ... 4: AppTheme.wongAttentionText
         case 7 ... 8: AppTheme.sageText
-        case 9 ... 10: AppTheme.terracottaText
+        case 9 ... 10: AppTheme.mistText
         default: AppTheme.softGoldText
         }
     }
@@ -151,7 +153,7 @@ struct SubjectiveReadinessCard: View {
         case 3 ... 4: .orange
         case 5 ... 6: .yellow
         case 7 ... 8: .green
-        case 9 ... 10: AppTheme.accent
+        case 9 ... 10: AppTheme.mist
         default: .yellow
         }
     }

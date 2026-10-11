@@ -75,14 +75,12 @@ private struct LineChartDescriptor: AXChartDescriptorRepresentable {
 
     /// Dates are exposed to VoiceOver as reference-interval numbers with a
     /// formatter attached, which is the only shape AXNumericDataAxisDescriptor
-    /// accepts.
+    /// accepts. The range goes through `axisRange` like the value axis, so a
+    /// single-point or empty series still gets a non-degenerate span.
     private func dateAxis() -> AXNumericDataAxisDescriptor {
-        let xValues = points.map(\.date)
-        let minX = xValues.min() ?? Date()
-        let maxX = xValues.max() ?? Date()
-        return AXNumericDataAxisDescriptor(
+        AXNumericDataAxisDescriptor(
             title: xLabel,
-            range: minX.timeIntervalSinceReferenceDate...maxX.timeIntervalSinceReferenceDate,
+            range: axisRange(points.map { $0.date.timeIntervalSinceReferenceDate }),
             gridlinePositions: [],
             valueDescriptionProvider: { ts in
                 Date(timeIntervalSinceReferenceDate: ts).formatted(Self.axisDateStyle)

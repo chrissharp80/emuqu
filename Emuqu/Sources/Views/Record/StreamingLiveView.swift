@@ -42,9 +42,9 @@ struct StreamingProgressPanel: View {
     private var v2Body: some View {
         VStack(spacing: 18) {
             timeRemainingReadout
-            // A 16-second breathing cycle, 8s in and
-            // 8s out on a smooth wave with no holds, to settle breathing
-            // before the score reading.
+            // Paced at 5.5 breaths a minute (a cycle of about 11 s, half in
+            // and half out) on a smooth wave with no holds, to settle
+            // breathing before the score reading.
             BreathingMandalaView.slowPacedBreathing(onPhaseUpdate: { breathingAudio.updatePhase($0) })
                 .frame(width: 220, height: 220)
             liveHRReadout
@@ -133,80 +133,6 @@ struct StreamingProgressPanel: View {
         .background(Capsule().fill(AppTheme.sectionTint))
     }
 
-}
-
-// MARK: - Streaming Stats Row
-
-/// Stats row extracted so recentRRPoints changes only re-evaluate this row.
-struct StreamingStatsRow: View {
-    var streamingLifecycle: StreamingLifecycle
-    var polarManager: PolarManager
-
-    var body: some View {
-        HStack(spacing: 12) {
-            beatsPill
-            elapsedPill
-            averageRRPill
-        }
-    }
-
-    private var beatsPill: some View {
-        StreamingStatPill(
-            value: "\(streamingLifecycle.pausedBeatCount + polarManager.streamedRRCount)",
-            label: String(localized: "beats", bundle: LanguageManager.appBundle),
-            color: AppTheme.primary
-        )
-    }
-
-    private var elapsedPill: some View {
-        let s = streamingLifecycle.streamingElapsedSeconds
-        return StreamingStatPill(
-            value: String(format: "%d:%02d", s / 60, s % 60),
-            label: String(localized: "elapsed", bundle: LanguageManager.appBundle),
-            color: AppTheme.sage
-        )
-    }
-
-    /// Averaged over the last 20 beats, and only once enough have arrived for
-    /// the number to mean anything.
-    @ViewBuilder
-    private var averageRRPill: some View {
-        if polarManager.recentRRPoints.count > 5 {
-            let recentRR = polarManager.recentRRPoints.suffix(20)
-            let avgRR = recentRR.map { Double($0.rr_ms) }.reduce(0, +) / Double(recentRR.count)
-            StreamingStatPill(
-                value: String(format: "%.0f", locale: LanguageManager.appLocale, avgRR),
-                label: String(localized: "avg RR", bundle: LanguageManager.appBundle),
-                color: AppTheme.mist
-            )
-        }
-    }
-}
-
-// MARK: - Streaming Stat Pill
-
-/// Streaming stat pill -- value-only struct, no observation.
-struct StreamingStatPill: View {
-    let value: String
-    let label: String
-    let color: Color
-
-    var body: some View {
-        VStack(spacing: 2) {
-            Text(value)
-                .font(.system(.subheadline, design: .rounded).bold())
-                .foregroundColor(color)
-            Text(label)
-                .font(.caption2)
-                .foregroundColor(AppTheme.textTertiary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
-        .background(AppTheme.sectionTint)
-        .cornerRadius(8)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(String(localized: "\(label): \(value)", bundle: LanguageManager.appBundle))
-    }
 }
 
 // MARK: - Live Data Panel (isolated from RecordView body evaluation)

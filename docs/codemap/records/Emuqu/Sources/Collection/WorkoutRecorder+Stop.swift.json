@@ -59,13 +59,13 @@
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.cancelStrapSubscriptionsAfterStop()": "39bcd95193cd638c",
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.gatherFinalRRPoints(stopDate:)": "041d981aee1519fd",
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.heartRateAtStop()": "4b1a160ce232f804",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.launchHRRCaptureAndRearchive(stopDate:endHR:finished:)": "b5611c3673c7a99c",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.launchHRRCaptureAndRearchive(stopDate:endHR:finished:)": "8f316c1cf6656588",
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.runFinalize(rrPoints:stopDate:startedAt:)": "dc8bece3a7acaee3",
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.settleAfterFinalize(finished:startedAt:)": "3953ba774afc828c",
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.tearDownLiveWorkoutServices()": "243049be70c602da",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase": "d0bce80edccaa2fe",
-    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.end()": "4b7b063f686c4762",
-    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::init BackgroundTaskAssertion(name:onExpire:)": "de35035394cc6205",
+    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.end()": "0399440d47e4b6e4",
+    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::init BackgroundTaskAssertion(name:onExpire:)": "4a48b31466e377a4",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
@@ -120,7 +120,7 @@
    "deps": {
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.archiveBreadcrumbTrailIfNeeded(finished:)": "16dc95aa5d22ef41",
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.chargeStrapBatteryUsage()": "7fac6756a24aff2c",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.disconnectFootPodPostWorkout()": "fdbc1aa32c17b8c4",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.disconnectFootPodPostWorkout()": "a113964a3d38f379",
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.resetRecorderStateAfterStop()": "5af51182f5c26929",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.finishedSession": "877321d8f1364805",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase": "d0bce80edccaa2fe",
@@ -382,7 +382,7 @@
     "Emuqu/Sources/Collection/IntervalController.swift::func IntervalController.clear()": "4be4b8502ce327b5",
     "Emuqu/Sources/Collection/WorkoutHR.swift::func WorkoutHR.reset()": "fad94d4b8d475c1e",
     "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.reset()": "4960fbed7c9af858",
-    "Emuqu/Sources/Collection/WorkoutMotion.swift::func WorkoutMotion.reset()": "e66746c1f69c25d3",
+    "Emuqu/Sources/Collection/WorkoutMotion.swift::func WorkoutMotion.reset()": "c0529a1941867d60",
     "Emuqu/Sources/Collection/WorkoutPedometer.swift::func WorkoutPedometer.reset()": "ddcae24ccbc6ce0a",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location": "ae4b37ede53adc9c",
@@ -391,16 +391,18 @@
   },
   {
    "key": "func WorkoutRecorder.disconnectFootPodPostWorkout()",
-   "hash": "d26573ffcdfad84e",
-   "does": "Releases the workout hold on the Concept2 and foot-pod links and disconnects the foot pod if it is connected or connecting (strap stays up for HRR). Uses the global AppDependencies foot-pod manager, not the recorder's injected footPod.",
+   "hash": "7e2d011dc3b0360e",
+   "does": "Releases the workout hold on the Concept2 link and on the recorder's own (injected) foot-pod manager, and disconnects that foot pod if it is connected or connecting (strap stays up for HRR).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.holdLinkForWorkout(_:)",
     "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.holdLinkForWorkout(_:)",
     "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.disconnect()",
-    "ext:CBCentralManager.cancelPeripheralConnection"
+    "ext:CBCentralManager.cancelPeripheralConnection",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
+    "mem:WorkoutRecorder.footPod",
     "mem:FootPodManager.connectionState"
    ],
    "writes": [
@@ -408,28 +410,16 @@
    ],
    "branches": [
     {
-     "at": "+10",
+     "at": "+12",
      "cond": "foot pod connectionState is .connected or .connecting",
      "effect": "true: logs and disconnects it; false: nothing"
     }
    ],
-   "flags": [
-    {
-     "kind": "coupling",
-     "sev": "low",
-     "text": "Reads/disconnects AppDependencies.current.collection.footPodManager directly while the recorder holds an injectable `footPod` (init param); a test or caller injecting a different FootPodManager still has the global one torn down and its own left connected.",
-     "evidence": [
-      "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift:249",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift:253",
-      "Emuqu/Sources/Collection/WorkoutRecorder.swift:414"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.holdLinkForWorkout(_:)": "9187ae9f8cd2a455",
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.holdLinkForWorkout(_:)": "c6e351f2be523395",
     "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.disconnect()": "b9ba282009a86785",
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.holdLinkForWorkout(_:)": "5d8e481a809cc2de",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.holdLinkForWorkout(_:)": "26b9a543c31a47dd",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
@@ -438,78 +428,120 @@
   },
   {
    "key": "func WorkoutRecorder.launchHRRCaptureAndRearchive(stopDate:endHR:finished:)",
-   "hash": "e4ee204d4aacec55",
-   "does": "Builds an HRRCaptureService (120 s window) and launches a detached .userInitiated task running captureHRRAndRearchive with the session id, archive, Polar manager and whether the source was the strap.",
+   "hash": "8bfb7d64337102c5",
+   "does": "Builds an HRRCaptureService (120 s window) and launches a detached .userInitiated task running captureHRRAndRearchive with the session id, archive, Polar manager, the workout stream's start stamp (to recognise it later) and whether the source was the strap.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/HRRCaptureService.swift::init HRRCaptureService(polarManager:healthKit:captureWindowSec:)",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.captureHRRAndRearchive(captureService:stopDate:endHR:wasStrap:polarRef:archive:sessionId:)"
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.captureHRRAndRearchive(captureService:stopDate:endHR:wasStrap:polarRef:workoutStreamStart:archive:sessionId:)"
    ],
    "reads": [
-    "mem:WorkoutLifecycle.activeHRSource"
+    "mem:WorkoutLifecycle.activeHRSource",
+    "mem:PolarManager.streamingStartTime"
    ],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/HRRCaptureService.swift::init HRRCaptureService(polarManager:healthKit:captureWindowSec:)": "2983169857f5b2ed",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.captureHRRAndRearchive(captureService:stopDate:endHR:wasStrap:polarRef:archive:sessionId:)": "e071df1e5caaede7",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.captureHRRAndRearchive(captureService:stopDate:endHR:wasStrap:polarRef:workoutStreamStart:archive:sessionId:)": "cfaada935a859ba5",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.archive(session:)": "48c03f4e5ca60f97",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.activeHRSource": "daaf8ce19213f55e",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "f61a7a679f5280dd"
    }
   },
   {
-   "key": "func WorkoutRecorder.captureHRRAndRearchive(captureService:stopDate:endHR:wasStrap:polarRef:archive:sessionId:)",
-   "hash": "ed67e8ff346aeb40",
-   "does": "Detached body: awaits HRR samples (HRRCaptureService.captureHRR from stopDate/endHR), releases the strap stream when the source was the strap, re-archives the session with hrrSamples, then on the main actor announces/stages the coach report. Archive errors are logged as a warning and dropped.",
-   "entry": null,
+   "key": "func WorkoutRecorder.captureHRRAndRearchive(captureService:stopDate:endHR:wasStrap:polarRef:workoutStreamStart:archive:sessionId:)",
+   "hash": "4032c3ab0328c42f",
+   "does": "Detached body: awaits HRR samples (HRRCaptureService.captureHRR from stopDate/endHR), releases the strap when the source was the strap (only this workout's own stream), re-archives the session with hrrSamples and on the main actor announces/stages the coach report; when the archive copy cannot take them (update threw or session not archived) the samples still reach the summary on screen (showUnsavedHRR), so the HRR card never stays on 'capturing…'.",
+   "entry": "Body of the detached task launched by launchHRRCaptureAndRearchive.",
    "calls": [
     "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.captureHRR(stopDate:stopHR:)",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.releaseStrapAfterHRR(_:)",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.rearchiveWithHRR(_:archive:sessionId:)",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.announceHRRAndStageReport(samples:finalSession:)"
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.releaseStrapAfterHRR(_:workoutStreamStart:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.rearchiveLoggingFailure(_:archive:sessionId:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.showUnsavedHRR(_:sessionId:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.announceHRRAndStageReport(samples:finalSession:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+10",
+     "at": "+11",
      "cond": "wasStrap",
-     "effect": "true: stops Polar streaming and disconnects (unless a new workout is running); false: strap untouched"
+     "effect": "true: releaseStrapAfterHRR; false: strap untouched"
     },
     {
      "at": "+14",
-     "cond": "rearchiveWithHRR returned nil (session no longer in archive)",
-     "effect": "true: returns silently without announcing; false: hops to MainActor to announce/stage report and logs completion"
-    },
-    {
-     "at": "+21",
-     "cond": "catch — archive.update threw",
-     "effect": "logs a warning; the HRR samples are lost, no announcement, and the summary's HRR card is never updated"
+     "cond": "re-archive gave no session",
+     "effect": "shows the samples on the summary (if still this session's) and returns; else announces/stages and logs completion"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "med",
-     "text": "When archive.update throws, the HRR samples are only logged and discarded; the doc comment says 'The write-back always happens… instead of leaving the HRR card stuck on capturing…' but on this path nothing is written and finishedSession is not updated, so the card stays on 'capturing…'.",
-     "evidence": [
-      "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift:295",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift:296",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift:321",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift:322"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.captureHRR(stopDate:stopHR:)": "6ec6d27816e39766",
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.captureHRR(stopDate:stopHR:)": "59cf4e746231c8fd",
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.announceHRRAndStageReport(samples:finalSession:)": "a8018d756ba8830b",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.rearchiveWithHRR(_:archive:sessionId:)": "c716fcac18720cfd",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.releaseStrapAfterHRR(_:)": "802554e3bf4e46d2",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.rearchiveLoggingFailure(_:archive:sessionId:)": "a480b1f14080e279",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.releaseStrapAfterHRR(_:workoutStreamStart:)": "d9e9527f6db106a8",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.showUnsavedHRR(_:sessionId:)": "caf36b034d5b7f73",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.archive(session:)": "48c03f4e5ca60f97",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func WorkoutRecorder.rearchiveLoggingFailure(_:archive:sessionId:)",
+   "hash": "6fbe5ee0e6736511",
+   "does": "rearchiveWithHRR with each empty outcome logged: the updated session, or nil — logged as 'not in the archive' when the session is absent (e.g. an accidental start never archived), as a warning when archive.update threw.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.rearchiveWithHRR(_:archive:sessionId:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:SessionArchive.update (hrrSamples)"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "rearchiveWithHRR returned nil",
+     "effect": "logs, nil"
+    },
+    {
+     "at": "+11",
+     "cond": "update threw",
+     "effect": "warning log, nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.rearchiveWithHRR(_:archive:sessionId:)": "c716fcac18720cfd",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.archive(session:)": "48c03f4e5ca60f97",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func WorkoutRecorder.showUnsavedHRR(_:sessionId:)",
+   "hash": "1b7d461f8026e8d4",
+   "does": "Main actor: when the finished summary still shows this session, puts the HRR samples on its workoutMetadata (in memory only) and republishes it, so the HRR card leaves 'capturing…'.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WorkoutLifecycle.finishedSession"
+   ],
+   "writes": [
+    "mem:WorkoutLifecycle.finishedSession"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "finishedSession is this session",
+     "effect": "updated; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.finishedSession": "877321d8f1364805"
    }
   },
   {
@@ -542,16 +574,19 @@
    }
   },
   {
-   "key": "func WorkoutRecorder.releaseStrapAfterHRR(_:)",
-   "hash": "0221f30454784041",
-   "does": "After HRR capture, stops Polar streaming and disconnects the strap, unless a new workout is recording/finalizing.",
+   "key": "func WorkoutRecorder.releaseStrapAfterHRR(_:workoutStreamStart:)",
+   "hash": "b9969cbc99c279a3",
+   "does": "After HRR capture stops Polar streaming and disconnects the strap, unless a new workout is recording/finalizing, or the live stream is not this workout's (its start differs from workoutStreamStart: a second workout in its own HRR window, or an RRCollector overnight/quick reading started meanwhile).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.stopStreaming()",
-    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.disconnect()"
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.disconnect()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
-    "mem:WorkoutLifecycle.phase"
+    "mem:WorkoutLifecycle.phase",
+    "mem:PolarManager.isStreaming",
+    "mem:PolarManager.streamingStartTime"
    ],
    "writes": [
     "ble:Polar strap connection",
@@ -561,23 +596,15 @@
     {
      "at": "+2",
      "cond": "phase is neither .recording nor .finalizing",
-     "effect": "false (new workout running): logs and leaves strap; true: stopStreaming + disconnect"
-    }
-   ],
-   "flags": [
+     "effect": "false: logs and leaves the strap"
+    },
     {
-     "kind": "race",
-     "sev": "low",
-     "text": "Guard only checks .recording/.finalizing. If a second workout starts and finishes inside the first workout's 120 s window (phase .finished), this disconnects the strap during the second workout's own HRR capture window, breaking its Tier-1 samples.",
-     "evidence": [
-      "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift:366",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift:370",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift:371",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift:377"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+6",
+     "cond": "not streaming, or the stream is this workout's",
+     "effect": "false: logs and leaves it; true: stopStreaming + disconnect"
     }
    ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.disconnect()": "4bf10c09b5a18571",
     "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.stopStreaming()": "61f032bd39cc3856",

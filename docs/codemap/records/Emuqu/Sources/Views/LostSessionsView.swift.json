@@ -120,7 +120,7 @@
    "deps": {
     "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.emptyStateSection": "f4307f12238e93e5",
     "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.lostSessionsHeaderSection": "773ef438abd4a0e6",
-    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.lostSessionsListSection": "41461199b75c9d34",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.lostSessionsListSection": "fad401774b3683f3",
     "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.recoverySection": "d3680f3079ad67f3",
     "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.scanningSection": "638e527ca9d18980"
    }
@@ -231,32 +231,39 @@
   },
   {
    "key": "var LostSessionsView.lostSessionsListSection",
-   "hash": "7a4e867a83fe6d53",
-   "does": "'Sessions' section with a tagged row per lost session and swipe-to-delete via deleteSessionsAtOffsets.",
+   "hash": "2a1df98471d46a51",
+   "does": "'Sessions' section with a tagged row per lost session and swipe-to-delete via deleteSessionsAtOffsets; rows are deleteDisabled while Recover All runs, so a session cannot be swiped away from under the recovery loop.",
    "entry": "SwiftUI view-body evaluation; .onDelete swipe",
    "calls": [
     "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.sessionRow(_:)",
     "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.deleteSessionsAtOffsets(_:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
-   "reads": [],
+   "reads": [
+    "mem:LostSessionsView.isRecovering"
+   ],
    "writes": [],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "isRecovering",
+     "effect": "swipe-to-delete disabled on every row"
+    }
+   ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.deleteSessionsAtOffsets(_:)": "1fef63f8af3086f3",
-    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.sessionRow(_:)": "80f6898f324394f2"
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.sessionRow(_:)": "edd68dcb026c221f"
    }
   },
   {
    "key": "func LostSessionsView.sessionRow(_:)",
-   "hash": "aed92a5cc10fd5e7",
-   "does": "Row: formatted date, '<beatCount> RR intervals', and approximate duration.",
+   "hash": "71a5d79d388313fb",
+   "does": "Row: formatted date and '<beatCount> RR intervals'. No duration: a beat count alone cannot give one without assuming a heart rate.",
    "entry": "SwiftUI view-body evaluation",
    "calls": [
     "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.formatDate(_:)",
-    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.formatDuration(_:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
@@ -266,10 +273,8 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.formatDate(_:)": "4a883e6bc0b490f6",
-    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.formatDuration(_:)": "d317b9f84ec34e71",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
    }
   },
   {
@@ -408,7 +413,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.recoverAllSessions()": "a4842dc1b106ade2",
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.recoverAllSessions()": "fbf4a9da0798eb49",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
    }
   },
@@ -608,20 +613,7 @@
      "effect": "recoverOne per session in list order; empty list → finishRecovery immediately"
     }
    ],
-   "flags": [
-    {
-     "kind": "race",
-     "sev": "low",
-     "text": "Swipe-to-delete (.onDelete) stays enabled while Recover All runs (only EditButton is hidden), and the loop iterates the lostSessions value read when the Task started; a session swiped away (marked deleted) mid-recovery is still recovered and archived afterwards.",
-     "evidence": [
-      "Emuqu/Sources/Views/LostSessionsView.swift:147",
-      "Emuqu/Sources/Views/LostSessionsView.swift:258",
-      "Emuqu/Sources/Views/LostSessionsView.swift:318",
-      "Emuqu/Sources/Views/LostSessionsView.swift:331"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.finishRecovery(total:)": "b9033f3a9b709744",
     "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.recoverOne(_:index:total:)": "046bc393ef07692a"
@@ -713,41 +705,6 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
     "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
-   }
-  },
-  {
-   "key": "func LostSessionsView.formatDuration(_:)",
-   "hash": "deae4a9167b3848a",
-   "does": "Approximate duration '~<minutes>' or '~<h m>' from beatCount assuming 60 bpm (beatCount/60 minutes).",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)",
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+3",
-     "cond": "minutes < 60",
-     "effect": "LocalizedDuration.minutes; else hoursMinutes"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "hack",
-     "sev": "low",
-     "text": "Duration assumes exactly 60 bpm (1 beat/s); a resting overnight ~50 bpm session of 8 h shows ~6 h 40 m and a workout at 150 bpm shows 2.5x its real length.",
-     "evidence": [
-      "Emuqu/Sources/Views/LostSessionsView.swift:363",
-      "Emuqu/Sources/Views/LostSessionsView.swift:364"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "a4e4b582efee3f03",
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)": "0eaf9ea6f219f5b6"
    }
   }
  ],

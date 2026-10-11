@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/TrendsV2View.swift",
- "hash": "1879f3ff8fc8b2cb",
+ "hash": "d88d5e5c22331505",
  "role": "Trends screen (reached from More menu): loads every archived session once (lightweight), filters to reliable overnight readings within the selected range/tag, memoizes derived chart/stats/insight/direction state, and renders tag chips, range chips, the RMSSD overall-trend card, the metric chart, stats grid, insights and the History calendar (which can soft-delete a session).",
  "types": [
   "TrendsV2View: struct (View) — Trends screen",
@@ -16,15 +16,15 @@
   "mem:TrendsV2View.selectedTagId (@State UUID?, nil = All)",
   "mem:TrendsV2View.allSessions (@State [HRVSession], all archive sessions lightweight)",
   "mem:TrendsV2View.isLoadingSessions (@State Bool re-entrancy guard)",
+  "mem:TrendsV2View.reloadRequested (@State Bool, a refresh asked for during a load)",
   "mem:TrendsV2View.derived (@State Derived, starts .empty)",
   "mem:TrendsV2View.scrubbedDate (@State Date?, chartXSelection binding)",
-  "mem:TrendsV2View.primaryFilterTags (static let [.morning,.postExercise,.recovery,.evening])",
   "mem:TrendsV2View.BaselineStats.empty (static let)",
   "mem:TrendsV2View.Derived.empty (@MainActor static let, direction 'Building trend')",
   "@ScaledMetric dt11/dt12/dt13/dt14/dt17/dt22/dt24 font sizes",
   "@Environment dependencies, accessibilityReduceTransparency, RRCollector, ArchiveSignal"
  ],
- "toplevel": "Stored-property initializers: selectedRange .thirty, selectedMetric .recoveryScore, derived .empty, allSessions []; ScaledMetric defaults 11..24 bound to text styles. Environment reads RRCollector and ArchiveSignal (crash if not injected). No #if blocks.",
+ "toplevel": "Stored-property initializers: selectedRange .thirty, selectedMetric .recoveryScore, derived .empty, allSessions []; ScaledMetric defaults 11..24 bound to text styles. Environment reads RRCollector and ArchiveSignal (crash if not injected). No #if blocks. @State reloadRequested false.",
  "flags": [
   {
    "kind": "spec-mismatch",
@@ -304,6 +304,26 @@
    }
   },
   {
+   "key": "var TrendsV2View.filterTags",
+   "hash": "62000121c7b9c56d",
+   "does": "The tag chips after 'All': settings.allTags (system then custom, Settings order) filtered to tags at least one loaded overnight session in allSessions carries.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.allTags"
+   ],
+   "reads": [
+    "mem:TrendsV2View.allSessions",
+    "mem:SettingsManager.settings.customTags"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.allTags": "f7e94e6fb3a9db3b"
+   }
+  },
+  {
    "key": "var TrendsV2View.body",
    "hash": "6bb0a1996d7d6b5a",
    "does": "Screen body: ScrollView of stack on app background, large localized 'Trends' title, wrapped with refresh hooks.",
@@ -321,7 +341,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115",
-    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.withRefreshHooks(_:)": "58b300efdeda0fd5",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.withRefreshHooks(_:)": "5d0de8f3fd52ec09",
     "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.stack": "c691ac83f5e0cb9a"
    }
   },
@@ -368,20 +388,23 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.deleteSession(_:)": "cf89769c750f5a6e"
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.deleteSession(_:)": "49e7b546c720a4bf"
    }
   },
   {
    "key": "func TrendsV2View.withRefreshHooks(_:)",
-   "hash": "9bccc749960f0072",
-   "does": "Attaches .task to load sessions on appear, reload on ArchiveSignal.version change, and rebuildDerived on changes to allSessions.count, selectedRange, selectedMetric, selectedTagId.",
-   "entry": ".task on appear; .onChange observers of ArchiveSignal.version and @State inputs",
+   "hash": "5f9c6195d9fdeb3e",
+   "does": "Attaches .task to load sessions on appear, reload on ArchiveSignal.version change and on CloudKitSyncManager.pullVersion change (iCloud pulls, including deletions made on another device), and rebuildDerived on changes to allSessions.count, selectedRange, selectedMetric, selectedTagId.",
+   "entry": ".task on appear; .onChange observers of ArchiveSignal.version, CloudKitSyncManager.pullVersion and @State inputs",
    "calls": [
     "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.loadSessions()",
-    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.rebuildDerived()"
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.rebuildDerived()",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSyncManager"
    ],
    "reads": [
     "mem:ArchiveSignal.version",
+    "mem:CloudKitSyncManager.pullVersion",
     "mem:TrendsV2View.selectedRange",
     "mem:TrendsV2View.selectedMetric",
     "mem:TrendsV2View.selectedTagId",
@@ -389,31 +412,18 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Trends reloads only on ArchiveSignal.version; it does not observe CloudKitSyncManager.pullVersion as ARCHITECTURE.md/FLOWCHART.md say. A session deleted on another device is removed by handleDeletedRecord via archive.delete, which posts no .flowRecoveryArchiveChanged and only bumps pullVersion, so the open Trends screen keeps showing (and averaging) the deleted reading.",
-     "evidence": [
-      "Emuqu/Sources/Views/TrendsV2View.swift:227",
-      "docs/ARCHITECTURE.md:659",
-      "docs/FLOWCHART.md:714",
-      "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift:354",
-      "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift:35",
-      "Emuqu/Sources/Storage/Archive+Internal.swift:647"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.loadSessions()": "d6fed383e225a328",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSyncManager": "b2c1f986e338fb12",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.loadSessions()": "67fc1e7ba60f6f16",
     "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.rebuildDerived()": "f00778205f2a3823"
    }
   },
   {
    "key": "func TrendsV2View.loadSessions()",
-   "hash": "a31a1b3a7f5a2f64",
-   "does": "MainActor: unless a load is already running, loads every archive session lightweight via recentSessionsAsync(limit: nil) on a detached task, stores into allSessions and rebuilds derived state.",
+   "hash": "68406d43061aebec",
+   "does": "MainActor, one load at a time: a call while a load runs sets reloadRequested and returns; the running load loops — clear reloadRequested, load every archive session lightweight via recentSessionsAsync(limit: nil), store into allSessions, rebuildDerived — until no new request arrived during the pass.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.recentSessionsAsync(limit:)",
@@ -422,35 +432,28 @@
    "reads": [
     "archive:SessionArchive.entries",
     "archive:retrieveLightweight (all sessions)",
-    "mem:TrendsV2View.isLoadingSessions"
+    "mem:TrendsV2View.isLoadingSessions",
+    "mem:TrendsV2View.reloadRequested"
    ],
    "writes": [
     "mem:TrendsV2View.allSessions",
     "mem:TrendsV2View.isLoadingSessions",
+    "mem:TrendsV2View.reloadRequested",
     "mem:TrendsV2View.derived"
    ],
    "branches": [
     {
-     "at": "+2",
+     "at": "+1",
      "cond": "isLoadingSessions already true",
-     "effect": "return without loading (request dropped)"
-    }
-   ],
-   "flags": [
+     "effect": "set reloadRequested, return (the running load repeats)"
+    },
     {
-     "kind": "race",
-     "sev": "med",
-     "text": "A refresh requested while a load is in flight is dropped, not queued or restarted; recentSessionsAsync snapshots archive.entries at start, so a session saved/updated during that load (version bump arrives mid-load) is missing until the next bump or re-entry. FLOWCHART/ARCHITECTURE say a new refresh cancels and replaces the prior one.",
-     "evidence": [
-      "Emuqu/Sources/Views/TrendsV2View.swift:241",
-      "Emuqu/Sources/Views/TrendsV2View.swift:228",
-      "Emuqu/Sources/Collection/RRCollector.swift:297",
-      "docs/FLOWCHART.md:733",
-      "docs/ARCHITECTURE.md:664"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+14",
+     "cond": "reloadRequested set during the pass",
+     "effect": "load again"
     }
    ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.recentSessionsAsync(limit:)": "b016442b3cd5698d",
     "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.rebuildDerived()": "f00778205f2a3823"
@@ -458,14 +461,12 @@
   },
   {
    "key": "func TrendsV2View.deleteSession(_:)",
-   "hash": "0160e615a9ddb870",
-   "does": "Soft-deletes a session: archive.delete (index drop + move to trash), notifyArchiveChanged, removes from allSessions, rebuilds derived, fires CloudKit uploadDeletion in a Task; returns true. On throw logs and returns false.",
+   "hash": "2516ac126accd424",
+   "does": "Soft-deletes a session through SessionTrash.move (archive.delete to Trash, notifyArchiveChanged, CloudKit uploadDeletion in a Task), then removes it from allSessions and rebuilds derived; returns true. On throw logs and returns false.",
    "entry": "HistoryCalendarView onDelete callback (user deletes from day sheet)",
    "calls": [
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)",
-    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()",
+    "Emuqu/Sources/Views/HistoryView.swift::func SessionTrash.move(_:collector:cloudKit:)",
     "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.rebuildDerived()",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadDeletion(_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSyncManager"
@@ -485,43 +486,17 @@
    ],
    "branches": [
     {
-     "at": "+8",
-     "cond": "archive.delete throws",
+     "at": "+2",
+     "cond": "SessionTrash.move throws",
      "effect": "catch: debugLog, return false (calendar keeps the session); no user-visible error from this unit"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same delete sequence (archive.delete, notifyArchiveChanged, uploadDeletion) as MainTabView.deleteSession; any change to the delete path must be made in both.",
-     "evidence": [
-      "Emuqu/Sources/Views/TrendsV2View.swift:257",
-      "Emuqu/Sources/Views/MainTabView+Tabs.swift:199"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "The same archive.delete → notifyArchiveChanged → uploadDeletion sequence is also hand-copied in HistoryView.confirmDelete, FitnessTabView and RecordView+Sections, not only MainTabView.deleteSession (first-pass flag cited only that one).",
-     "evidence": [
-      "Emuqu/Sources/Views/TrendsV2View.swift:259",
-      "Emuqu/Sources/Views/HistoryView.swift:328",
-      "Emuqu/Sources/Views/FitnessTabView.swift:560",
-      "Emuqu/Sources/Views/RecordView+Sections.swift:408",
-      "Emuqu/Sources/Views/MainTabView+Tabs.swift:199"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "1c38f37d10093863",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "cefef470ab858af7",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadDeletion(_:)": "35795a3f19c6054a",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSyncManager": "b2c1f986e338fb12",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Views/HistoryView.swift::func SessionTrash.move(_:collector:cloudKit:)": "5a5b9af14dcd988b",
     "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.rebuildDerived()": "f00778205f2a3823"
    }
   },
@@ -680,39 +655,27 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.chipRow": "e4055f36a4388811"
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.chipRow": "f4c7b13da62d0351"
    }
   },
   {
    "key": "var TrendsV2View.chipRow",
-   "hash": "ac32ffbc98ba66a4",
-   "does": "HStack: All chip + one filterChip per primary tag (morning, postExercise, recovery, evening).",
+   "hash": "c0499cbfdb9d44d0",
+   "does": "HStack: All chip + one filterChip per filterTags entry (the user's tags that loaded overnight readings carry).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.allTagsChip",
-    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.filterChip(_:)"
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.filterChip(_:)",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.filterTags"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "The tag filter offers only four hard-coded system tags (Morning, Post-Exercise, Recovery, Evening). USERS_MANUAL says 'All plus your tags', but user-created customTags and the other 10 system tags (Alcohol, Illness, Travel, Caffeine, Poor Sleep…) can never be filtered; Post-Exercise/Evening are chips on an overnight-only screen.",
-     "evidence": [
-      "Emuqu/Sources/Views/TrendsV2View.swift:181",
-      "Emuqu/Sources/Views/TrendsV2View.swift:182",
-      "docs/USERS_MANUAL.md:859",
-      "Emuqu/Sources/Models/UserSettings+Model.swift:870",
-      "Emuqu/Sources/Models/HRVSession.swift:84"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.filterChip(_:)": "c6bd78dceb991662",
-    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.allTagsChip": "6da502bca3a0ea6a"
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.allTagsChip": "6da502bca3a0ea6a",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.filterTags": "93fe9b8698d6b91a"
    }
   },
   {

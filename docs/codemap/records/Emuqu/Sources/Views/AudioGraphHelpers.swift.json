@@ -65,46 +65,25 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/AudioGraphHelpers.swift::func LineChartDescriptor.dateAxis()": "2acf4af0116c882b",
+    "Emuqu/Sources/Views/AudioGraphHelpers.swift::func LineChartDescriptor.dateAxis()": "43b7341c690f7009",
     "Emuqu/Sources/Views/AudioGraphHelpers.swift::func LineChartDescriptor.valueAxis()": "e9b906a900c12531"
    }
   },
   {
    "key": "func LineChartDescriptor.dateAxis()",
-   "hash": "7cc0ff2cd891716d",
-   "does": "Date x axis spanning min…max point dates as reference-interval seconds, with a value-description closure formatting each as a localized date/time.",
+   "hash": "352fcba37803250a",
+   "does": "Date x axis whose range is axisRange over the points' reference-interval seconds (min…max, widened to at least 1 s; 0…1 when empty), with a value-description closure formatting each as a localized date/time.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Views/AudioGraphHelpers.swift::func axisRange(_:)",
     "Emuqu/Sources/Views/AudioGraphHelpers.swift::var LineChartDescriptor.axisDateStyle"
    ],
    "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "points empty (min nil)",
-     "effect": "minX = Date() (now)"
-    },
-    {
-     "at": "+3",
-     "cond": "points empty (max nil)",
-     "effect": "maxX = Date(); both now, so a zero-width range"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Unlike the value axis (axisRange forces ≥1 wide, comment says a degenerate range makes the scrubber unusable), the date axis is not widened, so a single-point or empty chart gets a zero-width x range; also minX/maxX use two separate Date() calls so an empty series could yield maxX slightly > minX only by luck of timing.",
-     "evidence": [
-      "Emuqu/Sources/Views/AudioGraphHelpers.swift:81",
-      "Emuqu/Sources/Views/AudioGraphHelpers.swift:82",
-      "Emuqu/Sources/Views/AudioGraphHelpers.swift:125"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "branches": [],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Views/AudioGraphHelpers.swift::func axisRange(_:)": "bbe4e1504f3dba42",
     "Emuqu/Sources/Views/AudioGraphHelpers.swift::var LineChartDescriptor.axisDateStyle": "8ec7cc7967743ed8"
    }
   },

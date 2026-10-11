@@ -1,35 +1,22 @@
 {
  "file": "Emuqu/Sources/Views/RecordView+Results.swift",
  "hash": "fe0594e9cbc215c4",
- "role": "RecordView extension for the non-overnight results preview (score cards, device-fetch indicator, full-report / continue buttons), the pre-score feeling write, and the tag/notes save path used by Save/Continue/Done.",
+ "role": "RecordView extension for the non-overnight results preview (score cards, full-report / continue buttons), the pre-score feeling write, the tag/notes save path (persistTagsAndNotes for acceptance and quick readings, preSessionTagged for overnight/nap auto-accept).",
  "types": [
   "RecordView: extension — results preview and acceptance helpers"
  ],
  "state": [],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "unreachable-branch",
-   "sev": "low",
-   "text": "deviceFetchIndicator's spinner/skip row is gated on MorningCoordination.isDeviceFetchInProgress, which no production code ever sets to true (only `= false` writes in RRCollector+Acceptance/Session/OvernightStreaming; only tests set true). skipDeviceFetchButton and skipDeviceFetch are therefore never shown/reached.",
-   "evidence": [
-    "Emuqu/Sources/Views/RecordView+Results.swift:42",
-    "Emuqu/Sources/Collection/MorningCoordination.swift:21",
-    "EmuquTests/RRCollectorObservableStateTests.swift:308"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "func RecordView.morningResultsPreview(session:result:)",
-   "hash": "cf28044320148391",
-   "does": "Preview card for a reading awaiting acceptance: session header, metric cards, device-fetch indicator, View Full Report and Continue to Dashboard buttons, on the shared preview background.",
+   "hash": "f5b2b7789cf43ad5",
+   "does": "Preview card for a reading awaiting acceptance: session header, metric cards, View Full Report and Continue to Dashboard buttons, on the shared preview background.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/MorningPreviewCards.swift::func MorningPreviewCards.header(_:)",
     "Emuqu/Sources/Views/MorningPreviewCards.swift::func MorningPreviewCards.metrics(_:)",
-    "Emuqu/Sources/Views/RecordView+Results.swift::var RecordView.deviceFetchIndicator",
     "Emuqu/Sources/Views/RecordView+Results.swift::var RecordView.viewFullReportButton",
     "Emuqu/Sources/Views/RecordView+Results.swift::var RecordView.continueToDashboardButton",
     "Emuqu/Sources/Views/MorningPreviewCards.swift::var MorningPreviewCards.background"
@@ -42,18 +29,17 @@
     "Emuqu/Sources/Views/MorningPreviewCards.swift::func MorningPreviewCards.header(_:)": "506547ab4bf84439",
     "Emuqu/Sources/Views/MorningPreviewCards.swift::func MorningPreviewCards.metrics(_:)": "e17017dac9fa1a60",
     "Emuqu/Sources/Views/MorningPreviewCards.swift::var MorningPreviewCards.background": "8ff3d5b6c5558b6c",
-    "Emuqu/Sources/Views/RecordView+Results.swift::var RecordView.continueToDashboardButton": "48f351cee24a8296",
-    "Emuqu/Sources/Views/RecordView+Results.swift::var RecordView.deviceFetchIndicator": "ab131626412da7dd",
+    "Emuqu/Sources/Views/RecordView+Results.swift::var RecordView.continueToDashboardButton": "365cc4e43a67cd43",
     "Emuqu/Sources/Views/RecordView+Results.swift::var RecordView.viewFullReportButton": "0184840fda3bfb55"
    }
   },
   {
    "key": "var RecordView.continueToDashboardButton",
-   "hash": "7d7df314ba0cdabd",
-   "does": "'Continue to Dashboard' button: runs saveMorningReading (accept path) and switches to the Dashboard tab.",
+   "hash": "957779ed5a2fe9e4",
+   "does": "'Continue to Dashboard' button: runs acceptSession (tags, accept, picker reset) and switches to the Dashboard tab.",
    "entry": "Button action.",
    "calls": [
-    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.saveMorningReading()"
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.acceptSession()"
    ],
    "reads": [],
    "writes": [
@@ -64,116 +50,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.saveMorningReading()": "c2cb6aee56ee476a"
-   }
-  },
-  {
-   "key": "var RecordView.deviceFetchIndicator",
-   "hash": "d71a7c776916eaf0",
-   "does": "When a device fetch is in progress shows a spinner, 'Syncing strap data…' and the skip button; otherwise renders nothing.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/RecordView+Results.swift::var RecordView.skipDeviceFetchButton"
-   ],
-   "reads": [
-    "mem:MorningCoordination.isDeviceFetchInProgress"
-   ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "morningCoordination.isDeviceFetchInProgress",
-     "effect": "true: spinner row with skip button; false: empty. isDeviceFetchInProgress is never set true in production code, so only the false path runs"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "True branch unreachable in production: isDeviceFetchInProgress is only ever assigned false outside tests.",
-     "evidence": [
-      "Emuqu/Sources/Views/RecordView+Results.swift:42",
-      "Emuqu/Sources/Collection/RRCollector+Forwarders.swift:126"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isDeviceFetchInProgress": "c99b310984e70107",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecordView+Results.swift::var RecordView.skipDeviceFetchButton": "79da0a5321ec5a11",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
-   }
-  },
-  {
-   "key": "var RecordView.skipDeviceFetchButton",
-   "hash": "653ff3eef969366b",
-   "does": "Bordered button 'Use N streamed beats' (N = sessionState.collectedPoints.count) that calls skipDeviceFetch.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.skipDeviceFetch()"
-   ],
-   "reads": [
-    "mem:SessionState.collectedPoints"
-   ],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Only built inside deviceFetchIndicator's never-true branch, so never displayed.",
-     "evidence": [
-      "Emuqu/Sources/Views/RecordView+Results.swift:49"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.collectedPoints": "95b1582000cb698f",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3",
-    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.skipDeviceFetch()": "90041c2d7c10f04e"
-   }
-  },
-  {
-   "key": "func RecordView.skipDeviceFetch()",
-   "hash": "39965990f475bb7f",
-   "does": "Sets collector.deviceFetchPolicy = .skipByUser and cancels the active Polar fetch so morning processing uses streamed beats.",
-   "entry": "Button action of skipDeviceFetchButton.",
-   "calls": [
-    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.cancelFetch()"
-   ],
-   "reads": [],
-   "writes": [
-    "mem:RRCollector.deviceFetchPolicy",
-    "ble:H10 PFTP transfer (cancel)"
-   ],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same two statements as the onSkipDeviceFetch closure in morningProcessingSection.",
-     "evidence": [
-      "Emuqu/Sources/Views/RecordView+Results.swift:63",
-      "Emuqu/Sources/Views/RecordView+Sections.swift:229"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Only reachable through skipDeviceFetchButton, which is never shown (isDeviceFetchInProgress never true in production).",
-     "evidence": [
-      "Emuqu/Sources/Views/RecordView+Results.swift:55"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.cancelFetch()": "7744e4f6bfe88f81"
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.acceptSession()": "d91bcd99edec01b4"
    }
   },
   {
@@ -329,55 +206,6 @@
    }
   },
   {
-   "key": "func RecordView.saveMorningReading()",
-   "hash": "05c23cb1d316cdb4",
-   "does": "Task: writes tags/notes for the current session (if any), calls collector.acceptSession (archive, baseline, HealthKit, sync); an accept error is only logged (collector sets lastError); then clears selectedTags, sessionNotes and selectedSessionType.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.persistTagsAndNotes(for:)",
-    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.acceptSession()",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
-   ],
-   "reads": [
-    "mem:SessionState.currentSession"
-   ],
-   "writes": [
-    "archive:SessionArchive (accept + tags)",
-    "mem:SessionState.currentSession",
-    "mem:SessionState.needsAcceptance",
-    "mem:SessionState.lastError (on failure, by collector)"
-   ],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "sessionState.currentSession != nil",
-     "effect": "true: persistTagsAndNotes; false: skip tag write, acceptSession then throws noSessionToAccept"
-    },
-    {
-     "at": "+5",
-     "cond": "catch on acceptSession",
-     "effect": "error logged and swallowed; UI tags/notes/type cleared anyway. runAcceptance failures set lastError (RRCollector+Acceptance.swift:15) so the alert shows; noSessionToAccept (no current session or not .complete, RRCollector+Acceptance.swift:9-10) sets nothing, so that failure is silent"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same body as RecordView.acceptSession (RecordView+Actions.swift:193) except it also nils selectedSessionType.",
-     "evidence": [
-      "Emuqu/Sources/Views/RecordView+Results.swift:131",
-      "Emuqu/Sources/Views/RecordView+Actions.swift:193"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.acceptSession()": "800c03c657c5beae",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.persistTagsAndNotes(for:)": "6e96678f241ddc07"
-   }
-  },
-  {
    "key": "func RecordView.persistTagsAndNotes(for:)",
    "hash": "be28b271b593f1c9",
    "does": "Builds the tag list (selected tags plus 'morning' when the session ended 04:00–09:59 local, using now when endDate is nil) and notes (nil if empty), applies them to the in-memory current session and writes them to the archive.",
@@ -404,25 +232,36 @@
      "effect": "true: notes=nil (clears any stored note); false: the text"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Doc comment says every save path (Save, Continue, Done) comes through here so a reading gets the same tags whichever button is pressed. Quick readings never do: their tags are written by stopStreaming without tagsToSave (no 04:00-09:59 'morning' tag), and both quick Done paths (clearFinishedQuickReading, finishQuickReading) skip it; overnight/nap auto-accept skips it entirely.",
-     "evidence": [
-      "Emuqu/Sources/Views/RecordView+Results.swift:147",
-      "Emuqu/Sources/Views/RecordView+Actions.swift:189",
-      "Emuqu/Sources/Views/RecordView+Sections.swift:298",
-      "Emuqu/Sources/Views/RecordView+Sections.swift:433",
-      "Emuqu/Sources/Views/RecordView.swift:324"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.applyTagsInMemory(_:notes:sessionId:)": "1fe2048baee01ea2",
     "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.tagsToSave(_:endedAt:)": "c1530a6269262160",
     "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.writeTagsToArchive(_:tags:notes:)": "005c3e40bf61c250"
+   }
+  },
+  {
+   "key": "func RecordView.preSessionTagged(_:)",
+   "hash": "3ca7b26c6b010f1b",
+   "does": "Pure: returns the session with the pre-session tags (selected tags plus 'morning' when it ended 04:00-09:59, via tagsToSave) appended to the tags it already holds (no duplicates, new ones sorted by name), and notes replaced only when sessionNotes is non-empty. Used by overnight/nap auto-accept, whose re-score archives the returned session.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.tagsToSave(_:endedAt:)"
+   ],
+   "reads": [
+    "mem:RecordView.selectedTags",
+    "mem:RecordView.sessionNotes"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "!sessionNotes.isEmpty",
+     "effect": "true: notes = sessionNotes; false: session notes kept"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.tagsToSave(_:endedAt:)": "c1530a6269262160"
    }
   },
   {

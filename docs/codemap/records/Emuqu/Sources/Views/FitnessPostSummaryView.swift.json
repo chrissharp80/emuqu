@@ -1,45 +1,19 @@
 {
  "file": "Emuqu/Sources/Views/FitnessPostSummaryView.swift",
- "hash": "e2a05032e39c950d",
- "role": "The post-workout summary sheet (Fitness tab and History): owns all @State for the sheet, lays out the card stack, keeps the rendered session fresh from the archive on every ArchiveSignal bump, and pre-generates the GPX/CSV/TCX export files, decoded GPS track and resolved splits off the main thread.",
+ "hash": "c50f3db76a96487e",
+ "role": "The post-workout summary sheet (Fitness tab and History): owns all @State for the sheet, lays out the card stack, keeps the rendered session fresh from the archive (newest reload wins; an unchanged file is not re-processed), and pre-generates the GPX/CSV/TCX export files, decoded GPS track and resolved splits off the main thread once per real change of the archived copy.",
  "types": [
   "FitnessPostSummaryView: struct (View) — the post-summary sheet; extensions in +Feeling/+Share(FitnessSummaryCards)/+StatsForwarding/+SummaryForwarding/+ThresholdForwarding/+Alpha1Forwarding/+Cards",
   "FitnessPostSummaryView.ExportOutcome: struct — result of the off-main track decode + export write (track, splits, gpx/csv/tcx URLs, joined error)"
  ],
  "state": [
   "mem:FitnessPostSummaryView.refreshedSession (@State, archive copy that overrides initialSession) MAIN:17",
-  "@State showDeleteConfirm, cachedTrack, gpxURL, csvURL, tcxURL, exportsReady, exportGeneration, exportError, pdfURL, pdfGenerating, recapImage, recapImageURL, recapGenerating, recapSharePresented, showSaveRouteSheet, newRouteName, savedRouteIDForThisSession, pdfSharePresented, pdfMailPresented, pdfMailError, reanalyzing, reanalyzeError, elevResmoothing, elevResmoothPreview, elevResmoothError, routeHistory, cachedSplits, feelingEditing (lines 44-118, 490)",
+  "@State showDeleteConfirm, cachedTrack, gpxURL, csvURL, tcxURL, exportsReady, exportGeneration, exportError, trackDecoded, reloadGeneration, loadedFileHash, summaryPrepared, pdfURL, pdfGenerating, recapImage, recapImageURL, recapGenerating, recapSharePresented, showSaveRouteSheet, newRouteName, savedRouteIDForThisSession, pdfSharePresented, pdfMailPresented, pdfMailError, reportShare (FitnessSummaryCards.ReportShareState), reanalyzing, reanalyzeError, elevResmoothing, elevResmoothPreview, elevResmoothError, routeHistory, routeHistoryGeneration, cachedSplits, feelingEditing, feelingSaveFailed",
   "file:tmp/<GPX|CSV|TCX temp files> written by GPXExporter/CSVExporter/TCXExporter.writeToTempFile (MAIN:469-475)",
   "Environment: dependencies, SettingsManager, RRCollector, ArchiveSignal (lines 10, 38, 42, 43)"
  ],
- "toplevel": "Stored let initialSession / onDone and var onDelete set by init; @State defaults (empty track, nil URLs, false flags, exportGeneration 0). Environment objects SettingsManager, RRCollector and ArchiveSignal must be injected by the presenter or the view traps at runtime.",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "Opening the sheet runs the full track decode + GPX/CSV/TCX write and the route-history archive walk at least twice: `.task(id:)` calls prepareSummary (generateExportsInBackground + loadRouteHistorySummary) while `.onAppear` -> primeSummary -> reloadFromArchive sets refreshedSession and invalidateCachedExports starts both again; a legacy snapshot backfill or a feeling save bumps the archive signal and repeats the whole cycle a third time.",
-   "evidence": [
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift:130",
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift:139",
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift:382",
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift:400",
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift:421",
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift:422",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:133"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Comment says onDelete is wired by 'Fitness tab, History', but HistoryView constructs FitnessPostSummaryView(session:) { ... } without onDelete, so the delete toolbar button never appears from History.",
-   "evidence": [
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift:34",
-    "Emuqu/Sources/Views/HistoryView.swift:422"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "Stored let initialSession / onDone and var onDelete set by init (the onDelete comment says the Fitness tab wires it and History does not); @State defaults (empty track, nil URLs, false flags, generations 0). The export comment says GPX/CSV/TCX rows use ShareLink while the PDF report and recap card present ShareSheet in a .sheet after a render. Environment objects SettingsManager, RRCollector and ArchiveSignal must be injected by the presenter or the view traps at runtime.",
+ "flags": [],
  "units": [
   {
    "key": "var FitnessPostSummaryView.session",
@@ -109,15 +83,14 @@
   },
   {
    "key": "var FitnessPostSummaryView.body",
-   "hash": "2decbde07f22fc27",
-   "does": "Root view: summaryScroll with inline 'Workout Summary' title, toolbar (delete/Done), delete confirmation dialog, `.task(id: session.id)` running prepareSummary, `.onChange(of: archiveSignal.version)` calling reloadFromArchive, and `.onAppear` calling primeSummary.",
-   "entry": "SwiftUI body; .task/.onChange/.onAppear lifecycle triggers.",
+   "hash": "d0b4850504bcab38",
+   "does": "Root view: summaryScroll with inline 'Workout Summary' title, toolbar (delete/Done), delete confirmation dialog, `.onChange(of: archiveSignal.version)` calling reloadFromArchive, and `.onAppear` calling primeSummary (whose first reload builds the exports and route history).",
+   "entry": "SwiftUI body; .onChange/.onAppear lifecycle triggers.",
    "calls": [
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.summaryScroll",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.summaryToolbar",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.deleteWorkoutActions",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.deleteWorkoutMessage",
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.prepareSummary()",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.reloadFromArchive()",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.primeSummary()",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session",
@@ -131,20 +104,19 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.prepareSummary()": "97bb70a9d46392ac",
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.primeSummary()": "cd65ffca253a2add",
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.reloadFromArchive()": "2fc09f234659823b",
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.primeSummary()": "d84da87b30d222c2",
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.reloadFromArchive()": "8cd96dece605a536",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.deleteWorkoutActions": "fdaa2f5454b6c01e",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.deleteWorkoutMessage": "c7096f1789d7f987",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session": "cc1e3419b78fc3c4",
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.summaryScroll": "f9382200dbf69539",
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.summaryScroll": "b7631479249246fc",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.summaryToolbar": "58af80db0714a0a9"
    }
   },
   {
    "key": "var FitnessPostSummaryView.summaryScroll",
-   "hash": "1e0ad7f2773a146b",
-   "does": "ScrollView with a 20pt-spaced VStack of summaryTopCards, summaryChartCards, summaryDetailCards and summaryFooter.",
+   "hash": "15862d76d4ae444d",
+   "does": "ScrollView with a 20pt-spaced VStack of summaryTopCards, summaryChartCards, summaryDetailCards and summaryFooter, carrying the \"Couldn't save how you felt. Try again.\" alert bound to feelingSaveFailed.",
    "entry": "Rendered from body.",
    "calls": [
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.summaryTopCards",
@@ -153,10 +125,13 @@
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.summaryFooter"
    ],
    "reads": [],
-   "writes": [],
+   "writes": [
+    "mem:FitnessPostSummaryView.feelingSaveFailed"
+   ],
    "branches": [],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.summaryChartCards": "3cb4546c96315310",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.summaryDetailCards": "28a81c30aceb1108",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.summaryFooter": "bc8f9500f1a31905",
@@ -182,7 +157,7 @@
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.summaryBanners": "e195b3d291434c0b",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.summaryFeelingAndAlpha1": "3050be87a3d4ffd5",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.summaryHeroCards": "417bc87d545e18ca",
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.summaryMapCard": "e9d1a633806eab5e"
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.summaryMapCard": "fbedd59fc4587c9f"
    }
   },
   {
@@ -200,15 +175,15 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.heroCard": "2190deb311bbdc8f",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.heroCard": "ae3cd47c6d7a2b48",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.keyStatsCard": "9ac0e6bcaaa2d6c2",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.sessionAnalysisCard": "e0f2a4b03a91f4f9"
    }
   },
   {
    "key": "var FitnessPostSummaryView.summaryMapCard",
-   "hash": "2dd6d8e9937d84cf",
-   "does": "Reserves the map slot when the session stores a GPS polyline: the real mapCard once the decoded track is non-empty, else the 260pt mapPlaceholder.",
+   "hash": "cbee6c06fcd34cf5",
+   "does": "Reserves the map slot when the session stores a GPS polyline: the real mapCard once the decoded track is non-empty, the 260pt mapPlaceholder while no decode has landed yet, and nothing when the decode finished with zero points.",
    "entry": "Rendered from summaryTopCards.",
    "calls": [
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session",
@@ -216,32 +191,28 @@
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.mapCard",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.mapPlaceholder"
    ],
-   "reads": [],
+   "reads": [
+    "mem:FitnessPostSummaryView.trackDecoded"
+   ],
    "writes": [],
    "branches": [
     {
-     "at": "+2",
+     "at": "+1",
      "cond": "session.workoutMetadata?.gpsPolyline != nil",
-     "effect": "true: renders map or placeholder; false: renders nothing (indoor/no-GPS workouts get no map slot)"
+     "effect": "true: map, placeholder or nothing; false: nothing (indoor/no-GPS workouts get no map slot)"
     },
     {
-     "at": "+3",
+     "at": "+2",
      "cond": "track (cachedTrack) non-empty",
-     "effect": "true: mapCard; false: mapPlaceholder 'Loading route…' — stays forever if the polyline decodes to zero points"
-    }
-   ],
-   "flags": [
+     "effect": "true: mapCard"
+    },
     {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "A stored polyline that decodes to an empty track (GPXExporter.decode returns []) leaves the 'Loading route…' spinner on screen permanently because the placeholder is chosen purely on track.isEmpty, not on whether decoding finished.",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessPostSummaryView.swift:211",
-      "Emuqu/Sources/Views/FitnessPostSummaryView.swift:451"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+4",
+     "cond": "no decode has landed yet",
+     "effect": "mapPlaceholder 'Loading route…'; after an empty decode nothing"
     }
    ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.mapCard": "58a4dd18047b333a",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.mapPlaceholder": "364526df73cf77c6",
@@ -551,27 +522,9 @@
    }
   },
   {
-   "key": "func FitnessPostSummaryView.prepareSummary()",
-   "hash": "99807cc399a1df44",
-   "does": "Runs generateExportsInBackground then loadRouteHistorySummary sequentially.",
-   "entry": ".task(id: session.id) on appear / id change.",
-   "calls": [
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.generateExportsInBackground()",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift::func FitnessPostSummaryView.loadRouteHistorySummary()"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift::func FitnessPostSummaryView.loadRouteHistorySummary()": "527499a1627d9cac",
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.generateExportsInBackground()": "035f17e685180df5"
-   }
-  },
-  {
    "key": "func FitnessPostSummaryView.primeSummary()",
    "hash": "982dfd30a216a7f9",
-   "does": "Calls reloadFromArchive and spawns a Task running backfillAnalysisSnapshotIfNeeded.",
+   "does": "Calls reloadFromArchive (its first landing builds the exports and route history) and spawns a Task running backfillAnalysisSnapshotIfNeeded.",
    "entry": ".onAppear.",
    "calls": [
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.reloadFromArchive()",
@@ -582,58 +535,86 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.backfillAnalysisSnapshotIfNeeded()": "e521827989317dd0",
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.reloadFromArchive()": "2fc09f234659823b"
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.backfillAnalysisSnapshotIfNeeded()": "30903ad690a95c47",
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.reloadFromArchive()": "8cd96dece605a536"
    }
   },
   {
    "key": "func FitnessPostSummaryView.reloadFromArchive()",
-   "hash": "27bb32f0b5b8308a",
-   "does": "Retrieves initialSession.id from collector.archive on a detached userInitiated task (retrieveOrLog: full decode, errors logged and nil returned); on success sets refreshedSession and invalidates every cached export.",
+   "hash": "cdee8fe740429ca0",
+   "does": "Bumps reloadGeneration, reads the archive index's fileHash for initialSession.id, retrieves the session on a detached userInitiated task (retrieveOrLog: full decode, errors logged and nil returned) and, only if no newer reload started meanwhile, hands the result to applyReload.",
    "entry": "Called from .onChange(of: archiveSignal.version) and primeSummary (.onAppear).",
    "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)",
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.invalidateCachedExports()",
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.applyReload(_:fileHash:)",
     "ext:Task.detached"
    ],
    "reads": [
     "archive:SessionArchive.retrieve",
+    "mem:SessionArchive.entries",
     "mem:RRCollector.archive"
    ],
    "writes": [
-    "mem:FitnessPostSummaryView.refreshedSession"
+    "mem:FitnessPostSummaryView.reloadGeneration"
    ],
    "branches": [
     {
-     "at": "+7",
-     "cond": "archive returned a session",
-     "effect": "true: refreshedSession = latest and invalidateCachedExports(); false (missing file/decode error, already logged): return silently, view keeps showing the stale copy"
+     "at": "+10",
+     "cond": "a newer reload started",
+     "effect": "this result is dropped"
     }
    ],
-   "flags": [
-    {
-     "kind": "race",
-     "sev": "low",
-     "text": "Each archive bump spawns an independent detached retrieve with no generation/ordering guard (unlike generateExportsInBackground's exportGeneration); two retrieves contend for archiveLock in arbitrary order, so an older read can land last and overwrite refreshedSession with the pre-write copy until the next bump. It also invalidates and regenerates every export on each landing even when the session did not change.",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessPostSummaryView.swift:395",
-      "Emuqu/Sources/Views/FitnessPostSummaryView.swift:396",
-      "Emuqu/Sources/Views/FitnessPostSummaryView.swift:400",
-      "Emuqu/Sources/Views/FitnessPostSummaryView.swift:401",
-      "Emuqu/Sources/Views/FitnessPostSummaryView.swift:436"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "f0a309cc2b24de13",
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.invalidateCachedExports()": "e6face073c48d06e"
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.applyReload(_:fileHash:)": "efb1f0b4f150a3b9"
+   }
+  },
+  {
+   "key": "func FitnessPostSummaryView.applyReload(_:fileHash:)",
+   "hash": "44745dfc831d9fdd",
+   "does": "Applies a landed reload. With a session: after the first build, an unchanged index file hash changes nothing; otherwise sets refreshedSession and loadedFileHash. Without one (read failed): keeps what is shown, except on the first reload. Then marks the summary prepared and invalidates/rebuilds the exports and route history.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.invalidateCachedExports()"
+   ],
+   "reads": [
+    "mem:FitnessPostSummaryView.summaryPrepared",
+    "mem:FitnessPostSummaryView.loadedFileHash"
+   ],
+   "writes": [
+    "mem:FitnessPostSummaryView.refreshedSession",
+    "mem:FitnessPostSummaryView.loadedFileHash",
+    "mem:FitnessPostSummaryView.summaryPrepared"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "archive returned a session",
+     "effect": "checks the hash; else the read failed"
+    },
+    {
+     "at": "+2",
+     "cond": "already prepared and same file hash",
+     "effect": "return (nothing changed)"
+    },
+    {
+     "at": "+5",
+     "cond": "read failed after the first build",
+     "effect": "return, keep the shown copy; on the first reload the exports are built from initialSession"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.invalidateCachedExports()": "de61148617581556"
    }
   },
   {
    "key": "func FitnessPostSummaryView.invalidateCachedExports()",
-   "hash": "52e7fbafefd3386e",
-   "does": "Clears pdfURL/gpxURL/csvURL/tcxURL and exportsReady, then spawns tasks to regenerate the exports and reload the route-history summary.",
+   "hash": "84f19f701f5b0b02",
+   "does": "Clears pdfURL/gpxURL/csvURL/tcxURL and exportsReady, bumps reportShare.cacheGeneration (so a PDF still rendering from the old copy is not cached), then spawns tasks to regenerate the exports and reload the route-history summary.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.generateExportsInBackground()",
@@ -642,6 +623,7 @@
    "reads": [],
    "writes": [
     "mem:FitnessPostSummaryView.pdfURL",
+    "mem:FitnessPostSummaryView.reportShare.cacheGeneration",
     "mem:FitnessPostSummaryView.gpxURL",
     "mem:FitnessPostSummaryView.csvURL",
     "mem:FitnessPostSummaryView.tcxURL",
@@ -650,14 +632,14 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift::func FitnessPostSummaryView.loadRouteHistorySummary()": "527499a1627d9cac",
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.generateExportsInBackground()": "035f17e685180df5"
+    "Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift::func FitnessPostSummaryView.loadRouteHistorySummary()": "e8ca8b8a8b2d2660",
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.generateExportsInBackground()": "94984c18c89b0312"
    }
   },
   {
    "key": "func FitnessPostSummaryView.generateExportsInBackground()",
-   "hash": "fc4c6a855849b852",
-   "does": "Bumps exportGeneration, snapshots session and imperial preference, runs buildExports on a detached utility task, and — only if no newer generation started — publishes cachedTrack, cachedSplits, the three URLs, exportError and exportsReady (true if any one file was written).",
+   "hash": "51ce52ee49b097be",
+   "does": "Bumps exportGeneration, snapshots session and imperial preference, runs buildExports on a detached utility task, and — only if no newer generation started — publishes cachedTrack, trackDecoded = true, cachedSplits, the three URLs, exportError and exportsReady (true if any one file was written). PDF and recap failures live in reportShare.error, so this exportError write cannot erase them.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.buildExports(session:wantsMile:)",
@@ -672,6 +654,7 @@
    "writes": [
     "mem:FitnessPostSummaryView.exportGeneration",
     "mem:FitnessPostSummaryView.cachedTrack",
+    "mem:FitnessPostSummaryView.trackDecoded",
     "mem:FitnessPostSummaryView.cachedSplits",
     "mem:FitnessPostSummaryView.gpxURL",
     "mem:FitnessPostSummaryView.csvURL",
@@ -686,18 +669,7 @@
      "effect": "true: publish results; false: drop this stale result"
     }
    ],
-   "flags": [
-    {
-     "kind": "coupling",
-     "sev": "low",
-     "text": "Writing exportError here unconditionally replaces any 'PDF failed' message that generateAndShowPDFShare stored in the same field, so a PDF failure disappears on the next archive bump.",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessPostSummaryView.swift:443",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift:316"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.units": "88eb8ae49d3ff5bb",

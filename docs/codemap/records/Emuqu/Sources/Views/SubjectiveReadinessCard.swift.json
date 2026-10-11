@@ -15,8 +15,8 @@
  "units": [
   {
    "key": "var SubjectiveReadinessCard.qualityMessage",
-   "hash": "5fda934887242b44",
-   "does": "Explanatory text by quality: preSleep → strap disconnected message; insufficient → not enough HRV message; good → empty string.",
+   "hash": "1659af3a5c2d5d30",
+   "does": "Explanatory text by quality: preSleep → strap disconnected message; insufficient and good → the not-enough-HRV message (.good reaches the card only as the results screen's fallback for a reading with no usable HRV).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
@@ -31,29 +31,11 @@
     },
     {
      "at": "+4",
-     "cond": "quality .insufficient",
+     "cond": "quality .insufficient or .good",
      "effect": "insufficient-data prompt"
-    },
-    {
-     "at": "+6",
-     "cond": "quality .good",
-     "effect": "empty string (card body shows a blank caption)"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "MorningResultsView.unreadableFallbackCard shows the card for any hrvDataQuality, including .good, so the .good arm is reachable and the card shows an empty caption with no explanation; docs say it appears only for .preSleep/.insufficient.",
-     "evidence": [
-      "Emuqu/Sources/Views/SubjectiveReadinessCard.swift:20",
-      "Emuqu/Sources/Views/MorningResultsView.swift:654",
-      "Emuqu/Sources/Views/MorningResultsView.swift:678",
-      "docs/API_REFERENCE.md:2153"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
@@ -191,7 +173,7 @@
    "deps": {
     "Emuqu/Sources/Views/SubjectiveReadinessCard.swift::func SubjectiveReadinessCard.restoreExistingRating()": "1d98d43633291fd9",
     "Emuqu/Sources/Views/SubjectiveReadinessCard.swift::var SubjectiveReadinessCard.header": "db50bb7ab29cfb88",
-    "Emuqu/Sources/Views/SubjectiveReadinessCard.swift::var SubjectiveReadinessCard.qualityMessage": "8900d0b9dfd815d2",
+    "Emuqu/Sources/Views/SubjectiveReadinessCard.swift::var SubjectiveReadinessCard.qualityMessage": "b6b6117aa60e334d",
     "Emuqu/Sources/Views/SubjectiveReadinessCard.swift::var SubjectiveReadinessCard.sliderRow": "353bccdb25e81240",
     "Emuqu/Sources/Views/SubjectiveReadinessCard.swift::var SubjectiveReadinessCard.submitButton": "cb3203ded7c91948",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
@@ -237,8 +219,8 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/SubjectiveReadinessCard.swift::var SubjectiveReadinessCard.emoji": "bb7f3ac21e427575",
     "Emuqu/Sources/Views/SubjectiveReadinessCard.swift::var SubjectiveReadinessCard.label": "a9c717afef14c74c",
-    "Emuqu/Sources/Views/SubjectiveReadinessCard.swift::var SubjectiveReadinessCard.labelColor": "e50c341bb9715d51",
-    "Emuqu/Sources/Views/SubjectiveReadinessCard.swift::var SubjectiveReadinessCard.sliderColor": "966aba914325abfb"
+    "Emuqu/Sources/Views/SubjectiveReadinessCard.swift::var SubjectiveReadinessCard.labelColor": "8e5b6aa49fde16cb",
+    "Emuqu/Sources/Views/SubjectiveReadinessCard.swift::var SubjectiveReadinessCard.sliderColor": "7625b5e9c33df757"
    }
   },
   {
@@ -330,14 +312,15 @@
   },
   {
    "key": "var SubjectiveReadinessCard.labelColor",
-   "hash": "19dda77211af073f",
-   "does": "Word colour: 0-2 terracottaText, 3-4 wongAttentionText, 7-8 sageText, 9-10 terracottaText (accent=terracotta), else (5-6 and out-of-range) softGoldText.",
+   "hash": "ec0756224b6c2c66",
+   "does": "Word colour: 0-2 terracottaText, 3-4 wongAttentionText, 7-8 sageText, 9-10 mistText (cyan, distinct from the bottom band), else (5-6 and out-of-range) softGoldText.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.terracottaText",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.wongAttentionText",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.softGoldText"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.softGoldText",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.mistText"
    ],
    "reads": [],
    "writes": [],
@@ -360,7 +343,7 @@
     {
      "at": "+5",
      "cond": "9...10",
-     "effect": "terracottaText (same as 0-2, since AppTheme.accent = terracotta)"
+     "effect": "mistText"
     },
     {
      "at": "+6",
@@ -368,21 +351,9 @@
      "effect": "softGoldText"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "The best ratings (9-10, 'Great'/'Peak') render in the same terracotta text colour as the worst (0-2, 'Terrible'), because the slider's top band uses AppTheme.accent which is terracotta; colour alone cannot distinguish best from worst.",
-     "evidence": [
-      "Emuqu/Sources/Views/SubjectiveReadinessCard.swift:140",
-      "Emuqu/Sources/Views/SubjectiveReadinessCard.swift:143",
-      "Emuqu/Sources/Views/SubjectiveReadinessCard.swift:154",
-      "Emuqu/Sources/Views/Theme.swift:227"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.mistText": "81c9b7b876926c13",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "7646093d377bac7c",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.softGoldText": "12fb8e2fb33c18ef",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.terracottaText": "6a18b5025ee3e850",
@@ -391,8 +362,8 @@
   },
   {
    "key": "var SubjectiveReadinessCard.sliderColor",
-   "hash": "bf3de4eaaac7dd1f",
-   "does": "Slider tint: 0-2 red, 3-4 orange, 5-6 yellow, 7-8 green, 9-10 AppTheme.accent (terracotta), default yellow.",
+   "hash": "13754c660f986ee7",
+   "does": "Slider tint: 0-2 red, 3-4 orange, 5-6 yellow, 7-8 green, 9-10 AppTheme.mist (cyan), default yellow.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -421,7 +392,7 @@
     {
      "at": "+6",
      "cond": "9...10",
-     "effect": "AppTheme.accent (terracotta coral-red)"
+     "effect": "AppTheme.mist (cyan)"
     },
     {
      "at": "+7",

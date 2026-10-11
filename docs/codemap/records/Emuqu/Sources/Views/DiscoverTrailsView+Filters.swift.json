@@ -7,33 +7,7 @@
  ],
  "state": [],
  "toplevel": "Header comment says the file exists to keep DiscoverTrailsView under the 500-line limit. No code outside units.",
- "flags": [
-  {
-   "kind": "broken",
-   "sev": "med",
-   "text": "The Activity picker is shown on the 'My routes' tab, but filteredSavedRoutes never reads filters.activity (SavedRoute has a sport field), so switching activity there changes nothing in the visible list, while the radius filter is hidden on that tab precisely to show only 'what actually filters the visible list'.",
-   "evidence": [
-    "Emuqu/Sources/Views/DiscoverTrailsView+Filters.swift:11",
-    "Emuqu/Sources/Views/DiscoverTrailsView+Filters.swift:106",
-    "Emuqu/Sources/Views/DiscoverTrailsView+Filters.swift:108",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift:253",
-    "Emuqu/Sources/Models/SavedRoute.swift:19"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "broken",
-   "sev": "med",
-   "text": "Length steppers cap at 100 km and default max is 30 km, and filteredSavedRoutes applies them on 'My routes' with no 'no max' sentinel (unlike ascent), so saved routes longer than 30 km are hidden by default and routes over 100 km can never be listed or picked from this sheet.",
-   "evidence": [
-    "Emuqu/Sources/Views/DiscoverTrailsView+Filters.swift:148",
-    "Emuqu/Sources/Views/DiscoverTrailsView+Filters.swift:152",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift:58",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift:260"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "var DiscoverTrailsView.filtersCard",
@@ -52,7 +26,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/DiscoverTrailsView+Filters.swift::var DiscoverTrailsView.activityPicker": "99e7efd6261bb813",
+    "Emuqu/Sources/Views/DiscoverTrailsView+Filters.swift::var DiscoverTrailsView.activityPicker": "33d7c375d9ba6836",
     "Emuqu/Sources/Views/DiscoverTrailsView+Filters.swift::var DiscoverTrailsView.difficultyFilter": "b02ffa9dee42d0a8",
     "Emuqu/Sources/Views/DiscoverTrailsView+Filters.swift::var DiscoverTrailsView.elevationGainFilter": "e186a43458324322",
     "Emuqu/Sources/Views/DiscoverTrailsView+Filters.swift::var DiscoverTrailsView.lengthRangeFilter": "3e0506ec12ccbf98",
@@ -73,13 +47,13 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/DiscoverTrailsView+Filters.swift::var DiscoverTrailsView.elevationGainStack": "2d055fcfe8407b59"
+    "Emuqu/Sources/Views/DiscoverTrailsView+Filters.swift::var DiscoverTrailsView.elevationGainStack": "dbe990ef952d9441"
    }
   },
   {
    "key": "var DiscoverTrailsView.elevationGainStack",
-   "hash": "229dad9582c0406c",
-   "does": "Header with ascentRangeLabel, min ascent slider 0-1500 m and max slider 100-2000 m (step 50), then the Find-new caveat.",
+   "hash": "cc8a748be72756ac",
+   "does": "Header with ascentRangeLabel (ordered, 'no max' at the edge), min ascent slider 0-1500 m and max slider 100-ascentSliderMaxMeters (2000) m (step 50), then the Find-new caveat.",
    "entry": "SwiftUI body evaluation of DiscoverTrailsView",
    "calls": [
     "Emuqu/Sources/Views/DiscoverTrailsView+Filters.swift::func DiscoverTrailsView.filterHeader(_:value:)",
@@ -90,26 +64,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Min and max ascent sliders are independent and can cross (min 1500 > max 100); filteredSavedRoutes orders them, but ascentRangeLabel shows the raw inverted pair like '1,500–100 m'.",
-     "evidence": [
-      "Emuqu/Sources/Views/DiscoverTrailsView+Filters.swift:32",
-      "Emuqu/Sources/Views/DiscoverTrailsView+Filters.swift:36",
-      "Emuqu/Sources/Views/DiscoverTrailsView.swift:391",
-      "Emuqu/Sources/Views/DiscoverTrailsView.swift:396"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/DiscoverTrailsView+Filters.swift::func DiscoverTrailsView.filterHeader(_:value:)": "4c5f74a7651c02a6",
     "Emuqu/Sources/Views/DiscoverTrailsView+Filters.swift::var DiscoverTrailsView.ascentFilterCaveat": "c761abea6c3e3262",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.ascentRangeLabel": "d7065995752aabad"
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.ascentRangeLabel": "d75455aaeb8e7358"
    }
   },
   {
@@ -231,9 +192,31 @@
   },
   {
    "key": "var DiscoverTrailsView.activityPicker",
-   "hash": "43dfe59a4db6e447",
-   "does": "Caption 'Activity' above activitySegments.",
+   "hash": "747fdb0e0a413400",
+   "does": "On the Find new tab only, the activity stack (caption + segmented picker); nothing on My routes, whose list is not filtered by activity.",
    "entry": "SwiftUI body evaluation of DiscoverTrailsView",
+   "calls": [
+    "Emuqu/Sources/Views/DiscoverTrailsView+Filters.swift::var DiscoverTrailsView.activityStack"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "tab == .findNew",
+     "effect": "activity stack; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/DiscoverTrailsView+Filters.swift::var DiscoverTrailsView.activityStack": "405f23a44756f449"
+   }
+  },
+  {
+   "key": "var DiscoverTrailsView.activityStack",
+   "hash": "9ef5af9e0e8ffb4f",
+   "does": "Caption 'Activity' above activitySegments.",
+   "entry": null,
    "calls": [
     "Emuqu/Sources/Views/DiscoverTrailsView+Filters.swift::var DiscoverTrailsView.activitySegments",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
@@ -337,17 +320,18 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/DiscoverTrailsView+Filters.swift::func DiscoverTrailsView.filterHeader(_:value:)": "4c5f74a7651c02a6",
-    "Emuqu/Sources/Views/DiscoverTrailsView+Filters.swift::var DiscoverTrailsView.lengthSteppers": "2b9782eddd0c0faa",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.lengthRangeLabel": "fa75c302ef9ac12c"
+    "Emuqu/Sources/Views/DiscoverTrailsView+Filters.swift::var DiscoverTrailsView.lengthSteppers": "507e71cee7573076",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.lengthRangeLabel": "eaacd2c3d00cdc72"
    }
   },
   {
    "key": "var DiscoverTrailsView.lengthSteppers",
-   "hash": "8526ab74bd6fb380",
-   "does": "Two Steppers in 1 km steps: min 0-100, max 1-100, each labelled in the user's units.",
+   "hash": "dfcdc74a663f7bc2",
+   "does": "Two Steppers in 1 km steps: min 0-lengthStepperMaxKm, max 1-lengthStepperMaxKm (top = 'no max'), labelled in the user's units (max via maxStepperLengthLabel).",
    "entry": "SwiftUI body evaluation of DiscoverTrailsView",
    "calls": [
     "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.stepperLengthLabel(_:)",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.maxStepperLengthLabel",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
@@ -358,7 +342,8 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.stepperLengthLabel(_:)": "6426085749ea7554"
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.stepperLengthLabel(_:)": "6426085749ea7554",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.maxStepperLengthLabel": "4aeba952719a5971"
    }
   },
   {
@@ -384,7 +369,7 @@
    "deps": {
     "Emuqu/Sources/Views/DiscoverTrailsView+Filters.swift::func DiscoverTrailsView.difficultyChipLabel(_:)": "0ce6e3a0e5e67f5f",
     "Emuqu/Sources/Views/DiscoverTrailsView+Filters.swift::func DiscoverTrailsView.difficultyIsActive(_:)": "817f133edcfbdfea",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.cycleDifficulty(_:)": "7df2e32ec8823782"
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.cycleDifficulty(_:)": "1fe3a9767bc167b8"
    }
   },
   {

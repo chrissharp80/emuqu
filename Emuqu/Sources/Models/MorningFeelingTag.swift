@@ -11,6 +11,13 @@ import Foundation
 /// Nine tags total — the point where further splitting becomes noise in
 /// a consumer app (DASS/RESTQ instruments require multi-item scales for
 /// finer distinctions, which don't survive single-tag reporting).
+///
+/// Decoding a SINGLE tag (the `RawRepresentable` Codable) throws
+/// `DecodingError` on an unknown raw value. The forward-compat "silently
+/// drop unknown tags" behavior lives in the `MorningFeelingTagArray`
+/// wrapper below, which decodes each element leniently and skips any it
+/// can't map; decode arrays through it, not `[MorningFeelingTag]`, when
+/// tolerance is required.
 enum MorningFeelingTag: String, Codable, CaseIterable {
     // Body (somatic)
     case infection // flu / cold / fever — training-stop signal
@@ -53,22 +60,8 @@ enum MorningFeelingTag: String, Codable, CaseIterable {
         }
     }
 
-    var label: String {
-        switch self {
-        case .infection: "Infection"
-        case .allergies: "Allergies"
-        case .hangover: "Hangover"
-        case .stomach: "Stomach"
-        case .sore: "Sore"
-        case .tired: "Tired"
-        case .headache: "Headache"
-        case .stressed: "Stressed"
-        case .down: "Down"
-        }
-    }
-
-    /// The chip's text in the app language. `label` stays English: it is
-    /// what Flo and the exports read.
+    /// The chip's text in the app language. `rawValue` stays English: it is
+    /// what Flo and the fact resolver read.
     var localizedLabel: String {
         let bundle = LanguageManager.appBundle
         return switch self {
@@ -82,25 +75,6 @@ enum MorningFeelingTag: String, Codable, CaseIterable {
         case .stressed: String(localized: "Stressed", bundle: bundle)
         case .down: String(localized: "Down", bundle: bundle)
         }
-    }
-
-    // MARK: - Codable with forward-compatible decode
-
-    /// Decoding a SINGLE tag throws `DecodingError` on an unknown raw value.
-    /// The forward-compat "silently drop unknown tags" behavior lives in the
-    /// `MorningFeelingTagArray` wrapper below (which decodes each element
-    /// leniently and skips any it can't map) — NOT here. Decode arrays
-    /// through that wrapper, not the synthesized `[MorningFeelingTag]`
-    /// decoder, when tolerance is required.
-    init(from decoder: Decoder) throws {
-        let raw = try decoder.singleValueContainer().decode(String.self)
-        guard let value = MorningFeelingTag(rawValue: raw) else {
-            throw try DecodingError.dataCorruptedError(
-                in: decoder.singleValueContainer(),
-                debugDescription: "Unknown MorningFeelingTag: \(raw)"
-            )
-        }
-        self = value
     }
 }
 

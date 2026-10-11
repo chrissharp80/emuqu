@@ -124,8 +124,8 @@
   },
   {
    "key": "func SessionRecoveryCoordinator.recoverFromDevice()",
-   "hash": "b4ba10de7b457977",
-   "does": "Recover-from-device flow: checks preconditions, resets the transfer cancel flag, downloads the strap recording with the attended budget, decides placement, assembles the session through DeviceRecordingSession, and returns it only if its state is .complete; otherwise throws collector.lastError or insufficientData.",
+   "hash": "59cd6d54b0b1ca3d",
+   "does": "Recover-from-device flow: clears any earlier lastError, checks preconditions, resets the transfer cancel flag, downloads the strap recording with the attended budget, decides placement, assembles the session through DeviceRecordingSession, and returns it only if its state is .complete; otherwise throws the error this recovery set, or insufficientData when none was (the analysis found too little to score).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+Recovery.swift::func SessionRecoveryCoordinator.checkRecoverable()",
@@ -141,39 +141,17 @@
    ],
    "branches": [
     {
-     "at": "+8",
+     "at": "+10",
      "cond": "assembled session.state == .complete",
-     "effect": "returns the session; else falls through to the throw"
+     "effect": "returns the session; else throws"
     },
     {
-     "at": "+9",
+     "at": "+11",
      "cond": "collector.lastError ?? insufficientData",
-     "effect": "throws the last error set during assembly, or CollectorError.insufficientData when none was set"
+     "effect": "throws the error set during this recovery, or CollectorError.insufficientData when none was set"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "When assembly leaves the session incomplete without setting lastError the user is shown 'Not enough RR data collected (need at least 120 beats)' regardless of the actual cause.",
-     "evidence": [
-      "Emuqu/Sources/Collection/RRCollector+Recovery.swift:67",
-      "Emuqu/Sources/Collection/RRCollector.swift:890"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "silent-failure",
-     "sev": "med",
-     "text": "When assembly returns a non-complete session without setting lastError (analysis returns nil -> state .failed at DeviceRecording.swift:453, no lastError write), the throw uses whatever stale lastError an earlier operation left: lastError is never cleared at the start of recovery nor by resetSession, so the user can be shown an unrelated old error (e.g. notConnected) instead of the real failure.",
-     "evidence": [
-      "Emuqu/Sources/Collection/RRCollector+Recovery.swift:67",
-      "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift:453",
-      "Emuqu/Sources/Collection/RRCollector+Session.swift:8"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.WindowCounts.insufficientData()": "11ced4f212a2ca65",
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.beginTransfer()": "bfa6d138e9e66b85",

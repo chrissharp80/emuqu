@@ -1,12 +1,11 @@
 {
  "file": "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift",
- "hash": "2bd56efa204452a9",
+ "hash": "3c6db48ee6ba5815",
  "role": "Optional WhisperKit (base.en, CoreML on-device) per-turn STT backend for voice conversation: loads the model, accumulates mic buffers during the user's turn, converts to 16 kHz mono WAV and transcribes.",
  "types": [
   "WhisperKitSTTBridge: final class @MainActor — model + buffer accumulation",
   "UnsafeAVConverterFeeder: final class @unchecked Sendable — single-shot converter input",
-  "STTBridgeError: enum LocalizedError",
-  "AVAudioPCMBuffer: private extension — deepCopy()"
+  "STTBridgeError: enum LocalizedError"
  ],
  "state": [
   "mem:WhisperKitSTTBridge.shared",
@@ -63,11 +62,10 @@
   },
   {
    "key": "func WhisperKitSTTBridge.appendAudio(_:)",
-   "hash": "0dd8d9869ef15fa9",
-   "does": "When the model is ready, deep-copies the buffer into pendingBuffers and caps them at ~60 s.",
+   "hash": "bb3f2c1305c979da",
+   "does": "When the model is ready, keeps the buffer as given in pendingBuffers (the only caller passes a copy it made on the tap thread and only reads it afterwards) and caps them at 60 s.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func AVAudioPCMBuffer.deepCopy()",
     "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.capPendingBuffers()"
    ],
    "reads": [],
@@ -79,57 +77,33 @@
      "at": "+1",
      "cond": "model not ready or no pipeline",
      "effect": "drop buffer"
-    },
-    {
-     "at": "+5",
-     "cond": "deepCopy succeeded",
-     "effect": "append and cap; else buffer dropped silently"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "The caller already deep-copies every tap buffer (VoiceAudioPipeline.deepCopyPCMBuffer) before handing it over on the main actor, so this second deepCopy duplicates that helper's job and doubles allocation per buffer.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift:112",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift:439",
-      "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift:127"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func AVAudioPCMBuffer.deepCopy()": "455d5c0695bc3262",
-    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.capPendingBuffers()": "8f1076c83e2f4c4c"
+    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.capPendingBuffers()": "ac564bb2955e1eab"
    }
   },
   {
    "key": "func WhisperKitSTTBridge.capPendingBuffers()",
-   "hash": "2dac06b7f9b28a3b",
-   "does": "Drops oldest buffers while total frames exceed 48 000×60 and more than one buffer remains.",
+   "hash": "bce9f5baabc614ba",
+   "does": "Drops the oldest buffers while the pending audio, summed as frameLength / each buffer's own sample rate, exceeds 60 s and more than one buffer remains.",
    "entry": null,
    "calls": [],
-   "reads": [],
-   "writes": [],
+   "reads": [
+    "mem:WhisperKitSTTBridge.pendingBuffers"
+   ],
+   "writes": [
+    "mem:WhisperKitSTTBridge.pendingBuffers"
+   ],
    "branches": [
     {
-     "at": "+3",
-     "cond": "total > 2 880 000 frames and >1 buffer",
+     "at": "+4",
+     "cond": "total > 60 s and >1 buffer",
      "effect": "remove oldest; loop"
     }
    ],
-   "flags": [
-    {
-     "kind": "hack",
-     "sev": "low",
-     "text": "Cap assumes a 48 kHz input rate; at 44.1 kHz the bound is ~65 s and at 16 kHz ~180 s, not the documented ~60 s.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift:139"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -181,18 +155,20 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.writeMonoWav(at16k:)": "b75fc633b37c5853",
+    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.writeMonoWav(at16k:)": "5fc2d48154211fa6",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
    }
   },
   {
    "key": "func WhisperKitSTTBridge.writeMonoWav(at16k:)",
-   "hash": "267668103eaba5e2",
-   "does": "Builds a 16 kHz mono Float32 converter from the first buffer's format, creates a temp WAV and writes each converted buffer.",
+   "hash": "0e2990735e9194ab",
+   "does": "Requires at least one buffer, builds the 16 kHz mono Float32 target format, creates a temp WAV and fills it via writeConverted; when creating or filling the file throws, removes the partial file before rethrowing (the caller's cleanup only starts once a URL is returned).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.convert(_:with:to:)",
-    "ext:AVAudioFile(forWriting:)"
+    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.writeConverted(_:to:format:)",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "ext:AVAudioFile(forWriting:)",
+    "ext:FileManager.removeItem"
    ],
    "reads": [],
    "writes": [
@@ -210,24 +186,9 @@
      "effect": "throw converterUnavailable"
     },
     {
-     "at": "+5",
-     "cond": "AVAudioConverter init nil",
-     "effect": "throw converterUnavailable"
-    },
-    {
-     "at": "+16",
-     "cond": "for each buffer",
-     "effect": "convert"
-    },
-    {
-     "at": "+17",
-     "cond": "convert returns nil (alloc failed)",
-     "effect": "skip that buffer silently"
-    },
-    {
-     "at": "+18",
-     "cond": "output has frames",
-     "effect": "write to file; else skip"
+     "at": "+10",
+     "cond": "file creation or writeConverted throws",
+     "effect": "remove the partial file, rethrow"
     }
    ],
    "flags": [
@@ -240,22 +201,58 @@
       "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift:162"
      ],
      "found": "first read, upheld on second"
-    },
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "The converter is built from the first buffer's format only; a route change mid-turn that changes the tap format feeds mismatched buffers into it. If file creation succeeds but a later write throws, the temp WAV is leaked because the caller's defer is set only after this returns.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift:195",
-      "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift:207",
-      "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift:168"
-     ],
-     "found": "first read, upheld on second"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.convert(_:with:to:)": "1339b50ebda5b975",
+    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.writeConverted(_:to:format:)": "e72f4b6fd9585b55",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5",
     "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+   }
+  },
+  {
+   "key": "func WhisperKitSTTBridge.writeConverted(_:to:format:)",
+   "hash": "25caea3da6a69242",
+   "does": "Converts each buffer to the 16 kHz mono format and writes it to the file, building a new AVAudioConverter whenever a buffer's format differs from the current converter's input format (a mid-turn route change).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.convert(_:with:to:)",
+    "ext:AVAudioConverter(from:to:)",
+    "ext:AVAudioFile.write(from:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:tmp/whisperkit-utterance-<unix>.wav"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each buffer",
+     "effect": "convert and write"
+    },
+    {
+     "at": "+3",
+     "cond": "no converter yet or input format changed",
+     "effect": "build a converter for this format"
+    },
+    {
+     "at": "+6",
+     "cond": "converter init returned nil",
+     "effect": "throw converterUnavailable"
+    },
+    {
+     "at": "+7",
+     "cond": "convert returns nil (alloc failed)",
+     "effect": "skip that buffer"
+    },
+    {
+     "at": "+8",
+     "cond": "output has frames",
+     "effect": "write; else skip"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.convert(_:with:to:)": "1339b50ebda5b975"
    }
   },
   {
@@ -354,44 +351,6 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
-  },
-  {
-   "key": "func AVAudioPCMBuffer.deepCopy()",
-   "hash": "95e40478ba1b7071",
-   "does": "Allocates a same-format buffer, sets frameLength and memcpy's float or int16 channel data; returns nil if allocation fails.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "allocation fails",
-     "effect": "return nil"
-    },
-    {
-     "at": "+7",
-     "cond": "float channel data present",
-     "effect": "copy floats per channel"
-    },
-    {
-     "at": "+8",
-     "cond": "for each channel",
-     "effect": "memcpy floats"
-    },
-    {
-     "at": "+11",
-     "cond": "int16 channel data present",
-     "effect": "copy int16 per channel; other formats (int32) left zeroed = silence"
-    },
-    {
-     "at": "+12",
-     "cond": "for each channel",
-     "effect": "memcpy int16"
-    }
-   ],
-   "flags": [],
-   "deps": {}
   }
  ],
  "deps": {}

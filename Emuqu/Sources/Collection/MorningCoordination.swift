@@ -8,7 +8,8 @@ import Observation
 /// re-render on unrelated BLE / archive / streaming updates.
 ///
 /// Writers: the morning-processing and acceptance extensions push here.
-/// Readers: `RecordView`, `MorningResultsView`, `RecoveryDashboardView`.
+/// Readers: `RecordView` and its panels, `MorningResultsView` and its
+/// detail cards.
 /// The collector keeps back-compat get/set forwarding so existing extension
 /// code migrates incrementally.
 @MainActor

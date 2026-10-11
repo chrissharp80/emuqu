@@ -60,8 +60,8 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.buildAndSpeakStartUtterance(phrase:lang:audio:releaser:)": "1a50c4c13009e129",
-    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.installAnnounceWatchdog(for:)": "03ea41900cef1593",
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.buildAndSpeakStartUtterance(phrase:lang:audio:releaser:)": "5d7f7bbdbc37dab7",
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.installAnnounceWatchdog(for:)": "277c3e6d8a3ad5a7",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
@@ -70,17 +70,18 @@
   },
   {
    "key": "func WorkoutStartCue.buildAndSpeakStartUtterance(phrase:lang:audio:releaser:)",
-   "hash": "6c348c56fd97ce2f",
-   "does": "Off-main: builds an AVSpeechUtterance (default rate, cached compact voice, volume 0.9), activates the cue audio session hold (beginCue) tracked by the releaser, speaks via the FRSafeSpeak ObjC shim; on failure releases the hold and logs.",
+   "hash": "c55abb284de2dfc4",
+   "does": "Off-main: builds the utterance (makeStartUtterance — the voice lookup can block); if the task was cancelled meanwhile (the 800 ms watchdog gave up) logs and returns without speaking, so the cue is never spoken late; otherwise activates the cue audio session hold (beginCue) tracked by the releaser and speaks via the FRSafeSpeak ObjC shim; on failure releases the hold and logs.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.cachedCompactVoice(forLanguage:)",
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.makeStartUtterance(phrase:lang:)",
     "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.beginCue()",
     "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func CueAudioSessionReleaser.track(_:token:)",
     "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeSpeak",
     "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func CueAudioSessionReleaser.release(_:)",
     "ext:AVSpeechSynthesizer.speak",
-    "ext:AVAudioSession.setActive(true)"
+    "ext:AVAudioSession.setActive(true)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
    "writes": [
@@ -88,31 +89,53 @@
    ],
    "branches": [
     {
-     "at": "+18",
+     "at": "+9",
+     "cond": "task cancelled after the voice lookup",
+     "effect": "logs 'cue skipped, not spoken late' and returns"
+    },
+    {
+     "at": "+19",
      "cond": "speak succeeded",
      "effect": "false: releases audio hold and logs warning; true: logs timing"
     },
     {
-     "at": "+20",
+     "at": "+21",
      "cond": "?? — no NSError",
      "effect": "fallback '?' in the log"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voice": "fa61a702fe44b576",
     "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.beginCue()": "73c6ae1ce9608494",
     "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func CueAudioSessionReleaser.release(_:)": "e30c8b132cebf5e5",
     "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func CueAudioSessionReleaser.track(_:token:)": "feded6e160d987b2",
-    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.cachedCompactVoice(forLanguage:)": "254c9e6ff037df2b",
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.makeStartUtterance(phrase:lang:)": "24c87640257f809c",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
     "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeSpeak": "7d8b80467768d419"
    }
   },
   {
+   "key": "func WorkoutStartCue.makeStartUtterance(phrase:lang:)",
+   "hash": "6bc33345fe9999f4",
+   "does": "Builds the start AVSpeechUtterance: default rate, the cached compact voice for the language (may enumerate voices, blocking), volume 0.9.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.cachedCompactVoice(forLanguage:)",
+    "ext:AVSpeechUtterance"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voice": "fa61a702fe44b576",
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.cachedCompactVoice(forLanguage:)": "254c9e6ff037df2b"
+   }
+  },
+  {
    "key": "func WorkoutStartCue.installAnnounceWatchdog(for:)",
-   "hash": "c73a5f6242f0da2d",
-   "does": "Watchdog: one detached task marks the announce task finished when it completes; another sleeps 800 ms and, if still unfinished and not cancelled, cancels it and logs that the cue started without speech.",
+   "hash": "48c3e9bf36cd1755",
+   "does": "Watchdog: one detached task marks the announce task finished when it completes; another sleeps 800 ms and, if still unfinished and not cancelled, cancels it (honoured by buildAndSpeakStartUtterance once its voice lookup returns: the cue is skipped) and logs that the spoken cue is skipped unless it was already queued.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)"
@@ -126,20 +149,7 @@
      "effect": "true: returns; false: cancel + log"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "announceWork.cancel() has no effect on the work: buildAndSpeakStartUtterance has no cancellation checks and the blocking calls (speechVoices(), setActive, FRSafeSpeak) are synchronous, so a stalled speak still completes later and may speak; the log 'started without the spoken cue' can be false.",
-     "evidence": [
-      "Emuqu/Sources/Collection/WorkoutStartCue.swift:205",
-      "Emuqu/Sources/Collection/WorkoutStartCue.swift:206",
-      "Emuqu/Sources/Collection/WorkoutStartCue.swift:154",
-      "Emuqu/Sources/Collection/WorkoutStartCue.swift:168"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLogExternal(_:cause:file:line:)": "51fb21accda9b30b",
     "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851"

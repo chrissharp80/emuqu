@@ -8,30 +8,16 @@
  "state": [
   "mem:SessionDataMigrations.archive / healthKit / settingsManager / baselineTracker / reanalysisService (injected lets; instance built per call in RRCollector+Lifecycle.swift:160 and discarded)"
  ],
- "toplevel": "Class doc states ordering is not a correctness constraint because each migration self-terminates via its own UserDefaults flag (SessionDataMigrations.swift:27-32).",
+ "toplevel": "Class doc: each migration self-terminates via its own UserDefaults flag; the order matters only in that the TRIMP repair runs after the training recalibration and its training context is the one kept (neither moves the recovery score); a cancelled launch stops the chain.",
  "flags": [
   {
    "kind": "spec-mismatch",
    "sev": "med",
-   "text": "Class doc says \"the order is not a correctness constraint\" but TrainingRecalibration (rescores with an end-anchored context and frozen VO2max) runs before TrimpRepair, which overwrites the same trainingSnapshot/analysisResult.trainingContext/frozenReadiness with a 5 AM-anchored context and VO2max preference and does NOT recompute recoveryScore/scoreBreakdown; the last writer decides what the archive holds, so order changes the stored training snapshot.",
-   "evidence": [
-    "Emuqu/Sources/Collection/SessionDataMigrations.swift:29",
-    "Emuqu/Sources/Collection/SessionDataMigrations.swift:92",
-    "Emuqu/Sources/Collection/SessionDataMigrations.swift:95",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:559-562",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:597-608"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "med",
-   "text": "docs/FLOWCHART.md §13 says an archived session is frozen except for explicit user actions and additive fill-in merges, but this launch-time chain automatically overwrites recoveryScore/scoreBreakdown/frozenReadiness of historic nights (TrainingRecalibration, InsufficientData, NapRepair, TimeInBed via recomputeScoreOnly) and training snapshots (TrimpRepair); the §13.1 table lists only InsufficientData among them.",
+   "text": "docs/FLOWCHART.md §13 says an archived session is frozen except for explicit user actions and additive fill-in merges, but this launch-time chain automatically overwrites recoveryScore/scoreBreakdown/frozenReadiness of historic nights (InsufficientData, NapRepair, TimeInBed via recomputeScoreOnly) and their training snapshots and frozen readiness (TrainingRecalibration, TrimpRepair); the §13.1 table lists only InsufficientData among them.",
    "evidence": [
     "docs/FLOWCHART.md:773-777",
     "docs/FLOWCHART.md:786-788",
-    "Emuqu/Sources/Collection/SessionDataMigrations.swift:89-104",
-    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift:99",
+    "Emuqu/Sources/Collection/SessionDataMigrations.swift:89-110",
     "Emuqu/Sources/Collection/SessionDataMigrations+NapRepairMigration.swift:98",
     "Emuqu/Sources/Collection/SessionDataMigrations+TimeInBedRepairMigration.swift:46"
    ],
@@ -52,33 +38,21 @@
    "deps": {}
   },
   {
-   "key": "func SessionDataMigrations.scoringBaseline(for:)",
-   "hash": "c83cc26f631e5511",
-   "does": "Returns the recovery baseline stats built from stored nights strictly before the session's night (BaselineTracker.recoveryBaselineStats(excludingNightOf:sleepSchedule:)) using the current settings' sleep schedule; nil when fewer than minimumDays prior nights.",
+   "key": "func SessionDataMigrations.retrieveOffMain(_:caller:)",
+   "hash": "d1f544390338b524",
+   "does": "Reads one archived session in full (retrieveOrLog, failure logged → nil) on a detached utility task, for the migrations that walk the archive a session at a time.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recoveryBaselineStats(excludingNightOf:sleepSchedule:)"
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)"
    ],
    "reads": [
-    "mem:BaselineTracker.historicalData",
-    "mem:SettingsManager.settings.sleepSchedule"
+    "archive:SessionArchive.retrieve"
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same body as ReanalysisService.scoringBaseline(for:) (reads settingsProvider instead of settingsManager).",
-     "evidence": [
-      "Emuqu/Sources/Collection/SessionDataMigrations.swift:63",
-      "Emuqu/Sources/Services/ReanalysisService.swift:223"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recoveryBaselineStats(excludingNightOf:sleepSchedule:)": "7bf3e795972555e6"
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "f0a309cc2b24de13"
    }
   },
   {
@@ -106,11 +80,40 @@
   },
   {
    "key": "func SessionDataMigrations.runAllIfNeeded()",
-   "hash": "01b6a6efba79facd",
-   "does": "Runs the six one-shot migrations in fixed order with sleeps of 1.5s,1s,0.5s,0.5s,0.5s,0.5s between them: insufficient-data, training recalibration, TRIMP repair, workout sleep cleanup, nap repair, time-in-bed repair.",
+   "hash": "9ea8c6502de7eeb1",
+   "does": "Runs the six one-shot migrations in migrationSchedule's order, each after its pause (1.5 s, 1 s, then 0.5 s): insufficient-data, training recalibration, TRIMP repair, workout sleep cleanup, nap repair, time-in-bed repair. A cancellation (which sleepQuietly swallows) stops the chain before the next migration; each is flag-gated, so the rest run on a later launch.",
    "entry": "Awaited by RRCollector.runDeferredSessionMigrationsIfNeeded (RRCollector+Lifecycle.swift:159-166), which AppLaunchTasks.swift:436-440 runs as a background housekeeping job on the launch coordinator. Tests (CollectorMigrationParityTests) call individual migrations, never runAllIfNeeded.",
    "calls": [
     "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)",
+    "Emuqu/Sources/Collection/SessionDataMigrations.swift::var SessionDataMigrations.migrationSchedule",
+    "closure:migrationSchedule step.run"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each scheduled migration",
+     "effect": "pause, then run"
+    },
+    {
+     "at": "+4",
+     "cond": "Task.isCancelled after the pause",
+     "effect": "returns; the rest wait for a later launch"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionDataMigrations.swift::var SessionDataMigrations.migrationSchedule": "b2554544eafec815",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851"
+   }
+  },
+  {
+   "key": "var SessionDataMigrations.migrationSchedule",
+   "hash": "584f18f88c0aa2ea",
+   "does": "The ordered list of (pause before, migration) pairs runAllIfNeeded walks: insufficient-data 1.5 s, training recalibration 1 s, TRIMP repair, workout sleep cleanup, nap repair, time-in-bed repair 0.5 s each.",
+   "entry": null,
+   "calls": [
     "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift::func SessionDataMigrations.runInsufficientDataMigrationIfNeeded()",
     "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.runTrainingRecalibrationIfNeeded()",
     "Emuqu/Sources/Collection/SessionDataMigrations+TrimpMigration.swift::func SessionDataMigrations.runTrimpRepairMigrationIfNeeded()",
@@ -121,40 +124,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "sleepQuietly swallows CancellationError (logs and returns), so a cancelled launch task does not stop the chain: all remaining migrations run back-to-back without the intended stagger.",
-     "evidence": [
-      "Emuqu/Sources/Utilities/Errors.swift:101",
-      "Emuqu/Sources/Collection/SessionDataMigrations.swift:88"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "duplicate",
-     "sev": "med",
-     "text": "Two migrations rewrite the same training snapshot in one run: runTrainingRecalibrationIfNeeded (anchor = session end, keeps frozen VO2max, rescores) then runTrimpRepairMigrationIfNeeded via ReanalysisService.repairTrainingSnapshots (anchor = 5 AM of end day, applies VO2max override/preference, recomputes frozenReadiness only). Final archived trainingSnapshot comes from the second while recoveryScore/scoreBreakdown come from the first.",
-     "evidence": [
-      "Emuqu/Sources/Collection/SessionDataMigrations.swift:92",
-      "Emuqu/Sources/Collection/SessionDataMigrations.swift:95",
-      "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift:91",
-      "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift:122",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:539",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:546"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift::func SessionDataMigrations.runInsufficientDataMigrationIfNeeded()": "b64a4d152d46a804",
-    "Emuqu/Sources/Collection/SessionDataMigrations+NapRepairMigration.swift::func SessionDataMigrations.runNapRepairMigrationIfNeeded()": "5c92fb1077fdfbac",
-    "Emuqu/Sources/Collection/SessionDataMigrations+TimeInBedRepairMigration.swift::func SessionDataMigrations.runTimeInBedRepairIfNeeded()": "85826f79e04ba07e",
-    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.runTrainingRecalibrationIfNeeded()": "5963424b8a7c3701",
-    "Emuqu/Sources/Collection/SessionDataMigrations+TrimpMigration.swift::func SessionDataMigrations.runTrimpRepairMigrationIfNeeded()": "8e425828c6b23d78",
-    "Emuqu/Sources/Collection/SessionDataMigrations+WorkoutSleepCleanupMigration.swift::func SessionDataMigrations.runWorkoutSleepCleanupIfNeeded()": "4f1fd6ad09f38e3f",
-    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851"
+    "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift::func SessionDataMigrations.runInsufficientDataMigrationIfNeeded()": "97bb2728b9683adb",
+    "Emuqu/Sources/Collection/SessionDataMigrations+NapRepairMigration.swift::func SessionDataMigrations.runNapRepairMigrationIfNeeded()": "158673fbc05129bf",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TimeInBedRepairMigration.swift::func SessionDataMigrations.runTimeInBedRepairIfNeeded()": "41dc07c8f436d360",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.runTrainingRecalibrationIfNeeded()": "e3394a5e0e041ff2",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrimpMigration.swift::func SessionDataMigrations.runTrimpRepairMigrationIfNeeded()": "543478719aaceb28",
+    "Emuqu/Sources/Collection/SessionDataMigrations+WorkoutSleepCleanupMigration.swift::func SessionDataMigrations.runWorkoutSleepCleanupIfNeeded()": "4f1fd6ad09f38e3f"
    }
   }
  ],

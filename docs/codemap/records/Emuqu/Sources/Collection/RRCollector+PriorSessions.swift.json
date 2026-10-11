@@ -7,28 +7,16 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "decodeLightweight/addDecodeTasks/inOrder duplicate RRCollector.decodeInParallel/addDecodeTasks/collectIndexed.",
-   "evidence": [
-    "Emuqu/Sources/Collection/RRCollector+PriorSessions.swift:23",
-    "Emuqu/Sources/Collection/RRCollector.swift:310",
-    "Emuqu/Sources/Collection/RRCollector.swift:317"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "func RRCollector.recentSessionsAsync(limit:before:type:)",
-   "hash": "3db632a9d23d1ed1",
-   "does": "Filters archive entries (newest-first) to the type and start date before `date`, takes `limit` ids, and decodes them lightweight on a detached task.",
+   "hash": "d347b5b89de0e577",
+   "does": "Filters archive entries (newest-first) to the type and start date before `date`, takes `limit` of them, and decodes them lightweight on a detached task through RRCollector.decodeInParallel (parallel, original order, failures dropped).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
-    "Emuqu/Sources/Collection/RRCollector+PriorSessions.swift::func RRCollector.decodeLightweight(_:archive:)"
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.decodeInParallel(_:archive:)"
    ],
    "reads": [
     "archive:SessionArchive.entries"
@@ -38,76 +26,9 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Collection/RRCollector+PriorSessions.swift::func RRCollector.decodeLightweight(_:archive:)": "d75a283aced5c2a4",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.decodeInParallel(_:archive:)": "75a780bd8c17fe0b",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e"
    }
-  },
-  {
-   "key": "func RRCollector.decodeLightweight(_:archive:)",
-   "hash": "348ac7660c19b66d",
-   "does": "Decodes ids in a task group and returns them in input order.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Collection/RRCollector+PriorSessions.swift::func RRCollector.addDecodeTasks(_:ids:archive:)",
-    "Emuqu/Sources/Collection/RRCollector+PriorSessions.swift::func RRCollector.inOrder(_:)"
-   ],
-   "reads": [
-    "archive:SessionArchive.retrieveLightweight"
-   ],
-   "writes": [],
-   "branches": [],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Collection/RRCollector+PriorSessions.swift::func RRCollector.addDecodeTasks(_:ids:archive:)": "40484c0bed4fb4be",
-    "Emuqu/Sources/Collection/RRCollector+PriorSessions.swift::func RRCollector.inOrder(_:)": "696b8975a5944019"
-   }
-  },
-  {
-   "key": "func RRCollector.addDecodeTasks(_:ids:archive:)",
-   "hash": "3c3cdb08fccba639",
-   "does": "Adds one task per id calling retrieveLightweightOrLog.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)"
-   ],
-   "reads": [
-    "archive:SessionArchive.retrieveLightweight"
-   ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+3",
-     "cond": "for each id",
-     "effect": "adds a decode task tagged with its index"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
-   }
-  },
-  {
-   "key": "func RRCollector.inOrder(_:)",
-   "hash": "381d08251bdb59cb",
-   "does": "Drains the group, drops nil decodes, sorts by index.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "for await each result",
-     "effect": "collect"
-    },
-    {
-     "at": "+3",
-     "cond": "session decoded",
-     "effect": "append; nil dropped silently"
-    }
-   ],
-   "flags": [],
-   "deps": {}
   }
  ],
  "deps": {}

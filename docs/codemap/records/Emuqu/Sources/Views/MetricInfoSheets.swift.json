@@ -18,14 +18,12 @@
   {
    "kind": "spec-mismatch",
    "sev": "low",
-   "text": "Comment claims the fallback means 'the two glossaries never disagree' (lines 100-101), but labels present in BOTH tables carry different copy: e.g. SDNN typical range here is 'Resting: 30–120 ms. Sleep windows usually 50–150 ms' (152) vs 'roughly 50–100 ms in many adults' in the Morning Results popover (MorningResultsPopovers.swift:98-101). Users see different ranges for the same metric on two screens.",
+   "text": "Labels present in both this table and the Morning Results popover (MetricExplanationPopover) still carry separately written copy, e.g. RMSSD's typical range here is 'Adults: 20–80 ms … Athletes often 60–120 ms' against the popover's age bands; only SDNN's range is shared, so users can read different ranges for the same metric on two screens.",
    "evidence": [
-    "Emuqu/Sources/Views/MetricInfoSheets.swift:100",
-    "Emuqu/Sources/Views/MetricInfoSheets.swift:152",
-    "Emuqu/Sources/Views/MorningResultsPopovers.swift:105",
-    "Emuqu/Sources/Views/MorningResultsPopovers.swift:108"
+    "Emuqu/Sources/Views/MetricInfoSheets.swift:146",
+    "Emuqu/Sources/Views/MorningResultsPopovers.swift:113"
    ],
-   "found": "first read, upheld on second"
+   "found": "fix batch b22"
   }
  ],
  "units": [
@@ -201,8 +199,8 @@
   },
   {
    "key": "func MetricInfoSheet.sdnnEntry()",
-   "hash": "144981180bff426b",
-   "does": "Builds the localized Entry for SDNN copy; typical resting 30–120 ms, sleep 50–150 ms.",
+   "hash": "882f26f57ae48c06",
+   "does": "Builds the localized Entry for SDNN; its typical range is the Morning Results popover's own SDNN range string (roughly 50–100 ms in many adults, varies with age and fitness), so both screens quote one range.",
    "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift:133)",
    "calls": [
     "ext:String(localized:bundle:)"
@@ -487,7 +485,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.loadPoints()": "2af2e996d3f5dd07",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.loadPoints()": "d656627c94e35a04",
     "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricCompareToHistorySheet.historyDoneToolbarItem": "a4400778754f7bb8",
     "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricCompareToHistorySheet.historyStack": "73cc611726b5c648",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
@@ -667,11 +665,11 @@
   },
   {
    "key": "func MetricCompareToHistorySheet.loadPoints()",
-   "hash": "05e78d0b7b8aa90f",
-   "does": "Builds points on a detached userInitiated task from the archive, then (unless cancelled) publishes them and marks loading complete.",
+   "hash": "8bd3b59c645f2224",
+   "does": "Builds points on a detached userInitiated task (computePoints over the archive), then (unless cancelled) publishes them and marks loading complete.",
    "entry": "Called from .task(id: metricLabel) in body",
    "calls": [
-    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.buildPointsStatic(metricLabel:archive:)"
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.computePoints(metricLabel:archive:)"
    ],
    "reads": [
     "archive:SessionArchive.entries",
@@ -690,72 +688,15 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.buildPointsStatic(metricLabel:archive:)": "4ebfbae845d45e65"
-   }
-  },
-  {
-   "key": "func MetricCompareToHistorySheet.buildPointsStatic(metricLabel:archive:)",
-   "hash": "db04d328076d2400",
-   "does": "Pass-through to computePoints.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.computePoints(metricLabel:archive:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "hack",
-     "sev": "low",
-     "text": "buildPointsStatic → computePoints → computePointsImpl are three nested pass-through wrappers with identical signatures; two layers do nothing.",
-     "evidence": [
-      "Emuqu/Sources/Views/MetricInfoSheets.swift:445",
-      "Emuqu/Sources/Views/MetricInfoSheets.swift:449",
-      "Emuqu/Sources/Views/MetricInfoSheets.swift:460"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.computePoints(metricLabel:archive:)": "ad51dc3b7d3eaa87"
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.computePoints(metricLabel:archive:)": "2be1de1fe7a808d3"
    }
   },
   {
    "key": "func MetricCompareToHistorySheet.computePoints(metricLabel:archive:)",
-   "hash": "64c18c2713a60ef9",
-   "does": "Pass-through to computePointsImpl.",
+   "hash": "538db8f006bf87f4",
+   "does": "Static, nonisolated, archive passed in: walks the archive entries newest first and keeps the most recent 30 points pointValue yields (reliable overnights carrying the metric), returned oldest first.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.computePointsImpl(metricLabel:archive:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "hack",
-     "sev": "low",
-     "text": "buildPointsStatic → computePoints → computePointsImpl are three nested pass-through wrappers with identical signatures; two layers do nothing.",
-     "evidence": [
-      "Emuqu/Sources/Views/MetricInfoSheets.swift:445",
-      "Emuqu/Sources/Views/MetricInfoSheets.swift:449",
-      "Emuqu/Sources/Views/MetricInfoSheets.swift:460"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.computePointsImpl(metricLabel:archive:)": "5f62bde32243edb2"
-   }
-  },
-  {
-   "key": "func MetricCompareToHistorySheet.computePointsImpl(metricLabel:archive:)",
-   "hash": "f71c04f0fe0a43fc",
-   "does": "Walks the archive index newest-first, collecting a Point for each entry pointValue accepts, stopping at 30; returns them oldest-first.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
     "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.pointValue(metricLabel:entry:archive:)"
    ],
    "reads": [
@@ -765,23 +706,17 @@
    "branches": [
     {
      "at": "+3",
-     "cond": "for each entry (newest first)",
-     "effect": "iterates whole index until 30 points"
-    },
-    {
-     "at": "+4",
-     "cond": "pointValue returns non-nil",
-     "effect": "true: append; false: skip"
+     "cond": "for each entry newest first",
+     "effect": "append pointValue when non-nil"
     },
     {
      "at": "+7",
-     "cond": "collected.count >= 30",
-     "effect": "true: break; false: continue — for a metric absent from most sessions this decodes every overnight session in the archive"
+     "cond": "30 points collected",
+     "effect": "stop walking"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
     "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.pointValue(metricLabel:entry:archive:)": "c6dda1e48a5d0b00",
     "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.entry(for:)": "25d945958cb906b2"
    }
@@ -821,17 +756,17 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates": "7af30eca3eb87384",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)": "0bbfc03c60fb225a",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates": "2be5455112ec9732",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)": "63fb382811fb095f",
     "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.analysisValueStatic(for:result:)": "088dcfa438c1acf2",
-    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.fastValueStatic(for:entry:)": "864155a3c17f6974",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.fastValueStatic(for:entry:)": "6c56cc38c1c7617a",
     "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.entry(for:)": "25d945958cb906b2"
    }
   },
   {
    "key": "func MetricCompareToHistorySheet.fastValueStatic(for:entry:)",
-   "hash": "cd236c5e021f62b5",
-   "does": "Index-entry fast path for RMSSD, Mean HR, SDNN, Stress aliases.",
+   "hash": "b2e7d5f6a9397a69",
+   "does": "Index-entry fast path for RMSSD, Mean HR and the Stress aliases (an overnight entry's meanSDNN is never filled, so SDNN takes the session read).",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -849,34 +784,16 @@
     },
     {
      "at": "+4",
-     "cond": "'SDNN'",
-     "effect": "entry.meanSDNN"
-    },
-    {
-     "at": "+5",
      "cond": "'Stress'/'Stress index'/'Stress Index'/'Baevsky SI'",
      "effect": "entry.stressIndex"
     },
     {
-     "at": "+6",
-     "cond": "default",
+     "at": "+5",
+     "cond": "default (SDNN included)",
      "effect": "nil → slow path"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "The 'SDNN' fast path never returns a value: SessionArchiveEntry.meanSDNN is filled only from session.importedMetrics?.sdnn (Archive+IndexIO.swift:291), and the only ImportedMetrics construction (RRDataImporter+EliteHRV.swift:335) never passes sdnn, so every SDNN compare-to-history falls through to a lightweight decode per reliable overnight entry.",
-     "evidence": [
-      "Emuqu/Sources/Views/MetricInfoSheets.swift:491",
-      "Emuqu/Sources/Storage/Archive+IndexIO.swift:291",
-      "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift:335",
-      "Emuqu/Sources/Models/SessionMetadata.swift:404"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
     "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.entry(for:)": "25d945958cb906b2"

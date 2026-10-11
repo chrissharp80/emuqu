@@ -1,9 +1,10 @@
 {
  "file": "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift",
- "hash": "2989b2f612727582",
- "role": "Draws the HRV report's header, summary hero (RMSSD + age-norm badge + readiness gauge + HR stats), metric grids (time/frequency/nonlinear/ANS/quality), analysis-window card, page footer with wellness disclaimer, auto-pagination, and the recovery score breakdown.",
+ "hash": "f43cae066fbf63f5",
+ "role": "Draws the HRV report's header, summary hero (RMSSD + badge rated against the user's canonical baseline, or age/sex norms before one exists + readiness gauge + HR stats), the shared compact stat-box row, metric grids (time/frequency/nonlinear/ANS/quality), analysis-window card, page footer with wellness disclaimer, auto-pagination, and the recovery score breakdown with its measured height.",
  "types": [
-  "ReportSectionRenderer: extension — header/summary/metric/footer/score-breakdown drawing"
+  "ReportSectionRenderer: extension — header/summary/metric/footer/score-breakdown drawing",
+  "ReportSectionRenderer.HeroHRVRating: struct — the hero's RMSSD category and its optional age phrase"
  ],
  "state": [
   "ReportSectionRenderer.compositeBadgeHeight = 28 (private static let)",
@@ -155,12 +156,13 @@
    }
   },
   {
-   "key": "func ReportSectionRenderer.drawSummaryCard(result:ans:compositeScore:yPosition:in:pageRect:)",
-   "hash": "f323965c547524cd",
-   "does": "Draws the summary hero then the HR stats row; returns y below.",
+   "key": "func ReportSectionRenderer.drawSummaryCard(result:ans:compositeScore:baselineRMSSD:yPosition:in:pageRect:)",
+   "hash": "33385741de879f2f",
+   "does": "Rates tonight's RMSSD once (heroHRVRating against baselineRMSSD), draws the summary hero with that rating and then the HR stats row; returns y below.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawSummaryHero(result:ans:compositeScore:y:contentWidth:in:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.heroHRVRating(_:baselineRMSSD:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawSummaryHero(result:rating:ans:compositeScore:y:contentWidth:in:)",
     "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawSummaryHRStats(result:y:contentWidth:)"
    ],
    "reads": [],
@@ -168,19 +170,21 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawSummaryHRStats(result:y:contentWidth:)": "0c448dbc9a201d12",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawSummaryHero(result:ans:compositeScore:y:contentWidth:in:)": "6593cec42bc6f9ca",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawSummaryHRStats(result:y:contentWidth:)": "e935600632341c94",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawSummaryHero(result:rating:ans:compositeScore:y:contentWidth:in:)": "72c7c627898aa5b0",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.heroHRVRating(_:baselineRMSSD:)": "422785feab70c71f",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d"
    }
   },
   {
-   "key": "func ReportSectionRenderer.drawSummaryHero(result:ans:compositeScore:y:contentWidth:in:)",
-   "hash": "d952e8daf9b33ea8",
-   "does": "Fills a 90pt grey rounded hero box, draws the big RMSSD value and the assessment, and a readiness gauge on the right using composite score/10 or else ANS readiness; returns y+100.",
+   "key": "func ReportSectionRenderer.drawSummaryHero(result:rating:ans:compositeScore:y:contentWidth:in:)",
+   "hash": "5a7371e647f05c53",
+   "does": "Fills a 90pt grey rounded hero box, draws the big RMSSD value in the rating's colour and the assessment (badge + optional age phrase), and a readiness gauge on the right using composite score/10 or else ANS readiness; returns y+100.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawHeroRMSSDValue(result:y:heroRect:)",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawHeroAssessment(result:y:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.hrvCategoryColor(_:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawHeroRMSSDValue(result:color:y:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawHeroAssessment(_:y:)",
     "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawReadinessGauge(score:centerX:centerY:radius:in:)"
    ],
    "reads": [],
@@ -193,25 +197,26 @@
     },
     {
      "at": "+11",
-     "cond": "a gauge score exists",
-     "effect": "draws the gauge; nil → no gauge"
+     "cond": "no gauge score",
+     "effect": "no gauge drawn"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawHeroAssessment(result:y:)": "b3ed0327b88a860a",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawHeroRMSSDValue(result:y:heroRect:)": "3b1d499c9aca4b0b",
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "315f6413360002af",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawHeroAssessment(_:y:)": "7e3725220677f389",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawHeroRMSSDValue(result:color:y:)": "d232ccf446485aae",
     "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawReadinessGauge(score:centerX:centerY:radius:in:)": "4302fed691f76ac0",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.hrvCategoryColor(_:)": "dfdd8f68204caa66",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d"
    }
   },
   {
-   "key": "func ReportSectionRenderer.drawHeroRMSSDValue(result:y:heroRect:)",
-   "hash": "31bf9a76f293c895",
-   "does": "Draws the RMSSD (48pt bold, coloured by age-norm category) with 'ms' after it, kept left-to-right on mirrored RTL pages.",
+   "key": "func ReportSectionRenderer.drawHeroRMSSDValue(result:color:y:)",
+   "hash": "b44bba8ac3000b93",
+   "does": "Draws the 48pt RMSSD value in the given colour and 'ms' after it, kept left-to-right on a mirrored page.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.hrvScoreColor(_:)",
     "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)",
     "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.drawingLeftToRight(minX:width:_:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
@@ -225,32 +230,36 @@
    "deps": {
     "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.drawingLeftToRight(minX:width:_:)": "630996939f5382bb",
     "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.hrvScoreColor(_:)": "6d9745c22e84fe7c",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
    }
   },
   {
-   "key": "func ReportSectionRenderer.drawHeroAssessment(result:y:)",
-   "hash": "f7de6e6047f83e15",
-   "does": "Draws the 'HRV (RMSSD)' caption, the assessment badge and the age-context phrase.",
+   "key": "func ReportSectionRenderer.drawHeroAssessment(_:y:)",
+   "hash": "4370729bc511c71b",
+   "does": "Draws the 'HRV (RMSSD)' caption, the assessment badge for the rating's category, and — for a population (age/sex) rating only — the age-context phrase 8pt after the badge's drawn right edge.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawHeroBadge(_:y:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawHeroAgeContext(_:x:y:)",
     "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawHeroBadge(rmssd:y:)",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawHeroAgeContext(rmssd:y:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
-   "reads": [
-    "mem:LanguageManager.appBundle"
-   ],
+   "reads": [],
    "writes": [],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "rating has an age phrase (no personal baseline)",
+     "effect": "draws it after the badge; otherwise nothing more"
+    }
+   ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "315f6413360002af",
     "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawHeroAgeContext(rmssd:y:)": "64d1732300f1c44b",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawHeroBadge(rmssd:y:)": "0f4ca0b8cbb6077c",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawHeroAgeContext(_:x:y:)": "dff24dfae5971d8d",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawHeroBadge(_:y:)": "4fd7409e59b5aace",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
@@ -275,87 +284,48 @@
    }
   },
   {
-   "key": "func ReportSectionRenderer.drawHeroBadge(rmssd:y:)",
-   "hash": "c9a0956fc5179c8c",
-   "does": "Draws the age-norm category label (Excellent…Low) in a 15%-tinted rounded badge in the category colour.",
+   "key": "func ReportSectionRenderer.drawHeroBadge(_:y:)",
+   "hash": "b3f5b731e47aafec",
+   "does": "Draws the category's localized label in a 9pt semibold pill tinted with hrvCategoryColor at heroBadgeX; returns the pill's right edge.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.hrvScoreColor(_:)",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.hrvScoreLabel(_:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.hrvCategoryColor(_:)",
     "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::var ReportSectionRenderer.heroBadgeX",
     "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "The hero RMSSD colour and badge rate tonight's RMSSD against population age/sex norms (AgeAdjustedHRV.interpret), not the user's own baseline, while the report's summary rates HRV against the canonical baseline as Today does; a user with a naturally low RMSSD sees a red 'Low' hero on a night the rest of the report calls normal for them.",
-     "evidence": [
-      "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift:305",
-      "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift:301",
-      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift:27",
-      "Emuqu/Sources/Export/PDFReportGenerator.swift:337"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.hrvScoreColor(_:)": "6d9745c22e84fe7c",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.hrvScoreLabel(_:)": "2e399099875d5eb8",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.hrvCategoryColor(_:)": "dfdd8f68204caa66",
     "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::var ReportSectionRenderer.heroBadgeX": "7cf14a5e5661f640"
    }
   },
   {
-   "key": "func ReportSectionRenderer.drawHeroAgeContext(rmssd:y:)",
-   "hash": "5c67eff5676309f0",
-   "does": "Re-measures the badge (8pt font) and draws the age-context phrase after it when an age is known.",
+   "key": "func ReportSectionRenderer.drawHeroAgeContext(_:x:y:)",
+   "hash": "fd7f88af5be31b46",
+   "does": "Draws the age-context phrase in 8pt grey at the given x, level with the badge.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.hrvScoreLabel(_:)",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.hrvAgeContext(_:)",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::var ReportSectionRenderer.heroBadgeX",
     "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)"
    ],
    "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+9",
-     "cond": "hrvAgeContext non-nil (age set)",
-     "effect": "draws the phrase; nil → nothing"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Positions the age-context phrase by re-measuring the badge label in an 8pt font while drawHeroBadge draws it at 9pt, so the computed badge is narrower than the drawn one; for a long (translated) label the 8pt gap is consumed and the phrase overlaps the badge.",
-     "evidence": [
-      "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift:169",
-      "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift:182",
-      "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift:193"
-     ],
-     "found": "second read"
-    }
-   ],
+   "branches": [],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.hrvAgeContext(_:)": "7f37d5cc8b6c583d",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.hrvScoreLabel(_:)": "2e399099875d5eb8",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::var ReportSectionRenderer.heroBadgeX": "7cf14a5e5661f640"
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e"
    }
   },
   {
    "key": "func ReportSectionRenderer.drawSummaryHRStats(result:y:contentWidth:)",
-   "hash": "5282e9f8bce2d508",
-   "does": "Fills a 50pt stats row and draws four boxes: Min HR, Avg HR, Max HR (bpm) and SDNN (ms) from the analysis window; returns y+65.",
+   "hash": "729efb47ff9f0406",
+   "does": "Fills a 50pt stats row and draws four boxes (Min HR, Avg HR, Max HR in bpm, SDNN in ms, from the analysis window) through drawStatBoxRow, 38pt tall at y+6; returns y+65.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawHRStatBoxes(_:y:boxWidth:statsHeight:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawStatBoxRow(_:y:boxWidth:boxHeight:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
    ],
@@ -367,7 +337,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawHRStatBoxes(_:y:boxWidth:statsHeight:)": "ee7a105d43f3e530",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawStatBoxRow(_:y:boxWidth:boxHeight:)": "7103664dc82eeac5",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
@@ -375,9 +345,9 @@
    }
   },
   {
-   "key": "func ReportSectionRenderer.drawHRStatBoxes(_:y:boxWidth:statsHeight:)",
-   "hash": "c101e3a325d7714a",
-   "does": "Draws each HR stat in a quarter-width compact box.",
+   "key": "func ReportSectionRenderer.drawStatBoxRow(_:y:boxWidth:boxHeight:)",
+   "hash": "91897e907a138beb",
+   "does": "Draws one row of compact stat boxes, column i at margin + i*boxWidth inset 4pt, boxHeight tall; items with an empty title leave their column blank. Shared by the summary HR row and PDFReportGenerator's sleep/training/vitals rows.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawCompactStatBox(title:value:color:rect:)"
@@ -387,22 +357,11 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "for each stat",
-     "effect": "one compact box"
+     "cond": "for each item where title non-empty",
+     "effect": "draws a box; empty-title items skipped"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same evenly-spaced compact-stat-box row loop as PDFReportGenerator.drawStatBoxRow (only the box height differs: statsHeight-12 vs 36).",
-     "evidence": [
-      "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift:217",
-      "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift:52"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawCompactStatBox(title:value:color:rect:)": "98aed09ae3b1f90e",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d"
@@ -459,7 +418,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.readinessColor(_:)": "1e07b768fcf99b99",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.readinessColor(_:)": "98bde78185a02fab",
     "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.lineWidth": "2d14bae4bbb8fc1d"
    }
   },
@@ -481,7 +440,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.readinessColor(_:)": "1e07b768fcf99b99",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.readinessColor(_:)": "98bde78185a02fab",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
    }
@@ -540,94 +499,34 @@
    }
   },
   {
-   "key": "func ReportSectionRenderer.hrvScoreColor(_:)",
-   "hash": "875bd49634b22738",
-   "does": "Colour for the RMSSD age-norm category.",
+   "key": "func ReportSectionRenderer.heroHRVRating(_:baselineRMSSD:)",
+   "hash": "70b8df312174560c",
+   "does": "Rates RMSSD for the hero: with a positive baselineRMSSD, AnalysisSummaryGenerator.personalCategory(ratio: rmssd/baseline) and no age phrase (as the report's summary and Today rate it); otherwise the age/sex-adjusted category and its localized age phrase.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.personalCategory(ratio:)",
     "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.ageAdjustedInterpretation(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+2",
-     "cond": ".excellent",
-     "effect": "secondary green"
-    },
-    {
-     "at": "+3",
-     "cond": ".good",
-     "effect": "secondary at 80% alpha"
-    },
-    {
-     "at": "+4",
-     "cond": ".fair",
-     "effect": "amber (0.85,0.65,0.2)"
-    },
-    {
-     "at": "+5",
-     "cond": ".reduced",
-     "effect": "orange"
-    },
-    {
-     "at": "+6",
-     "cond": ".low",
-     "effect": "accent red"
+     "at": "+1",
+     "cond": "baselineRMSSD non-nil and > 0",
+     "effect": "personal category; else population interpretation"
     }
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.personalCategory(ratio:)": "dc4d1279a4428011",
     "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "315f6413360002af",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.ageAdjustedInterpretation(_:)": "63d7e53732bb4423",
-    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
-    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor": "1bf17e24334cbbf7"
-   }
-  },
-  {
-   "key": "func ReportSectionRenderer.hrvScoreLabel(_:)",
-   "hash": "4216fd87c3ebdee8",
-   "does": "Localized label of the age-adjusted category.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.ageAdjustedInterpretation(_:)",
-    "Emuqu/Sources/Analysis/HRVThresholds.swift::var RMSSDInterpretation.localizedLabel"
-   ],
-   "reads": [
-    "mem:LanguageManager.appBundle"
-   ],
-   "writes": [],
-   "branches": [],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Analysis/HRVThresholds.swift::var RMSSDInterpretation.localizedLabel": "fe9d1980f1ad0081",
     "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.ageAdjustedInterpretation(_:)": "63d7e53732bb4423"
    }
   },
   {
-   "key": "func ReportSectionRenderer.hrvAgeContext(_:)",
-   "hash": "f00d5017930f03a3",
-   "does": "Localized age-context phrase, nil when no age was known.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.ageAdjustedInterpretation(_:)",
-    "Emuqu/Sources/Analysis/HRVThresholds.swift::var RMSSDInterpretation.localizedAgeContext"
-   ],
-   "reads": [
-    "mem:LanguageManager.appBundle"
-   ],
-   "writes": [],
-   "branches": [],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Analysis/HRVThresholds.swift::var RMSSDInterpretation.localizedAgeContext": "bbae3bba78aebb70",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.ageAdjustedInterpretation(_:)": "63d7e53732bb4423"
-   }
-  },
-  {
-   "key": "func ReportSectionRenderer.readinessColor(_:)",
-   "hash": "4d92d75c47e609e9",
-   "does": "Gauge colour by 0–10 readiness: ≥7 green, ≥4.5 amber, ≥2 red accent, else dusty rose.",
+   "key": "func ReportSectionRenderer.hrvCategoryColor(_:)",
+   "hash": "44b8434de5512240",
+   "does": "Colour for an RMSSD category: excellent secondary green, good green at 0.8 alpha, fair amber, reduced orange, low accent red.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -635,63 +534,45 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "score >= 7.0",
-     "effect": "secondary green"
-    },
-    {
-     "at": "+2",
-     "cond": "score >= 4.5",
-     "effect": "amber"
-    },
-    {
-     "at": "+3",
-     "cond": "score >= 2.0",
-     "effect": "accent red; below → dusty rose"
+     "cond": "switch category",
+     "effect": "one colour per case"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Hard-codes the 7.0/4.5/2.0 tiers again instead of reading RecoveryScoreConstants.ReadinessLabels; the same ladder exists in AppTheme.readinessColor and ReadinessScoring.readinessLabel, so a threshold change must be made in three places.",
-     "evidence": [
-      "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift:325",
-      "Emuqu/Sources/Views/Theme.swift:390",
-      "Emuqu/Sources/Analysis/ReadinessScoring.swift:337"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
     "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor": "1bf17e24334cbbf7"
    }
   },
   {
-   "key": "func ReportSectionRenderer.drawSummaryBox(title:value:color:rect:)",
-   "hash": "03a67f7edd63345f",
-   "does": "Draws a 20pt bold value and caption title in a rect.",
+   "key": "func ReportSectionRenderer.readinessColor(_:)",
+   "hash": "4d2621a97049e51f",
+   "does": "Gauge colour by 0–10 readiness on RecoveryScoreConstants.ReadinessLabels (ready 7.0 → green, moderate 4.5 → amber, fatigued 2.0 → red accent, else dusty rose).",
    "entry": null,
-   "calls": [
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(in:withAttributes:)"
-   ],
+   "calls": [],
    "reads": [],
    "writes": [],
-   "branches": [],
-   "flags": [
+   "branches": [
     {
-     "kind": "dead",
-     "sev": "low",
-     "text": "drawSummaryBox has no caller anywhere in the repo (app or tests); grep finds only its declaration.",
-     "evidence": [
-      "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift:331"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+2",
+     "cond": "score >= readyThreshold (7.0)",
+     "effect": "secondary green"
+    },
+    {
+     "at": "+3",
+     "cond": "score >= moderateThreshold (4.5)",
+     "effect": "amber"
+    },
+    {
+     "at": "+4",
+     "cond": "score >= fatiguedThreshold (2.0)",
+     "effect": "accent red; below → dusty rose"
     }
    ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(in:withAttributes:)": "259840329617caee",
-    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d"
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor": "1bf17e24334cbbf7"
    }
   },
   {
@@ -1229,7 +1110,7 @@
   {
    "key": "func ReportSectionRenderer.factorImpactColour(_:)",
    "hash": "51e7d37f9107b5d5",
-   "does": "Colour for a factor's impact.",
+   "does": "Colour for a factor's impact: positive green, neutral yellow, negative red.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -1251,18 +1132,7 @@
      "effect": "accent red"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Doc comment says neutral factors are grey ('green helping, red hurting, grey neutral') but the code paints them systemYellow.",
-     "evidence": [
-      "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift:596",
-      "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift:601"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
     "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor": "1bf17e24334cbbf7"
@@ -1271,7 +1141,7 @@
   {
    "key": "func ReportSectionRenderer.drawScoreBreakdownSection(breakdown:loadLevel:yPosition:in:pageRect:)",
    "hash": "9179c4afb4f5a77e",
-   "does": "Draws 'Recovery Score Breakdown' heading, composite badge, verdict message, one bar per factor, vitals penalties and the weighted-average note; returns y below.",
+   "does": "Draws 'Recovery Score Breakdown' heading, composite badge, verdict message, one bar per factor, vitals penalties and the weighted-average note; returns y below. Draws no page break itself: its caller reserves scoreBreakdownHeight first.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawSectionHeading(_:yPosition:pageRect:)",
@@ -1287,26 +1157,13 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "The section has no internal pagination and its only caller reserves 120pt (ensureSpace(needed: 120)), but heading (20) + badge (28) + message (>=12) + one 42pt row per factor (three or more factors) already exceeds 190pt before penalties; when the section starts low on page 1 the factor rows are drawn past the bottom limit, over the footer and wellness disclaimer.",
-     "evidence": [
-      "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift:55",
-      "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift:577",
-      "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift:616",
-      "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift:680"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawCompositeMessage(breakdown:loadLevel:y:contentWidth:)": "a7c180dfa417f24d",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawCompositeScoreBadge(breakdown:y:contentWidth:)": "ae148c94d092f109",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawCompositeMessage(breakdown:loadLevel:y:contentWidth:)": "5a81dfb210c24d00",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawCompositeScoreBadge(breakdown:y:contentWidth:)": "9f40e1bb0b98ad1f",
     "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawFactorBars(breakdown:y:contentWidth:)": "5631ebe0b0b9a272",
     "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawVitalsPenalties(breakdown:y:contentWidth:)": "22974fae5c67a82b",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawWeightedAverageNote(breakdown:y:contentWidth:)": "7cb0bb25f242728a",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawWeightedAverageNote(breakdown:y:contentWidth:)": "7806b0849a74edc6",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawSectionHeading(_:yPosition:pageRect:)": "26b21142858fa5f4",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
@@ -1315,7 +1172,7 @@
   {
    "key": "func ReportSectionRenderer.drawCompositeScoreBadge(breakdown:y:contentWidth:)",
    "hash": "eca0bc75803c4540",
-   "does": "Fills a 28pt badge tinted by diagnosticColorForScore(composite) and draws score and tier labels; returns the same y (caller adds the badge height).",
+   "does": "Fills a 28pt badge tinted by diagnosticColorForScore(composite) — the ScoreVerdict ladder colour the app uses — and draws score and tier labels; returns the same y (caller adds the badge height).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.diagnosticColorForScore(_:)",
@@ -1324,19 +1181,7 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "The composite (0–100) badge is coloured by OvernightReportRenderer's 80/60/40 ladder, while the app colours the recovery score by the ScoreVerdict 90/75/60/45/30 ladder, so the same score can be a different colour in the PDF and in the app.",
-     "evidence": [
-      "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift:625",
-      "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift:376",
-      "Emuqu/Sources/Views/Theme.swift:397"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawCompositeScoreBadgeLabels(breakdown:badgeColor:y:)": "5dc2e788d2f13198",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.diagnosticColorForScore(_:)": "14f28e6f5c63c0e0",
@@ -1369,12 +1214,30 @@
   },
   {
    "key": "func ReportSectionRenderer.drawCompositeMessage(breakdown:loadLevel:y:contentWidth:)",
-   "hash": "b60ea0e44852c387",
-   "does": "Draws the ScoreBreakdownCopy verdict message (with the advice gate's load level) wrapped across the content width under the badge; returns y after it +8.",
+   "hash": "0717ca6e789ea4d9",
+   "does": "Draws the ScoreBreakdownCopy verdict message (with the advice gate's load level), laid out by compositeMessageLayout, wrapped across the content width under the badge; returns y after it +8.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.compositeMessageLayout(breakdown:loadLevel:contentWidth:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(in:withAttributes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(in:withAttributes:)": "259840329617caee",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.compositeMessageLayout(breakdown:loadLevel:contentWidth:)": "7c279ce86087f749",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.compositeMessageLayout(breakdown:loadLevel:contentWidth:)",
+   "hash": "01744991d75b1b2e",
+   "does": "The verdict message from ScoreBreakdownCopy.message(for:loadLevel:), its 9pt dark-grey attributes, and its wrapped height (ceil) at contentWidth-16.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)",
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(in:withAttributes:)",
     "ext:NSString.boundingRect"
    ],
    "reads": [
@@ -1384,9 +1247,36 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)": "fcd09acf3383cea3",
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(in:withAttributes:)": "259840329617caee",
-    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d"
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)": "fcd09acf3383cea3"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.scoreBreakdownHeight(breakdown:loadLevel:contentWidth:)",
+   "hash": "4a6915e4b3c58445",
+   "does": "Height drawScoreBreakdownSection advances for this breakdown: heading 20 + badge 28 + 4 + message height + 8 + (factorRowHeight+4) per factor + penalties block (18 + 12 per penalty + 28, when any) + math line 14 (when showsWeightedAverageNote) + 8. Used by the caller to start a new page first.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.compositeMessageLayout(breakdown:loadLevel:contentWidth:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.showsWeightedAverageNote(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "penalties empty",
+     "effect": "no penalty block height"
+    },
+    {
+     "at": "+6",
+     "cond": "showsWeightedAverageNote",
+     "effect": "adds the 14pt math line"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.compositeMessageLayout(breakdown:loadLevel:contentWidth:)": "7c279ce86087f749",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.showsWeightedAverageNote(_:)": "6562be34a521e80a"
    }
   },
   {
@@ -1433,7 +1323,7 @@
     "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
     "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawFactorProgressBar(factor:y:contentWidth:)": "c3d2b591447d07d6",
     "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawFactorScoreAndWeight(factor:y:contentWidth:)": "e96957796b933431",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.factorImpactColour(_:)": "a345b40e6c83415f",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.factorImpactColour(_:)": "c459ae9538c9d4b5",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
@@ -1458,7 +1348,7 @@
    "deps": {
     "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.drawingLeftToRight(minX:width:_:)": "630996939f5382bb",
     "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.factorImpactColour(_:)": "a345b40e6c83415f",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.factorImpactColour(_:)": "c459ae9538c9d4b5",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
    }
@@ -1478,7 +1368,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawFactorDetail(factor:y:contentWidth:)": "2b38ccb15803b8b1",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.factorImpactColour(_:)": "a345b40e6c83415f",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.factorImpactColour(_:)": "c459ae9538c9d4b5",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d"
    }
   },
@@ -1565,12 +1455,29 @@
    }
   },
   {
-   "key": "func ReportSectionRenderer.drawWeightedAverageNote(breakdown:y:contentWidth:)",
-   "hash": "6dc276ecf0a78be6",
-   "does": "Computes weighted factor average; when penalties exist and it exceeds the composite by >1, draws 'Weighted average − Vitals = Final' math; returns y+8.",
+   "key": "func ReportSectionRenderer.showsWeightedAverageNote(_:)",
+   "hash": "f173a531892acc49",
+   "does": "True when penalties applied and the composite is more than a point under the weighted factor average (breakdown.gapFromFactors > 1) — the condition ScoreBreakdownCopy's penalty message uses.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreFactor.contribution",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.gapFromFactors"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.gapFromFactors": "7ab83d289abeb803"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawWeightedAverageNote(breakdown:y:contentWidth:)",
+   "hash": "7e97bd7ad1ea358c",
+   "does": "When showsWeightedAverageNote: draws 'Weighted average: (composite + gap) − Vitals: gap = Final: composite' using breakdown.gapFromFactors; returns y+8 (+14 more when drawn).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.showsWeightedAverageNote(_:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.gapFromFactors",
     "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
@@ -1582,28 +1489,27 @@
    "writes": [],
    "branches": [
     {
-     "at": "+4",
-     "cond": "penalties non-empty AND weightedAvg − composite > 1",
+     "at": "+3",
+     "cond": "showsWeightedAverageNote",
      "effect": "draws the math line (+14); else nothing"
     }
    ],
    "flags": [
     {
-     "kind": "duplicate",
+     "kind": "spec-mismatch",
      "sev": "low",
-     "text": "Recomputes ScoreBreakdown.gapFromFactors inline and labels the whole gap 'Vitals' whenever any penalty exists, even though the gap can also include baseline drift (which the doc comment says must not be labelled Vitals).",
+     "text": "The math line labels the whole gap below the weighted average 'Vitals' whenever any penalty applied, though the gap can also hold baseline drift and the penalties can include non-vitals ones; penalties are stored as strings without amounts, so the split cannot be shown (ScoreBreakdownCopy.vitalsPenaltyMessage attributes the gap the same way).",
      "evidence": [
-      "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift:807",
-      "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift:813",
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:164",
-      "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift:803"
+      "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift:836",
+      "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift:131"
      ],
-     "found": "first read, upheld on second"
+     "found": "fix batch b13"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreFactor.contribution": "ae0a47f30691925e",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.gapFromFactors": "7ab83d289abeb803",
     "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.showsWeightedAverageNote(_:)": "6562be34a521e80a",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"

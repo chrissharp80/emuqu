@@ -9,23 +9,11 @@
  ],
  "state": [
   "clipboard: UIPasteboard.general via PasteboardWriter (urgent-trigger dictation save)",
-  "pending-trigger cap maxPending=8 (local constant)"
+  "pending-trigger cap maxPending=8 (local constant)",
+  "mem:VoiceConversationController.assistantObservers (also holds the one-shot typed-reply drain observer while voice is idle)"
  ],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "med",
-   "text": "pendingTriggers is never cleared by stop() and only drains from voice-loop events (didFinish in .speaking/.triggerSpeaking, empty-transcript re-arm, reArmListening). A routine trigger queued while voice is idle but the typed chat is streaming (isBusyWithUserResponse true via isStreaming) is stranded until a later trigger plays, and triggers queued in one workout survive into the next voice session.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift:128",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift:370",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift:467",
-    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift:98"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "func VoiceConversationController.toggle()",
@@ -71,8 +59,8 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.interrupt()": "cf7cc8dcfee07493",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.start()": "31b4ccd4f5fac05a",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.interrupt()": "c600d95f7daeed9a",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.start()": "1f2fc3cb8cbcac82",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.finalizeUserTurn()": "4d51f14c74e44eb9",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.state": "1a896ccc8ae2dce3",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
@@ -80,15 +68,16 @@
   },
   {
    "key": "func VoiceConversationController.start()",
-   "hash": "77014ccb49d261d6",
-   "does": "Starts a voice session: only from .idle, flips to .starting, clears permissionError, awaits mic+speech permissions, bails to idle on denial or if state changed meanwhile, then clears transcript/response, refreshes language/voice, pins the STT provider, resets the announce flag and opens the mic.",
+   "hash": "fe0b24fb1900d850",
+   "does": "Starts a voice session: only from .idle, flips to .starting, clears permissionError, awaits mic+speech permissions, returns to idle (playing any trigger queued while starting) on denial, bails if state changed meanwhile, then clears transcript/response, refreshes language/voice, pins the STT provider, resets the announce flag and opens the mic. Coach triggers arriving while .starting are queued (handleTrigger), so they can no longer take over the state mid-start.",
    "entry": "toggle() and GetMeBackView.swift:232",
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.ensurePermissions()",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.refreshLanguageForSession()",
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.pinSTTProviderForSession()",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.openMicForFirstTurn()"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.openMicForFirstTurn()",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.returnToIdleAfterFailedStart()"
    ],
    "reads": [
     "mem:VoiceConversationController.state"
@@ -109,33 +98,21 @@
     {
      "at": "+9",
      "cond": "permissions denied",
-     "effect": "state = .idle, return (permissionError already set by report())"
+     "effect": "returnToIdleAfterFailedStart (permissionError already set by report())"
     },
     {
      "at": "+14",
      "cond": "state != .starting after the permission await",
-     "effect": "return silently: stop() or a trigger moved state during the prompt"
+     "effect": "return silently: stop() moved state during the prompt"
     }
    ],
-   "flags": [
-    {
-     "kind": "race",
-     "sev": "med",
-     "text": "A coach trigger arriving while state is .starting snapshots preemptedState=.starting and sets .triggerSpeaking; start() then hits `guard state == .starting` and silently abandons the user's session, and finishTriggerSpeech restores .starting → not listening/speaking → .idle. If the trigger lands after openMicForFirstTurn, beginUserTurn overwrites .triggerSpeaking with .listening while the alert is still playing and preemptedState stays .starting for the rest of the session.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift:54",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift:428",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift:423",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift:414"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.openMicForFirstTurn()": "6f1741c8ed4eebe0",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.openMicForFirstTurn()": "a8407015352418c0",
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.pinSTTProviderForSession()": "2b722aef1ca771dd",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.returnToIdleAfterFailedStart()": "e15a0bbe7a209f33",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.ensurePermissions()": "e789cd7e9bf070ca",
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.refreshLanguageForSession()": "67cbbe392b5bd89f",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.refreshLanguageForSession()": "4c2ace0984d70676",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.state": "1a896ccc8ae2dce3",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
@@ -178,74 +155,99 @@
   },
   {
    "key": "func VoiceConversationController.openMicForFirstTurn()",
-   "hash": "ac6ee2952baae145",
-   "does": "Configures/activates the voice audio session, installs the interruption observer, launches beginUserTurn in a Task, plays the haptic+Tink start cue; on a thrown error sets a localized permissionError and returns to .idle.",
+   "hash": "b575e6498bd6ed6d",
+   "does": "Configures/activates the voice audio session, installs the interruption observer and launches openFirstTurn in a Task (first user turn, then the start chime, then queued triggers). On a thrown error releases the coordinator's .voice claim (registered before setActive), sets a localized permissionError and returns to idle (returnToIdleAfterFailedStart).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.configureAudioSessionForConversation()",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.installInterruptionObserver()",
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.beginUserTurn()",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.announceVoiceChatStart()",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.openFirstTurn()",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.release(_:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.returnToIdleAfterFailedStart()",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
    "writes": [
     "mem:VoiceConversationController.permissionError",
     "mem:VoiceConversationController.state",
-    "mem:AudioSessionCoordinator claim .voice"
+    "mem:AudioSessionCoordinator claim .voice (claimed; released on failure)"
    ],
    "branches": [
     {
-     "at": "+8",
+     "at": "+7",
      "cond": "catch from configureAudioSessionForConversation",
-     "effect": "logs error, permissionError='Couldn't start the mic: …', state=.idle (the coordinator claim made before setActive threw is not released here)"
+     "effect": "logs error, releases the .voice claim, permissionError='Couldn't start the mic: …', back to idle"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Comment says the start chime fires AFTER beginUserTurn so the recognizer is already listening, but beginUserTurn is launched in an unawaited Task and announceVoiceChatStart runs synchronously before it, so the chime plays before the engine/recognizer start.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift:99",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift:107",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift:108"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "configureAudioSessionForConversation registers the coordinator's .voice claim BEFORE setActive(true). When setActive throws, the catch only sets permissionError and .idle and never releases the claim. hasActiveClaims()/isVoiceActive() then stay true, so cue and breathing teardown never deactivates the session (other apps' audio does not resume) and every cue resolves to .playAndRecord until a later voice session's stop() releases the claim.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift:25",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift:27",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift:110",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift:113",
-      "Emuqu/Sources/Collection/BreathingAudioManager.swift:122",
-      "Emuqu/Sources/Services/AudioSessionCoordinator.swift:109"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.announceVoiceChatStart()": "d80bc72e7ab56596",
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.beginUserTurn()": "8c08834f652e4360",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.openFirstTurn()": "9d2db45b016e3c1c",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.returnToIdleAfterFailedStart()": "e15a0bbe7a209f33",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.configureAudioSessionForConversation()": "641e43315596a98d",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.installInterruptionObserver()": "3e5b0c8006660a98",
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.state": "1a896ccc8ae2dce3",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.release(_:)": "00b2c416245f74ae",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
+   "key": "func VoiceConversationController.returnToIdleAfterFailedStart()",
+   "hash": "e45b28046d8573d6",
+   "does": "A start that never opened the mic: sets .idle and plays any trigger queued while voice was starting.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.drainPendingTriggersIfIdle()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:VoiceConversationController.state"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.drainPendingTriggersIfIdle()": "bf0438cde040823b",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.state": "1a896ccc8ae2dce3"
+   }
+  },
+  {
+   "key": "func VoiceConversationController.openFirstTurn()",
+   "hash": "5c62ef1874dd4e3a",
+   "does": "Awaits beginUserTurn; plays the haptic + Tink start cue only if voice is then listening (the recognizer is live when the user starts talking; a failed or ended start plays none); then drains any coach trigger queued while voice was starting.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.beginUserTurn()",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.announceVoiceChatStart()",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.drainPendingTriggersIfIdle()"
+   ],
+   "reads": [
+    "mem:VoiceConversationController.state"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "state == .listening",
+     "effect": "start cue."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.announceVoiceChatStart()": "d80bc72e7ab56596",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.drainPendingTriggersIfIdle()": "bf0438cde040823b",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.beginUserTurn()": "8c08834f652e4360",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.state": "1a896ccc8ae2dce3"
+   }
+  },
+  {
    "key": "func VoiceConversationController.stop()",
-   "hash": "45a08bf18f846229",
-   "does": "Full teardown: sets isStoppingFully for the duration, cancels interjection llmTask, cancels the shared AssistantViewModel stream (which calls back into stopAnyOngoingSpeech), drops observers, resets cursor, stops TTS, removes interruption observer, tears down audio, releases STT, returns to .idle and clears transcript/response/chunker/preemptedState.",
+   "hash": "2449fdb05f1cfbe7",
+   "does": "Full teardown: sets isStoppingFully for the duration, cancels the interjection llmTask, cancels the chat stream only when voice owns it (cancelVoiceOwnedReply; a typed reply keeps streaming), drops queued coach triggers, drops observers, resets cursor, stops TTS, removes the interruption observer, tears down audio, releases STT, returns to .idle and clears transcript/response/chunker/preemptedState.",
    "entry": "AssistantChatView.swift:485, FitnessRecordingView+Tiles.swift:681; internally from beginUserTurn failure/idle (Pipeline:402,408), audio interruption ended (Audio:87), empty-transcript give-up (Audio:332) and consent-required (Audio:521)",
    "calls": [
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.cancelLLM()",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.cancel()",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.cancelVoiceOwnedReply()",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.cancelAssistantObservers()",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.stopSynthesizer()",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.removeInterruptionObserver()",
@@ -256,36 +258,55 @@
    "reads": [],
    "writes": [
     "mem:VoiceConversationController.isStoppingFully",
+    "mem:VoiceConversationController.pendingTriggers",
     "mem:VoiceConversationController.state",
     "mem:VoiceConversationController.partialTranscript",
     "mem:VoiceConversationController.currentResponseText",
     "mem:VoiceConversationController.preemptedState",
-    "mem:AssistantViewModel.isStreaming/streamTask/pendingSendOnFinish"
+    "mem:AssistantViewModel.isStreaming/streamTask/pendingSendOnFinish (only when voice owns the reply)"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "data-loss",
-     "sev": "low",
-     "text": "stop() calls assistantViewModel.cancel(), which also drops a typed-chat pendingSendOnFinish and cancels a typed stream, even when voice was only listening; ending voice mid-typed-reply kills the typed reply.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift:132",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:576"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.reset()": "a226667027d63c39",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.cancel()": "8774a51a81a12938",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.cancelVoiceOwnedReply()": "bf7ebc436635d277",
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.releaseSTT()": "6c537c06bdf4217b",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.stopSynthesizer()": "6eacb5918b9fecc6",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.cancelAssistantObservers()": "e52ce7610c1a76ac",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.cancelLLM()": "5450f1d775cee08f",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.removeInterruptionObserver()": "066665f20ac9cd21",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.teardownAudioPipeline()": "cb2849f22670f785",
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.assistantViewModel": "0b0ba54c8303a4e2",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.state": "1a896ccc8ae2dce3"
+   }
+  },
+  {
+   "key": "func VoiceConversationController.cancelVoiceOwnedReply()",
+   "hash": "716704f8e9f8a621",
+   "does": "Cancels the shared chat stream (AssistantViewModel.cancel) only when voice owns it: voice is speaking a reply (activeAssistantIndex set) or a voice message is queued behind the stream. Otherwise only stops speech (stopAnyOngoingSpeech), leaving a typed reply and its queued follow-up alone.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.cancel()",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.stopAnyOngoingSpeech()"
+   ],
+   "reads": [
+    "mem:VoiceConversationController.activeAssistantIndex",
+    "mem:AssistantViewModel.pendingSendOnFinish"
+   ],
+   "writes": [
+    "mem:AssistantViewModel.isStreaming/streamTask/pendingSendOnFinish (voice-owned case)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "voice speaking a reply OR a voice send queued",
+     "effect": "AssistantViewModel.cancel(); else stopAnyOngoingSpeech()"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.cancel()": "8774a51a81a12938",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.stopAnyOngoingSpeech()": "e8680b3d71d55e20",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.assistantViewModel": "0b0ba54c8303a4e2"
    }
   },
   {
@@ -316,8 +337,8 @@
   },
   {
    "key": "func VoiceConversationController.interrupt()",
-   "hash": "52df06d7e5430068",
-   "does": "User/barge-in interrupt: cancels interjection task and shared assistant stream, drops observers, bumps responseSpeakGeneration, stops TTS, clears response/chunker/partial transcript, and launches beginUserTurn.",
+   "hash": "5c3b5a5bf1f5acc0",
+   "does": "User/barge-in interrupt: cancels the interjection task and the shared assistant stream with isStoppingFully set around the cancel (so the re-entrant stopAnyOngoingSpeech schedules no second listening restart), drops observers, bumps responseSpeakGeneration, stops TTS, clears response/chunker/partial transcript, and launches beginUserTurn as the only restart.",
    "entry": "toggle() in .speaking and checkForBargeIn()",
    "calls": [
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.cancelLLM()",
@@ -329,26 +350,13 @@
    ],
    "reads": [],
    "writes": [
+    "mem:VoiceConversationController.isStoppingFully",
     "mem:VoiceConversationController.responseSpeakGeneration",
     "mem:VoiceConversationController.currentResponseText",
     "mem:VoiceConversationController.partialTranscript"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "race",
-     "sev": "med",
-     "text": "interrupt() calls assistantViewModel.cancel(), which re-enters stopAnyOngoingSpeech(); with state still .speaking that schedules a second beginUserTurn 100 ms later (scheduleListeningRestartAfterStop) in addition to the one interrupt() launches. If the first engine restart (setActive + reset + installTap + start with a possible 200 ms retry) has not yet set .listening, both run resetAudioEngineSafely/installMicTap concurrently on the same engine.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift:171",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift:182",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift:216",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift:242",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift:202"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.reset()": "a226667027d63c39",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.cancel()": "8774a51a81a12938",
@@ -361,14 +369,58 @@
   },
   {
    "key": "func VoiceConversationController.speakAIResponse(toPrompt:)",
-   "hash": "081a68ba3695cb93",
-   "does": "Entry for AI interjection prompts (workout start readout, post-workout summary): queues an .aiPrompt when isBusyWithUserResponse, capping the queue; otherwise plays it now.",
+   "hash": "cb6c0cedc3a71f2f",
+   "does": "Entry for AI interjection prompts (workout start readout, post-workout summary): queues an .aiPrompt (queueTrigger) while voice is starting or the user/AI is busy; otherwise plays it now.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.isBusyWithUserResponse()",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.shouldQueueTrigger(_:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.queueTrigger(_:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.playAIPromptTriggerNow(prompt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "shouldQueueTrigger(.routine)",
+     "effect": "queue and return; else playAIPromptTriggerNow"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.playAIPromptTriggerNow(prompt:)": "1c902cb904961239",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.queueTrigger(_:)": "c41f7fde4fe6bfca",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.shouldQueueTrigger(_:)": "6ba90bd7e72382b7"
+   }
+  },
+  {
+   "key": "func VoiceConversationController.shouldQueueTrigger(_:)",
+   "hash": "4ce0a36a396ce078",
+   "does": "True while voice is .starting (any urgency: its audio isn't set up and preempting would abandon the start) or, for a routine trigger, while isBusyWithUserResponse.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.isBusyWithUserResponse()"
+   ],
+   "reads": [
+    "mem:VoiceConversationController.state"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.isBusyWithUserResponse()": "cbc4774e957799ff",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.state": "1a896ccc8ae2dce3"
+   }
+  },
+  {
+   "key": "func VoiceConversationController.queueTrigger(_:)",
+   "hash": "50822c1618b2c773",
+   "does": "Appends a trigger to pendingTriggers, caps the queue, logs; with voice idle (the only wait is a typed reply streaming) arms drainWhenTypedReplyEnds so the queue drains when that reply finishes.",
+   "entry": null,
+   "calls": [
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.capPendingTriggers()",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.playAIPromptTriggerNow(prompt:)"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.drainWhenTypedReplyEnds()"
    ],
    "reads": [],
    "writes": [
@@ -376,17 +428,54 @@
    ],
    "branches": [
     {
-     "at": "+2",
-     "cond": "isBusyWithUserResponse()",
-     "effect": "append .aiPrompt, cap queue, return; else playAIPromptTriggerNow"
+     "at": "+5",
+     "cond": "state == .idle",
+     "effect": "drainWhenTypedReplyEnds"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.capPendingTriggers()": "561cde02679e6536",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.isBusyWithUserResponse()": "cbc4774e957799ff",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.playAIPromptTriggerNow(prompt:)": "579f8d1c6038cc58",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.drainWhenTypedReplyEnds()": "ffecdc85b5f8cd8a",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.state": "1a896ccc8ae2dce3",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func VoiceConversationController.drainWhenTypedReplyEnds()",
+   "hash": "ef2226f74c86a20b",
+   "does": "While no assistant observer is registered, registers one ObservationLoop on the chat's isStreaming; when it turns false with voice still idle, the observer cancels itself (cancelAssistantObservers) and drains the queue. Voice starting cancels it with the other assistant observers.",
+   "entry": "Observation change delivery for the registered loop.",
+   "calls": [
+    "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.observe(_:initial:read:onChange:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.cancelAssistantObservers()",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.drainPendingTriggersIfIdle()"
+   ],
+   "reads": [
+    "mem:VoiceConversationController.assistantObservers",
+    "mem:AssistantViewModel.isStreaming"
+   ],
+   "writes": [
+    "mem:VoiceConversationController.assistantObservers"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "an assistant observer already exists",
+     "effect": "return (one at a time)"
+    },
+    {
+     "at": "+4",
+     "cond": "stream still running or voice not idle",
+     "effect": "ignore this change; else cancel observer and drain"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.drainPendingTriggersIfIdle()": "bf0438cde040823b",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.cancelAssistantObservers()": "e52ce7610c1a76ac",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "4ca4c631cc8c2212",
+    "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.observe(_:initial:read:onChange:)": "5ef79ca8e7bb0dc5"
    }
   },
   {
@@ -415,41 +504,24 @@
   },
   {
    "key": "func VoiceConversationController.playAIPromptTriggerNow(prompt:)",
-   "hash": "c24d23b776c131a6",
-   "does": "Preempts for an AI interjection: snapshots preemptedState once, cancels the interjection task, stops TTS, kills the silence timer, starts a fresh recognition task, clears transcript/response/chunker, sets .triggerSpeaking and starts the interjection stream.",
+   "hash": "07c86b19121f1268",
+   "does": "Preempts for an AI interjection (preemptForTrigger), clears the response text and chunker, and starts the interjection stream.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.cancelLLM()",
-    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeStopSpeaking",
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.startFreshRecognitionTask()",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.preemptForTrigger()",
     "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.reset()",
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.startAIInterjectionStream(prompt:)"
    ],
-   "reads": [
-    "mem:VoiceConversationController.state"
-   ],
+   "reads": [],
    "writes": [
-    "mem:VoiceConversationController.preemptedState",
-    "mem:VoiceConversationController.silenceTimer",
-    "mem:VoiceConversationController.state",
-    "mem:VoiceConversationController.partialTranscript",
     "mem:VoiceConversationController.currentResponseText"
    ],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "preemptedState == nil",
-     "effect": "save current state as the one to restore; otherwise keep the earlier snapshot"
-    }
-   ],
+   "branches": [],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.reset()": "a226667027d63c39",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.startAIInterjectionStream(prompt:)": "7cea50676b289f04",
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.cancelLLM()": "5450f1d775cee08f",
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.startFreshRecognitionTask()": "e49a3bd26b815512",
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.state": "1a896ccc8ae2dce3",
-    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeStopSpeaking": "962b6642341b1aa4"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.preemptForTrigger()": "d48309b1ed5cfd39",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.startAIInterjectionStream(prompt:)": "7cea50676b289f04"
    }
   },
   {
@@ -493,7 +565,7 @@
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "6c805df1b6141cac",
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func InterjectionGate.maySend(to:disclaimerAccepted:)": "2a6251c333cbae5a",
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.consumeInterjection(_:)": "4549ff5fc3b1a790",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.finishInterjectionAfterError()": "3745b1a375cf2173",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.finishInterjectionAfterError()": "ce9c4ca790727492",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.buildSystemPrompt()": "fc69acd52aec5ad4",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.assistantViewModel": "0b0ba54c8303a4e2",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
@@ -521,7 +593,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.drainInterjection(_:)": "b5130c1e3be06791",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.finishInterjectionAfterError()": "3745b1a375cf2173"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.finishInterjectionAfterError()": "ce9c4ca790727492"
    }
   },
   {
@@ -679,14 +751,17 @@
   },
   {
    "key": "func VoiceConversationController.finishInterjectionAfterError()",
-   "hash": "54fce57ff1068446",
-   "does": "Interjection failure/skip: clears llmTask and restores the pre-trigger state — reopens the mic via beginUserTurn if it was listening/speaking, else sets .idle.",
+   "hash": "8635ecfbe8b86be0",
+   "does": "Interjection failure/skip: clears llmTask; when triggers are queued and nobody is busy, plays the next one (keeping the pre-trigger snapshot, as finishTriggerSpeech does); otherwise restores the pre-trigger state — reopens the mic via beginUserTurn if it was listening/speaking, else sets .idle.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.isBusyWithUserResponse()",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.drainPendingTriggersIfIdle()",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.beginUserTurn()"
    ],
    "reads": [
-    "mem:VoiceConversationController.preemptedState"
+    "mem:VoiceConversationController.preemptedState",
+    "mem:VoiceConversationController.pendingTriggers"
    ],
    "writes": [
     "mem:VoiceConversationController.llmTask",
@@ -696,72 +771,59 @@
    "branches": [
     {
      "at": "+3",
+     "cond": "queue non-empty and not busy",
+     "effect": "drain next trigger, return"
+    },
+    {
+     "at": "+7",
      "cond": "preemptedState nil ??",
      "effect": "treated as .idle"
     },
     {
-     "at": "+5",
+     "at": "+9",
      "cond": "prior was .listening or .speaking",
-     "effect": "beginUserTurn() (mic reopens even if some interjection chunks are still being spoken); else state=.idle"
+     "effect": "beginUserTurn(); else state=.idle"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "med",
-     "text": "Gate-denied or failed interjections leave remaining pendingTriggers untouched (no drainPendingTriggersIfIdle), so when an aiPrompt drained from the queue fails, the rest of the queue waits for an unrelated later event.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift:322",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift:474"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.drainPendingTriggersIfIdle()": "bf0438cde040823b",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.isBusyWithUserResponse()": "cbc4774e957799ff",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.beginUserTurn()": "8c08834f652e4360",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.state": "1a896ccc8ae2dce3"
    }
   },
   {
    "key": "func VoiceConversationController.handleTrigger(message:urgency:)",
-   "hash": "427316143e7aab62",
-   "does": "Routes a spoken coach trigger: routine → queue (capped) if busy else play now; urgent → save in-progress dictation to clipboard then preempt and play now.",
+   "hash": "66e7c60c85450c79",
+   "does": "Routes a spoken coach trigger: queued (queueTrigger) while voice is starting, or for a routine trigger while the user/AI is busy; otherwise an urgent trigger first saves in-progress dictation to the clipboard, and the line plays now.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.isBusyWithUserResponse()",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.capPendingTriggers()",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.playSpokenTriggerNow(message:)",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.saveInProgressWordsToClipboard(reason:)"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.shouldQueueTrigger(_:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.queueTrigger(_:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.saveInProgressWordsToClipboard(reason:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.playSpokenTriggerNow(message:)"
    ],
    "reads": [],
-   "writes": [
-    "mem:VoiceConversationController.pendingTriggers"
-   ],
+   "writes": [],
    "branches": [
     {
-     "at": "+3",
-     "cond": "case .routine",
-     "effect": "queue-or-play"
+     "at": "+2",
+     "cond": "shouldQueueTrigger(urgency)",
+     "effect": "queue .spokenLiteral, return"
     },
     {
-     "at": "+4",
-     "cond": "isBusyWithUserResponse()",
-     "effect": "append .spokenLiteral, cap, return"
-    },
-    {
-     "at": "+11",
-     "cond": "case .urgent",
-     "effect": "clipboard save + playSpokenTriggerNow unconditionally"
+     "at": "+9",
+     "cond": "urgency == .urgent",
+     "effect": "clipboard save, then play"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.capPendingTriggers()": "561cde02679e6536",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.isBusyWithUserResponse()": "cbc4774e957799ff",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.playSpokenTriggerNow(message:)": "bd7f44bd592b8e1b",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.playSpokenTriggerNow(message:)": "639e9bef29a11eef",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.queueTrigger(_:)": "c41f7fde4fe6bfca",
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.saveInProgressWordsToClipboard(reason:)": "338b607af2c5c659",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.shouldQueueTrigger(_:)": "6ba90bd7e72382b7"
    }
   },
   {
@@ -829,15 +891,34 @@
   },
   {
    "key": "func VoiceConversationController.playSpokenTriggerNow(message:)",
-   "hash": "317c48e891dbc397",
-   "does": "Preempts with a literal trigger line: snapshots preemptedState once, cancels interjection task, stops TTS, kills silence timer, starts fresh recognition task, clears partialTranscript, sets .triggerSpeaking and speaks the message in the app-language voice as scripted.",
+   "hash": "ffee97eb61eeeb92",
+   "does": "Preempts with a literal trigger line (preemptForTrigger) and speaks the message in the app-language voice as scripted.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.cancelLLM()",
-    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeStopSpeaking",
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.startFreshRecognitionTask()",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.preemptForTrigger()",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.speak(_:voice:scripted:)",
     "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.appLanguageVoice()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.preemptForTrigger()": "d48309b1ed5cfd39",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.speak(_:voice:scripted:)": "bf6a0dfba3dadc28",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.appLanguageVoice()": "840eae12a70d0f17"
+   }
+  },
+  {
+   "key": "func VoiceConversationController.preemptForTrigger()",
+   "hash": "3e338571194ba114",
+   "does": "Common trigger preemption: snapshots preemptedState once; when voice was speaking a chat reply, detaches from it (detachFromSpokenReply) so the reply stops feeding speech; cancels the interjection task, stops TTS, kills the silence timer, starts a fresh recognition task only when the mic is live (not idle/starting), clears partialTranscript and sets .triggerSpeaking.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.detachFromSpokenReply()",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.cancelLLM()",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeStopSpeaking",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.startFreshRecognitionTask()"
    ],
    "reads": [
     "mem:VoiceConversationController.state"
@@ -850,42 +931,52 @@
    ],
    "branches": [
     {
-     "at": "+4",
+     "at": "+2",
      "cond": "preemptedState == nil",
      "effect": "snapshot state; else keep earlier snapshot"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "When an urgent trigger preempts a streamed reply (.speaking), only the interjection llmTask and the synth queue are stopped; the AssistantViewModel stream, its ObservationLoop speakers and textChunker are left alive, so the rest of the reply keeps being fed to speak() during and after the alert, and because the finishing observer requires state == .speaking, finishResponseFromAssistant never runs for that reply (chunker remainder dropped, observers not cancelled).",
-     "evidence": [
-      "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift:431",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift:432",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:647",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:650"
-     ],
-     "found": "first read, upheld on second"
     },
     {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "startFreshRecognitionTask() runs even when voice is idle (no audio engine running), creating a recognition task with no audio that later ends with an error; handleRecognitionError ignores it because state != .listening.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift:435",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift:229"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+3",
+     "cond": "state == .speaking",
+     "effect": "detachFromSpokenReply"
+    },
+    {
+     "at": "+9",
+     "cond": "mic live",
+     "effect": "startFreshRecognitionTask"
     }
    ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.speak(_:voice:scripted:)": "fe4979f15855666c",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.detachFromSpokenReply()": "e66fe9bea6155543",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.cancelLLM()": "5450f1d775cee08f",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.startFreshRecognitionTask()": "e49a3bd26b815512",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::let VoiceConversationController.synthesizer": "a2b4f383513d2c85",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.state": "1a896ccc8ae2dce3",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.appLanguageVoice()": "840eae12a70d0f17",
     "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeStopSpeaking": "962b6642341b1aa4"
+   }
+  },
+  {
+   "key": "func VoiceConversationController.detachFromSpokenReply()",
+   "hash": "d53253750ce12d89",
+   "does": "Stops voice speaking the chat reply in progress: bumps responseSpeakGeneration (in-flight observation callbacks no-op), cancels the assistant observers, clears the active index and spoken cursor, resets the chunker. The reply keeps streaming into the chat; after the alert voice listens again.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.cancelAssistantObservers()",
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.reset()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:VoiceConversationController.responseSpeakGeneration",
+    "mem:VoiceConversationController.assistantObservers",
+    "mem:VoiceConversationController.activeAssistantIndex",
+    "mem:VoiceConversationController.spokenCharCursor"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.reset()": "a226667027d63c39",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.cancelAssistantObservers()": "e52ce7610c1a76ac"
    }
   },
   {
@@ -951,8 +1042,8 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.isBusyWithUserResponse()": "cbc4774e957799ff",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.playAIPromptTriggerNow(prompt:)": "579f8d1c6038cc58",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.playSpokenTriggerNow(message:)": "bd7f44bd592b8e1b"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.playAIPromptTriggerNow(prompt:)": "1c902cb904961239",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.playSpokenTriggerNow(message:)": "639e9bef29a11eef"
    }
   },
   {

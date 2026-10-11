@@ -14,35 +14,12 @@
  "flags": [],
  "units": [
   {
-   "key": "var SessionStorageDiagnostic.Report.repairableCount",
-   "hash": "db3900d7effc74ec",
-   "does": "Report.repairableCount: alias for backupOnlyCount.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "repairableCount has no reader anywhere in the repo.",
-     "evidence": [
-      "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift:83"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
-  },
-  {
    "key": "func SessionStorageDiagnostic.run(archive:backup:)",
-   "hash": "d1b6220a0db52e89",
-   "does": "Builds the audit Report: snapshots archive entries, collects backup ids (unarchived ∪ all), inspects every archived session (full decrypt+decode), counts statuses, computes archive dir size and backup size, lists backup ids absent from the archive index as orphans sorted by uuid string.",
+   "hash": "ea65cc61c14348a7",
+   "does": "Builds the audit Report: snapshots archive entries, collects every backup id (allBackupIds), inspects every archived session (full decrypt+decode), counts statuses, computes archive dir size and backup size, lists backup ids absent from the archive index as orphans sorted by uuid string.",
    "entry": "Called from ExportAndArchiveViews.swift:862 (RR Storage Audit button) in a background task",
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::var RawRRBackup.unarchivedSessionIds",
     "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func RawRRBackup.allBackupIds()",
     "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.inspectSession(entry:archive:backup:)",
     "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.statusCounts(in:)",
@@ -59,50 +36,38 @@
    "writes": [],
    "branches": [
     {
-     "at": "+11",
+     "at": "+10",
      "cond": "counts[.archivedFull] missing",
      "effect": "?? 0"
     },
     {
-     "at": "+12",
+     "at": "+11",
      "cond": "counts[.backupOnly] missing",
      "effect": "?? 0"
     },
     {
-     "at": "+13",
+     "at": "+12",
      "cond": "counts[.bothPresent] missing",
      "effect": "?? 0"
     },
     {
-     "at": "+14",
+     "at": "+13",
      "cond": "counts[.neither] missing",
      "effect": "?? 0"
     },
     {
-     "at": "+15",
+     "at": "+14",
      "cond": "counts[.unreadable] missing",
      "effect": "?? 0"
     }
    ],
-   "flags": [
-    {
-     "kind": "hack",
-     "sev": "low",
-     "text": "backupIds = unarchivedSessionIds ∪ allBackupIds; the first set is a subset of the second, so the union is redundant work.",
-     "evidence": [
-      "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift:102",
-      "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift:103"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
     "Emuqu/Sources/Storage/RawRRBackup.swift::var RawRRBackup.totalBackupSize": "eb994fa4407d2c07",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::var RawRRBackup.unarchivedSessionIds": "f5177c422b9377dc",
     "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func RawRRBackup.allBackupIds()": "4517a1ebd8bdc0ae",
     "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.directorySize(at:)": "23f263afffd8fd53",
-    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.inspectSession(entry:archive:backup:)": "36529d1a6c19287c",
+    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.inspectSession(entry:archive:backup:)": "c25fe6f9873c806a",
     "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.statusCounts(in:)": "d892404f8dd7c793"
    }
   },
@@ -122,8 +87,8 @@
   },
   {
    "key": "func SessionStorageDiagnostic.inspectSession(entry:archive:backup:)",
-   "hash": "9fe4dad85dac8044",
-   "does": "Per archived session: file size of its archive file, full retrieveOrLog decode; unreadable when decode fails, else beats in archive vs backup index beat count → status and analysis summary.",
+   "hash": "67948c0bafe15214",
+   "does": "Per archived session: file size of its archive file and the backup index beat count (looked up first), then full retrieveOrLog decode; unreadable when decode fails (still reporting the backup beats, so a recoverable session shows them), else beats in archive vs backup → status and analysis summary.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)",
@@ -146,33 +111,22 @@
      "effect": "?? 0 file size when not"
     },
     {
-     "at": "+8",
-     "cond": "retrieveOrLog returns a session",
-     "effect": "nil: report .unreadable with archiveBeats 0 and backupBeats 0 (backup not consulted)"
-    },
-    {
-     "at": "+12",
-     "cond": "session.rrSeries nil",
-     "effect": "?? 0 archive beats"
-    },
-    {
-     "at": "+13",
+     "at": "+10",
      "cond": "no backup index row",
      "effect": "?? 0 backup beats"
-    }
-   ],
-   "flags": [
+    },
     {
-     "kind": "broken",
-     "sev": "med",
-     "text": "An undecodable archive file is reported with backupBeatCount 0 and status .unreadable without looking at the backup index, so a session whose beats survive in RawRRBackup (the exact repair case the audit exists for) is not shown as recoverable.",
-     "evidence": [
-      "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift:144",
-      "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift:145"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+11",
+     "cond": "retrieveOrLog returns a session",
+     "effect": "nil: report .unreadable with archiveBeats 0 and the backup beat count"
+    },
+    {
+     "at": "+15",
+     "cond": "session.rrSeries nil",
+     "effect": "?? 0 archive beats"
     }
    ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "f0a309cc2b24de13",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backedUpBeatCount(_:)": "1c2bf9aa7b4280a2",

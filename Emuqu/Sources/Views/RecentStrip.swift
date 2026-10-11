@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// Horizontal-scroll row of last 7 readings on
-/// Dashboard. Streak-without-streak retention mechanic:
-/// shows continuity without grading, miss a day → 6 dots instead of 7,
+/// Horizontal-scroll row of the recent days the host passes in `days` on
+/// Dashboard (the dashboard builds seven). Streak-without-streak retention mechanic:
+/// shows continuity without grading, a missed day shows an empty ring,
 /// no shame copy.
 ///
 /// Until the baseline holds 28 nights (`ScoreAppearancePolicy.fullBaselineNights`)
@@ -49,24 +49,13 @@ struct RecentStrip: View {
         }
     }
 
+    /// Anchored to TODAY's card on the trailing edge so the user sees today
+    /// + recent on first paint, and kept there when a new day is added
+    /// (`defaultScrollAnchor` positions the content initially and on every
+    /// content-size change), with no timed wait for layout.
     private var recentStripScroll: some View {
-        ScrollViewReader { proxy in
-            recentStripRow
-            // Anchor to TODAY's card on the
-            // trailing edge so the user sees today + recent on
-            // first paint. Not `.onAppear`,
-            // which fires before the LazyHStack has finished
-            // its first layout pass — `scrollTo` then runs against
-            // a zero-width content size and silently no-ops,
-            // leaving the strip pinned at the leading edge with
-            // older empty days visible and today off-screen.
-            // `.task(id:)` fires AFTER first layout commits and
-            // the small `Task.sleep(50ms)` yields to the layout
-            // engine before the scroll, which lands reliably.
-            // Re-fires when `days.count` changes (e.g. archive
-            // version bumps inject a new day).
-            .task(id: days.count) { await anchorToToday(proxy) }
-        }
+        recentStripRow
+            .defaultScrollAnchor(.trailing)
     }
 
     /// Every day card is tappable. The host (DashboardV2View)
@@ -80,14 +69,6 @@ struct RecentStrip: View {
         Button { onTapDay(day) } label: { card(for: day) }
             .buttonStyle(.plain)
             .id(day.id)
-    }
-
-    private func anchorToToday(_ proxy: ScrollViewProxy) async {
-        await sleepQuietly(50_000_000, context: "body")
-        guard let last = days.last else { return }
-        withAnimation(.easeOut(duration: 0.2)) {
-            proxy.scrollTo(last.id, anchor: .trailing)
-        }
     }
 
     private var recentStripRow: some View {
@@ -136,7 +117,7 @@ struct RecentStrip: View {
     }
 
     /// Three states: a verdict dot once scores are meaningful, a plain
-    /// progress dot for first-30-days users, and an empty ring for a day with
+    /// progress dot before the baseline holds 28 nights (`showVerdicts` false), and an empty ring for a day with
     /// no reading — no shame copy on that last one.
     @ViewBuilder
     private func dayMarker(for day: Day) -> some View {

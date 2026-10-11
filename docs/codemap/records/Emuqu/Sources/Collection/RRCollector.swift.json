@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Collection/RRCollector.swift",
- "hash": "1457b22c4c07d802",
+ "hash": "6083d20dc4030cdc",
  "role": "The @Observable MainActor RRCollector orchestration shell: injected dependencies, back-compat forwarders to DeviceStatus/SessionState/CollectorSessionControl, archive read helpers, strap-recovery predicates, training-context/ANS-config builders, wiring factory and deferred baseline rebuild; plus RRCollectorError and two file-scope phase label helpers.",
  "types": [
   "RRCollector: class — recording orchestrator (@Observable, @MainActor)",
@@ -23,7 +23,6 @@
   "mem:RRCollector.cancellables",
   "mem:RRCollector.notificationObservers",
   "mem:RRCollector.lastSeenReconnectCount",
-  "mem:RRCollector.cachedTrainingLoad",
   "mem:RRCollector.pastDayTrainingLoads",
   "mem:RRCollector.lastEmergencyFlush",
   "mem:RRCollector._recoveryService",
@@ -34,32 +33,13 @@
   "mem:RRCollector.liveHRVSnapshotMirror",
   "mem:RRCollector.didBootBaseline",
   "RRCollector.verification (default Verification)",
-  "RRCollector.streamingVerification (minPoints 120, minDurationHours 0.025, maxArtifact 20%, warn 10%)"
+  "mem:RRCollector.cachedTrainingLoadOfDay (private: the current training load with the day it was cached; read through the cachedTrainingLoad computed property, nil once that day is over)",
+  "mem:RRCollector.pastDayTrainingLoadHolders (per-day count of running reanalyses holding a past day's load)",
+  "mem:RRCollector.pendingReanalyses (ids asked for again while in flight: one trailing pass each)",
+  "RRCollector.streamingVerification (minPoints CollectorSessionControl.minimumQuickReadingBeats = 120, minDurationHours 0.025, maxArtifact 20%, warn 10%)"
  ],
- "toplevel": "Stored-property initializers: deviceFetchPolicy .automatic, useDeviceBackupForOvernight true, overnightDeviceBackupActive false, isOvernightEnding false, armingRetryInterval = StrapRecordingPolicy.armingRetryIntervalSeconds, streamingTimerBox lock(nil), pastDayTrainingLoads [:], inFlightReanalyses [], liveHRVSnapshotMirror lock(nil), didBootBaseline lock(false), verification = Verification(), streamingVerification relaxed config. typealias CollectorError = RRCollectorError.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Header lists +Bindings, +PauseResume, +Streaming, +Recovery etc. as RRCollector extensions, but that behaviour now lives on CollectorSessionControl / SessionRecoveryCoordinator and other coordinators reached through forwarders.",
-   "evidence": [
-    "Emuqu/Sources/Collection/RRCollector.swift:7",
-    "Emuqu/Sources/Collection/CollectorSessionControl.swift:31",
-    "Emuqu/Sources/Collection/SessionRecoveryCoordinator.swift:32"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "VO2max override/opt-in precedence is implemented twice: trainingContext(from:) and configuredVO2Max.",
-   "evidence": [
-    "Emuqu/Sources/Collection/RRCollector.swift:399",
-    "Emuqu/Sources/Collection/RRCollector.swift:499"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "Stored-property initializers: deviceFetchPolicy .automatic, useDeviceBackupForOvernight true, overnightDeviceBackupActive false, isOvernightEnding false, armingRetryInterval = StrapRecordingPolicy.armingRetryIntervalSeconds, streamingTimerBox lock(nil), cachedTrainingLoadOfDay nil, pastDayTrainingLoads [:], pastDayTrainingLoadHolders [:], inFlightReanalyses [], pendingReanalyses [], liveHRVSnapshotMirror lock(nil), didBootBaseline lock(false), verification = Verification(), streamingVerification relaxed config (minPoints from CollectorSessionControl.minimumQuickReadingBeats). typealias CollectorError = RRCollectorError. The header doc maps each extension file to the coordinator that now owns its behaviour.",
+ "flags": [],
  "units": [
   {
    "key": "var RRCollector.archiveVersion",
@@ -234,6 +214,33 @@
    "deps": {}
   },
   {
+   "key": "var RRCollector.cachedTrainingLoad",
+   "hash": "d768f71fb1fbfefd",
+   "does": "The current (as-of-today) training load. Setting it stamps the value with today's date; reading it returns nil once that day is over, so a load cached before midnight in a long-lived process is never read as the next day's.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:RRCollector.cachedTrainingLoadOfDay"
+   ],
+   "writes": [
+    "mem:RRCollector.cachedTrainingLoadOfDay"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "nothing cached or cached on an earlier day",
+     "effect": "get returns nil"
+    },
+    {
+     "at": "+5",
+     "cond": "set to nil",
+     "effect": "clears the stamp"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
    "key": "var RRCollector.control",
    "hash": "f934e7bb44284ac6",
    "does": "Builds a new CollectorSessionControl(collector: self) on each access.",
@@ -295,7 +302,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.runMergeDataLossMigrationIfNeeded()": "889eb2e1fa165529",
+    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.runMergeDataLossMigrationIfNeeded()": "f58b08454d6ff001",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "f5231cd4a715d649"
    }
   },
@@ -349,7 +356,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.stopStreamingSession()": "acb4f2d2d409ba19",
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.stopStreamingSession()": "be73d91403ece112",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "f5231cd4a715d649"
    }
   },
@@ -403,7 +410,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.resumeOvernightStreaming(linkedSessionId:)": "fd3252e0154e3022",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.resumeOvernightStreaming(linkedSessionId:)": "1d943a6e4602b8db",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "f5231cd4a715d649"
    }
   },
@@ -421,7 +428,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.finalizeFromPause()": "c9d07bc20111ce8a",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.finalizeFromPause()": "efe3996fe37eb94b",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "f5231cd4a715d649"
    }
   },
@@ -439,7 +446,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.persistPausedSessionState(sessionId:)": "9430360428757a0f",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.persistPausedSessionState(sessionId:)": "5c17f535a6baf599",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "f5231cd4a715d649"
    }
   },
@@ -457,7 +464,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.clearPausedSessionState()": "4ac0a722eeaae537",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.clearPausedSessionState()": "90591b287efb4e6e",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "f5231cd4a715d649"
    }
   },
@@ -512,45 +519,35 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.findRecentPausedSessionOffMain(archive:maxGap:)": "36e3914cdbe2a842"
+    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.findRecentPausedSessionOffMain(archive:maxGap:)": "2b5cbff9adc6978e"
    }
   },
   {
-   "key": "var RRCollector.archivedSessions",
-   "hash": "07754f50d332095b",
-   "does": "Loads and decodes every archived session (newest first) synchronously via recentSessions(limit: nil).",
+   "key": "func RRCollector.archivedSessionsOffMain()",
+   "hash": "63d10f6770711f07",
+   "does": "Every archived session in full (beats included), newest first, decoded on a detached user-initiated task (loadAllSessions) so the decrypt+decode does not hold the main actor. For the bulk reanalysis paths.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.recentSessions(limit:)"
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.loadAllSessions(from:)"
    ],
    "reads": [
     "archive:SessionArchive.retrieve (all)"
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Synchronous full-archive decrypt+decode on the MainActor (doc warns); used by reanalysis paths.",
-     "evidence": [
-      "Emuqu/Sources/Collection/RRCollector.swift:249",
-      "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift:320"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.recentSessions(limit:)": "21d596f047675431"
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.loadAllSessions(from:)": "e2a86d5c53bb47b5"
    }
   },
   {
-   "key": "func RRCollector.recentSessions(limit:)",
-   "hash": "a29fd667beb3f1eb",
-   "does": "Takes the first `limit` archive entries (all when nil), retrieves each fully, counts and logs failures, and returns the decoded sessions in archive order.",
+   "key": "func RRCollector.loadAllSessions(from:)",
+   "hash": "996415772c608cf4",
+   "does": "Nonisolated: retrieves every archive entry's session in full, logs and counts failures, returns the decoded sessions in archive order.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.retrieveLoggingFailure(_:)"
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.retrieveLoggingFailure(_:from:)"
    ],
    "reads": [
     "archive:SessionArchive.entries",
@@ -559,36 +556,27 @@
    "writes": [],
    "branches": [
     {
-     "at": "+2",
-     "cond": "limit != nil (map ?? allEntries)",
-     "effect": "prefix(limit); nil uses all entries"
-    },
-    {
-     "at": "+3",
-     "cond": "limit.map(String.init) ?? \"all\"",
-     "effect": "log text 'all' when no limit"
-    },
-    {
-     "at": "+6",
+     "at": "+5",
      "cond": "for each entry",
      "effect": "iterate"
     },
     {
-     "at": "+7",
+     "at": "+6",
      "cond": "retrieve returned a session",
-     "effect": "appended; else errorCount += 1 (session silently omitted)"
+     "effect": "appended; else errorCount += 1 (session omitted)"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.retrieveLoggingFailure(_:)": "67cd80e3a94d5ca1",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.retrieveLoggingFailure(_:from:)": "51e2cd019adb8ef5",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
-   "key": "func RRCollector.retrieveLoggingFailure(_:)",
-   "hash": "4fff5dd105a32ecb",
-   "does": "Retrieves one session from the archive; returns nil (logged) when missing or when decode throws.",
+   "key": "func RRCollector.retrieveLoggingFailure(_:from:)",
+   "hash": "451d2b3ab34b7d5f",
+   "does": "Nonisolated: retrieves one session from the archive; returns nil (logged) when missing or when decode throws.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)"
@@ -637,13 +625,13 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.decodeInParallel(_:archive:)": "e5529abf5b483fb8"
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.decodeInParallel(_:archive:)": "75a780bd8c17fe0b"
    }
   },
   {
    "key": "func RRCollector.decodeInParallel(_:archive:)",
-   "hash": "d20ea67a9b0dd29a",
-   "does": "Runs a TaskGroup that decodes each entry lightweight and gathers results in original order.",
+   "hash": "f2fa94ff895cb588",
+   "does": "Nonisolated: runs a TaskGroup that decodes each entry lightweight and gathers results in original order (failures dropped). Also used by recentSessionsAsync(limit:before:type:).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.addDecodeTasks(_:entries:archive:)",
@@ -654,14 +642,14 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.addDecodeTasks(_:entries:archive:)": "60715fa398d424f3",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.collectIndexed(_:capacity:)": "2564a3a573de0f48"
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.addDecodeTasks(_:entries:archive:)": "b0724faf5b640f49",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.collectIndexed(_:capacity:)": "3638af0ea0ba0ce4"
    }
   },
   {
    "key": "func RRCollector.addDecodeTasks(_:entries:archive:)",
-   "hash": "3c3191b46d36be82",
-   "does": "Adds one child task per entry calling archive.retrieveLightweightOrLog, tagged with its index.",
+   "hash": "ce2216e2b84e3b9d",
+   "does": "Nonisolated: adds one child task per entry calling archive.retrieveLightweightOrLog, tagged with its index.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)"
@@ -684,8 +672,8 @@
   },
   {
    "key": "func RRCollector.collectIndexed(_:capacity:)",
-   "hash": "22a105de39e87f26",
-   "does": "Drains the group, drops nil (failed decode) results and sorts by original index.",
+   "hash": "2c0ffa36148c7b9b",
+   "does": "Nonisolated: drains the group, drops nil (failed decode) results and sorts by original index.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -809,16 +797,18 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.trainingContext(from:relativeTo:)": "36355004b3377251",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.trainingLoad(asOf:)": "31a203a91ff6c405"
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.trainingContext(from:relativeTo:)": "09592598960f97cb",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.trainingLoad(asOf:)": "1b4dcabf2d832a76"
    }
   },
   {
    "key": "func RRCollector.trainingLoad(asOf:)",
    "hash": "6692b1911c2578a0",
-   "does": "Returns cachedTrainingLoad for today, else pastDayTrainingLoads[startOfDay(date)].",
+   "does": "Returns cachedTrainingLoad for today (nil when the cache is from an earlier day), else pastDayTrainingLoads[startOfDay(date)].",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.cachedTrainingLoad"
+   ],
    "reads": [
     "mem:RRCollector.cachedTrainingLoad",
     "mem:RRCollector.pastDayTrainingLoads"
@@ -831,67 +821,45 @@
      "effect": "returns the shared cache; else the past-day map entry (nil if never fetched)"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "med",
-     "text": "cachedTrainingLoad carries no date: trainingLoad(asOf:) returns it for any date that is today, so a load fetched before midnight in a long-lived process (overnight recording) is returned as today's after midnight, and createTrainingContextEnsuringFresh then skips its fresh fetch because a context already exists. The property's doc ('Never holds a past day's') is not enforced.",
-     "evidence": [
-      "Emuqu/Sources/Collection/RRCollector.swift:128",
-      "Emuqu/Sources/Collection/RRCollector.swift:390",
-      "Emuqu/Sources/Collection/RRCollector.swift:423"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.cachedTrainingLoad": "a4e379929acafe73"
    }
   },
   {
    "key": "func RRCollector.trainingContext(from:relativeTo:)",
-   "hash": "88d53331e59f0dd2",
-   "does": "Builds TrainingContext(from: load, relativeTo:) and applies settings: vo2MaxOverride replaces vo2Max; when not using HealthKit VO2max, vo2Max is cleared.",
+   "hash": "3960f82e9ba9ce54",
+   "does": "Builds TrainingContext(from: load, relativeTo:) and sets its vo2Max through configuredVO2Max (the override wins, then the HealthKit value when the user opted into it, else nil) — the same precedence as the ANS configuration.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(from:relativeTo:)"
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(from:relativeTo:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.configuredVO2Max(_:)"
    ],
-   "reads": [
-    "mem:SettingsManager.settings.vo2MaxOverride",
-    "mem:SettingsManager.settings.useHealthKitVO2Max"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+1",
-     "cond": "TrainingContext init succeeds",
-     "effect": "continues; else nil"
-    },
-    {
-     "at": "+5",
-     "cond": "vo2MaxOverride set",
-     "effect": "vo2Max = override"
-    },
-    {
-     "at": "+7",
-     "cond": "no override and useHealthKitVO2Max false",
-     "effect": "vo2Max = nil; otherwise HealthKit value kept"
+     "cond": "TrainingContext init fails",
+     "effect": "nil"
     }
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.configuredVO2Max(_:)": "e00e5e016195f9a5",
     "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(from:relativeTo:)": "9c385b2767688026"
    }
   },
   {
    "key": "func RRCollector.createTrainingContextEnsuringFresh(relativeTo:)",
-   "hash": "80b290baefc5042b",
-   "does": "Returns the held-load context when available; otherwise, with training-load integration on, fetches the load from HealthKit as of referenceDate (caching it only when today) and builds the context; nil when integration is off.",
+   "hash": "c19e501e3280b18f",
+   "does": "With training-load integration off returns nil (even when a load is cached). Otherwise returns the held-load context when available, else fetches the load from HealthKit as of referenceDate (caching it only when today) and builds the context.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.createTrainingContext(relativeTo:)",
     "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::func HealthKitManager.calculateTrainingLoad(relativeTo:)",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.trainingContext(from:relativeTo:)"
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.trainingContext(from:relativeTo:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.cachedTrainingLoad"
    ],
    "reads": [
     "mem:SettingsManager.settings.enableTrainingLoadIntegration",
@@ -903,36 +871,25 @@
    "branches": [
     {
      "at": "+1",
+     "cond": "integration disabled",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+4",
      "cond": "held context exists",
      "effect": "returns it"
     },
     {
-     "at": "+4",
-     "cond": "integration enabled",
-     "effect": "fetches; else returns nil"
-    },
-    {
      "at": "+9",
      "cond": "referenceDate is today",
-     "effect": "stores the fetched load in cachedTrainingLoad; past-day loads are not cached (refetched on every call)"
+     "effect": "stores the fetched load in cachedTrainingLoad; past-day loads are not cached"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Doc says 'If integration is disabled -> return nil', but the held-load check on line 423 runs before the enableTrainingLoadIntegration guard, so a load cached while integration was on is still returned after the user turns it off.",
-     "evidence": [
-      "Emuqu/Sources/Collection/RRCollector.swift:420",
-      "Emuqu/Sources/Collection/RRCollector.swift:423",
-      "Emuqu/Sources/Collection/RRCollector.swift:426"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.createTrainingContext(relativeTo:)": "1115324e6b6eb2ac",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.trainingContext(from:relativeTo:)": "36355004b3377251",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.trainingContext(from:relativeTo:)": "09592598960f97cb",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.cachedTrainingLoad": "a4e379929acafe73",
     "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::func HealthKitManager.calculateTrainingLoad(relativeTo:)": "6701fb9622de3bda",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
@@ -1065,7 +1022,7 @@
    "deps": {
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.configuredTrainingLoadAdjustment(_:)": "79c755582ed27b93",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.configuredVO2Max(_:)": "e00e5e016195f9a5",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.trainingLoad(asOf:)": "31a203a91ff6c405",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.trainingLoad(asOf:)": "1b4dcabf2d832a76",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.populationBaselineRMSSD": "5f7cfa36c20d28ad"
    }
   },
@@ -1165,8 +1122,8 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.rebuildBaselineOffMain(replacing:)": "a73a3a2fcda4dfe4",
-    "Emuqu/Sources/Collection/RRCollector.swift::func rebuildBaselineOffMain(replacing:)": "a73a3a2fcda4dfe4"
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.rebuildBaselineOffMain(replacing:)": "bbf6d324097dbdcd",
+    "Emuqu/Sources/Collection/RRCollector.swift::func rebuildBaselineOffMain(replacing:)": "bbf6d324097dbdcd"
    }
   },
   {
@@ -1199,71 +1156,50 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::func rebuildBaselineOffMain(replacing:)": "a73a3a2fcda4dfe4"
+    "Emuqu/Sources/Collection/RRCollector.swift::func rebuildBaselineOffMain(replacing:)": "bbf6d324097dbdcd"
    }
   },
   {
    "key": "func RRCollector.rebuildBaselineOffMain(replacing:)",
    "hash": "2f14799f5226a40e",
-   "does": "Snapshots archive entries, decodes each lightweight on a detached utility task, then on MainActor (weak self) commits the sessions to the baseline tracker.",
+   "does": "Snapshots archive entries, decodes each lightweight on a detached utility task, then on MainActor (weak self) commits the sessions with the ids they were decoded from (commitRebuiltBaseline). Also started by CollectorSessionControl.bindCloudSyncBaseline after a CloudKit pull into an empty baseline.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)",
-    "Emuqu/Sources/Collection/RRCollector.swift::func commitRebuiltBaseline(_:replacing:)"
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.commitRebuiltBaseline(_:decodedIds:replacing:)"
    ],
    "reads": [
     "archive:SessionArchive.retrieveLightweight (all)"
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "race",
-     "sev": "low",
-     "text": "A replacing rebuild resets the tracker with sessions decoded before the hop; a night admitted to the baseline between the snapshot and the commit is wiped until the next rebuild.",
-     "evidence": [
-      "Emuqu/Sources/Collection/RRCollector.swift:584",
-      "Emuqu/Sources/Collection/RRCollector.swift:589",
-      "Emuqu/Sources/Collection/RRCollector.swift:606"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.commitRebuiltBaseline(_:replacing:)": "fe744494ea9241d5",
-    "Emuqu/Sources/Collection/RRCollector.swift::func commitRebuiltBaseline(_:replacing:)": "fe744494ea9241d5",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.commitRebuiltBaseline(_:decodedIds:replacing:)": "4ea2497b24ad74f1",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
    }
   },
   {
    "key": "func rebuildBaselineOffMain(replacing:)",
-   "hash": "93cf8d2a1c0133d3",
-   "does": "Snapshots archive entries, decodes each lightweight on a detached utility task, then on MainActor (weak self) commits the sessions to the baseline tracker.",
+   "hash": "fda5dc19aca0cbe5",
+   "does": "Snapshots archive entries, decodes each lightweight on a detached utility task, then on MainActor (weak self) commits the sessions with the ids they were decoded from (commitRebuiltBaseline). Also started by CollectorSessionControl.bindCloudSyncBaseline after a CloudKit pull into an empty baseline.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)",
-    "Emuqu/Sources/Collection/RRCollector.swift::func commitRebuiltBaseline(_:replacing:)"
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.commitRebuiltBaseline(_:decodedIds:replacing:)"
    ],
    "reads": [
     "archive:SessionArchive.retrieveLightweight (all)"
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "race",
-     "sev": "low",
-     "text": "A replacing rebuild resets the tracker with sessions decoded before the hop; a night admitted to the baseline between the snapshot and the commit is wiped until the next rebuild.",
-     "evidence": [
-      "Emuqu/Sources/Collection/RRCollector.swift:584",
-      "Emuqu/Sources/Collection/RRCollector.swift:589",
-      "Emuqu/Sources/Collection/RRCollector.swift:606"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::func commitRebuiltBaseline(_:replacing:)": "fe744494ea9241d5",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.commitRebuiltBaseline(_:decodedIds:replacing:)": "4ea2497b24ad74f1",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
    }
   },
@@ -1280,8 +1216,8 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.rebuildBaselineOffMain(replacing:)": "a73a3a2fcda4dfe4",
-    "Emuqu/Sources/Collection/RRCollector.swift::func rebuildBaselineOffMain(replacing:)": "a73a3a2fcda4dfe4"
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.rebuildBaselineOffMain(replacing:)": "bbf6d324097dbdcd",
+    "Emuqu/Sources/Collection/RRCollector.swift::func rebuildBaselineOffMain(replacing:)": "bbf6d324097dbdcd"
    }
   },
   {
@@ -1297,20 +1233,23 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::func rebuildBaselineOffMain(replacing:)": "a73a3a2fcda4dfe4"
+    "Emuqu/Sources/Collection/RRCollector.swift::func rebuildBaselineOffMain(replacing:)": "bbf6d324097dbdcd"
    }
   },
   {
-   "key": "func RRCollector.commitRebuiltBaseline(_:replacing:)",
+   "key": "func RRCollector.commitRebuiltBaseline(_:decodedIds:replacing:)",
    "hash": "2f14799f5226a40e",
-   "does": "Replacing: resets the tracker; boot: skips if a live session already seeded it. Then rebuildFromSessions with the settings sleep schedule (persists the tracker and fires the onBaselineUpdated callback per BaselineTracker).",
+   "does": "Replacing: when the archive's entries changed since the decode it starts the rebuild over (a night archived meanwhile is not wiped), else resets the tracker; boot: skips if a live session already seeded it. Then rebuildFromSessions with the settings sleep schedule.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.rebuildBaselineOffMain(replacing:)",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.daysCollected",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.rebuildFromSessions(_:sleepSchedule:)"
    ],
    "reads": [
+    "archive:entries",
     "mem:BaselineTracker.daysCollected",
     "mem:SettingsManager.settings.sleepSchedule"
    ],
@@ -1321,32 +1260,42 @@
     {
      "at": "+2",
      "cond": "replacing",
-     "effect": "reset tracker then rebuild"
+     "effect": "reset then rebuild"
     },
     {
-     "at": "+4",
+     "at": "+3",
+     "cond": "replacing and the archive's ids differ from the decoded ones",
+     "effect": "starts a new replacing rebuild and returns"
+    },
+    {
+     "at": "+5",
      "cond": "not replacing and daysCollected > 0",
-     "effect": "returns without rebuilding; else rebuilds"
+     "effect": "returns without rebuilding"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.rebuildFromSessions(_:sleepSchedule:)": "d1901cb2aed50e88",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.rebuildFromSessions(_:sleepSchedule:)": "c1425cbf101c9640",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()": "bf511a859401a83f",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.daysCollected": "d383f3d97b242464"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.daysCollected": "d383f3d97b242464",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.rebuildBaselineOffMain(replacing:)": "bbf6d324097dbdcd",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e"
    }
   },
   {
-   "key": "func commitRebuiltBaseline(_:replacing:)",
-   "hash": "51f5210d7d07837c",
-   "does": "Replacing: resets the tracker; boot: skips if a live session already seeded it. Then rebuildFromSessions with the settings sleep schedule (persists the tracker and fires the onBaselineUpdated callback per BaselineTracker).",
+   "key": "func commitRebuiltBaseline(_:decodedIds:replacing:)",
+   "hash": "c79679a7b06880f3",
+   "does": "Replacing: when the archive's entries changed since the decode it starts the rebuild over (a night archived meanwhile is not wiped), else resets the tracker; boot: skips if a live session already seeded it. Then rebuildFromSessions with the settings sleep schedule.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.rebuildBaselineOffMain(replacing:)",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.daysCollected",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.rebuildFromSessions(_:sleepSchedule:)"
    ],
    "reads": [
+    "archive:entries",
     "mem:BaselineTracker.daysCollected",
     "mem:SettingsManager.settings.sleepSchedule"
    ],
@@ -1357,19 +1306,26 @@
     {
      "at": "+1",
      "cond": "replacing",
-     "effect": "reset tracker then rebuild"
+     "effect": "reset then rebuild"
     },
     {
-     "at": "+3",
+     "at": "+2",
+     "cond": "replacing and the archive's ids differ from the decoded ones",
+     "effect": "starts a new replacing rebuild and returns"
+    },
+    {
+     "at": "+4",
      "cond": "not replacing and daysCollected > 0",
-     "effect": "returns without rebuilding; else rebuilds"
+     "effect": "returns without rebuilding"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.rebuildFromSessions(_:sleepSchedule:)": "d1901cb2aed50e88",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.rebuildFromSessions(_:sleepSchedule:)": "c1425cbf101c9640",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()": "bf511a859401a83f",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.daysCollected": "d383f3d97b242464"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.daysCollected": "d383f3d97b242464",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.rebuildBaselineOffMain(replacing:)": "bbf6d324097dbdcd",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e"
    }
   },
   {
@@ -1676,19 +1632,7 @@
      "effect": "builds and stores the mirror; else stores nil and returns"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Comment says it is called from a MainActor Combine sink; it is actually called from onSessionStateChanged, re-armed by withObservationTracking onChange via a Task.",
-     "evidence": [
-      "Emuqu/Sources/Collection/RRCollector.swift:821",
-      "Emuqu/Sources/Collection/RRCollector+Bindings.swift:122",
-      "Emuqu/Sources/Collection/RRCollector+Bindings.swift:129"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.collectedPoints": "95b1582000cb698f",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isCollecting": "fae635a5d47df935",
@@ -1724,19 +1668,7 @@
      "effect": "builds and stores the mirror; else stores nil and returns"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Comment says it is called from a MainActor Combine sink; it is actually called from onSessionStateChanged, re-armed by withObservationTracking onChange via a Task.",
-     "evidence": [
-      "Emuqu/Sources/Collection/RRCollector.swift:821",
-      "Emuqu/Sources/Collection/RRCollector+Bindings.swift:122",
-      "Emuqu/Sources/Collection/RRCollector+Bindings.swift:129"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector.swift::func phaseHumanLabel(_:)": "5ffb57c8f4d08153",
     "Emuqu/Sources/Collection/RRCollector.swift::func phaseMachineLabel(_:)": "9a59104fb3ace3d0"
@@ -1744,8 +1676,8 @@
   },
   {
    "key": "deinit RRCollector",
-   "hash": "66c6265886945b06",
-   "does": "Invalidates the streaming timer through the lock and removes block NotificationCenter observers.",
+   "hash": "26e142d9003aac07",
+   "does": "Invalidates the streaming timer on the main thread it was scheduled on (directly when deinit runs there, else by dispatching the lock-boxed timer to the main queue) and removes block NotificationCenter observers.",
    "entry": "Swift deinit when the last reference is released",
    "calls": [
     "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.removeAll(from:)"
@@ -1755,20 +1687,16 @@
     "mem:RRCollector.streamingTimer",
     "mem:RRCollector.notificationObservers"
    ],
-   "branches": [],
-   "flags": [
+   "branches": [
     {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "deinit is nonisolated and may run off the main thread, but the Timer was scheduled on the main run loop; Timer.invalidate must be called from the installing thread.",
-     "evidence": [
-      "Emuqu/Sources/Collection/RRCollector.swift:854",
-      "Emuqu/Sources/Collection/RRCollector+Streaming.swift:65"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+2",
+     "cond": "deinit on the main thread",
+     "effect": "invalidates now; else dispatches the invalidation to main"
     }
    ],
+   "flags": [],
    "deps": {
+    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d",
     "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.removeAll(from:)": "0ec1945b222f6025"
    }
   },

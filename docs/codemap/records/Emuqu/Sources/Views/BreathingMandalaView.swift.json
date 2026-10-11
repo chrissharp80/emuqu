@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/BreathingMandalaView.swift",
- "hash": "e639a6e69580db6c",
+ "hash": "1e71743780744e5c",
  "role": "Animated breathing-guide mandala for HRV recordings: three rotating petal rings that expand on inhale and contract on exhale, with 'Breathe in/out' text and a per-frame phase callback driving spoken cues.",
  "types": [
   "BreathingMandalaView: struct View — mandala + 60 Hz timer-driven phase",
@@ -9,22 +9,11 @@
   "BreathingMandalaView: extension — slowPacedBreathing preset"
  ],
  "state": [
-  "mem:BreathingMandalaView.maxTickGap = 1.0 s"
+  "mem:BreathingMandalaView.maxTickGap = 1.0 s",
+  "mem:BreathingMandalaView.rotationDegreesPerSecond = 1.25"
  ],
- "toplevel": "Stored property initializers: petalColors (6 HSB colours) and `timer = Timer.publish(every: 0.016, on: .main, in: .common).autoconnect()` created per struct value. #Preview at the end renders slowPacedBreathing at 250×250.",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "The Timer publisher is a stored `let` on the View struct, so every parent re-render creates a new autoconnected publisher and onReceive resubscribes; with onPhaseUpdate feeding BreathingAudioManager at ~60 fps, tick cadence depends on SwiftUI's subscription identity handling.",
-   "evidence": [
-    "Emuqu/Sources/Views/BreathingMandalaView.swift:42",
-    "Emuqu/Sources/Views/BreathingMandalaView.swift:54",
-    "Emuqu/Sources/Views/Record/StreamingLiveView.swift:48"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "Stored property initializers: petalColors (6 HSB colours) and `@State timer = Timer.publish(every: 0.016, on: .main, in: .common).autoconnect()`, kept once per view identity (later inits' copies are discarded unsubscribed). #Preview at the end renders slowPacedBreathing at 250×250.",
+ "flags": [],
  "units": [
   {
    "key": "var BreathingMandalaView.body",
@@ -44,7 +33,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.mandalaLayers(size:)": "6d46a6e800b53847",
-    "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.tick()": "715a773499a7a5b7",
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.tick()": "4da4e0e4ed651364",
     "Emuqu/Sources/Views/BreathingMandalaView.swift::var BreathingMandalaView.breathGuideText": "534e67940d36a9ae"
    }
   },
@@ -83,7 +72,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/BreathingMandalaView.swift::var BreathingMandalaView.breathScale": "024c7df3c4f5df9c",
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::var BreathingMandalaView.breathScale": "d686884c75054b15",
     "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
    }
   },
@@ -101,7 +90,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/BreathingMandalaView.swift::var BreathingMandalaView.breathScale": "024c7df3c4f5df9c",
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::var BreathingMandalaView.breathScale": "d686884c75054b15",
     "Emuqu/Sources/Views/BreathingMandalaView.swift::var PetalLayer.body": "74715fa7fc9cd959"
    }
   },
@@ -118,7 +107,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/BreathingMandalaView.swift::var BreathingMandalaView.breathScale": "024c7df3c4f5df9c",
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::var BreathingMandalaView.breathScale": "d686884c75054b15",
     "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
    }
   },
@@ -141,12 +130,13 @@
   },
   {
    "key": "func BreathingMandalaView.tick()",
-   "hash": "a18f754551c8111b",
-   "does": "Per-timer tick: when animating advances the phase by real elapsed time and, unless Reduce Motion, rotates; when not animating clears lastTickAt so resuming does not jump.",
+   "hash": "9f4fc4fbbbc28f8a",
+   "does": "Per-timer tick: when animating takes the real elapsed time since the last tick (elapsedSinceLastTick) and advances the phase and, unless Reduce Motion, the rotation by it; when not animating clears lastTickAt so resuming does not jump.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.updateBreathPhase()",
-    "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.updateRotation()"
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.elapsedSinceLastTick()",
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.updateBreathPhase(by:)",
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.updateRotation(by:)"
    ],
    "reads": [],
    "writes": [],
@@ -162,15 +152,16 @@
      "effect": "sets lastTickAt = nil (only writes state when needed); then returns"
     },
     {
-     "at": "+6",
+     "at": "+7",
      "cond": "Reduce Motion off",
      "effect": "updates rotation; with Reduce Motion on rotation is skipped"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.updateBreathPhase()": "1d06666c254edb85",
-    "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.updateRotation()": "8bd5446cb1dac126"
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.elapsedSinceLastTick()": "755e4e07976f962f",
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.updateBreathPhase(by:)": "ff62e22cb9b2c299",
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.updateRotation(by:)": "c149115116007450"
    }
   },
   {
@@ -188,19 +179,7 @@
      "effect": "returns 0.85; otherwise sine-based scale"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Comment says the 0.25 shift makes 'text lead animation (hear breathe in, then watch expand)'; with the shift, expansion starts at phase 0 exactly when the text flips to 'Breathe in' (phase < 0.5) and peaks at 0.5 when it flips to 'Breathe out', so text and motion are simultaneous, not leading.",
-     "evidence": [
-      "Emuqu/Sources/Views/BreathingMandalaView.swift:144",
-      "Emuqu/Sources/Views/BreathingMandalaView.swift:145",
-      "Emuqu/Sources/Views/BreathingMandalaView.swift:150"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -226,52 +205,53 @@
    }
   },
   {
-   "key": "func BreathingMandalaView.updateBreathPhase()",
-   "hash": "3eceb28eaf17ead0",
-   "does": "Advances breathPhase by min(elapsed since last tick, 1 s)/cycleDuration modulo 1, stores now as lastTickAt, and calls onPhaseUpdate with the new phase.",
+   "key": "func BreathingMandalaView.elapsedSinceLastTick()",
+   "hash": "dca722f756a1b831",
+   "does": "Returns min(now − lastTickAt, maxTickGap = 1 s), or 0 when lastTickAt is nil (first tick or resumed), and stores now as lastTickAt.",
    "entry": null,
-   "calls": [
-    "closure:onPhaseUpdate — set by StreamingLiveView.swift:48 to breathingAudio.updatePhase (BreathingAudioManager speech cues)"
-   ],
+   "calls": [],
    "reads": [],
-   "writes": [],
+   "writes": [
+    "mem:BreathingMandalaView.lastTickAt @State"
+   ],
    "branches": [
     {
      "at": "+2",
-     "cond": "lastTickAt nil (first tick or resumed)",
-     "effect": "?? 0 elapsed — phase does not move this tick; otherwise elapsed capped at 1 s"
+     "cond": "lastTickAt nil",
+     "effect": "elapsed 0; otherwise capped at 1 s"
     }
    ],
    "flags": [],
    "deps": {}
   },
   {
-   "key": "func BreathingMandalaView.updateRotation()",
-   "hash": "628177e4ea4109e3",
-   "does": "Adds 0.02° rotation per tick, wrapping to 0 at 360.",
+   "key": "func BreathingMandalaView.updateBreathPhase(by:)",
+   "hash": "ce91466b0e166cc4",
+   "does": "Advances breathPhase by elapsed / cycleDuration modulo 1 and calls onPhaseUpdate with the new phase.",
+   "entry": null,
+   "calls": [
+    "closure:onPhaseUpdate — set by StreamingLiveView.swift:48 to breathingAudio.updatePhase (BreathingAudioManager speech cues)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:BreathingMandalaView.breathPhase @State"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func BreathingMandalaView.updateRotation(by:)",
+   "hash": "cbd0b073380e2052",
+   "does": "Advances rotation by rotationDegreesPerSecond (1.25°/s) × elapsed, modulo 360 — real-time paced like the phase.",
    "entry": null,
    "calls": [],
    "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+3",
-     "cond": "rotation >= 360",
-     "effect": "resets to 0; otherwise keeps accumulating"
-    }
+   "writes": [
+    "mem:BreathingMandalaView.rotation @State"
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Rotation advances a fixed 0.02° per timer tick rather than by elapsed time, so dropped frames slow it — the exact problem the phase code was changed to avoid.",
-     "evidence": [
-      "Emuqu/Sources/Views/BreathingMandalaView.swift:172",
-      "Emuqu/Sources/Views/BreathingMandalaView.swift:20"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "branches": [],
+   "flags": [],
    "deps": {}
   },
   {

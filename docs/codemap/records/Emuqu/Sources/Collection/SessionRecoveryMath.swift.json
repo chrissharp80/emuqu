@@ -113,39 +113,21 @@
   },
   {
    "key": "func SessionRecoveryMath.hasV5TimestampDiscontinuity(childSeries:parentBeatCount:)",
-   "hash": "181edb12217bca17",
-   "does": "Detects v5 merge corruption: child longer than parentBeatCount and the first child beat past the parent's length has t_ms below half of the previous beat's t_ms.",
+   "hash": "980449c6a9301c98",
+   "does": "Detects v5 merge corruption: parentBeatCount > 0, the child longer than it, and the first child beat past the parent's length has t_ms below half of the previous beat's t_ms.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+4",
-     "cond": "child count > parentBeatCount",
-     "effect": "continues; else false"
-    },
-    {
-     "at": "+6",
-     "cond": "boundaryIdx < count and boundaryIdx > 0",
-     "effect": "compares timestamps; else false (only reachable via parentBeatCount <= 0)"
+     "at": "+5",
+     "cond": "parentBeatCount <= 0 or child not longer than the parent",
+     "effect": "false; otherwise compares the timestamps at the boundary"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "`boundaryIdx < childSeries.points.count` is always true after the guard on line 82 (count > parentBeatCount == boundaryIdx); only the `> 0` half can fail.",
-     "evidence": [
-      "Emuqu/Sources/Collection/SessionRecoveryMath.swift:82",
-      "Emuqu/Sources/Collection/SessionRecoveryMath.swift:84"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)": "c275ddb86778fcf0"
-   }
+   "flags": [],
+   "deps": {}
   }
  ],
  "deps": {}

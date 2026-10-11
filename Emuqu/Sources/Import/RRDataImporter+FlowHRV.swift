@@ -109,7 +109,9 @@ extension RRDataImporter {
     /// Groups beats by their `session_date` value. Throws
     /// `invalidTimestamps` for the first beat whose timestamp cannot belong
     /// to one recording: the file is damaged or hand-made, and nothing in it
-    /// can be trusted to be what was recorded.
+    /// can be trusted to be what was recorded. Beats are kept across the
+    /// whole `storableRRRange`, as the archive stored them; values outside
+    /// the physiological range are for artifact detection to judge.
     static func groupBeatsBySession(
         dataLines: ArraySlice<String>,
         columns: FlowHRVColumns
@@ -120,9 +122,7 @@ extension RRDataImporter {
             guard fields.count > max(columns.session, columns.rr) else { continue }
 
             let sessionKey = fields[columns.session]
-            guard let rrValue = Int(fields[columns.rr]),
-                  HRVConstants.RRInterval.isValid(rrValue)
-            else { continue }
+            guard let rrValue = Int(fields[columns.rr]).flatMap(storableRR) else { continue }
 
             let timestamp = try beatTimestamp(
                 sessionKey: sessionKey, fields: fields, columns: columns, groups: groups
@@ -182,6 +182,14 @@ extension RRDataImporter {
         return formatter
     }
 
+    /// When a session started, from its `session_date`: the exporter's
+    /// `yyyy-MM-dd_HHmm` (to the minute, in the device's time zone), or an
+    /// ISO 8601 timestamp, which keeps the seconds and the offset it was
+    /// recorded at.
+    static func flowHRVSessionStart(_ text: String, formatter: DateFormatter) -> Date? {
+        formatter.date(from: text) ?? ISO8601DateFormatter().date(from: text)
+    }
+
     /// Builds one session, or nil when it is too short to be worth importing
     /// or its session date doesn't parse. An undated session is skipped
     /// rather than dated now, which would put it on today and into today's
@@ -196,7 +204,7 @@ extension RRDataImporter {
             debugLog("[RRDataImporter] Skipping '\(sessionDateStr)' - only \(points.count) beats (need \(Self.minimumBeatsPerSession))")
             return nil
         }
-        guard let parsedDate = formatter.date(from: sessionDateStr) else {
+        guard let parsedDate = Self.flowHRVSessionStart(sessionDateStr, formatter: formatter) else {
             debugLog("[RRDataImporter] Skipping '\(sessionDateStr)' - session date does not parse")
             return nil
         }
@@ -216,25 +224,16 @@ extension RRDataImporter {
     /// Its type is the one it was exported with; exports from before the
     /// `session_type` column carried none and come back as overnights.
     func createSessionFromFlowHRVData(_ sessionData: FlowHRVMultiSessionResult.SessionRRData, originalFileName: String) -> HRVSession {
-        // Build RRPoints with original timestamps
-        var points: [RRPoint] = []
-        for (index, rr) in sessionData.rrIntervals.enumerated() {
-            let timestamp = index < sessionData.timestamps.count ? sessionData.timestamps[index] : Int64(index) * Int64(rr)
-            points.append(RRPoint(t_ms: timestamp, rr_ms: rr))
-        }
-
-        let series = RRSeries(
-            points: points,
-            sessionId: UUID(),
-            startDate: sessionData.date
-        )
-
-        let durationMs = sessionData.rrIntervals.reduce(0, +)
+        // `rrIntervals` and `timestamps` are built from the same sorted beats,
+        // so they pair up one to one.
+        let points = zip(sessionData.timestamps, sessionData.rrIntervals).map { RRPoint(t_ms: $0.0, rr_ms: $0.1) }
         var session = HRVSession(startDate: sessionData.date, sessionType: sessionData.sessionType ?? .overnight)
-        session.rrSeries = series
-        session.endDate = sessionData.date.addingTimeInterval(Double(durationMs) / 1000.0)
+        session.rrSeries = RRSeries(points: points, sessionId: session.id, startDate: sessionData.date)
+        // Where the last beat ends on the exported timeline, which runs past
+        // the sum of the intervals when the recording has gaps.
+        let endMs = points.last?.endMs ?? 0
+        session.endDate = sessionData.date.addingTimeInterval(Double(endMs) / 1000.0)
         session.notes = String(localized: "Imported from Emuqu: \(originalFileName)\nOriginal session: \(sessionData.sessionDate)", bundle: LanguageManager.appBundle)
-
         return session
     }
 }

@@ -51,6 +51,9 @@ enum AppKnowledgeBase {
       - **HRV — 60% weight** (the core signal). Strap-derived ln(RMSSD) vs the user's own baseline (up to 60 nights; from the 3rd night, cautious until the 7th).
       - **Sleep — 25% weight** (the lever the user can move tonight). Duration + efficiency + stages.
       - **Vitals — 15% weight** (slow-moving context). Resp rate, wrist temp, resting HR vs baselines.
+    - **Without vitals** the weights are HRV 70% / Sleep 30%, or HRV 85% / Sleep 15% on a night with HRV \
+      more than 1 SD below baseline and a sleep score under 50 (so the poor sleep is not counted twice on \
+      top of the HRV drop). Without sleep the score is HRV only.
     - **When the score appears** (one rule, counted in nights in the baseline): nights 1–2 the morning \
       report scores on general HRV thresholds; from the 3rd night the score compares the user with \
       their own baseline; the Dashboard and score detail show the score from the 14th night \
@@ -204,14 +207,14 @@ enum AppKnowledgeBase {
     Training break: user-settable range, hides load.
     Stryd / foot-pod power, FTMS cycling power and structured intervals are supported. AI can inform but not change settings.
     For app-feature, metric-explanation, or navigation questions (e.g. "what does DFA mean", \
-    "where's the export option", "what's pNN50"), call `app.help.lookup(topic:)` — the full \
-    reference lives there. Valid topics: tabs, recovery_score, modes, hrv_session_flow, \
-    workout_flow, hr_zones, voice_coach, exports, metrics, settings, navigation, capabilities, scope.
+    "where's the export option", "what's TRIMP"), call `app.help.lookup(topic:)` — the full \
+    reference lives there. Valid topics: \(helpTopics.filter { $0 != "all" }.joined(separator: ", ")).
     """
 
     /// Available topics for `lookup(topic:)`. Stable identifiers that
-    /// match the section headers in `reference`. Listed in the tool's
-    /// description so the model knows what to ask for.
+    /// match the section headers in `reference`. Interpolated into the
+    /// `app.help.lookup` tool description and into `referenceCompact`, so
+    /// the model is told exactly this list.
     static let helpTopics: [String] = [
         "tabs",
         "recovery_score",
@@ -236,10 +239,10 @@ enum AppKnowledgeBase {
     /// nothing back.
     static func lookup(topic raw: String) -> String {
         let key = raw
+            .trimmingCharacters(in: .whitespacesAndNewlines)
             .lowercased()
             .replacingOccurrences(of: "-", with: "_")
             .replacingOccurrences(of: " ", with: "_")
-            .trimmingCharacters(in: .whitespaces)
         if key == "all" { return reference }
         guard let heading = Self.topicHeadings[key] else { return referenceCompact }
         return extractSection(named: heading) ?? referenceCompact

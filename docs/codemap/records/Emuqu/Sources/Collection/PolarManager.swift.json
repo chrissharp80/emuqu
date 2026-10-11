@@ -1,13 +1,13 @@
 {
  "file": "Emuqu/Sources/Collection/PolarManager.swift",
- "hash": "6021bf82bce0eee2",
+ "hash": "9489d27e9b3e97d8",
  "role": "Declares PolarDeviceType and the @Observable @MainActor PolarManager: the observable strap state (connection, recording, battery, firmware, streaming buffer), forwarders into StrapRecordingCoordinator / StrapBatteryUsageTracker / StrapPairingStore, PolarError, and lazy SDK setup with observer wiring.",
  "types": [
   "PolarDeviceType: enum — h10 / veritySense with display name, SF symbol, spec runtime hours",
   "PolarManager: class (@Observable @MainActor NSObject) — the strap link owner and state holder",
   "PolarManager.ConnectionState: enum — disconnected/scanning/connecting/connected",
   "PolarManager.RecordingState: enum — idle/starting/recording/stopping/fetching",
-  "PolarManager.PolarError: enum (LocalizedError) — strap errors with user-facing descriptions"
+  "PolarManager.PolarError: enum (LocalizedError) — strap errors with user-facing descriptions (every case is constructed somewhere)"
  ],
  "state": [
   "mem:PolarManager.connectionState",
@@ -49,7 +49,7 @@
   "mem:PolarManager.streamedRRCount",
   "mem:PolarManager.recentRRPoints",
   "mem:PolarManager.recentRRWindowSize (static 60)",
-  "mem:PolarManager.maxStreamingBufferSize (static 100_000)",
+  "mem:PolarManager.maxStreamingBufferSize (static 250_000 beats ≈ 35 h at 120 bpm)",
   "mem:PolarManager.lastUIUpdateBeatCount",
   "mem:PolarManager.uiUpdateBeatInterval (static 5)",
   "mem:PolarManager._lastSignificantLogTime (OSAllocatedUnfairLock<Date>)",
@@ -70,18 +70,6 @@
  ],
  "toplevel": "Stored-property initializers: readiness = StrapReadiness.initial, feedStatus = .waitingForStrap, downloadLedger = StrapDownloadLedger() (its own persistence lives in StrapRecording.swift), _lastSignificantLogTime starts at construction time, sdkQueue is a serial userInitiated queue. typealiases DiscoveredDevice/KnownDevice/FetchProgress point at Strap* types. `api`, `standardHeartRate`, `strapAPI`, `searchTask` exist only under canImport(PolarBleSdk); radioForTesting only under DEBUG. The header comment (:10-24) documents the forced Polar SDK 8.x upgrade.",
  "flags": [
-  {
-   "kind": "unreachable-branch",
-   "sev": "low",
-   "text": "PolarError.notRecording and PolarError.hasUnrecoveredData are never constructed anywhere in the repo (grep of `PolarError.notRecording`/`.hasUnrecoveredData` finds only the declarations and errorDescription cases), so their localized strings are dead.",
-   "evidence": [
-    "Emuqu/Sources/Collection/PolarManager.swift:341",
-    "Emuqu/Sources/Collection/PolarManager.swift:351",
-    "Emuqu/Sources/Collection/PolarManager.swift:372",
-    "Emuqu/Sources/Collection/PolarManager.swift:378"
-   ],
-   "found": "first read, upheld on second"
-  },
   {
    "kind": "dead",
    "sev": "low",
@@ -237,32 +225,6 @@
      "text": "Only caller is EmuquTests/PolarConnectionLifecycleTests.swift:102; no production code reads it.",
      "evidence": [
       "EmuquTests/PolarConnectionLifecycleTests.swift:102"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.isReady(_:)": "57a325be71abe337"
-   }
-  },
-  {
-   "key": "var PolarManager.isOfflineRecordingReady",
-   "hash": "ad8cfa45ac757dd7",
-   "does": "True when readiness reports .offlineRecording ready.",
-   "entry": null,
-   "calls": [],
-   "reads": [
-    "mem:PolarManager.readiness"
-   ],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No caller anywhere in the repo, tests included (grep `isOfflineRecordingReady`).",
-     "evidence": [
-      "Emuqu/Sources/Collection/PolarManager.swift:95"
      ],
      "found": "first read, upheld on second"
     }
@@ -434,35 +396,6 @@
    }
   },
   {
-   "key": "func PolarManager.clearAnyExistingExercises()",
-   "hash": "ac3cc6b8a7ef6e66",
-   "does": "Forwarder to StrapRecordingCoordinator.clearAnyExistingExercises.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.clearAnyExistingExercises()"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No call site uses the manager-level forwarder; the only callers (PolarManager+Recording.swift:109,450 and WorkoutRecorder+DeviceBackup.swift:302 comment) reach the coordinator method directly.",
-     "evidence": [
-      "Emuqu/Sources/Collection/PolarManager.swift:136",
-      "Emuqu/Sources/Collection/PolarManager+Recording.swift:109",
-      "Emuqu/Sources/Collection/PolarManager+Recording.swift:450"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.clearAnyExistingExercises()": "f318a9f9f819be32",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.recording": "9849dc873bceeb0d"
-   }
-  },
-  {
    "key": "func PolarManager.discardStoredExercises()",
    "hash": "15486d1d3c8f5c5e",
    "does": "Forwarder to StrapRecordingCoordinator.discardStoredExercises; called from RecordView.discardAndStartFresh.",
@@ -475,7 +408,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.discardStoredExercises()": "01368120210b2c2f",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.discardStoredExercises()": "122f81ddd838bb7d",
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.recording": "9849dc873bceeb0d"
    }
   },
@@ -769,7 +702,7 @@
   },
   {
    "key": "var PolarManager.PolarError.errorDescription",
-   "hash": "e8c6487b331bc528",
+   "hash": "a71e74a7bce9946c",
    "does": "User-facing localized message for each PolarError case (via LanguageManager.appBundle); recordingFailed embeds its message, strapBatteryTooLow delegates to batteryTooLowDescription, fetchFailed/featureNotReady hide their internal payloads.",
    "entry": null,
    "calls": [
@@ -800,46 +733,36 @@
     },
     {
      "at": "+6",
-     "cond": ".notRecording",
-     "effect": "'No recording in progress' — case never constructed"
-    },
-    {
-     "at": "+7",
      "cond": ".recordingFailed(msg)",
      "effect": "'Recording failed: <msg>'"
     },
     {
-     "at": "+8",
+     "at": "+7",
      "cond": ".fetchFailed",
      "effect": "generic download-failed sentence (payload hidden)"
     },
     {
-     "at": "+9",
+     "at": "+8",
      "cond": ".sdkNotAvailable",
      "effect": "'Polar SDK not available'"
     },
     {
-     "at": "+10",
+     "at": "+9",
      "cond": ".noRecordingFound",
      "effect": "'No recording found on device'"
     },
     {
-     "at": "+11",
+     "at": "+10",
      "cond": ".noRecordingSinceSessionStart",
      "effect": "'No recording found on the strap for this session.'"
     },
     {
-     "at": "+12",
-     "cond": ".hasUnrecoveredData",
-     "effect": "recover-or-discard sentence — case never constructed"
-    },
-    {
-     "at": "+13",
+     "at": "+11",
      "cond": ".strapBatteryTooLow(percent)",
      "effect": "batteryTooLowDescription(percent:)"
     },
     {
-     "at": "+14",
+     "at": "+12",
      "cond": ".strapHoldsUndownloadedRecording",
      "effect": "explains the strap's own recording was not started and the night records from the live stream"
     }

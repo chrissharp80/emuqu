@@ -16,9 +16,16 @@
 # reachable only through a caller that happened to guard, which is exactly the
 # kind of safety that evaporates when a new caller appears.
 #
-# A guard within the preceding lines satisfies this gate. The point is that the
-# guard exists NEXT TO the loop, not somewhere up the call graph.
+# A guard in the enclosing function satisfies this gate only when it is strong
+# enough: `0 ..< (xs.count - N)` needs `xs.count >= N` (or `> N-1`,
+# `if xs.count < N { return }`); `1 ..< xs.count` needs a non-empty guard. The
+# point is that the guard exists NEXT TO the loop, not somewhere up the call
+# graph.
 set -euo pipefail
+
+# The scan roots are relative; from any other directory they hold no files and
+# the gate would report clean having read nothing.
+cd "$(dirname "$0")/.."
 
 python3 - <<'PY'
 import pathlib, re, sys
@@ -28,8 +35,39 @@ import pathlib, re, sys
 #   for i in 0 ..< (xs.count - N)     -> traps when xs.count < N
 PATTERNS = [
     re.compile(r'for\s+\w+\s+in\s+1\s*\.\.<\s*([\w.]+)\.count'),
-    re.compile(r'for\s+\w+\s+in\s+0\s*\.\.<\s*\(?\s*([\w.]+)\.count\s*-\s*\d+'),
+    re.compile(r'for\s+\w+\s+in\s+0\s*\.\.<\s*\(?\s*([\w.]+)\.count\s*-\s*(\d+)'),
 ]
+# The enclosing unit's first line: a func, init, deinit or subscript.
+UNIT_START = re.compile(
+    r'\s*(?:@\w+\s+)*(?:(?:private|fileprivate|internal|public|static|nonisolated|'
+    r'mutating|final|class|override|convenience|required)\s+)*'
+    r'(?:func\s|init[?!]?\s*[(<]|deinit\b|subscript\s*[(<])')
+
+
+def required_count(m):
+    """The smallest count for which the loop's range is valid."""
+    return 1 if m.lastindex == 1 else int(m.group(2))
+
+
+def guaranteed_counts(var, window):
+    """Every minimum count a guard in `window` establishes for `var`."""
+    found = []
+    cond = rf'(?:guard|if|while)\b[^\n]*'
+    for m in re.finditer(cond + rf'{var}\.count\s*(>=|>)\s*(\d+)', window):
+        found.append(int(m.group(2)) + (1 if m.group(1) == '>' else 0))
+    # `if xs.count < N { return }` leaves at least N behind it.
+    for m in re.finditer(cond + rf'{var}\.count\s*<\s*(\d+)', window):
+        found.append(int(m.group(1)))
+    # `for seg in ... where seg.count >= N` guards the inner loop.
+    for m in re.finditer(rf'where\s+[^\n]*{var}\.count\s*(>=|>)\s*(\d+)', window):
+        found.append(int(m.group(2)) + (1 if m.group(1) == '>' else 0))
+    # Non-empty: `!xs.isEmpty`, `guard ... xs.isEmpty` / `if xs.isEmpty { return }`,
+    # `xs.count != 0`.
+    if re.search(cond + rf'(?:!\s*{var}\.isEmpty|{var}\.isEmpty|{var}\.count\s*!=\s*0)', window):
+        found.append(1)
+    return found
+
+
 problems = []
 for f in sorted(pathlib.Path('Emuqu/Sources').rglob('*.swift')):
     lines = f.read_text(encoding='utf-8', errors='ignore').split('\n')
@@ -43,38 +81,29 @@ for f in sorted(pathlib.Path('Emuqu/Sources').rglob('*.swift')):
         if not m:
             continue
         var = re.escape(m.group(1))
-        # Look back only as far as the ENCLOSING function. Scanning a fixed
-        # number of lines lets a guard belonging to the function ABOVE satisfy
+        need = required_count(m)
+        # Look back only as far as the ENCLOSING unit, however long it is.
+        # A fixed window lets a guard belonging to the function ABOVE satisfy
         # this check — which it did for `RecurrenceClassifier.cumulativeDistances`,
         # whose own loop was unguarded while the previous function's
         # `guard pts.count >= 2` sat six lines up.
-        start = 0
-        for k in range(n - 1, max(0, n - 60), -1):
-            if re.match(r'\s*(?:@\w+\s+)*(?:(?:private|fileprivate|internal|public|static|nonisolated|mutating|final|class)\s+)*func\s', lines[k]):
-                start = k
-                break
+        start = next((k for k in range(n - 1, -1, -1) if UNIT_START.match(lines[k])), 0)
         window = '\n'.join(lines[start:n])
-        guarded = re.search(
-            rf'(guard|if|while)\b[^\n]*(?:'
-            rf'{var}\.count\s*(?:>=?\s*[1-9]|>\s*0)'
-            rf'|{var}\.count\s*<\s*[1-9]'
-            rf'|!\s*{var}\.isEmpty'
-            rf'|{var}\.isEmpty'
-            rf'|{var}\.count\s*!=\s*0'
-            rf')', window) or re.search(
-            # `for seg in ... where seg.count >= 2` guards the inner loop.
-            rf'where\s+[^\n]*{var}\.count\s*(?:>=?\s*[1-9]|>\s*0)', window)
+        # A guard counts only when it is strong enough for THIS range:
+        # `xs.count > 0` does not protect `0 ..< xs.count - 2`, which still
+        # traps at a count of 1.
+        guarded = any(c >= need for c in guaranteed_counts(var, window))
         # An explicit waiver, in the same style as `swallow-ok` elsewhere in
         # this repo. It must carry a reason, so a future reader can check the
         # claim rather than trust a bare marker.
         waiver = re.search(r'empty-range-ok:\s*(\S.*)', '\n'.join(lines[max(0, n - 3):n + 1]))
         if not guarded and not waiver:
-            problems.append((f, n + 1, line.strip()))
+            problems.append((f, n + 1, line.strip(), need))
 
 if problems:
     print(f"check_empty_range_loops: {len(problems)} unguarded count-arithmetic range loop(s).\n")
-    for f, n, code in problems:
-        print(f"  {f}:{n}")
+    for f, n, code, need in problems:
+        print(f"  {f}:{n}  (needs a guard of count >= {need})")
         print(f"      {code[:78]}")
     print("\n  `1 ..< 0` and `0 ..< -1` are INVALID ranges and trap — not empty loops.")
     print("  Add a count guard immediately before the loop, e.g.")

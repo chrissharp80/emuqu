@@ -3,16 +3,21 @@ import Foundation
 
 /// Builds an `AssistantContext` from the live app state.
 ///
-/// Stateless. The caller (typically `AssistantViewModel` or a debug screen)
-/// gathers the inputs from its existing data sources and hands them in.
-/// This avoids any direct coupling to singletons (`AppDependencies.current.storage.sessionArchive`,
-/// `HealthKitManager`) so the builder is straightforward to call from
-/// any context and easy to test.
+/// The caller (typically `AssistantContextSource`) gathers the sessions,
+/// settings, baselines and training load from its data sources and hands them
+/// in; the builder never reads the session archive or HealthKit. It does read
+/// a few process-wide services through `AppDependencies.current`: the live
+/// workout and HRV brokers, the ambient location cache, the body weight in
+/// settings (workout calories), and the shared `AnalysisSummaryCache`, which
+/// it also writes. Tests that need those fixed override them on
+/// `AppDependencies.current`.
 ///
 /// All inputs except `userSettings` are optional. Missing data degrades
 /// gracefully — the resulting context simply omits the corresponding
 /// snapshot fields.
 enum ContextBuilder {
+    /// The summaries are generated before the context is assembled, so the
+    /// lite snapshots of those sessions carry the titles generated here.
     static func build(
         latestSession: HRVSession?,
         yesterdaySession: HRVSession? = nil,
@@ -32,26 +37,43 @@ enum ContextBuilder {
         // via `MainActor.assumeIsolated` (which traps off-main).
         liveLoadSnapshot: TrainingLoadRegistry.TrainingLoad? = nil
     ) -> AssistantContext {
-        AssistantContext(
+        let summary = computeOrFetchSummary(
+            session: latestSession, recentSessions: recentSessions, sleepInput: sleepInput, sleepTrend: sleepTrend,
+            trainingContext: trainingContext, userSettings: userSettings, liveLoadSnapshot: liveLoadSnapshot, baselineStats: baselineStats)
+        let diagnostic = yesterdayDiagnostic(session: yesterdaySession, recentSessions: recentSessions, userSettings: userSettings, baselineStats: yesterdayBaselineStats)
+        let titles = summaryTitles([(latestSession, summary), (yesterdaySession, diagnostic)])
+        return AssistantContext(
             generatedAt: Date(),
             userProfile: buildUserProfile(
                 settings: userSettings, customTagNames: customTagNames,
                 effectiveVO2Max: effectiveVO2Max(settings: userSettings, training: trainingContext)),
             today: latestSession.flatMap { buildSessionSnapshot(session: $0, trainingFallback: trainingContext, liveLoad: liveLoadSnapshot) },
             yesterday: yesterdaySession.flatMap { buildSessionSnapshot(session: $0, trainingFallback: nil, liveLoad: nil) },
-            yesterdayDiagnostic: yesterdayDiagnostic(
-                session: yesterdaySession, recentSessions: recentSessions,
-                userSettings: userSettings, baselineStats: yesterdayBaselineStats),
-            recent: recentLiteSnapshots(recentSessions, liveLoad: liveLoadSnapshot), baselines: buildBaselineSnapshot(baseline: baseline, stats: baselineStats),
+            yesterdayDiagnostic: diagnostic, recent: recentLiteSnapshots(recentSessions, liveLoad: liveLoadSnapshot, titles: titles),
+            baselines: buildBaselineSnapshot(baseline: baseline, stats: baselineStats),
             trends7Day: trends7Day.map { buildTrendSnapshot(summary: $0, periodLabel: "7 Days") }, trends30Day: trends30Day.map { buildTrendSnapshot(summary: $0, periodLabel: "30 Days") },
-            analysisSummary: computeOrFetchSummary(
-                session: latestSession, recentSessions: recentSessions, sleepInput: sleepInput,
-                sleepTrend: sleepTrend, trainingContext: trainingContext,
-                userSettings: userSettings, liveLoadSnapshot: liveLoadSnapshot, baselineStats: baselineStats),
-            recentWorkouts: buildWorkoutHistory(sessions: recentSessions),
+            analysisSummary: summary, recentWorkouts: buildWorkoutHistory(sessions: recentSessions),
             liveWorkout: AppDependencies.current.assistant.liveWorkoutBroker.currentSnapshot(), liveHRVSession: AppDependencies.current.assistant.liveHRVBroker.currentSnapshot(),
-            ambientLocation: buildAmbientLocationSnapshot()
+            ambientLocation: buildAmbientLocationSnapshot(), liveWorkoutSamples: liveWorkoutSamples()
         )
+    }
+
+    /// The live workout's samples, captured only while a workout snapshot is
+    /// live so the context's HR history matches its `liveWorkout`.
+    private static func liveWorkoutSamples() -> [WorkoutSample]? {
+        let broker = AppDependencies.current.assistant.liveWorkoutBroker
+        return broker.currentSnapshot() == nil ? nil : broker.currentSamples()
+    }
+
+    /// The titles of the summaries generated in this build, by session id.
+    private static func summaryTitles(
+        _ pairs: [(HRVSession?, AssistantContext.AnalysisSummarySnapshot?)]
+    ) -> [UUID: String] {
+        var titles: [UUID: String] = [:]
+        for case let (session?, summary?) in pairs {
+            titles[session.id] = summary.analysisTitle
+        }
+        return titles
     }
 
     /// Yesterday's sleep/training data lives on the session itself — we don't
@@ -88,15 +110,17 @@ enum ContextBuilder {
     }
 
     /// Recent sessions in lite form — most recent first, capped at 14.
+    /// `titles` holds the summary titles generated in this build.
     private static func recentLiteSnapshots(
         _ sessions: [HRVSession],
-        liveLoad: TrainingLoadRegistry.TrainingLoad?
+        liveLoad: TrainingLoadRegistry.TrainingLoad?,
+        titles: [UUID: String]
     ) -> [AssistantContext.SessionSnapshotLite] {
         sessions
             .filter { $0.state == .complete || $0.state == .paused }
             .sorted { $0.startDate > $1.startDate }
             .prefix(14)
-            .map { buildLiteSnapshot(session: $0, liveLoad: liveLoad) }
+            .map { buildLiteSnapshot(session: $0, liveLoad: liveLoad, title: titles[$0.id]) }
     }
 
     /// Snapshot the always-on resolved-address cache so it
@@ -158,10 +182,13 @@ enum ContextBuilder {
     }
 
     /// Read an `AnalysisSummary` from the shared cache, or compute one if missing
-    /// or stale. The cache is read and written with the session's fingerprint,
-    /// so after a rescore (or a tag, sleep or vitals change) the summary is
-    /// regenerated rather than quoting the old title and causes next to the
-    /// new score. Always writes back on compute so the next read is a hit.
+    /// or stale. The cache is read and written with the session's fingerprint
+    /// combined with every other generator input (recent sessions, sleep and
+    /// sleep trend, training context, live load, baseline), so after a rescore,
+    /// a tag, sleep or vitals change, a workout that moves the live load or a
+    /// new night that moves the baseline, the summary is regenerated rather
+    /// than quoting old causes. Always writes back on compute so the next read
+    /// is a hit.
     ///
     /// The assistant reads the summary in English whatever the app language:
     /// the fingerprint and the generator both run inside
@@ -178,25 +205,75 @@ enum ContextBuilder {
         baselineStats: BaselineTracker.RecoveryBaselineStats? = nil
     ) -> AssistantContext.AnalysisSummarySnapshot? {
         guard let session, let result = session.analysisResult else { return nil }
+        let training = Self.trainingContext(for: session, live: trainingContext)
         return NarrativeLanguage.english { () -> AssistantContext.AnalysisSummarySnapshot? in
             let cache = AppDependencies.current.assistant.analysisSummaryCache
-            let fingerprint = AnalysisSummaryCache.fingerprint(for: session)
+            let inputs = generatorInputsHash(recentSessions: recentSessions, sleep: sleepInput, sleepTrend: sleepTrend,
+                                             training: training, liveLoad: liveLoadSnapshot, baselineStats: baselineStats)
+            let fingerprint = AnalysisSummaryCache.fingerprint(for: session, inputs: inputs)
             if let cached = cache.get(forSessionId: session.id, matching: fingerprint) {
                 return mapSummary(cached)
             }
             let summary = AnalysisSummaryGenerator(
                 result: result, session: session, recentSessions: recentSessions,
-                selectedTags: Set(session.tags), sleep: sleepInput, sleepTrend: sleepTrend,
-                trainingContext: Self.trainingContext(for: session, live: trainingContext),
-                userAge: userSettings.age,
-                biologicalSex: userSettings.biologicalSex,
-                liveLoadSnapshot: liveLoadSnapshot,
-                canonicalBaselineRMSSD: baselineStats.map { exp($0.lnRmssdMean) },
-                canonicalBaselineHR: baselineStats.map(\.meanHRBaseline)
+                selectedTags: Set(session.tags), sleep: sleepInput, sleepTrend: sleepTrend, trainingContext: training,
+                userAge: userSettings.age, biologicalSex: userSettings.biologicalSex, liveLoadSnapshot: liveLoadSnapshot,
+                canonicalBaselineRMSSD: baselineStats.map { exp($0.lnRmssdMean) }, canonicalBaselineHR: baselineStats.map(\.meanHRBaseline)
             ).generate()
             cache.set(summary, forSessionId: session.id, fingerprint: fingerprint)
             return mapSummary(summary)
         }
+    }
+
+    /// What the generator reads besides the session itself. Recent sessions
+    /// are hashed with their own fingerprints inside `NarrativeLanguage.english`
+    /// like the caller, so a rescored night changes the value too.
+    private static func generatorInputsHash(
+        recentSessions: [HRVSession],
+        sleep: AnalysisSleepInput,
+        sleepTrend: AnalysisSleepTrendInput?,
+        training: TrainingContext?,
+        liveLoad: TrainingLoadRegistry.TrainingLoad?,
+        baselineStats: BaselineTracker.RecoveryBaselineStats?
+    ) -> Int {
+        var hasher = Hasher()
+        for recent in recentSessions {
+            hasher.combine(recent.id)
+            hasher.combine(AnalysisSummaryCache.fingerprint(for: recent))
+        }
+        combineSleep(sleep, trend: sleepTrend, into: &hasher)
+        combineLoad(training: training, liveLoad: liveLoad, baselineStats: baselineStats, into: &hasher)
+        return hasher.finalize()
+    }
+
+    private static func combineSleep(_ sleep: AnalysisSleepInput, trend: AnalysisSleepTrendInput?, into hasher: inout Hasher) {
+        hasher.combine(sleep.totalSleepMinutes)
+        hasher.combine(sleep.inBedMinutes)
+        hasher.combine(sleep.deepSleepMinutes)
+        hasher.combine(sleep.remSleepMinutes)
+        hasher.combine(sleep.awakeMinutes)
+        hasher.combine(sleep.sleepEfficiency)
+        hasher.combine(trend?.averageSleepMinutes)
+        hasher.combine(trend?.averageDeepSleepMinutes)
+        hasher.combine(trend?.averageEfficiency)
+        hasher.combine(trend?.trend.rawValue)
+        hasher.combine(trend?.nightsAnalyzed)
+    }
+
+    private static func combineLoad(
+        training: TrainingContext?,
+        liveLoad: TrainingLoadRegistry.TrainingLoad?,
+        baselineStats: BaselineTracker.RecoveryBaselineStats?,
+        into hasher: inout Hasher
+    ) {
+        hasher.combine(training.map { [$0.atl, $0.ctl, $0.tsb, $0.yesterdayTrimp] })
+        hasher.combine(training?.vo2Max)
+        hasher.combine(training?.daysSinceHardWorkout)
+        hasher.combine(liveLoad.map { [$0.atl, $0.ctl, $0.tsb] })
+        hasher.combine(liveLoad?.acwr)
+        hasher.combine(liveLoad?.todayTrimp)
+        hasher.combine(baselineStats.map { [$0.lnRmssdMean, $0.lnRmssdSD, $0.meanHRBaseline, $0.meanHRSD] })
+        hasher.combine(baselineStats?.daysInWindow)
     }
 
     private static func mapSummary(_ summary: AnalysisSummaryGenerator.AnalysisSummary) -> AssistantContext.AnalysisSummarySnapshot {
@@ -268,10 +345,11 @@ enum ContextBuilder {
             .map { workoutHistoryEntry($0) }
     }
 
-    /// One workout as a history entry.
+    /// One workout as a history entry. Duration, pace and calories use the
+    /// active (un-paused) time, as the workout card does.
     private static func workoutHistoryEntry(_ s: HRVSession) -> AssistantContext.WorkoutHistoryEntry {
         let meta = s.workoutMetadata
-        let duration = s.duration.map { Int($0) }
+        let duration = WorkoutActiveTime.seconds(samples: meta?.samples, wallClock: s.duration).map { Int($0) }
         let derived = derivedSampleMetrics(samples: meta?.samples ?? [], durationSec: duration)
         return AssistantContext.WorkoutHistoryEntry(
             date: s.startDate, sport: meta?.sport.rawValue ?? "unknown", durationSec: duration,
@@ -331,9 +409,9 @@ enum ContextBuilder {
         return out
     }
 
-    /// Compendium kcal formula using the user's real weight from settings
-    /// (else the 75 kg fallback `effectiveBodyWeightKg` exposes). Consistent
-    /// with the post-summary card.
+    /// Compendium kcal formula using the user's current weight from settings
+    /// (else the 75 kg fallback `effectiveBodyWeightKg` exposes) over the
+    /// active duration the caller passes, as the post-summary card computes it.
     private static func estimatedCalories(avgMETs: Double?, durationSec: Int?) -> Double? {
         guard let avg = avgMETs, let dur = durationSec, dur > 0 else { return nil }
         let weightKg = AppDependencies.current.app.settingsManager.settingsSnapshot.effectiveBodyWeightKg
@@ -475,9 +553,8 @@ enum ContextBuilder {
     }
 
     private static func buildLiteSnapshot(
-        session: HRVSession, liveLoad: TrainingLoadRegistry.TrainingLoad?
+        session: HRVSession, liveLoad: TrainingLoadRegistry.TrainingLoad?, title: String?
     ) -> AssistantContext.SessionSnapshotLite {
-        let cachedSummary = englishCachedSummary(for: session)
         let snapshot = session.sleepSnapshot
         return AssistantContext.SessionSnapshotLite(
             date: session.startDate,
@@ -490,21 +567,11 @@ enum ContextBuilder {
             atl: session.trainingSnapshot?.atl, ctl: session.trainingSnapshot?.ctl,
             tsb: session.trainingSnapshot?.tsb, acwr: session.trainingSnapshot?.acuteChronicRatio,
             yesterdayTrimp: session.trainingSnapshot?.yesterdayTrimp,
-            analysisTitle: cachedSummary?.analysisTitle, scoreMessage: englishScoreMessage(session, liveLoad: liveLoad),
+            analysisTitle: title, scoreMessage: englishScoreMessage(session, liveLoad: liveLoad),
             deepSleepMinutes: snapshot?.deepSleepMinutes, remSleepMinutes: snapshot?.remSleepMinutes,
             coreSleepMinutes: coreSleepMinutes(snapshot), awakeMinutes: snapshot?.awakeMinutes,
             nocturnalDipPercent: session.analysisResult?.ansMetrics?.nocturnalHRDip
         )
-    }
-
-    /// The summary `computeOrFetchSummary` cached for the assistant, in
-    /// English; nil when none is cached for the session as it is now.
-    private static func englishCachedSummary(for session: HRVSession) -> AnalysisSummaryGenerator.AnalysisSummary? {
-        NarrativeLanguage.english {
-            AppDependencies.current.assistant.analysisSummaryCache.get(
-                forSessionId: session.id, matching: AnalysisSummaryCache.fingerprint(for: session)
-            )
-        }
     }
 
     /// The breakdown's advice in English, for the model, worded with the

@@ -33,11 +33,21 @@ struct ReadingTagSelector: View {
 
     private var tagChipRow: some View {
         HStack(spacing: 8) {
-            ForEach(ReadingTag.systemTags) { tag in
+            ForEach(stripTags) { tag in
                 chip(for: tag)
             }
             moreTagsButton
         }
+    }
+
+    /// The system tags, then any selected tag that is not one (a custom tag
+    /// picked under "More"), sorted by name, so every selection shows as
+    /// selected in the strip.
+    private var stripTags: [ReadingTag] {
+        let system = ReadingTag.systemTags
+        let systemIds = Set(system.map(\.id))
+        let extra = selectedTags.filter { !systemIds.contains($0.id) }.sorted { $0.name < $1.name }
+        return system + extra
     }
 
     private func chip(for tag: ReadingTag) -> some View {

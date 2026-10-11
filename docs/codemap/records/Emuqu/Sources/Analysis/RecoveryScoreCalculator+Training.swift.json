@@ -11,8 +11,8 @@
  "units": [
   {
    "key": "func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)",
-   "hash": "bd139c1c528a3271",
-   "does": "Builds the 7 start-of-day dates ending at referenceDate (Calendar.current), reads dailyTrimp per date (missing=0), returns (monotony, strain=sum*monotony) or nil when fewer than 7 dates could be built or the week's sum is 0.",
+   "hash": "54dfdf397f967a52",
+   "does": "Builds the 7 start-of-day dates ending at referenceDate (Calendar.current), re-keys dailyTrimp by the local start of day of each key (summing keys that land on the same day), reads each of the 7 days (missing=0), returns (monotony, strain=sum*monotony) or nil when fewer than 7 dates could be built or the week's sum is 0.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.cappedMonotony(of:sum:)"
@@ -26,31 +26,24 @@
      "effect": "false (calendar discontinuity) returns nil"
     },
     {
-     "at": "+13",
-     "cond": "dailyTrimp[day] ?? 0.0",
-     "effect": "day missing from dict counts as 0 load"
+     "at": "+16",
+     "cond": "two dailyTrimp keys share a local day",
+     "effect": "their loads are summed into that day"
     },
     {
-     "at": "+15",
+     "at": "+17",
+     "cond": "byDay[day] ?? 0.0",
+     "effect": "day with no key counts as 0 load"
+    },
+    {
+     "at": "+19",
      "cond": "sum > 0",
      "effect": "false returns nil (no training)"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Lookup is by exact Date key equal to Calendar.current.startOfDay; any dailyTrimp key not normalised to local start-of-day (or built under a different time zone) silently reads as 0 load.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift:34",
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift:37"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.cappedMonotony(of:sum:)": "adea3d310f1d8fc6",
-    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.cappedMonotony(of:sum:)": "adea3d310f1d8fc6"
    }
   },
   {

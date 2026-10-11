@@ -76,7 +76,10 @@ final class SleepBoundaryResolver: Sendable {
     ///   - recordingEnd: When the recording ended (or estimated end)
     ///   - rrPoints: Optional RR data for HR-based estimation fallback
     ///   - useHREstimation: Whether to try HR-based estimation if HealthKit fails
-    /// - Returns: Resolved sleep boundaries (either value may be nil if unresolvable)
+    /// - Returns: Resolved sleep boundaries. A value nothing resolved is nil
+    ///   (never a stand-in): with no HealthKit night and no HR estimate both
+    ///   are nil, and an onset-only HR estimate has a nil wake. Callers use
+    ///   the recording's own start and end for a nil.
     func resolve(
         sessionStart: Date,
         recordingEnd: Date,
@@ -88,19 +91,14 @@ final class SleepBoundaryResolver: Sendable {
                 hkResult, rrPoints: rrPoints, sessionStart: sessionStart
             )
         }
-        // No HealthKit — try HR-only, then fall back to the recording bounds.
-        let recordingEndMs = MillisecondOffset.between(recordingEnd, and: sessionStart, fallback: 0)
+        // No HealthKit — try HR-only; otherwise nothing is resolved.
         if useHREstimation, let points = rrPoints,
            let hrBoundaries = resolveFromHREstimation(
                rrPoints: points, sessionStart: sessionStart
            ) {
-            // Onset-only estimates carry no wake; the recording end stands in.
-            return SleepBoundaries(
-                sleepStartMs: hrBoundaries.sleepStartMs,
-                wakeTimeMs: hrBoundaries.wakeTimeMs ?? recordingEndMs
-            )
+            return hrBoundaries
         }
-        return SleepBoundaries(sleepStartMs: 0, wakeTimeMs: recordingEndMs)
+        return SleepBoundaries(sleepStartMs: nil, wakeTimeMs: nil)
     }
 
     /// With enough RR data, the HealthKit boundaries are cross-checked against
@@ -151,7 +149,9 @@ final class SleepBoundaryResolver: Sendable {
 
     /// Compare HealthKit and HR-estimated boundaries.
     /// - Sleep START: HR can move onset EARLIER (catching sleep HealthKit missed).
-    ///   HR can move it LATER only when HealthKit lacks detailed stages (deep/core/REM).
+    ///   HR can move it LATER only when HealthKit lacks detailed stages (any deep
+    ///   or REM; a core-only night is what a source that does not stage sleep
+    ///   writes, as `SleepResolver.stageTotals` also treats it).
     ///   When Apple Watch reported physiological sleep stages, those boundaries are
     ///   authoritative and HR must not push onset later.
     /// - Sleep END: HR can only EXTEND (later wake), never shrink. If HR says wake was
@@ -199,7 +199,9 @@ final class SleepBoundaryResolver: Sendable {
         static let minimumBeats = 300
         static let windowSize = 120 // ~2 min of beats
         static let stepSize = 30 // ~30 sec steps
-        static let minimumWindows = 10
+        /// `firstSustainedDrop` compares 5 windows before a candidate with
+        /// the 10 from it on, so it needs at least 16 to test one candidate.
+        static let minimumWindows = 16
         // HR drops at sleep onset via parasympathetic surge (magnitude, not
         // onset-specific) — de Zambotti et al., Sleep 2020;43(7):zsaa045
         static let hrDropThreshold = 8.0 // bpm — significant sustained drop
@@ -215,11 +217,14 @@ final class SleepBoundaryResolver: Sendable {
     }
 
     /// Detect sleep onset by finding where HR suddenly drops and sustains.
-    /// Returns the timestamp (in ms from recording start) where sleep likely began.
+    /// Returns the time where sleep likely began, in ms from recording start
+    /// on the wall clock — the clock HealthKit envelopes and the window
+    /// selector's boundaries use. A beat without a wall-clock time (H10
+    /// internal recording, which has no gaps) gives its `t_ms`.
     static func detectSleepOnset(in rrPoints: [RRPoint]) -> Int64? {
         guard rrPoints.count > OnsetDetection.minimumBeats else { return nil }
         let hrWindows = onsetHRWindows(rrPoints)
-        guard hrWindows.count > 15 else { return nil }
+        guard hrWindows.count >= OnsetDetection.minimumWindows else { return nil }
         // Adaptive "asleep" ceiling (per Chris — works for anyone):
         // post-drop HR must fall into the lower half of the NIGHT'S OWN HR range,
         // self-normalizing per person instead of a fixed 65 bpm. Identical in form
@@ -232,7 +237,9 @@ final class SleepBoundaryResolver: Sendable {
         return nil
     }
 
-    /// Mean HR per sliding window, skipping windows too sparse to trust.
+    /// Mean HR per sliding window, skipping windows too sparse to trust,
+    /// timed at the window's middle beat on the wall clock (`t_ms` when the
+    /// beat carries none).
     private static func onsetHRWindows(_ rrPoints: [RRPoint]) -> [(timeMs: Int64, hr: Double)] {
         let windowSize = OnsetDetection.windowSize
         var hrWindows: [(timeMs: Int64, hr: Double)] = []
@@ -240,7 +247,8 @@ final class SleepBoundaryResolver: Sendable {
         while i + windowSize < rrPoints.count {
             let windowPoints = Array(rrPoints[i ..< min(i + windowSize, rrPoints.count)])
             if let hr = Self.windowMeanHR(windowPoints, windowSize: windowSize) {
-                hrWindows.append((windowPoints[windowSize / 2].t_ms, hr))
+                let middle = windowPoints[windowSize / 2]
+                hrWindows.append((middle.wallClockMs ?? middle.t_ms, hr))
             }
             i += OnsetDetection.stepSize
         }

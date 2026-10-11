@@ -18,7 +18,7 @@ enum HelpLocalization {
     /// The text in the selected language; the English itself when the table
     /// has no entry.
     static func string(_ english: String) -> String {
-        if english.first == formattedMark { return String(english.dropFirst()) }
+        if formattedTexts.withLock({ $0.contains(english) }) { return english }
         recorder.withLock { _ = $0?.insert(english) }
         return LanguageManager.appBundle.localizedString(forKey: english, value: english, table: table)
     }
@@ -26,17 +26,21 @@ enum HelpLocalization {
     /// A template with `{token}` placeholders, translated first and filled in
     /// after, so a number or a name never becomes part of a lookup key.
     ///
-    /// The result carries a leading word joiner (U+2060, invisible) so the
-    /// display-time pass in `localized` knows it is already translated and
-    /// passes it through instead of looking it up again.
+    /// The result is remembered in `formattedTexts`, so the display-time pass
+    /// in `localized` knows it is already translated and passes it through
+    /// instead of looking it up again. The text itself carries no marker, so
+    /// a consumer that never localizes sees exactly what a reader would.
     static func format(_ englishTemplate: String, _ values: [String: String]) -> String {
         let filled = values.reduce(string(englishTemplate)) { text, entry in
             text.replacingOccurrences(of: "{\(entry.key)}", with: entry.value)
         }
-        return String(formattedMark) + filled
+        formattedTexts.withLock { _ = $0.insert(filled) }
+        return filled
     }
 
-    private static let formattedMark: Character = "\u{2060}"
+    /// Every text `format` has handed out. Small: a handful of
+    /// age-personalised strings per age and language the reader has used.
+    private static let formattedTexts = OSAllocatedUnfairLock<Set<String>>(initialState: [])
 
     /// Off in the app. A test turns it on to list every key the Help Center
     /// looks up.

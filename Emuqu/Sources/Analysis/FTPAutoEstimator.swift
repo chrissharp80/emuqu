@@ -29,6 +29,9 @@ import Foundation
 /// was deleted) the cached estimate is cleared rather than kept: an
 /// old number would keep scaling every power-TSS. The scan time is
 /// stamped either way, so a fruitless scan isn't repeated every launch.
+/// The weekly throttle is skipped when a workout was added since the last
+/// scan or the anchoring workout is no longer in the archive, so the next
+/// launch scan picks up a new best effort or drops a deleted anchor.
 ///
 /// For users who only ever do easy walks, the estimate will
 /// under-predict threshold and inflate every workout's TSS — that's the
@@ -37,7 +40,11 @@ enum FTPAutoEstimator {
     private static let cachedFTPKey = "FlowRecovery.ftpAutoEstimate.runningFTP"
     private static let cachedAsOfKey = "FlowRecovery.ftpAutoEstimate.computedAt"
     private static let cachedSourceSessionKey = "FlowRecovery.ftpAutoEstimate.sourceSessionId"
-    private static let cachedSourcePowerKey = "FlowRecovery.ftpAutoEstimate.sourceNP"
+    /// Written by earlier versions (it held the 20-minute mean power, not
+    /// normalized power, and nothing read it); removed on every scan.
+    private static let legacySourcePowerKey = "FlowRecovery.ftpAutoEstimate.sourceNP"
+    /// Re-scan at most this often unless the archive changed (see `needsRecompute`).
+    private static let rescanInterval: TimeInterval = 7 * 24 * 3600
 
     /// How far back the scan looks. Long enough to find a hard effort in a
     /// normal training cycle, short enough to follow detraining.
@@ -69,24 +76,37 @@ enum FTPAutoEstimator {
         UserDefaults.standard.object(forKey: cachedAsOfKey) as? Date
     }
 
-    /// Diagnostic — which session the current estimate came from.
+    /// The session the current estimate came from; `needsRecompute` checks
+    /// it is still in the archive.
     static var sourceSessionId: UUID? {
         guard let s = UserDefaults.standard.string(forKey: cachedSourceSessionKey) else { return nil }
         return UUID(uuidString: s)
     }
 
-    /// The 20-minute mean power (watts) that anchored the current estimate.
-    static var sourceMeanPower: Double {
-        UserDefaults.standard.double(forKey: cachedSourcePowerKey)
+    /// Scan the archive and recompute, off the main actor, without waiting.
+    /// Skipped unless `force` or `needsRecompute`. Safe to call on every
+    /// launch. A caller that reads the FTP next should await
+    /// `recomputeIfNeededAndWait` instead.
+    static func recomputeIfNeeded(archive: SessionArchive, force: Bool = false, now: Date = Date()) {
+        guard force || needsRecompute(archive: archive, now: now) else { return }
+        Task.detached(priority: .utility) { recompute(archive: archive, now: now) }
     }
 
-    /// Scan the archive and recompute, off the main actor. Throttled to
-    /// once per 7 days unless `force` is true. Safe to call on every launch.
-    static func recomputeIfNeeded(archive: SessionArchive, force: Bool = false, now: Date = Date()) {
-        if !force, let last = lastComputedAt, now.timeIntervalSince(last) < 7 * 24 * 3600 {
-            return
-        }
-        Task.detached(priority: .utility) { recompute(archive: archive, now: now) }
+    /// `recomputeIfNeeded`, returning only once the scan has stored its
+    /// result, so a training-load refresh that follows reads the new FTP.
+    static func recomputeIfNeededAndWait(archive: SessionArchive, force: Bool = false, now: Date = Date()) async {
+        guard force || needsRecompute(archive: archive, now: now) else { return }
+        await Task.detached(priority: .utility) { recompute(archive: archive, now: now) }.value
+    }
+
+    /// True when there was no scan yet, the last one is older than
+    /// `rescanInterval`, a workout was added since it, or the anchoring
+    /// workout is no longer in the archive.
+    static func needsRecompute(archive: SessionArchive, now: Date) -> Bool {
+        guard let last = lastComputedAt, now.timeIntervalSince(last) < rescanInterval else { return true }
+        if archive.entries.contains(where: { $0.sessionType == .workout && $0.date > last }) { return true }
+        guard let anchor = sourceSessionId else { return false }
+        return !archive.entries.contains { $0.sessionId == anchor }
     }
 
     /// Scan synchronously on the caller's thread. Reads are lightweight (no
@@ -183,15 +203,15 @@ enum FTPAutoEstimator {
     private static func persist(_ effort: Effort?, at now: Date) {
         let defaults = UserDefaults.standard
         defaults.set(now, forKey: cachedAsOfKey)
+        defaults.removeObject(forKey: legacySourcePowerKey)
         guard let effort else {
-            for key in [cachedFTPKey, cachedSourceSessionKey, cachedSourcePowerKey] {
+            for key in [cachedFTPKey, cachedSourceSessionKey] {
                 defaults.removeObject(forKey: key)
             }
             debugLog("[FTPAutoEstimator] No running-family workout in the last \(lookbackDays) days has a 20-min power window — estimate cleared.")
             return
         }
         defaults.set(ftp(for: effort), forKey: cachedFTPKey)
-        defaults.set(effort.meanPowerWatts, forKey: cachedSourcePowerKey)
         defaults.set(effort.sessionId.uuidString, forKey: cachedSourceSessionKey)
         debugLog("[FTPAutoEstimator] Auto-estimated running FTP = \(ftp(for: effort)) W (best 20-min mean \(Int(effort.meanPowerWatts.rounded())) W)")
     }

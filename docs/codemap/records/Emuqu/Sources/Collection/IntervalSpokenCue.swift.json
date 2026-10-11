@@ -21,11 +21,11 @@
  "units": [
   {
    "key": "func IntervalSpokenCue.step(_:number:of:)",
-   "hash": "92dc384d51fa3bd2",
-   "does": "Builds 'Step N of M: <label>.' plus the target and, when the step has a duration or distance, '<target> for <span>.'",
+   "hash": "69c9a1ac031702d2",
+   "does": "Builds 'Step N of M: <label>.' (the step's displayLabel, the one on-screen label list) plus the target and, when the step has a duration or distance, '<target> for <span>.'",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/IntervalSpokenCue.swift::func IntervalSpokenCue.localizedLabel(_:)",
+    "Emuqu/Sources/Models/IntervalPlan.swift::var IntervalStep.displayLabel",
     "Emuqu/Sources/Collection/IntervalSpokenCue.swift::func IntervalSpokenCue.target(_:)",
     "Emuqu/Sources/Collection/IntervalSpokenCue.swift::func IntervalSpokenCue.span(of:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
@@ -41,82 +41,9 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/IntervalSpokenCue.swift::func IntervalSpokenCue.localizedLabel(_:)": "85f9a50b458bf542",
-    "Emuqu/Sources/Collection/IntervalSpokenCue.swift::func IntervalSpokenCue.span(of:)": "d9115bd257c8f7ed",
-    "Emuqu/Sources/Collection/IntervalSpokenCue.swift::func IntervalSpokenCue.target(_:)": "fded062e148a8690",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
-   }
-  },
-  {
-   "key": "func IntervalSpokenCue.localizedLabel(_:)",
-   "hash": "5d395808decb1f7b",
-   "does": "Localizes the built-in English preset labels; returns user labels unchanged.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+3",
-     "cond": "'warm up'",
-     "effect": "localized"
-    },
-    {
-     "at": "+4",
-     "cond": "'cool down'",
-     "effect": "localized"
-    },
-    {
-     "at": "+5",
-     "cond": "'easy'",
-     "effect": "localized"
-    },
-    {
-     "at": "+6",
-     "cond": "'hard'",
-     "effect": "localized"
-    },
-    {
-     "at": "+7",
-     "cond": "'interval'",
-     "effect": "localized"
-    },
-    {
-     "at": "+8",
-     "cond": "'recovery'",
-     "effect": "localized"
-    },
-    {
-     "at": "+9",
-     "cond": "'rest'",
-     "effect": "localized"
-    },
-    {
-     "at": "+10",
-     "cond": "'aerobic base'",
-     "effect": "localized"
-    },
-    {
-     "at": "+11",
-     "cond": "default",
-     "effect": "label as written"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "localizedLabel repeats IntervalStep.displayLabel case for case (same eight preset labels, same default); the two lists must be edited together or the spoken and on-screen labels diverge.",
-     "evidence": [
-      "Emuqu/Sources/Collection/IntervalSpokenCue.swift:19",
-      "Emuqu/Sources/Models/IntervalPlan.swift:55"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {
+    "Emuqu/Sources/Collection/IntervalSpokenCue.swift::func IntervalSpokenCue.span(of:)": "084a5a7adf664479",
+    "Emuqu/Sources/Collection/IntervalSpokenCue.swift::func IntervalSpokenCue.target(_:)": "110d5071d698c224",
+    "Emuqu/Sources/Models/IntervalPlan.swift::var IntervalStep.displayLabel": "eb4c0648c89ed45d",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },
@@ -173,7 +100,7 @@
     {
      "kind": "broken",
      "sev": "low",
-     "text": "The scripted interval cue ignores the user's units preference: a pace target is always spoken as 'm:ss per kilometer' and a distance step always in km/m, so an imperial user hears metric targets when the AI path is unavailable.",
+     "text": "The scripted interval cue speaks a pace target as 'm:ss per kilometer' whatever the user's units preference, so an imperial user hears a metric pace when the AI path is unavailable. (Distance steps now follow the preference.) Needs a '%@ per mile' catalog key.",
      "evidence": [
       "Emuqu/Sources/Collection/IntervalSpokenCue.swift:44",
       "Emuqu/Sources/Collection/IntervalSpokenCue.swift:45",
@@ -181,7 +108,7 @@
       "Emuqu/Sources/Collection/IntervalSpokenCue.swift:75",
       "Emuqu/Sources/Views/ThresholdCards+Cards.swift:195"
      ],
-     "found": "second read"
+     "found": "second read; narrowed by b10"
     }
    ],
    "deps": {
@@ -233,13 +160,18 @@
   },
   {
    "key": "func IntervalSpokenCue.span(of:)",
-   "hash": "c33ed5ca89b00b9e",
-   "does": "Formats duration via DateComponentsFormatter (minutes/seconds, full, app locale) or distance as wide km/m measurement; nil if neither.",
+   "hash": "ab36a5efc7ba1e78",
+   "does": "Formats duration via DateComponentsFormatter (minutes/seconds, full, app locale), or the distance in the user's units (spokenDistance with UnitsPreferenceStore.current.resolved); nil if neither.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved",
+    "Emuqu/Sources/Collection/IntervalSpokenCue.swift::func IntervalSpokenCue.spokenDistance(meters:units:)"
    ],
-   "reads": [],
+   "reads": [
+    "ud:fitness.unitsPreference (app group)"
+   ],
    "writes": [],
    "branches": [
     {
@@ -251,16 +183,36 @@
      "at": "+10",
      "cond": "no distance",
      "effect": "nil"
-    },
-    {
-     "at": "+11",
-     "cond": "meters >= 1000",
-     "effect": "kilometers unit; else meters"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/IntervalSpokenCue.swift::func IntervalSpokenCue.step(_:number:of:)": "94d9903738bd3545",
+    "Emuqu/Sources/Collection/IntervalSpokenCue.swift::func IntervalSpokenCue.spokenDistance(meters:units:)": "3b395568e3801b26",
+    "Emuqu/Sources/Collection/IntervalSpokenCue.swift::func IntervalSpokenCue.step(_:number:of:)": "0701f9429ce58e28",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func IntervalSpokenCue.spokenDistance(meters:units:)",
+   "hash": "c14a95e100a30980",
+   "does": "A step distance as a wide measurement in the app locale: imperial → miles rounded to two decimals; otherwise kilometres from 1000 m, metres below.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "units == .imperial",
+     "effect": "miles; else km/m by size"
+    }
+   ],
+   "flags": [],
+   "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
     "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
    }

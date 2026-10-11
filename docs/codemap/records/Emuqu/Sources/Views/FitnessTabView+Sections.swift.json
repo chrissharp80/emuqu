@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Views/FitnessTabView+Sections.swift",
  "hash": "f3bf7c0d5bf46545",
- "role": "FitnessTabView extension for the Get Me Back card (disclaimer + breadcrumb engage), the 7-day daily activity card with today's workout/passive split and weekly bars, and the loader that computes workout elevation totals, 7-day mean HRR@1m, HealthKit daily activity and workout attribution; plus two file-private helpers.",
+ "role": "FitnessTabView extension for the Get Me Back card (disclaimer + breadcrumb engage), the 7-day daily activity card with today's workout/passive split and weekly bars, and the loader that computes workout elevation totals, 7-day mean HRR@1m, daily activity (HealthKit, or the phone pedometer when HealthKit returned no steps for the week) and workout attribution over today's merged workout windows; plus file-private helpers.",
  "types": [
   "FitnessTabView: extension — Get Me Back card, daily activity card, fitness home data loading",
   "FitnessTabView.BreakdownFit: struct (private ViewModifier) — one-line shrink-to-fit"
@@ -225,7 +225,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.dailyActivityHeader": "3edd4d97a862b3aa",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.dailyActivityHeader": "5392d9f37a83e687",
     "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.dailyActivityLegend": "8dabf3ed7abb25ae",
     "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.todayBreakdownRow": "5295f834e6949569",
     "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.weeklyBarChart": "07b41407620894b4",
@@ -234,10 +234,11 @@
   },
   {
    "key": "var FitnessTabView.dailyActivityHeader",
-   "hash": "3306a904a24a6474",
-   "does": "'Daily activity' title with 'last 7 days · phone + watch' caption.",
+   "hash": "99b8305cc1da7b7c",
+   "does": "'Daily activity' title with the dailyActivitySourceCaption caption.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.dailyActivitySourceCaption",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
@@ -246,8 +247,34 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.dailyActivitySourceCaption": "6fc00e176d0017d3",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var FitnessTabView.dailyActivitySourceCaption",
+   "hash": "37e378db7870b2e0",
+   "does": "'last 7 days · phone + watch' when dailyActivity holds HealthKit's all-source totals; plain 'last 7 days' before it loads or when it holds the pedometer fallback.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:FitnessTabView.dailyActivity",
+    "mem:FitnessTabView.dailyActivityFromPedometer"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no data yet or pedometer fallback",
+     "effect": "\"last 7 days\"; else \"last 7 days · phone + watch\""
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },
   {
@@ -285,7 +312,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.distanceBreakdownStat": "b90d40ddaa41b253",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.distanceBreakdownStat": "72e6b744507f0588",
     "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.floorsBreakdownStat": "9e6a236382204859",
     "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.stepsBreakdownStat": "04c23237d130dd3f"
    }
@@ -305,26 +332,10 @@
     {
      "at": "+1",
      "cond": "dailyActivity empty → passiveSteps.first → 0",
-     "effect": "the ?? chain falls back only when the HK array is EMPTY (HK unavailable or not loaded yet)"
+     "effect": "falls back when dailyActivity is empty (not loaded yet / HK unavailable with no pedometer data); a HealthKit week with no steps has already been replaced by the pedometer days in applyDailyActivity"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "med",
-     "text": "The CMPedometer fallback never applies when HealthKit is available but step/distance/flight reads are denied. fetchDailyActivity then returns 7 entries of 0 (fetchSum* map a nil statistic to 0), so dailyActivity.first exists and today shows 0 steps / 0 distance / 0 floors. The card is still shown because passiveSteps is non-empty, and the weekly bars are all at the 3 pt minimum. This contradicts the stated purpose in FitnessTabView.loadFitnessHomeData ('CMPedometer fallback… Used when HK hasn't authorized step / distance / flights reads yet').",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessTabView+Sections.swift:177",
-      "Emuqu/Sources/Views/FitnessTabView+Sections.swift:181",
-      "Emuqu/Sources/Views/FitnessTabView+Sections.swift:199",
-      "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift:436",
-      "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift:443",
-      "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift:465",
-      "Emuqu/Sources/Views/FitnessTabView.swift:423"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -422,45 +433,34 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3",
     "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.breakdownStat(label:total:workout:passive:)": "e13bc31cd1d3326c",
-    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.todayStepTotal": "df7bc81855ded3fb"
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.todayStepTotal": "175f9c34fda28f4f"
    }
   },
   {
    "key": "var FitnessTabView.distanceBreakdownStat",
-   "hash": "180d17d163eb3a17",
-   "does": "Distance stat formatted with the tab's @State unitsPreference: total, workout-attributed, passive.",
+   "hash": "481b187b3cb3ba97",
+   "does": "Distance stat formatted with the tab's computed `units` (UnitsPreferenceStore.current, read each render, so a km/mi switch shows on the next render): total, workout-attributed, passive.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.todayDistanceTotal",
     "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.breakdownStat(label:total:workout:passive:)",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.units",
     "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [
-    "mem:FitnessTabView.unitsPreference",
+    "ud:UnitsPreferenceStore (units preference)",
     "mem:FitnessTabView.todayWorkoutAttributedDistanceMeters"
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "Formats with the @State unitsPreference. It is set once from UnitsPreferenceStore.current when the view is created and never reassigned: grep finds no writes, and its only reads are Sections.swift:219-221. After the user switches km↔mi in Settings, this card keeps the old unit while the rest of the tab, which uses the computed `units`, switches. FitnessTabView.swift:118-121 says views use the computed form so changes propagate instantly.",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessTabView+Sections.swift:219",
-      "Emuqu/Sources/Views/FitnessTabView.swift:99",
-      "Emuqu/Sources/Views/FitnessTabView.swift:118",
-      "Emuqu/Sources/Views/FitnessTabView.swift:122"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "a36dafa82ad91f58",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.breakdownStat(label:total:workout:passive:)": "e13bc31cd1d3326c",
-    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.todayDistanceTotal": "adce0d590fb6633d"
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.todayDistanceTotal": "adce0d590fb6633d",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.units": "2b5b3b2c99d9c7cc"
    }
   },
   {
@@ -565,7 +565,7 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.string(from:template:)": "3f04b1b2d2a2db68",
     "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.dayBar(_:maxSteps:isToday:)": "970ef8c531cf2934",
-    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.dayLabel(_:)": "d7b0d861c0e324b1",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.dayLabel(_:)": "b897d9f12748bf71",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
    }
@@ -616,8 +616,8 @@
   },
   {
    "key": "func FitnessTabView.dayLabel(_:)",
-   "hash": "1eed587475390b18",
-   "does": "Very-short standalone weekday symbol in the app locale for the date's weekday.",
+   "hash": "8be1b6af5e42eb6b",
+   "does": "Very-short standalone weekday symbol for the date's weekday, from Calendar.current with the app locale (no DateFormatter allocated).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
@@ -625,25 +625,15 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Allocates a new DateFormatter on every call, i.e. 7 per render of the weekly chart.",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessTabView+Sections.swift:334"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
    }
   },
   {
    "key": "func FitnessTabView.loadWorkoutElevationTotals()",
-   "hash": "ddeeecc9b6d5b302",
-   "does": "Loads the week's workout sessions (lightweight, detached) and the 7 days of HealthKit daily activity in parallel. Then sets elevation totals, the 7-day mean HRR@1m, dailyActivity and today's workout attribution, writes the UI cache and logs timing.",
+   "hash": "00fc7c5dc631080c",
+   "does": "Loads the week's workout sessions (lightweight, detached) and the 7 days of HealthKit daily activity in parallel. Then sets elevation totals (today's = workouts started today), the 7-day mean HRR@1m, dailyActivity (HealthKit or pedometer fallback) and today's workout attribution over all the week's workouts' windows clipped to today, writes the UI cache and logs timing.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func weekWorkoutSessionIds(archive:since:)",
@@ -651,7 +641,8 @@
     "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::func HealthKitManager.fetchDailyActivity(days:)",
     "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.applyElevationTotals(workouts:todaysWorkouts:weekAgo:)",
     "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.applyCachedMeanHRR(workouts:archive:)",
-    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.applyWorkoutAttribution(todaysWorkouts:)",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.applyDailyActivity(healthKit:)",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.applyWorkoutAttribution(workouts:since:)",
     "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.cacheFitnessDisplayState()",
     "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func logFitnessLoadTiming(count:startedAt:)"
    ],
@@ -663,11 +654,12 @@
     "hk:flightsClimbed"
    ],
    "writes": [
-    "mem:FitnessTabView.dailyActivity"
+    "mem:FitnessTabView.dailyActivity",
+    "mem:FitnessTabView.dailyActivityFromPedometer"
    ],
    "branches": [
     {
-     "at": "+4",
+     "at": "+3",
      "cond": "calendar date −7 days fails",
      "effect": "return without loading (never happens for Gregorian)"
     }
@@ -676,11 +668,11 @@
    "deps": {
     "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::func HealthKitManager.fetchDailyActivity(days:)": "af16c19e3d220755",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6",
-    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "f61a7a679f5280dd",
     "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.applyCachedMeanHRR(workouts:archive:)": "e4b677db9d3503f4",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.applyDailyActivity(healthKit:)": "4b50c2abe7e6238d",
     "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.applyElevationTotals(workouts:todaysWorkouts:weekAgo:)": "2f94c7e78ed63fc6",
-    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.applyWorkoutAttribution(todaysWorkouts:)": "d4df581ca481e229",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.applyWorkoutAttribution(workouts:since:)": "944b023c6ad6d041",
     "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.cacheFitnessDisplayState()": "effa78dcbbdebfaa",
     "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func logFitnessLoadTiming(count:startedAt:)": "b547c9e68a083894",
     "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func weekWorkoutSessionIds(archive:since:)": "7e92a5b3ec213e10"
@@ -751,11 +743,39 @@
    }
   },
   {
-   "key": "func FitnessTabView.applyWorkoutAttribution(todaysWorkouts:)",
-   "hash": "290ed14f3003bcff",
-   "does": "For each of today's workouts with end > start (end defaults to now), queries HK steps, distance and flights inside its window in parallel and sums them into the today-attributed state.",
+   "key": "func FitnessTabView.applyDailyActivity(healthKit:)",
+   "hash": "43bbb73f69041503",
+   "does": "Stores HealthKit's daily totals in dailyActivity, unless HealthKit reported zero steps for every day (a denied or unavailable read looks like that) while the CMPedometer snapshot counted steps — then stores the pedometer days (floors ascended as flights) and sets dailyActivityFromPedometer.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func dailyActivityFromPedometerDay(_:)"
+   ],
+   "reads": [
+    "mem:FitnessTabView.passiveSteps"
+   ],
+   "writes": [
+    "mem:FitnessTabView.dailyActivity",
+    "mem:FitnessTabView.dailyActivityFromPedometer"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "HealthKit all-zero (or empty) AND pedometer has a day with steps",
+     "effect": "pedometer days; else HealthKit days"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func dailyActivityFromPedometerDay(_:)": "63e3c1bf61549c6a"
+   }
+  },
+  {
+   "key": "func FitnessTabView.applyWorkoutAttribution(workouts:since:)",
+   "hash": "aded0c0ec22791d5",
+   "does": "Sums HealthKit steps/distance/flights inside each merged window of today covered by a workout (mergedWorkoutWindows: clipped to start at midnight, open workouts end now, overlaps merged so nothing counts twice) and stores today's attributed totals.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func mergedWorkoutWindows(_:since:now:)",
     "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::func HealthKitManager.fetchSumSteps(from:to:)",
     "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::func HealthKitManager.fetchSumDistance(from:to:)",
     "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::func HealthKitManager.fetchSumFlights(from:to:)"
@@ -772,38 +792,18 @@
    ],
    "branches": [
     {
-     "at": "+5",
-     "cond": "loop over today's workouts",
-     "effect": "per workout"
-    },
-    {
-     "at": "+7",
-     "cond": "workout.endDate == nil",
-     "effect": "?? fallback Date() (still-open session)"
-    },
-    {
-     "at": "+8",
-     "cond": "end <= start",
-     "effect": "continue (skip workout)"
+     "at": "+4",
+     "cond": "each merged window",
+     "effect": "three parallel HK sums added; no windows → zeros"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "todaysWorkouts filters on startDate >= start of today. A workout that began before midnight and ended today contributes nothing to today's attribution, so its post-midnight steps are counted as passive. Overlapping workouts (e.g. a HealthKit import duplicating a recording) are double-counted.",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessTabView+Sections.swift:361",
-      "Emuqu/Sources/Views/FitnessTabView+Sections.swift:411"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::func HealthKitManager.fetchSumDistance(from:to:)": "5fc74b10eb74c4ab",
     "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::func HealthKitManager.fetchSumFlights(from:to:)": "59fbbb20a94d3628",
     "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::func HealthKitManager.fetchSumSteps(from:to:)": "0f0ed0d6c775a592",
-    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "f61a7a679f5280dd"
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "f61a7a679f5280dd",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func mergedWorkoutWindows(_:since:now:)": "2e666143bd85539c"
    }
   },
   {
@@ -854,6 +854,41 @@
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef"
    }
+  },
+  {
+   "key": "func dailyActivityFromPedometerDay(_:)",
+   "hash": "dee58e74d243ac93",
+   "does": "Converts a CMPedometer day into a HealthKitManager.DailyActivity (same date, steps, distance; floors ascended as flights climbed).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func mergedWorkoutWindows(_:since:now:)",
+   "hash": "e65c7a8a69b21c68",
+   "does": "Each workout's [max(start, dayStart), endDate ?? now] window, empty ones dropped, sorted by start, with overlapping or touching windows merged.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "window ends at or before its start (e.g. ended before midnight)",
+     "effect": "dropped"
+    },
+    {
+     "at": "+7",
+     "cond": "overlaps the previous merged window",
+     "effect": "extends it; else starts a new window"
+    }
+   ],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "func logFitnessLoadTiming(count:startedAt:)",

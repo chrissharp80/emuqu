@@ -13,18 +13,7 @@
   "notif:LanguageManager.languageDidChangeNotification (observed via languageObserver)"
  ],
  "toplevel": "Header doc states the plan (5 min after wake with 7am fallback) vs what is implemented, and lists deferred features.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Header says the wake push is called from HealthKitManager+Sleep's observer; the only call site is HealthKitManager+SleepTrends.swift:482.",
-   "evidence": [
-    "Emuqu/Sources/Services/MorningNotificationScheduler.swift:18-19",
-    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift:482"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "init MorningNotificationScheduler()",
@@ -121,9 +110,11 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::let UserSettings.dailyReportFixedTime": "7e0baea1441894e4",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.dailyReportFixedTime": "e958368b29fbc5b3",
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.authorizationStatus()": "fae74b5835684832",
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.cancelAll()": "be8542994382987c",
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.morningContent()": "9ad68b46fc40dbab",
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.hour(from:)": "49d2f1a114e03f25",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
@@ -201,8 +192,7 @@
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.deliverImmediately(title:body:today:sleepEnd:)": "e1302659a750ca29",
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.isMorningWake(_:schedule:)": "8a2e457922845e1f",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
    }
   },
   {
@@ -309,7 +299,7 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.resolvedFormat(_:archive:)": "1056fa14292f3976",
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.shortPrescription(for:)": "dbc2f538aa0a0e96",
-    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.todaysScore(in:)": "f0e70b38d59e8537",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.todaysScore(in:)": "3d330ae854e0e978",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74"
    }
@@ -365,20 +355,21 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates": "7af30eca3eb87384",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
-    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates": "2be5455112ec9732",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e"
    }
   },
   {
    "key": "func MorningNotificationScheduler.todaysScore(in:)",
-   "hash": "84d7baf3a366ff15",
-   "does": "Takes up to 7 overnight entries whose (endDate ?? date) is today, newest first, and returns the first one's lightweight-retrieved recoveryScore as 0-100; nil when none.",
+   "hash": "74b2325c6eb7a9ad",
+   "does": "Takes up to 7 overnight entries reliable for HRV aggregates (not .insufficient/.preSleep) whose (endDate ?? date) is today, longest first (as the dashboard hero), and returns the first one's lightweight-retrieved recoveryScore as 0-100; nil when none.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)",
-    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)"
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.recordedSeconds(_:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates"
    ],
    "reads": [
     "archive:SessionArchive.entries",
@@ -392,11 +383,6 @@
      "effect": "use date"
     },
     {
-     "at": "+4",
-     "cond": "endDate nil (??) in sort",
-     "effect": "use date"
-    },
-    {
      "at": "+6",
      "cond": "for each of up to 7 entries",
      "effect": "try retrieve"
@@ -407,25 +393,34 @@
      "effect": "return display score; else next entry"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "No HRV-reliability gate: an .insufficient/.preSleep overnight ending today (which DashboardSessionPolicy excludes from the hero) supplies the pushed score, and among several today it takes the most recently ended rather than the longest as the dashboard does, so the push can show a different number than the dashboard.",
-     "evidence": [
-      "Emuqu/Sources/Services/MorningNotificationScheduler.swift:271-276",
-      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:177-186"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
-    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "243c4d1d41c669f4",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "503106affd4064c8",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates": "2be5455112ec9732",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.recordedSeconds(_:)": "d5e74cfda2961b93",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
    }
+  },
+  {
+   "key": "func MorningNotificationScheduler.recordedSeconds(_:)",
+   "hash": "04510f44bbde2026",
+   "does": "Seconds from an entry's start to its endDate (0 when it has none).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "endDate nil (??)",
+     "effect": "use date → 0"
+    }
+   ],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "func MorningNotificationScheduler.buildPayload()",

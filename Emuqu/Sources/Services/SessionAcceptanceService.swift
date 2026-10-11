@@ -98,23 +98,40 @@ final class SessionAcceptanceService {
         return recordingEnd > sleepStart && recordingStart < sleepEnd
     }
 
-    /// A window too short to trust, or a session that never reached its
-    /// recovery zone, both count as insufficient when the RMSSD also came in
-    /// under baseline. Nil means the data is good enough to judge normally.
+    /// Rule 1, the insufficient-data rule, and the one implementation of it:
+    /// the morning pre-score gate and the insufficient-data migration reach
+    /// it through `ReanalysisService.hasInsufficientData`. A window too short
+    /// to trust, or a session that never reached its recovery zone, both
+    /// count as insufficient when the RMSSD also came in under baseline. With
+    /// no window (full-session analysis) the analysed span is the session.
+    static func isInsufficientData(
+        result: HRVAnalysisResult, baselineRmssd: Double, sessionDuration: TimeInterval
+    ) -> Bool {
+        guard result.timeDomain.rmssd < baselineRmssd else { return false }
+        let windowTooShort = analysedSpanMs(of: result, sessionDuration: sessionDuration)
+            < HRVConstants.MinimumDuration.forReliableWindowMs
+        let noRecoveryZoneData = result.isOrganizedRecovery != true
+            && sessionDuration < HRVConstants.MinimumDuration.forOvernightSessionSeconds
+        return windowTooShort || noRecoveryZoneData
+    }
+
+    /// The analysis window's length, or the session's when there is none.
+    private static func analysedSpanMs(of result: HRVAnalysisResult, sessionDuration: TimeInterval) -> Int64 {
+        guard let wsMs = result.windowStartMs, let weMs = result.windowEndMs else { return Int64(sessionDuration * 1000) }
+        return weMs - wsMs
+    }
+
+    /// Rule 1 as a decision, with the reason logged. Nil means the data is
+    /// good enough to judge normally. `rmssd` is the result's own RMSSD.
     private static func insufficientDataDecision(
         result: HRVAnalysisResult, rmssd: Double, baselineRmssd: Double, sessionDuration: TimeInterval
     ) -> HRVQualityDecision? {
-        let analysisWindowDurationMs: Int64 = if let wsMs = result.windowStartMs,
-                                                 let weMs = result.windowEndMs {
-            weMs - wsMs
-        } else {
-            Int64(sessionDuration * 1000)
+        guard rmssd < baselineRmssd,
+              isInsufficientData(result: result, baselineRmssd: baselineRmssd, sessionDuration: sessionDuration) else {
+            return nil
         }
-        let windowTooShort = analysisWindowDurationMs < HRVConstants.MinimumDuration.forReliableWindowMs
-        let noRecoveryZoneData = result.isOrganizedRecovery != true
-            && sessionDuration < HRVConstants.MinimumDuration.forOvernightSessionSeconds
-        guard windowTooShort || noRecoveryZoneData, rmssd < baselineRmssd else { return nil }
-        if windowTooShort {
+        let analysisWindowDurationMs = analysedSpanMs(of: result, sessionDuration: sessionDuration)
+        if analysisWindowDurationMs < HRVConstants.MinimumDuration.forReliableWindowMs {
             debugLog("[SessionAcceptanceService] Analysis window only \(analysisWindowDurationMs / 1000)s with RMSSD below baseline — too short to trust, using baseline HRV")
         } else {
             debugLog("[SessionAcceptanceService] No organized recovery in \(Int(sessionDuration / 60))min session with RMSSD below baseline — didn't reach recovery zone, using baseline HRV")
@@ -162,7 +179,7 @@ final class SessionAcceptanceService {
                 for: fetchStart, recordingEnd: fetchEnd, rrPoints: rrPoints
             )
         } catch {
-            debugLog("[SessionAcceptanceService] Sleep fetch failed during acceptance: \(error)")
+            debugLog("[SessionAcceptanceService] Sleep fetch failed: \(error)")
             return nil
         }
     }
@@ -282,9 +299,7 @@ final class SessionAcceptanceService {
     private func snapshotHealthData(
         on session: inout HRVSession, sessionEnd: Date, sleepSchedule: SleepSchedule
     ) async {
-        let (fetchStart, fetchEnd) = sleepFetchRange(
-            for: session, sessionEnd: sessionEnd, sleepSchedule: sleepSchedule
-        )
+        let (fetchStart, fetchEnd) = sleepFetchRange(for: session, sessionEnd: sessionEnd, sleepSchedule: sleepSchedule)
         let (sleepData, vitals) = await fetchSleepAndVitals(
             rrPoints: session.rrSeries?.points,
             fetchStart: fetchStart,
@@ -304,11 +319,7 @@ final class SessionAcceptanceService {
         training: TrainingContext?,
         useBaselineHRV: Bool
     ) -> RecoveryScoreCalculator.ScoreBreakdown {
-        let ansBalance: Double? = {
-            guard let pns = result.ansMetrics?.pnsIndex, let sns = result.ansMetrics?.snsIndex else { return nil }
-            return pns - sns
-        }()
-        return RecoveryScoreCalculator.calculateWithBreakdown(
+        RecoveryScoreCalculator.calculateWithBreakdown(
             RecoveryScoreCalculator.ScoreInputs(
                 hrvReadiness: result.ansMetrics?.readinessScore, rmssd: result.timeDomain.rmssd,
                 meanHR: result.timeDomain.meanHR, dfaAlpha1: result.nonlinear.dfaAlpha1,
@@ -319,7 +330,7 @@ final class SessionAcceptanceService {
             config: inputs.scoringConfig,
             useBaselineHRV: useBaselineHRV,
             perceivedReadiness: session.perceivedReadiness,
-            ansBalance: ansBalance,
+            ansBalance: ReanalysisService.ansBalance(of: result),
             // Anchored to the night, as `ReanalysisService` does, so the
             // staleness term reads the same whenever the score is computed.
             referenceDate: session.endDate ?? session.startDate
@@ -439,9 +450,12 @@ final class SessionAcceptanceService {
         return applyHRVQuality(to: &session, result: result, baselineStats: baselineStats)
     }
 
+    /// Re-archive with a re-upload request (stamps `modifiedAt`), so a session
+    /// iCloud already holds is pushed again and other devices get the new
+    /// score, quality and snapshots.
     private func reArchive(_ updated: HRVSession) -> Bool {
         do {
-            try archive.archive(updated)
+            try archive.archive(updated, skipSameNightMerge: false, requestingReupload: true)
             return true
         } catch {
             debugLog("[SessionAcceptanceService] Failed to re-archive with updated score: \(error)")
@@ -449,30 +463,23 @@ final class SessionAcceptanceService {
         }
     }
 
-    /// Fetch and snapshot sleep + vitals for an already-archived session.
-    /// Unlike the acceptance path this doesn't race a timeout — the caller is
-    /// a background refresh, not a user waiting on a save.
+    /// Fetch and snapshot sleep + vitals for an already-archived session,
+    /// raced against the same 10-second timeout as acceptance
+    /// (`fetchSleepAndVitals`). A fetch that fails or times out keeps the
+    /// snapshot frozen before — HealthKit refuses reads while the phone is
+    /// locked — instead of re-scoring the night without its sleep.
     ///
     /// Strap-RHR override: see `snapshotHealthData`.
     private func refreshHealthSnapshots(
         on session: inout HRVSession, result: HRVAnalysisResult, sleepSchedule: SleepSchedule
     ) async {
         let sessionEnd = session.endDate ?? session.startDate
-        let (fetchStart, fetchEnd) = sleepFetchRange(
-            for: session, sessionEnd: sessionEnd, sleepSchedule: sleepSchedule
+        let (fetchStart, fetchEnd) = sleepFetchRange(for: session, sessionEnd: sessionEnd, sleepSchedule: sleepSchedule)
+        let (sleepData, vitals) = await fetchSleepAndVitals(
+            rrPoints: session.rrSeries?.points, fetchStart: fetchStart, fetchEnd: fetchEnd, sessionEnd: sessionEnd
         )
-        let sleepData: SleepData?
-        do {
-            sleepData = try await healthKit.fetchSleepData(
-                for: fetchStart, recordingEnd: fetchEnd, rrPoints: session.rrSeries?.points
-            )
-        } catch {
-            debugLog("[SessionAcceptanceService] Sleep fetch failed during score update: \(error)")
-            sleepData = nil
-        }
-        session.sleepSnapshot = sleepData
-        session.vitalsSnapshot = await healthKit.fetchRecoveryVitals(relativeTo: sessionEnd)
-            .withStrapNocturnalRHR(result.timeDomain.meanHR)
+        if let sleepData { session.sleepSnapshot = sleepData }
+        if let vitals { session.vitalsSnapshot = vitals.withStrapNocturnalRHR(result.timeDomain.meanHR) }
     }
 
     // MARK: - Reject Session
@@ -503,16 +510,13 @@ final class SessionAcceptanceService {
 
     // MARK: - Sleep Fetch Range Helper
 
-    /// Expand the sleep fetch range to capture all sleep from this night.
-    ///
-    /// Covers three scenarios:
-    /// 1. Linked sessions (pause/resume split-night): expand to include all segments.
-    /// 2. Unlinked split sleep (user went back to sleep tracked by Apple Watch only):
-    ///    extend the end to the morning cutoff so HealthKit returns later segments.
-    /// 3. Normal single-segment: end stays at session end (morning cutoff is usually later).
-    ///
-    /// This ensures the frozen sleepSnapshot captures the FULL night's sleep,
-    /// not just the recording window.
+    /// The sleep fetch range: the whole night the session started in, from
+    /// the schedule's overnight-window start to that night's morning cutoff,
+    /// whatever the session type or length. A split night (linked segments,
+    /// or sleep the watch alone tracked after the strap stopped) and a
+    /// single-segment night all fall inside it, so the frozen sleepSnapshot
+    /// captures the FULL night's sleep, not just the recording window. The
+    /// session end is not read: the range is the night, not the recording.
     func sleepFetchRange(
         for session: HRVSession,
         sessionEnd _: Date,

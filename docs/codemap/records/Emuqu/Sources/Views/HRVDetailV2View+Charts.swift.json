@@ -245,58 +245,23 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift::func HRVDetailV2View.beatScatter(_:)": "a2e58f1ed76a4a33",
-    "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift::func HRVDetailV2View.computePoincareStats(pairs:)": "0ef8fd14dd646d64",
+    "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift::func HRVDetailV2View.computePoincareStats(pairs:)": "4c0fca1a4d9cc1f2",
     "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift::func HRVDetailV2View.ellipseOutline(_:)": "019fd6040b2f057d"
    }
   },
   {
    "key": "func HRVDetailV2View.computePoincareStats(pairs:)",
-   "hash": "b1f878610186fa13",
-   "does": "Centre (mean x, mean y) and SD1/SD2 from rotatedSpread over the displayed pairs; nil for <4 pairs.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift::func HRVDetailV2View.rotatedSpread(xs:ys:cx:cy:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "fewer than 4 pairs",
-     "effect": "returns nil (no ellipse)"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Re-derives SD1/SD2 for the ellipse from ≤600 subsampled whole-recording pairs (artifact beats included, population SD) instead of using result.nonlinear.sd1/sd2 from NonlinearAnalyzer, so the ellipse drawn does not match the SD1/SD2 shown in the Nonlinear tab of the same screen.",
-     "evidence": [
-      "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift:193",
-      "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift:257",
-      "Emuqu/Sources/Analysis/NonlinearAnalysis.swift:111",
-      "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift:516"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift::func HRVDetailV2View.rotatedSpread(xs:ys:cx:cy:)": "15273a714451612b"
-   }
-  },
-  {
-   "key": "func HRVDetailV2View.rotatedSpread(xs:ys:cx:cy:)",
-   "hash": "8ca0f09abaf65862",
-   "does": "Rotates deviations by 45° (u along identity, v perpendicular) and returns population SDs (sd1 = √mean v², sd2 = √mean u²).",
+   "hash": "882d067c5be48964",
+   "does": "Ellipse parameters: SD1/SD2 are the analysis result's nonlinear.sd1/sd2 (the Nonlinear tab's figures), centre is the mean x/y of the plotted pairs; nil with fewer than 4 pairs or a non-positive SD1/SD2.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+2",
-     "cond": "for each point",
-     "effect": "accumulates u², v²"
+     "at": "+3",
+     "cond": "fewer than 4 pairs, or sd1/sd2 ≤ 0",
+     "effect": "returns nil (no ellipse)"
     }
    ],
    "flags": [],
@@ -730,8 +695,8 @@
   },
   {
    "key": "var HRVDetailV2View.engineRoomSection",
-   "hash": "ba6e94a45b84f203",
-   "does": "EngineRoomDisclosure 'Advanced metrics' with per-session memory key engineRoom.hrvDetail.<uuid>, containing the engine-room body in a tinted card.",
+   "hash": "343813dd1feb2a42",
+   "does": "EngineRoomDisclosure 'Advanced metrics' with the screen-wide memory key engineRoom.hrvDetail (one 30-day expanded memory for every night), containing the engine-room body in a tinted card.",
    "entry": "SwiftUI body evaluation of HRVDetailV2View (detailStack)",
    "calls": [
     "Emuqu/Sources/Views/EngineRoomDisclosure.swift::init EngineRoomDisclosure(title:memoryKey:content:)",
@@ -739,23 +704,21 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [
-    "ud:engineRoom.hrvDetail.<sessionUUID>"
+    "ud:engineRoom.hrvDetail"
    ],
    "writes": [
-    "ud:engineRoom.hrvDetail.<sessionUUID> (via EngineRoomDisclosure.toggle)"
+    "ud:engineRoom.hrvDetail (via EngineRoomDisclosure.toggle)"
    ],
    "branches": [],
    "flags": [
     {
      "kind": "fragile",
      "sev": "low",
-     "text": "Memory key includes the session UUID, so EngineRoomDisclosure's '30-day expanded memory' applies only to the one session opened, and every session viewed adds a never-removed UserDefaults key (same pattern in RecoveryScoreDetailView+Panels.swift:138).",
+     "text": "Keys written by earlier builds (engineRoom.hrvDetail.<sessionUUID>, one per session viewed) are never removed from UserDefaults.",
      "evidence": [
-      "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift:454",
-      "Emuqu/Sources/Views/EngineRoomDisclosure.swift:25",
-      "Emuqu/Sources/Views/EngineRoomDisclosure.swift:53"
+      "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift:440"
      ],
-     "found": "first read, upheld on second"
+     "found": "fix batch b21"
     }
    ],
    "deps": {
@@ -1231,29 +1194,20 @@
   },
   {
    "key": "func HRVDetailV2View.sectionHeading(_:)",
-   "hash": "795f2b37dba16d6b",
-   "does": "Section heading text with detail heading style.",
+   "hash": "5b72fc6e3693e28e",
+   "does": "Section heading text in .scaledFont(size: 13, weight: .semibold) with detailSectionHeadingStyle — the same font as RecoveryScoreDetailView.sectionHeading.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
     "Emuqu/Sources/Views/DetailPageRows.swift::func View.detailSectionHeadingStyle()"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same heading helper as RecoveryScoreDetailView.sectionHeading but with a fixed .system(size: dt13) font instead of .scaledFont(size: 13), so V2 detail page headings scale differently between the two screens.",
-     "evidence": [
-      "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift:665",
-      "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift:356"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/DetailPageRows.swift::func View.detailSectionHeadingStyle()": "ae482180fa05dd0a"
+    "Emuqu/Sources/Views/DetailPageRows.swift::func View.detailSectionHeadingStyle()": "ae482180fa05dd0a",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059"
    }
   }
  ],

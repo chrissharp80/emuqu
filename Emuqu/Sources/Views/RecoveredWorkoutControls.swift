@@ -7,11 +7,12 @@ import SwiftUI
 
 // (ShareURL wrapper removed — ShareLink works directly with URL.)
 
-/// Inline trim control for a crash-recovered workout whose duration is too
-/// long (the strap kept recording after the workout ended). Drag the end back
-/// to the real finish; Save re-finalizes the session at that point. Lives on
-/// the session detail so it's always reachable — independent of any launch
-/// prompt. Re-created (via `.id(session.endDate)`) after each trim so the
+/// Inline trim control for a workout whose duration is too long (typically
+/// a crash recovery where the strap kept recording after the workout ended).
+/// Drag the end back to the real finish; Save re-finalizes the session at
+/// that point, keeping its partial-data status (`carryForward`). Lives on
+/// the workout summary of any finished workout so it's always reachable —
+/// independent of any launch prompt. Re-created (via `.id(session.endDate)`) after each trim so the
 /// slider resets to the new, shorter length. `onTrim` is awaited, and Save
 /// comes back when it returns, so a trim that changed nothing (too few beats,
 /// no series) doesn't leave the button stuck on "Saving…".
@@ -28,12 +29,18 @@ struct RecoveredWorkoutTrimControl: View {
         _endMinutes = State(initialValue: max(1, (dur / 60).rounded()))
     }
 
-    private var maxMinutes: Double {
-        let dur = (session.endDate ?? session.startDate).timeIntervalSince(session.startDate)
-        return max(2, (dur / 60).rounded())
+    private var durationMinutes: Double {
+        (session.endDate ?? session.startDate).timeIntervalSince(session.startDate) / 60
     }
 
-    private var changed: Bool { endMinutes < maxMinutes - 0.5 }
+    /// The slider's top; at least 2 so the range is never empty.
+    private var maxMinutes: Double { max(2, durationMinutes.rounded()) }
+
+    /// Where the slider starts. Only an end before it is a trim: under ~1.5
+    /// min the slider can sit past it (range 1...2) without shortening anything.
+    private var untrimmedMinutes: Double { max(1, durationMinutes.rounded()) }
+
+    private var changed: Bool { endMinutes < untrimmedMinutes }
 
     var body: some View {
         recoveryCard(VStack(alignment: .leading, spacing: 8) {

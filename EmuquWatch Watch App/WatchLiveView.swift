@@ -112,14 +112,11 @@ struct ZoneOption: Hashable, Identifiable {
     }
 }
 
-let zoneOptions: [ZoneOption] = [
-    ZoneOption(value: 0, label: String(localized: "No target")),
-    ZoneOption(value: 1, label: String(localized: "Zone 1 — Recovery")),
-    ZoneOption(value: 2, label: String(localized: "Zone 2 — Aerobic")),
-    ZoneOption(value: 3, label: String(localized: "Zone 3 — Tempo")),
-    ZoneOption(value: 4, label: String(localized: "Zone 4 — Threshold")),
-    ZoneOption(value: 5, label: String(localized: "Zone 5 — VO₂ max"))
-]
+/// Plain numbered zones, as the iPhone's `HRZone` names them: zone 5 is not
+/// a "VO₂ max" zone without lab-tested calibration, so naming the zones
+/// Recovery … VO₂ max would claim more than the app knows.
+let zoneOptions: [ZoneOption] = [ZoneOption(value: 0, label: String(localized: "No target"))]
+    + (1 ... 5).map { ZoneOption(value: $0, label: String(localized: "Zone \($0)")) }
 
 // MARK: - Start screen
 
@@ -293,14 +290,8 @@ private struct StartScreen: View {
     /// button looks the same as before.
     private var voiceChatLabel: String {
         if sessionManager.voiceChatRequestInFlight { return String(localized: "Starting…") }
-        switch sessionManager.voiceChatStateLabel {
-        case "starting": return String(localized: "Connecting…")
-        case "listening": return String(localized: "Listening")
-        case "thinking": return String(localized: "Thinking…")
-        case "speaking": return String(localized: "Speaking")
-        case "alert": return String(localized: "Alert")
-        default: return String(localized: "Talk to AI")
-        }
+        return WatchSessionManager.voiceChatStateWord(sessionManager.voiceChatStateLabel)
+            ?? String(localized: "Talk to AI")
     }
 
     private var voiceChatIcon: String {
@@ -339,10 +330,10 @@ private struct StartScreen: View {
     }
 
     /// True iff the Watch has a Bluetooth heart-rate sensor connected
-    /// via `WatchStrapConnector`. Used to drive the Start button's
-    /// advisory tint without forcing every call site to `switch` on
-    /// the full enum (which carries associated values so `==` won't
-    /// compile).
+    /// via `WatchStrapConnector`, whatever its name. Used to drive the Start
+    /// button's advisory tint. A pattern match rather than `==`: the enum is
+    /// `Equatable`, but `.connected` carries the device name, and this asks
+    /// only whether some strap is connected.
     private var strapIsConnected: Bool {
         if case .connected = strap.connectionState { return true }
         return false
@@ -569,11 +560,12 @@ private struct LiveMetricsScreen: View {
         }
     }
 
-    /// Percent-of-max when the phone has sent a max HR, otherwise the session
-    /// peak — and nothing at all until one of the two exists.
+    /// Percent-of-max when the number shown is the phone's and the phone has
+    /// sent one (`displayedPercentOfMax`), otherwise the session peak — and
+    /// nothing at all until one of the two exists.
     @ViewBuilder
     private var heartRateSubLabel: some View {
-        if let pct = sessionManager.hrPercentOfMax {
+        if let pct = sessionManager.displayedPercentOfMax {
             Text(String(localized: "\(pct)% max"))
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(hrColor)
@@ -629,13 +621,18 @@ private struct LiveMetricsScreen: View {
         }
     }
 
+    /// The zone colour of the number shown, on the iPhone's zone buckets
+    /// (`WatchMessageDecoding.heartRateZone`): neutral below 50 % of max, and
+    /// neutral when the number is a direct-strap reading the phone's
+    /// percentage was not computed from.
     private var hrColor: Color {
-        guard let pct = sessionManager.hrPercentOfMax else { return .primary }
-        switch pct {
-        case ..<60: return .blue
-        case 60 ..< 70: return .green
-        case 70 ..< 80: return .yellow
-        case 80 ..< 90: return .orange
+        guard let pct = sessionManager.displayedPercentOfMax,
+              let zone = WatchMessageDecoding.heartRateZone(percentOfMax: pct) else { return .primary }
+        switch zone {
+        case 1: return .blue
+        case 2: return .green
+        case 3: return .yellow
+        case 4: return .orange
         default: return .red
         }
     }
@@ -700,18 +697,27 @@ private struct PauseStopScreen: View {
     /// Ends the Watch's own session on End when the iPhone is unreachable.
     let workoutManager: WatchWorkoutManager
 
+    /// The page is always present (see `WatchLiveView.TabPage`); with no
+    /// workout recording its buttons are disabled, so they cannot send a
+    /// pause or an End — which, queued while the iPhone is out of reach,
+    /// would hold back every later queued tap.
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             header
-            if sessionManager.isPaused { resumeButton } else { pauseButton }
-            Divider().padding(.vertical, 2)
-            endButton
+            controls.disabled(!sessionManager.isRecording)
             Text(sessionManager.statusLine)
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .lineLimit(3)
         }
         .padding(6)
+    }
+
+    @ViewBuilder
+    private var controls: some View {
+        if sessionManager.isPaused { resumeButton } else { pauseButton }
+        Divider().padding(.vertical, 2)
+        endButton
     }
 
     private var header: some View {
@@ -724,6 +730,7 @@ private struct PauseStopScreen: View {
     }
 
     private var headerTitle: String {
+        guard sessionManager.isRecording else { return String(localized: "Waiting for workout") }
         guard sessionManager.isPaused else { return String(localized: "Recording") }
         return sessionManager.autoPaused ? String(localized: "Auto-paused") : String(localized: "Paused")
     }
@@ -795,16 +802,19 @@ private struct CompletionScreen: View {
         .padding(8)
     }
 
+    /// Says the workout stopped, not that it was saved: the iPhone sends the
+    /// stop before it finalizes and archives the workout, so at this moment
+    /// the Watch cannot know the save succeeded.
     private var savedHeader: some View {
         VStack(spacing: 10) {
-            Image(systemName: "checkmark.seal.fill")
+            Image(systemName: "stop.circle.fill")
                 .watchScaledFont(size: 36, relativeTo: .title)
                 .foregroundStyle(.green)
 
-            Text(String(localized: "Workout saved"))
+            Text(String(localized: "Workout stopped"))
                 .font(.headline)
 
-            Text(String(localized: "Your workout is archived on the iPhone. Tap Save & Done to dismiss the summary on both devices."))
+            Text(String(localized: "Tap Save & Done to dismiss the summary on both devices."))
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)

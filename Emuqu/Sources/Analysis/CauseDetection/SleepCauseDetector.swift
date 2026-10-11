@@ -17,8 +17,7 @@ final class SleepCauseDetector: CauseDetectionStrategy {
         }
 
         causes.append(contentsOf: detectInsufficientSleep(sleep: sleep))
-        causes.append(contentsOf: detectFragmentedSleep(sleep: sleep))
-        causes.append(contentsOf: detectFrequentAwakenings(sleep: sleep, context: context))
+        causes.append(contentsOf: detectWakefulness(sleep: sleep, context: context))
         causes.append(contentsOf: detectLowDeepSleep(sleep: sleep, context: context))
         causes.append(contentsOf: detectSleepTrendIssues(in: context))
 
@@ -109,8 +108,16 @@ final class SleepCauseDetector: CauseDetectionStrategy {
         return causes
     }
 
+    /// One cause for the night's time awake: "Fragmented Sleep" already
+    /// quotes the awake minutes, so "Frequent Awakenings" only speaks when it
+    /// did not fire.
+    private func detectWakefulness(sleep: AnalysisSleepInput, context: CauseDetectionContext) -> [DetectedCause] {
+        let fragmented = detectFragmentedSleep(sleep: sleep)
+        return fragmented.isEmpty ? detectFrequentAwakenings(sleep: sleep, context: context) : fragmented
+    }
+
     private func detectFrequentAwakenings(sleep: AnalysisSleepInput, context: CauseDetectionContext) -> [DetectedCause] {
-        guard sleep.awakeMinutes > 30, context.rmssd < HRVThresholds.rmssdGood else {
+        guard sleep.awakeMinutes > HRVThresholds.sleepFragmentedAwakeMinutes, context.rmssd < HRVThresholds.rmssdGood else {
             return []
         }
 

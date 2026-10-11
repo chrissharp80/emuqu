@@ -48,8 +48,10 @@ enum WorkoutGeometry {
 
     /// Local pace (sec/km) at `closestIdx`: averaged over ±5 fixes around it
     /// so a single outlier doesn't skew the number. Nil when the span is too
-    /// short (under 5 m or 1 s) to carry a pace.
+    /// short (under 5 m or 1 s) to carry a pace, or `closestIdx` is not an
+    /// index of `track` (an empty track has none).
     static func localPace(in track: [CLLocation], at closestIdx: Int) -> Double? {
+        guard track.indices.contains(closestIdx) else { return nil }
         let lo = max(0, closestIdx - 5)
         let hi = min(track.count - 1, closestIdx + 5)
         let localStart = track[lo]
@@ -101,10 +103,13 @@ enum WorkoutGeometry {
         return "soft \(side)"
     }
 
-    /// The 5-zone % of max HR band model the zone-time breakdown and the
-    /// zone-drift rules use: zone N spans 50+10(N-1) % to 50+10N % of max HR
-    /// (breakpoints 60/70/80/90 %). Anything below 60 % reads as zone 1, so a
-    /// zone threshold and the zone shown to the user always agree.
+    /// The 5-zone % of max HR band model the zone thresholds use: zone N
+    /// spans 50+10(N-1) % to 50+10N % of max HR (breakpoints 60/70/80/90 %),
+    /// the same breakpoints as the zone-time breakdown
+    /// (`WorkoutZoneBreakdown`). Anything below 60 % reads as zone 1 here,
+    /// including under 50 %, so a threshold always has a zone to compare: a
+    /// very low heart rate is inside a "stay below zone N" band, not missing.
+    /// The breakdown, by contrast, leaves time under 50 % uncounted.
     static func hrMaxZone(hr: Int?, maxHR: Int) -> Int? {
         guard let hr, maxHR > 0 else { return nil }
         let pct = Double(hr) / Double(maxHR)
@@ -115,15 +120,16 @@ enum WorkoutGeometry {
         return 5
     }
 
-    /// Drop garbage fixes; require at least 25 m movement OR 30 s
-    /// since the last commit (mirror of BreadcrumbRecorder throttle
-    /// so the on-disk shape is consistent).
+    /// Drop garbage fixes (no accuracy, or worse than 100 m); require at
+    /// least 25 m movement OR 30 s since the last commit — the gates
+    /// `BreadcrumbRecorder` applies live, so the on-disk shape is consistent.
+    /// The first fix is the origin the caller already chose, kept as given.
     static func decimatedBreadcrumbFixes(track: [CLLocation], origin: BreadcrumbFix) -> [BreadcrumbFix] {
         guard let first = track.first else { return [] }
         var fixes: [BreadcrumbFix] = [origin]
         var lastCommitted = first
         for loc in track.dropFirst() {
-            guard loc.horizontalAccuracy > 0 else { continue }
+            guard loc.horizontalAccuracy > 0, loc.horizontalAccuracy <= 100 else { continue }
             let movedFar = loc.distance(from: lastCommitted) >= 25
             let elapsed = loc.timestamp.timeIntervalSince(lastCommitted.timestamp) >= 30
             guard movedFar || elapsed else { continue }
@@ -148,8 +154,10 @@ enum WorkoutGeometry {
 
     /// Walk backward through the track until we've covered ~100 m, reporting
     /// where that window starts and how much ground it actually covers. A
-    /// track shorter than that is all window, so it starts at the first fix.
+    /// track shorter than that is all window, so it starts at the first fix;
+    /// one with fewer than two fixes covers no ground.
     static func trailingGradeWindow(track: [CLLocation]) -> (startIdx: Int, meters: Double) {
+        guard track.count >= 2 else { return (0, 0) }
         var acc = 0.0
         var startIdx = 0
         for i in (1 ..< track.count).reversed() {

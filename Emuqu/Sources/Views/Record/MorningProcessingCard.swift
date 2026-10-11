@@ -242,14 +242,10 @@ struct MorningProcessingCard: View {
         switch status {
         case .saving, .fetchingDevice, .waitingForSleep: nil
         case let .analyzing(_, _, _, source), let .complete(_, _, _, source):
-            switch source {
-            case "composite": String(localized: "Streamed + Strap", bundle: LanguageManager.appBundle)
-            case "internal": String(localized: "Strap", bundle: LanguageManager.appBundle)
-            case "streaming": String(localized: "Streamed", bundle: LanguageManager.appBundle)
-            // An unrecognised raw tag has no translation; show no row
-            // rather than untranslated English.
-            default: nil
-            }
+            // The shared wording (`AppTheme.dataSourceLabel`), as the morning
+            // report's data-source card shows it. An unrecognised raw tag has
+            // no translation; show no row rather than untranslated English.
+            ["composite", "internal", "streaming"].contains(source) ? AppTheme.dataSourceLabel(source) : nil
         }
     }
 

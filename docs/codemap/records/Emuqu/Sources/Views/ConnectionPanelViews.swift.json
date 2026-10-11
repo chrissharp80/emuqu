@@ -42,20 +42,7 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Comment says the header and badge 'react through collector's throttled proxy', but ConnectionPanelHeader is handed polarManager and reads connectionState/feedStatus/currentHeartRate on it directly; no collector proxy is involved.",
-     "evidence": [
-      "Emuqu/Sources/Views/ConnectionPanelViews.swift:19",
-      "Emuqu/Sources/Views/ConnectionPanelViews.swift:20",
-      "Emuqu/Sources/Views/ConnectionPanelViews.swift:85",
-      "Emuqu/Sources/Views/ConnectionPanelViews.swift:86"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanel.connectingSection": "68cbb45f675d1164"
@@ -273,8 +260,8 @@
   },
   {
    "key": "var ConnectionPanelDisconnected.filteredKnownDevices",
-   "hash": "ddef149b984e0f1a",
-   "does": "Known devices list, H10s first for overnight/nap/workout session types, unsorted for quick/breathe or no selected type.",
+   "hash": "c1d634baa7cc201c",
+   "does": "Known devices, H10s first, for every session type except quick (stored order). The panel is only shown for overnight, nap and quick.",
    "entry": "SwiftUI view-body evaluation",
    "calls": [],
    "reads": [
@@ -284,36 +271,11 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "selectedSessionType is nil",
-     "effect": "returns devices unsorted"
-    },
-    {
-     "at": "+4",
-     "cond": "type overnight/nap/workout",
-     "effect": "sorted with H10 devices first"
-    },
-    {
-     "at": "+8",
-     "cond": "type quick/breathe",
-     "effect": "returns devices unsorted"
+     "cond": "selectedSessionType == .quick",
+     "effect": "returns devices unsorted; otherwise sorted with H10 first"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "ConnectionPanel is only built when selectedSessionType is non-nil and one of overnight/nap/quick, so the nil-type fallback, the .workout arm and the .breathe arm of this switch never run.",
-     "evidence": [
-      "Emuqu/Sources/Views/ConnectionPanelViews.swift:142",
-      "Emuqu/Sources/Views/ConnectionPanelViews.swift:144",
-      "Emuqu/Sources/Views/ConnectionPanelViews.swift:148",
-      "Emuqu/Sources/Views/RecordView+Sections.swift:93",
-      "Emuqu/Sources/Views/RecordView+Sections.swift:95",
-      "Emuqu/Sources/Views/RecordView+Sections.swift:97"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -410,7 +372,7 @@
     "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.connect(deviceId:)": "be8df2807ce1e37d",
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.removeKnownDevice(id:)": "ecd617dd9604474e",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelDisconnected.filteredKnownDevices": "bc6a25e44c10dab4",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelDisconnected.filteredKnownDevices": "831c7a75c9c07cde",
     "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanelDisconnected.scanButton": "b57ce03f65e31a3a",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
    }

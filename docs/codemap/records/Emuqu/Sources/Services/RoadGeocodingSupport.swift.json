@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Services/RoadGeocodingSupport.swift",
  "hash": "a09c1f37a660b7aa",
- "role": "Free helpers: runWithTimeout (continuation race with FirstResultGate) used across the app, and the great-circle bearingDegrees.",
+ "role": "Free helpers: runWithTimeout (work task raced against a cancellable timer through FirstResultGate, caller cancellation forwarded to the work) used across the app, and the one great-circle bearingDegrees.",
  "types": [
   "FirstResultGate: class — one-shot continuation resumer"
  ],
@@ -11,36 +11,93 @@
  "units": [
   {
    "key": "func runWithTimeout(seconds:operation:)",
-   "hash": "84849d9b294b9adc",
-   "does": "Races an async throwing operation against a timer via a checked continuation and FirstResultGate: whichever finishes first resumes; errors become nil; on timeout resumes nil and cancels the work task.",
+   "hash": "f0e5b36ebca10315",
+   "does": "Starts the operation in a work task (errors become nil via resultOrNil) and returns firstOf(work, orNilAfter: seconds): its result, or nil when the timer fires first (then the work is cancelled). Cancelling the caller cancels the work task.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func resultOrNil(_:)",
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func firstOf(_:orNilAfter:)",
+    "ext:withTaskCancellationHandler"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "caller cancelled",
+     "effect": "onCancel: cancel the work task"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func firstOf(_:orNilAfter:)": "c98fec200a33a01f",
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func resultOrNil(_:)": "f3401e4487e3b53d"
+   }
+  },
+  {
+   "key": "func firstOf(_:orNilAfter:)",
+   "hash": "38544adef9ff301d",
+   "does": "Suspends on a checked continuation behind a FirstResultGate: a timeoutTimer resolves it with nil after the timeout, and a task awaiting the work resolves it with the work's value and then cancels the timer. Whichever is second is dropped.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/RoadGeocodingSupport.swift::init FirstResultGate(_:)",
-    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func FirstResultGate.resume(_:)",
-    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func resultOrNil(_:)",
-    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)",
-    "closure:operation — caller-supplied work (geocoder, MKLocalSearch, CloudKit, HealthKit queries)"
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func timeoutTimer(after:gate:work:)",
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func FirstResultGate.resume(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "The timer task is never cancelled when the work finishes first, so every call leaves a task sleeping for the full timeout; the work task is unstructured and does not inherit the caller's cancellation (reset() cancelling a lookup does not stop an in-progress search).",
-     "evidence": [
-      "Emuqu/Sources/Services/RoadGeocodingSupport.swift:32",
-      "Emuqu/Sources/Services/RoadGeocodingSupport.swift:31"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func FirstResultGate.resume(_:)": "bca9802160dc3850",
-    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func resultOrNil(_:)": "f3401e4487e3b53d",
-    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::init FirstResultGate(_:)": "1da9d4e53b559769",
-    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851"
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func timeoutTimer(after:gate:work:)": "b6d6d2817113a7f8",
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::init FirstResultGate(_:)": "1da9d4e53b559769"
+   }
+  },
+  {
+   "key": "func timeoutTimer(after:gate:work:)",
+   "hash": "43f35e74e15249d1",
+   "does": "Returns a task that sleeps the timeout and then resolves the gate with nil and cancels the work; does nothing when it is cancelled before the timeout (the work finished).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func sleptUninterrupted(_:)",
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func FirstResultGate.resume(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "sleep cancelled",
+     "effect": "return without resolving"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func FirstResultGate.resume(_:)": "bca9802160dc3850",
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func sleptUninterrupted(_:)": "f2640ea451a52c6c"
+   }
+  },
+  {
+   "key": "func sleptUninterrupted(_:)",
+   "hash": "72b85fdb10986e54",
+   "does": "Sleeps the given seconds; true when the sleep completed, false when it was cancelled first. Logs nothing (a cancelled timer is the normal case).",
+   "entry": null,
+   "calls": [
+    "ext:Task.sleep(nanoseconds:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "sleep throws (cancelled)",
+     "effect": "return false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
    }
   },
   {
@@ -114,13 +171,10 @@
     {
      "kind": "duplicate",
      "sev": "low",
-     "text": "The same great-circle initial-bearing formula is written out five times: the global bearingDegrees, RoadAwarenessEngine.bearingDegrees (Point), SavedRouteStepBuilder.bearing, GetMeBackView.bearing and WorkoutGeometry.bearing (Route.Point).",
+     "text": "The same great-circle initial-bearing formula is still written out in GetMeBackView.bearing and WorkoutGeometry.bearing (Route.Point); RoadAwarenessEngine.bearingDegrees and SavedRouteStepBuilder.bearing now delegate here (the remaining two are outside this batch, handed off).",
      "evidence": [
-      "Emuqu/Sources/Services/RoadGeocodingSupport.swift:84",
-      "Emuqu/Sources/Services/RoadAwarenessEngine.swift:709",
-      "Emuqu/Sources/Services/SavedRouteStepBuilder.swift:365",
       "Emuqu/Sources/Views/GetMeBackView.swift:688",
-      "Emuqu/Sources/Collection/WorkoutGeometry.swift:74"
+      "Emuqu/Sources/Collection/WorkoutGeometry.swift:76"
      ],
      "found": "first read, upheld on second"
     }

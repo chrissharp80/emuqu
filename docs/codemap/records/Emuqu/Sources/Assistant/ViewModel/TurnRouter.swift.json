@@ -203,6 +203,7 @@
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.messageRequiresTools(_:)": "f6172fdb1b989cc6",
     "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.firstConsentedCloud(inputs:)": "2da15195f6be226a",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc"
    }
@@ -290,8 +291,8 @@
   },
   {
    "key": "var PickedModelFailure.errorDescription",
-   "hash": "75bc76a28dfed6ed",
-   "does": "Localized message naming the failed provider and reason, stating Flo did not hand the question to another model.",
+   "hash": "39cdaed75323999b",
+   "does": "Localized message naming the failed provider and the reason (the underlying AIProviderError's localizedDescription, which for a LocalizedError is its errorDescription), stating Flo did not hand the question to another model.",
    "entry": "LocalizedError witness read when the error is surfaced (AssistantViewModel+Routing.swift:672)",
    "calls": [
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.errorDescription",
@@ -300,26 +301,8 @@
    ],
    "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "underlying.errorDescription ?? underlying.localizedDescription",
-     "effect": "AIProviderError.errorDescription returns a non-nil String for every case (AIProvider.swift:408-422), so the localizedDescription fallback is never used"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "The '?? underlying.localizedDescription' fallback can never fire: AIProviderError.errorDescription is a total switch returning a String for every case.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift:342",
-      "Emuqu/Sources/Assistant/Providers/AIProvider.swift:408",
-      "Emuqu/Sources/Assistant/Providers/AIProvider.swift:410"
-     ],
-     "found": "second read"
-    }
-   ],
+   "branches": [],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.errorDescription": "70711620b8a8d189",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.displayName": "01f7b50221806224",

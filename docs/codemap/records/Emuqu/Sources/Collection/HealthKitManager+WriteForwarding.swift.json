@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Collection/HealthKitManager+WriteForwarding.swift",
  "hash": "be2dde9fbe4c9113",
- "role": "HealthKitManager extension forwarding exports, sleep trend, sleep observer start/stop and categoryResult to HealthWriteAndObserve.",
+ "role": "HealthKitManager extension forwarding exportSessionMetrics (the HealthKitServiceProtocol witness), deleteAllAppWrittenSleepSamples, sleep observer start/stop and categoryResult to HealthWriteAndObserve. (Forwarders with no caller — exportSDNN, exportSleepToHealthKit, fetchSleepTrend, analyzeSleepTrend — were removed.)",
  "types": [
   "HealthKitManager: extension — write/observe forwarders"
  ],
@@ -9,37 +9,6 @@
  "toplevel": "",
  "flags": [],
  "units": [
-  {
-   "key": "func HealthKitManager.exportSDNN(value:at:sessionId:)",
-   "hash": "07d14425e140d041",
-   "does": "Forwards a single SDNN export to HealthWriteAndObserve.exportSDNN.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.writes",
-    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.exportSDNN(value:at:sessionId:)"
-   ],
-   "reads": [],
-   "writes": [
-    "hk:heartRateVariabilitySDNN"
-   ],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No caller of HealthKitManager.exportSDNN: the only call (HealthKitManager+SleepTrends.swift:337) is HealthWriteAndObserve calling its own exportSDNN.",
-     "evidence": [
-      "Emuqu/Sources/Collection/HealthKitManager+WriteForwarding.swift:8",
-      "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift:337"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.exportSDNN(value:at:sessionId:)": "3611843a53f86ee7",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.writes": "1e0830bcc1eaab16"
-   }
-  },
   {
    "key": "func HealthKitManager.exportSessionMetrics(from:)",
    "hash": "223f8bf5ae18af5d",
@@ -62,41 +31,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSessionMetrics(from:)": "97dec8e587ba4696",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.writes": "1e0830bcc1eaab16"
-   }
-  },
-  {
-   "key": "func HealthKitManager.exportSleepToHealthKit(sleepData:sessionId:)",
-   "hash": "7b83bcfe9ff16d0c",
-   "does": "Forwards exportSleepToHealthKit(sleepData:sessionId:) to HealthWriteAndObserve; protocol witness.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.writes",
-    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSleepToHealthKit(sleepData:sessionId:)"
-   ],
-   "reads": [
-    "hk:sleepAnalysis"
-   ],
-   "writes": [
-    "hk:sleepAnalysis"
-   ],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No caller of the manager-level exportSleepToHealthKit; the sole real export path is HealthWriteAndObserve.exportSleepIfSoleSource calling its own method (SleepTrends.swift:423, and its doc at :403 says it is the only caller). Kept only as a HealthKitServiceProtocol witness.",
-     "evidence": [
-      "Emuqu/Sources/Collection/HealthKitManager+WriteForwarding.swift:16",
-      "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift:423",
-      "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift:91"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSleepToHealthKit(sleepData:sessionId:)": "375d75f53a50f643",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSessionMetrics(from:)": "0b12486677b9e72c",
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.writes": "1e0830bcc1eaab16"
    }
   },
@@ -123,66 +58,6 @@
    }
   },
   {
-   "key": "func HealthKitManager.fetchSleepTrend(days:relativeTo:)",
-   "hash": "f49475bf943bee14",
-   "does": "Forwards fetchSleepTrend(days:relativeTo:) to HealthWriteAndObserve; reached only through the protocol bridge fetchSleepTrend(days:) (HealthKitServiceProtocol.swift:182), which nothing calls.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.writes",
-    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.fetchSleepTrend(days:relativeTo:)"
-   ],
-   "reads": [
-    "hk:sleepAnalysis"
-   ],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "fetchSleepTrend has no caller in app or tests besides the protocol bridge that itself has no caller (grep 'fetchSleepTrend(').",
-     "evidence": [
-      "Emuqu/Sources/Collection/HealthKitManager+WriteForwarding.swift:24",
-      "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift:182"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.fetchSleepTrend(days:relativeTo:)": "d677e50eff83b7ef",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.writes": "1e0830bcc1eaab16"
-   }
-  },
-  {
-   "key": "func HealthKitManager.analyzeSleepTrend(from:)",
-   "hash": "729084bfe3dba065",
-   "does": "Forwards analyzeSleepTrend(from:) to HealthWriteAndObserve; protocol witness.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.writes",
-    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.analyzeSleepTrend(from:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No caller of analyzeSleepTrend anywhere (only the protocol requirement HealthKitServiceProtocol.swift:114 and the mock).",
-     "evidence": [
-      "Emuqu/Sources/Collection/HealthKitManager+WriteForwarding.swift:28",
-      "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift:114"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.analyzeSleepTrend(from:)": "4221bdbeee123f74",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.writes": "1e0830bcc1eaab16"
-   }
-  },
-  {
    "key": "func HealthKitManager.startObservingSleepData()",
    "hash": "937b71116094f549",
    "does": "Forwards startObservingSleepData() to HealthWriteAndObserve; called by AppLaunchTasks:724,738 and RRCollector+OvernightStreaming:135.",
@@ -198,7 +73,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.startObservingSleepData()": "2541e915583705b5",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.startObservingSleepData()": "8dc94919a24b42fb",
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.writes": "1e0830bcc1eaab16"
    }
   },

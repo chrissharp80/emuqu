@@ -10,23 +10,10 @@
   "ud:FlowRecovery.cloudkit.hkSanitizeReupload.v4.remaining",
   "ud:FlowRecovery.cloudkit.hkSanitizeReupload.v4.initialized",
   "ud:FlowRecovery.cloudkit.hkSanitizeReupload.v2/v3.remaining/initialized (legacyKeys, removed)",
-  "ud:FlowRecovery.cloudkit.hkSanitizeReupload.v1.done (read only)",
   "mem:CloudHealthScrubCoordinator.batchSize=10"
  ],
  "toplevel": "Static key constants and batchSize; struct holds `let manager: CloudKitSyncManager`, rebuilt per access by CloudKitSyncManager.healthScrub.",
- "flags": [
-  {
-   "kind": "privacy",
-   "sev": "med",
-   "text": "The sync-off rewrite skips any record whose isDeleted is not 0. Restored-from-Trash sessions carry isDeleted = -1 (TrashRestoreCoordinator.restoredMarker, preserved by overwrite), are live sessions, and are dropped from the list as .finished without their payload being stripped, so their Apple Health readings stay in iCloud.",
-   "evidence": [
-    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift:147",
-    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift:20",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift:130"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "var CloudHealthScrubCoordinator.defaults",
@@ -67,7 +54,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.initialize()": "26d4baee88e7e324",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.initialize()": "458f22e712f92aa6",
     "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::var CloudHealthScrubCoordinator.defaults": "edbc6c74356dd3fa"
    }
   },
@@ -91,57 +78,25 @@
   },
   {
    "key": "func CloudHealthScrubCoordinator.initialize()",
-   "hash": "a8aa1601f8d2812a",
-   "does": "If the legacy v1.done key is set, marks every archive entry uploaded and saves sync state (v1 damage repair); then snapshots uploadedSessionIds into the v4 remaining list, sets initialized, removes legacy keys and logs the count.",
+   "hash": "d46abf7e69ce76a6",
+   "does": "Snapshots uploadedSessionIds into the v4 remaining list, sets initialized, removes legacy keys and logs the count.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::var CloudHealthScrubCoordinator.defaults",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
-    "ud:FlowRecovery.cloudkit.hkSanitizeReupload.v1.done",
-    "mem:SessionArchive.index",
     "mem:CloudKitSyncState.uploadedSessionIds"
    ],
    "writes": [
-    "mem:CloudKitSyncState.uploadedSessionIds",
-    "file:<archiveDir>/sync_state.json",
     "ud:FlowRecovery.cloudkit.hkSanitizeReupload.v4.remaining",
     "ud:FlowRecovery.cloudkit.hkSanitizeReupload.v4.initialized",
     "ud:legacy v2/v3 scrub keys"
    ],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "v1.done key true",
-     "effect": "marks all archive entries uploaded and persists sync state; else skips the repair"
-    },
-    {
-     "at": "+2",
-     "cond": "for each archive entry",
-     "effect": "markUploaded(entry.sessionId)"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "hack",
-     "sev": "low",
-     "text": "One-device repair keyed on a UserDefaults flag no build writes any more marks the entire archive uploaded without checking iCloud.",
-     "evidence": [
-      "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift:69",
-      "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift:75",
-      "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift:76"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "branches": [],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
     "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::var CloudHealthScrubCoordinator.defaults": "edbc6c74356dd3fa",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)": "a31119e0ec464463",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()": "cc75df03f19d3ff4",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
@@ -192,15 +147,15 @@
    "deps": {
     "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.remainingIds()": "67f1ebf1b181becf",
     "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::var CloudHealthScrubCoordinator.defaults": "edbc6c74356dd3fa",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markRemoved(_:)": "b25b3f650720f2b1",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markRemoved(_:)": "ebf11c4da93767ab",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()": "cc75df03f19d3ff4",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
    "key": "func CloudHealthScrubCoordinator.scrubInPlace()",
-   "hash": "39e9b3cddeb55efe",
-   "does": "Sync-off path: scrubs up to 10 ids from the head of the list, removing each finished one; stops at the first retryLater; persists the remaining list and logs the handled count.",
+   "hash": "776f0cd0948ecc89",
+   "does": "Sync-off path: scrubs up to 10 ids from the head of the list, removing each finished one; at the first retryLater moves that id to the end of the list and stops, so a record that keeps failing does not block the rest; persists the remaining list and logs the handled count.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.remainingIds()",
@@ -217,33 +172,20 @@
     {
      "at": "+3",
      "cond": "handled < 10 and list has a first id",
-     "effect": "scrub that id"
+     "effect": "take it off the head and scrub it"
     },
     {
-     "at": "+4",
+     "at": "+5",
      "cond": "scrub returned retryLater",
-     "effect": "breaks; id stays at head for next launch"
+     "effect": "append the id at the end, break"
     },
     {
-     "at": "+9",
+     "at": "+14",
      "cond": "handled > 0",
      "effect": "logs; else silent"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "The loop stops at the first .retryLater and the id stays at the head of the list; scrub() returns .retryLater for every error that is not unknownItem/zoneNotFound/userDeletedZone (e.g. a persistent per-record save failure), so one permanently failing record blocks every later id from being scrubbed on all future passes.",
-     "evidence": [
-      "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift:116",
-      "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift:117",
-      "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift:137",
-      "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift:139"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.remainingIds()": "67f1ebf1b181becf",
     "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.scrub(_:)": "38531cbd048c35cc",
@@ -287,29 +229,28 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "d095a70f8795f9e9",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "7c257547ad1cd2d2",
     "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.meansNoRecord(_:)": "9292d3dda1d4faf7",
-    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.rewrite(_:sessionId:)": "a065db8c9b2b59fc",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.rewrite(_:sessionId:)": "79179e8c3d2e913b",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB": "0472c6d550eaafca",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
    "key": "func CloudHealthScrubCoordinator.rewrite(_:sessionId:)",
-   "hash": "267b8a4661e7f58b",
-   "does": "If the record is live (isDeleted 0) and its payload decodes here: deletes the record when the session is HealthKit-sourced (and marks it local-only, persisting local-only + sync state); otherwise re-encodes the session through sessionAsset (which strips HealthKit readings) and saves the record, keeping its modifiedAt.",
+   "hash": "04e631f78513f0e1",
+   "does": "A tombstone (isDeleted == 1) has any payload removed (clearTombstonePayload). Otherwise — live or restored from Trash (-1) — when its payload decodes here: deletes the record when the session is HealthKit-sourced (and marks it local-only, persisting local-only + sync state); else rewrites it as this build's builder would (saveStripped: stripped payload, legacy plaintext fields removed, isDeleted and modifiedAt kept).",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.clearTombstonePayload(_:)",
     "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.storedSession(in:)",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markLocalOnly(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveLocalOnlyAsync()",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.sessionAsset(for:)",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.cleanupTempAsset(for:)",
-    "ext:CKDatabase.deleteRecord",
-    "ext:CKDatabase.save"
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.saveStripped(_:over:)",
+    "ext:CKDatabase.deleteRecord"
    ],
    "reads": [
     "ck:HRVSession/HRVSessions"
@@ -323,67 +264,83 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "(isDeleted as? Int64 ?? 0) == 0 — nil counts as 0",
-     "effect": "false (1 = tombstone, or -1 = restored marker) → .finished with no rewrite"
+     "cond": "isDeleted == 1 (tombstone)",
+     "effect": "clearTombstonePayload"
     },
     {
-     "at": "+1",
-     "cond": "storedSession decodes",
-     "effect": "nil (no asset or unreadable) → .finished, id leaves the list"
+     "at": "+2",
+     "cond": "storedSession nil (no asset or unreadable here)",
+     "effect": ".finished, id leaves the list"
     },
     {
      "at": "+3",
-     "cond": "session is HealthKit-sourced (breathe or HK device)",
-     "effect": "deletes the record and marks local-only; else rewrites the payload"
+     "cond": "session is HealthKit-sourced",
+     "effect": "deletes the record and marks local-only; else saveStripped"
     }
    ],
-   "flags": [
-    {
-     "kind": "privacy",
-     "sev": "med",
-     "text": "Guard `== 0` treats restoredMarker (-1) records — live sessions restored from Trash — as deleted and leaves their unstripped payload in iCloud.",
-     "evidence": [
-      "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift:147",
-      "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift:20"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "privacy",
-     "sev": "low",
-     "text": "Saves the fetched whole record with only sessionData replaced; any plaintext fields older builds wrote (overwrite() comment says they did; buildSessionRecord notes recoveryScore/meanRMSSD/sessionType are no longer written) are left on the record, whereas the sync-on overwrite path clears them.",
-     "evidence": [
-      "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift:156",
-      "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift:163",
-      "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift:112",
-      "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift:124",
-      "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift:407"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "privacy",
-     "sev": "low",
-     "text": "Records with isDeleted == 1 are returned .finished untouched; tombstones written by older builds kept their encrypted sessionData (the comment at flagRecordDeleted says that is why it is now cleared), and flagRecordDeleted also skips already-flagged tombstones, so no path removes those payloads (with their HealthKit readings) from iCloud.",
-     "evidence": [
-      "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift:147",
-      "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift:179",
-      "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift:181",
-      "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift:184"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.clearTombstonePayload(_:)": "61bd68e1e3042d60",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.saveStripped(_:over:)": "72a30e1ce7cef711",
     "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.storedSession(in:)": "8e74bdf40fb35777",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.cleanupTempAsset(for:)": "7505139a09ad37bd",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.sessionAsset(for:)": "77a238b106a51a26",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB": "0472c6d550eaafca",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markLocalOnly(_:)": "fa4a1951a4655af9",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markLocalOnly(_:)": "059454eaf3747ade",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveLocalOnlyAsync()": "79852356d3ddbfe8",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()": "cc75df03f19d3ff4",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "3e2fd096f03ca384"
    }
+  },
+  {
+   "key": "func CloudHealthScrubCoordinator.saveStripped(_:over:)",
+   "hash": "6bb9753d5f86a592",
+   "does": "Builds the record this build would upload (CloudKitSyncManager.buildSessionRecord off-main: stripped, encrypted payload asset), then on the fetched record clears every field the rebuilt one lacks and copies the rebuilt fields, except isDeleted and modifiedAt which keep their values; saves it (a serverRecordChanged throws and the id stays listed). Removes the temp asset.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.buildSessionRecord(from:zoneID:recordTypeName:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.cleanupTempAsset(for:)",
+    "ext:CKDatabase.save"
+   ],
+   "reads": [],
+   "writes": [
+    "ck:HRVSession/HRVSessions",
+    "file:<tmp>/ck_<sessionId>_<8hex>.gz"
+   ],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "field on the record that the rebuilt record lacks (legacy plaintext)",
+     "effect": "cleared"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.buildSessionRecord(from:zoneID:recordTypeName:)": "3e719c97348423df",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.cleanupTempAsset(for:)": "7505139a09ad37bd"
+   }
+  },
+  {
+   "key": "func CloudHealthScrubCoordinator.clearTombstonePayload(_:)",
+   "hash": "19bc296c8bbe17f3",
+   "does": "When a tombstone record still holds sessionData, removes it and saves the record; .finished either way (a save error throws to scrub, which retries later).",
+   "entry": null,
+   "calls": [
+    "ext:CKDatabase.save"
+   ],
+   "reads": [
+    "ck:HRVSession/HRVSessions"
+   ],
+   "writes": [
+    "ck:HRVSession.sessionData"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no sessionData",
+     "effect": ".finished without a write"
+    }
+   ],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "func CloudHealthScrubCoordinator.storedSession(in:)",

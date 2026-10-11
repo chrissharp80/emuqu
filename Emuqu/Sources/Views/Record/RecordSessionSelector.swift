@@ -3,11 +3,9 @@ import SwiftUI
 // MARK: - Session Type Picker Section
 
 /// The session type picker card shown before a recording session begins.
-/// Lets the user choose between Extended (overnight) and Quick reading.
+/// Lets the user choose between Daily (quick), Extended (overnight) and Nap.
 struct RecordSessionSelector: View {
-    @Environment(\.dependencies) var dependencies
     @Binding var selectedSessionType: SessionType?
-    private var settingsManager: SettingsManager { dependencies.app.settingsManager }
     var body: some View {
         v2Body
     }
@@ -38,8 +36,8 @@ struct RecordSessionSelector: View {
     private var dailyModeButton: some View {
         v2ModeButton(
             type: .quick,
-            label: String(localized: "Daily", bundle: LanguageManager.appBundle),
-            glyph: "waveform.circle",
+            label: Self.modeLabel(.quick),
+            glyph: Self.modeGlyph(.quick),
             subheading: String(localized: "5-min spot check — Polar strap", bundle: LanguageManager.appBundle),
             detail: String(localized: "Sit quietly, breathe normally. Single readiness score.", bundle: LanguageManager.appBundle)
         )
@@ -48,8 +46,8 @@ struct RecordSessionSelector: View {
     private var extendedModeButton: some View {
         v2ModeButton(
             type: .overnight,
-            label: String(localized: "Extended", bundle: LanguageManager.appBundle),
-            glyph: "moon.stars",
+            label: Self.modeLabel(.overnight),
+            glyph: Self.modeGlyph(.overnight),
             subheading: String(localized: "Overnight or multi-hour", bundle: LanguageManager.appBundle),
             detail: String(localized: "Start before bed. Full night of HRV + sleep.", bundle: LanguageManager.appBundle)
         )
@@ -58,11 +56,32 @@ struct RecordSessionSelector: View {
     private var napModeButton: some View {
         v2ModeButton(
             type: .nap,
-            label: String(localized: "Nap", bundle: LanguageManager.appBundle),
-            glyph: "bed.double",
+            label: Self.modeLabel(.nap),
+            glyph: Self.modeGlyph(.nap),
             subheading: String(localized: "Short rest, full analysis", bundle: LanguageManager.appBundle),
             detail: String(localized: "Analyzed in full, like an overnight.", bundle: LanguageManager.appBundle)
         )
+    }
+
+    /// The name a mode button gives its session type, shared with the
+    /// selected-session header so the two never name the choice differently.
+    static func modeLabel(_ type: SessionType) -> String {
+        switch type {
+        case .quick: String(localized: "Daily", bundle: LanguageManager.appBundle)
+        case .overnight: String(localized: "Extended", bundle: LanguageManager.appBundle)
+        case .nap: String(localized: "Nap", bundle: LanguageManager.appBundle)
+        case .breathe, .workout: type.displayName
+        }
+    }
+
+    /// The glyph a mode button shows, shared with the selected-session header.
+    static func modeGlyph(_ type: SessionType) -> String {
+        switch type {
+        case .quick: "waveform.circle"
+        case .overnight: "moon.stars"
+        case .nap: "bed.double"
+        case .breathe, .workout: type.icon
+        }
     }
 
     private func v2ModeButton(type: SessionType, label: String, glyph: String, subheading: String, detail: String) -> some View {
@@ -150,9 +169,10 @@ struct RecordSelectedSessionHeader: View {
     @ViewBuilder
     private var selectedLabel: some View {
         if let sessionType = selectedSessionType {
-            Image(systemName: sessionType.icon)
+            // The picker's own name and glyph for the mode the user tapped.
+            Image(systemName: RecordSessionSelector.modeGlyph(sessionType))
                 .foregroundStyle(AppTheme.primaryGradient)
-            Text(sessionType == .overnight ? String(localized: "Extended", bundle: LanguageManager.appBundle) : sessionType.displayName)
+            Text(RecordSessionSelector.modeLabel(sessionType))
                 .font(.subheadline.weight(.medium))
         }
     }

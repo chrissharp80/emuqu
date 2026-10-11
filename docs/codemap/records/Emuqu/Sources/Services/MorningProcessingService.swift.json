@@ -59,15 +59,16 @@
   },
   {
    "key": "func MorningProcessingService.runAnalysisPhase(series:analyzingSession:effectiveStartDate:totalBeats:isBackgroundRefinement:settings:trainingContext:prefetchedSleepData:statusCallback:)",
-   "hash": "8fea38aebd93e38b",
-   "does": "Steps 5-7: runs off-actor artifact detection + verification, the sleep-boundary poll (timedSleepPoll), off-actor window selection ranked against the prior-nights baseline, then timed HRV analysis; returns all five results as AnalysisPhaseResult.",
+   "hash": "4393560ff65eb3ab",
+   "does": "Steps 5-7: runs off-actor artifact detection + verification, the sleep-boundary poll (timedSleepPoll), off-actor window selection ranked against the prior-nights baseline (which also returns the organized recovery zones), then timed HRV analysis with those zones put on its result (withOrganizedZones); returns all five results as AnalysisPhaseResult.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift::func MorningProcessingService.detectArtifacts(in:)",
     "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.timedSleepPoll(series:effectiveStartDate:totalBeats:isBackgroundRefinement:sleepSchedule:prefetchedSleepData:statusCallback:)",
     "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift::func MorningProcessingService.selectWindow(in:flags:sleepResult:baselineStats:)",
     "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.windowBaseline(for:settings:)",
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.timedAnalysis(analyzingSession:series:flags:windowResult:trainingContext:ansConfig:)"
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.timedAnalysis(analyzingSession:series:flags:windowResult:trainingContext:ansConfig:)",
+    "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift::func MorningProcessingService.withOrganizedZones(_:on:)"
    ],
    "reads": [],
    "writes": [],
@@ -75,7 +76,8 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift::func MorningProcessingService.detectArtifacts(in:)": "cc183685b38f7a8a",
-    "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift::func MorningProcessingService.selectWindow(in:flags:sleepResult:baselineStats:)": "afb8f0ad8b1bcf5c",
+    "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift::func MorningProcessingService.selectWindow(in:flags:sleepResult:baselineStats:)": "d761894cef8799f4",
+    "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift::func MorningProcessingService.withOrganizedZones(_:on:)": "3796c95a135606fa",
     "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.timedAnalysis(analyzingSession:series:flags:windowResult:trainingContext:ansConfig:)": "15618bb0312f3606",
     "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.timedSleepPoll(series:effectiveStartDate:totalBeats:isBackgroundRefinement:sleepSchedule:prefetchedSleepData:statusCallback:)": "c45ab8e86bbbfcd6",
     "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.windowBaseline(for:settings:)": "687897181b41e477"
@@ -130,9 +132,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.run(_:)": "a8100fed5d739c51",
-    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.end()": "4b7b063f686c4762",
-    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::init BackgroundTaskAssertion(name:onExpire:)": "de35035394cc6205"
+    "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.run(_:)": "0724ad4df1fcd343",
+    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.end()": "0399440d47e4b6e4",
+    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::init BackgroundTaskAssertion(name:onExpire:)": "4a48b31466e377a4"
    }
   },
   {
@@ -149,13 +151,12 @@
   },
   {
    "key": "func MorningProcessingService.run(_:)",
-   "hash": "b82fa42abc6c3414",
-   "does": "Steps 1-7: awaits the off-thread raw RR backup, builds the merged same-night series, calls the no-op gap log, builds the analyzing session, runs the analysis phase, and assembles the result.",
+   "hash": "c6cb241bbfa81694",
+   "does": "Steps 1-7: awaits the off-thread raw RR backup, builds the merged same-night series, builds the analyzing session, runs the analysis phase, and assembles the result.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.backupRawDataAsync(points:sessionId:deviceId:dataSource:)",
     "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.buildMergedSeries(points:baseSession:sleepSchedule:sessionMergeMode:mergeGapSeconds:)",
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.logGapDetection(series:)",
     "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.makeAnalyzingSession(request:merged:)",
     "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.analysisPhase(request:merged:analyzingSession:)",
     "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.assembleResult(request:merged:analyzingSession:phase:)"
@@ -167,9 +168,8 @@
    "deps": {
     "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.backupRawDataAsync(points:sessionId:deviceId:dataSource:)": "5590d8d362331f3c",
     "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.buildMergedSeries(points:baseSession:sleepSchedule:sessionMergeMode:mergeGapSeconds:)": "da64a32a624136e7",
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.logGapDetection(series:)": "575c2621786b54af",
     "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.analysisPhase(request:merged:analyzingSession:)": "0e37f1664bc4268b",
-    "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.assembleResult(request:merged:analyzingSession:phase:)": "5b2b67bf3315f4f1",
+    "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.assembleResult(request:merged:analyzingSession:phase:)": "28a986c5bef3bcc4",
     "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.makeAnalyzingSession(request:merged:)": "211ca7d01715d358",
     "Emuqu/Sources/Services/UITestLaunchArguments.swift::func UITestArchiveSeed.baseSession(ending:points:)": "29773b84e855dfb0"
    }
@@ -187,7 +187,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.runAnalysisPhase(series:analyzingSession:effectiveStartDate:totalBeats:isBackgroundRefinement:settings:trainingContext:prefetchedSleepData:statusCallback:)": "1709d4655092064c"
+    "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.runAnalysisPhase(series:analyzingSession:effectiveStartDate:totalBeats:isBackgroundRefinement:settings:trainingContext:prefetchedSleepData:statusCallback:)": "031b4be479ecb3f6"
    }
   },
   {
@@ -231,37 +231,25 @@
   },
   {
    "key": "func MorningProcessingService.assembleResult(request:merged:analyzingSession:phase:)",
-   "hash": "fc7958c51a10da32",
-   "does": "Steps 8-12: builds the final session, finishes it (vitals, insufficient gate, score, supersede) and returns ProcessingResult with verification, recovery window, BaselineTracker.deviation and the merge's same-night links.",
+   "hash": "3482f417e3920449",
+   "does": "Steps 8-12: builds the final session, finishes it (vitals, insufficient gate, score, supersede) and returns ProcessingResult with verification, recovery window, the deviation from the nights before this one (BaselineTracker.deviation(for:sleepSchedule:)) and the merge's same-night links.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.buildFinalSession(analyzingSession:request:merged:phase:)",
     "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.finishSession(_:phase:settings:trainingContext:cachedTrainingLoad:isBackgroundRefinement:)",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.deviation(for:)"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.deviation(for:sleepSchedule:)"
    ],
    "reads": [
     "mem:BaselineTracker baseline history"
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "ProcessingResult.baselineDeviation comes from BaselineTracker.deviation(for:), which compares against currentBaseline (all nights in the tracker, including later nights on a past-night repair) while window ranking, the insufficient gate and the score use recoveryBaselineStats(excludingNightOf:) (prior nights only), so the deviation shown and the score are measured against different baselines.",
-     "evidence": [
-      "Emuqu/Sources/Services/MorningProcessingService.swift:347",
-      "Emuqu/Sources/Services/MorningProcessingService.swift:181",
-      "Emuqu/Sources/Analysis/BaselineTracker.swift:478",
-      "Emuqu/Sources/Analysis/BaselineTracker.swift:206"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.deviation(for:)": "eb395310f3a332ff",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.deviation(for:sleepSchedule:)": "db44d0c36e819068",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.cachedTrainingLoad": "a4e379929acafe73",
     "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.buildFinalSession(analyzingSession:request:merged:phase:)": "bdb1ddacf507279e",
-    "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.finishSession(_:phase:settings:trainingContext:cachedTrainingLoad:isBackgroundRefinement:)": "32396d9f0de3b618"
+    "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.finishSession(_:phase:settings:trainingContext:cachedTrainingLoad:isBackgroundRefinement:)": "8a8e3f2d3a9c7709"
    }
   },
   {
@@ -282,7 +270,7 @@
     {
      "at": "+8",
      "cond": "!isBackgroundRefinement",
-     "effect": "foreground: fetch vitals and attach; background: vitalsSnapshot stays nil, which also means scoring gets nil vitals when a sleep snapshot exists"
+     "effect": "foreground: fetch vitals and attach; background: vitalsSnapshot stays nil and scoringHealthData fetches fresh vitals for the score"
     },
     {
      "at": "+17",
@@ -295,30 +283,14 @@
      "effect": "supersedes same-night sessions under the user's merge settings; otherwise (failed session or background) no supersede"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "Background-refinement passes (used by the past-night repair in RRCollector+BackupRecovery.swift:744-751) skip attachVitalsSnapshot, and scoringHealthData then returns session.vitalsSnapshot (nil) whenever the poll produced a sleepSnapshot, so the repaired night is scored with no vitals; computeRecoveryScore also leaves referenceDate at its Date() default, so a repaired past night's baseline-staleness penalty is measured against today rather than that night (rescore paths pass sessionEnd).",
-     "evidence": [
-      "Emuqu/Sources/Services/MorningProcessingService.swift:362",
-      "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:436",
-      "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:437",
-      "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:412",
-      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:750",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:157"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.computeRecoveryScore(for:analysisResult:trainingContext:baselineTracker:settings:cachedTrainingLoad:)": "92edb517f198fa00",
-    "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.applyInsufficientDataGate(to:analysisResult:settings:)": "d3bb114e7034b51b",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.computeRecoveryScore(for:analysisResult:trainingContext:baselineTracker:settings:cachedTrainingLoad:)": "201084d085366647",
+    "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.applyInsufficientDataGate(to:analysisResult:settings:)": "a8d004f608c774e1",
     "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.attachVitalsSnapshot(to:)": "4d2e2cb4e6c6fdc9",
     "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.supersedeUnderUserSettings(_:settings:)": "04b636a27f7e23e9",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)": "7aa853f03a8994f8",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "245c2d41dcd0a692"
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)": "7aa853f03a8994f8"
    }
   },
   {
@@ -365,12 +337,12 @@
   },
   {
    "key": "func MorningProcessingService.applyInsufficientDataGate(to:analysisResult:settings:)",
-   "hash": "d829548b22d1c144",
-   "does": "If an analysis result exists, computes baseline RMSSD = exp(lnRmssdMean) of the prior-nights baseline (0 when none) and marks hrvDataQuality = .insufficient when ReanalysisService.hasInsufficientData says so (RMSSD below baseline and window too short or no organized recovery on a short session).",
+   "hash": "508cab643c7a97e1",
+   "does": "If an analysis result exists, classifies it with SessionAcceptanceService.classifyHRVQuality (the session's sleep snapshot, the prior-nights baseline, the recording span) and, when that verdict says to use the baseline HRV, stores its quality (.insufficient or .preSleep) on the session and logs the transition without health values; computeRecoveryScore then scores with the baseline HRV as acceptance does.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.windowBaseline(for:settings:)",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.hasInsufficientData(session:analysisResult:baselineRmssd:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
@@ -384,36 +356,16 @@
      "effect": "return without marking"
     },
     {
-     "at": "+4",
-     "cond": "no baseline stats",
-     "effect": "baselineRmssd = 0, so hasInsufficientData's `rmssd < baselineRmssd` is false and the session is never marked insufficient without a baseline"
-    },
-    {
-     "at": "+5",
-     "cond": "hasInsufficientData false",
-     "effect": "return; true → hrvDataQuality = .insufficient and a PHI-free log line"
+     "at": "+9",
+     "cond": "verdict does not use the baseline (trusted)",
+     "effect": "return, quality left as it was; else store .insufficient/.preSleep and log"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "The gate's comment says it runs before scoring 'so the score computation uses the baseline-HRV fallback', but computeRecoveryScore never passes useBaselineHRV (default false), so the morning score of a night marked .insufficient uses its own low HRV. That score is what the results screen shows before acceptance, what archiveForReview pre-archives (RRCollector+MorningProcessing.swift:56), what paused sessions are archived with (RRCollector+PauseResume.swift:59-68) and what the past-night repair archives (RRCollector+BackupRecovery.swift:744-753); acceptance re-scores with baseline HRV (SessionAcceptanceService.swift:245-248), so the number changes on Accept. The comment's 'Reanalysis applies the identical check' also does not hold for acceptance, which uses classifyHRVQuality (window-less result counts session length as the window, plus .preSleep), so the morning mark and the accepted mark can differ.",
-     "evidence": [
-      "Emuqu/Sources/Services/MorningProcessingService.swift:403",
-      "Emuqu/Sources/Services/MorningProcessingService.swift:414",
-      "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:412",
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:482",
-      "Emuqu/Sources/Services/SessionAcceptanceService.swift:104",
-      "Emuqu/Sources/Services/SessionAcceptanceService.swift:245",
-      "Emuqu/Sources/Collection/RRCollector+PauseResume.swift:68"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
     "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.windowBaseline(for:settings:)": "687897181b41e477",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.hasInsufficientData(session:analysisResult:baselineRmssd:)": "52495eb9fe13e172",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)": "ef2cf4065b8aca0b",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   }

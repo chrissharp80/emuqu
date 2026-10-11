@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift",
- "hash": "29e41e8dcaf17ff3",
+ "hash": "adade41362b578ba",
  "role": "Declares four fact namespaces: HRVLiveNamespace (hrv.live.* from LiveHRVBroker snapshot), TagsNamespace (tags.* over archive index tags/recovery scores), HRRNamespace (hrr.* averages/trend from archived workouts' HRR samples) and CompositesNamespace (user.profile.snapshot, training.load.snapshot, walks.summary, recovery.today.full, recovery.week.summary).",
  "types": [
   "HRVLiveNamespace: struct (FactNamespaceResolver) — live HRV recording state",
@@ -9,25 +9,13 @@
   "CompositesNamespace: struct (FactNamespaceResolver) — multi-key composite facts"
  ],
  "state": [
-  "HRVLiveNamespace.namespace = 'hrv.live'",
+  "HRVLiveNamespace.namespace = 'hrv' (the head token of every hrv.live.* key, so the registry's primary dispatch reaches it)",
   "TagsNamespace.namespace = 'tags'; let archive",
   "HRRNamespace.namespace = 'hrr'; let archive",
   "CompositesNamespace.namespace = 'composites'"
  ],
  "toplevel": "Struct conformances; registered in AppFactResolverFactory (HRVLive/HRR/Tags in registerHealthNamespaces, Composites last in build).",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "HRVLiveNamespace.namespace is 'hrv.live', but the registry's primary dispatch compares the key's FIRST token ('hrv') with ns.namespace (FactResolverRegistry.swift:126), so hrv.live.* keys never take the primary path and resolve only through the fallback scan after every 'hrv'-headed namespace misses.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift:23",
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:126",
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:129"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "var HRVLiveNamespace.snapshot",
@@ -479,8 +467,8 @@
   },
   {
    "key": "func TagsNamespace.sessionsOn(_:)",
-   "hash": "d385fe9b5e261e0c",
-   "does": "Parses a yyyy-MM-dd local date and returns archive entries on that calendar day.",
+   "hash": "09693bfcff77ee3f",
+   "does": "Parses a yyyy-MM-dd local date and returns archive entries on that calendar day; nil when the text is not such a date.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func FactLocalDay.formatter()",
@@ -493,8 +481,8 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "param parses as a local date",
-     "effect": "filters entries; else returns []"
+     "cond": "param does not parse as a local date",
+     "effect": "return nil; else the day's entries"
     }
    ],
    "flags": [],
@@ -520,7 +508,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var TagsNamespace.tagsCorrelationTagEntry": "1b57b069932eaf90",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var TagsNamespace.tagsCorrelationTagEntry": "076406c74229ac7f",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var TagsNamespace.tagsCountInPeriodEntry": "c1fe01382d67ba8d",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var TagsNamespace.tagsCountTagEntry": "10562429eb834fd6",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var TagsNamespace.tagsListActiveDateEntry": "024fe83923b1a7d3",
@@ -665,14 +653,14 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.resolveTagsListActive(_:)": "6bd8b304fa85a525",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.resolveTagsListActive(_:)": "d472733297b3ae81",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.tagsAvailability()": "1fe0e46bf4c15944"
    }
   },
   {
    "key": "func TagsNamespace.resolveTagsListActive(_:)",
-   "hash": "38acb37d8c97ba75",
-   "does": "Returns the sorted distinct tag names across all sessions on the given local date.",
+   "hash": "c8253c24e241f4d2",
+   "does": "Returns the sorted distinct tag names across all sessions on the given local date; invalidParameter when the date does not parse.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.sessionsOn(_:)"
@@ -683,47 +671,36 @@
    "writes": [],
    "branches": [
     {
-     "at": "+2",
-     "cond": "sessions exist that day",
-     "effect": "continues; else missing notRecorded 'no sessions on …' (also for an unparseable date)"
+     "at": "+1",
+     "cond": "date does not parse",
+     "effect": "missing invalidParameter asking for yyyy-MM-dd"
     },
     {
-     "at": "+6",
-     "cond": "loop over sessions",
-     "effect": "collects tags"
+     "at": "+4",
+     "cond": "no sessions that day",
+     "effect": "missing notRecorded 'no sessions on …'"
     },
     {
-     "at": "+7",
-     "cond": "loop over each session's tags",
-     "effect": "inserts names"
+     "at": "+8",
+     "cond": "loop over sessions and their tags",
+     "effect": "collects names"
     },
     {
-     "at": "+9",
+     "at": "+11",
      "cond": "at least one tag name",
      "effect": "returns sorted list; else missing notRecorded 'no tags on any session that day'"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "A malformed date makes sessionsOn return [] and the reply is notRecorded 'no sessions on <param>' instead of invalidParameter, so the model tells the user they had no sessions.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift:208",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift:297"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRVLiveNamespace.missing(_:)": "a6963a4dcd508b24",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.sessionsOn(_:)": "64b42a3174b32554"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.sessionsOn(_:)": "00c65f68b601fde3"
    }
   },
   {
    "key": "var TagsNamespace.tagsCorrelationTagEntry",
-   "hash": "fbb544068c4a0c6b",
-   "does": "Composite fact `tags.correlation($tag)` (no child dependencies) executing resolveTagsCorrelationTag.",
+   "hash": "0b3a80fcbc753fa0",
+   "does": "Composite fact `tags.correlation($tag)` (no child dependencies) executing resolveTagsCorrelationTag; its description says only overnight readings trusted for HRV averages count.",
    "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.tagsAvailability()",
@@ -734,7 +711,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.resolveTagsCorrelationTag(_:)": "6d551b224bddaf3b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.resolveTagsCorrelationTag(_:)": "d3cf9c5fc99d081d",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.tagsAvailability()": "1fe0e46bf4c15944"
    }
   },
@@ -767,27 +744,16 @@
      "effect": "untagged_avg = nested .missing(notRecorded); else the average"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Correlation mixes every scored session regardless of session type and isReliableForHRVAggregates, while dashboard recovery averages exclude unreliable sessions (DashboardSessionPolicy.swift:45), so tagged/untagged averages include readings the app itself refuses to aggregate.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift:341",
-      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:45"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRVLiveNamespace.missing(_:)": "a6963a4dcd508b24",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.taggedScores(matching:)": "d90bab21b6cb127d"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.taggedScores(matching:)": "e8351c41ac74ba16"
    }
   },
   {
    "key": "func TagsNamespace.taggedScores(matching:)",
-   "hash": "a684a4a842910c53",
-   "does": "Splits archive entries with a recoveryScore into tagged / untagged 0–10 score arrays by tag-name match.",
+   "hash": "ecb90e3b5017205a",
+   "does": "Splits overnight archive entries that are reliable for HRV aggregates and carry a recoveryScore into tagged / untagged 0–10 score arrays by tag-name match (the gate DashboardSessionPolicy uses).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
@@ -800,8 +766,8 @@
    "branches": [
     {
      "at": "+3",
-     "cond": "loop over all archive entries",
-     "effect": "each entry classified"
+     "cond": "loop over overnight entries reliable for HRV aggregates",
+     "effect": "each classified; other entries skipped"
     },
     {
      "at": "+4",
@@ -816,6 +782,7 @@
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.nameMatches(_:tag:)": "d5937fb9c2bd94a1",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e"
@@ -823,8 +790,8 @@
   },
   {
    "key": "func HRRNamespace.sessionsWithHRR(_:)",
-   "hash": "90c7cd5ed3355f6d",
-   "does": "Workout sessions in the period (newest first), loaded lightweight from the archive, keeping only those whose workoutMetadata.hrrSamples is non-empty.",
+   "hash": "73a0a441622019ea",
+   "does": "Workout sessions in the period (newest first), loaded lightweight from the archive, keeping only those whose workoutMetadata.hrrSamples is non-empty; nil when the period does not parse.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.interval(for:now:)",
@@ -840,8 +807,8 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "period parses",
-     "effect": "continues; else returns [] (callers then report 'no HRR samples in period' instead of invalid period)"
+     "cond": "period does not parse",
+     "effect": "return nil (callers answer invalidParameter)"
     },
     {
      "at": "+6",
@@ -849,22 +816,11 @@
      "effect": "?? [] — session excluded"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "An unparseable period returns [] so every hrr.* entry answers notRecorded/notYetComputed ('no 1-min HRR samples in period') rather than invalidParameter.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift:362",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift:392"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func DateInterval.containsBeforeEnd(_:)": "1945fdef858257a3",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.interval(for:now:)": "56c1cbdd7c4b4a86",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.interval(for:now:)": "e66f9b4913f074f8",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
    }
@@ -902,48 +858,63 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRRNamespace.hrrRecentAvg1minPeriodEntry": "51f57b6e55ac5e51",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRRNamespace.hrrRecentAvg2minPeriodEntry": "baf9cc2b6bff7133",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRRNamespace.hrrTrendPeriodEntry": "fd67708687e25af5"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRRNamespace.hrrRecentAvg1minPeriodEntry": "9969a75f5d0926df",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRRNamespace.hrrRecentAvg2minPeriodEntry": "ab80e9501d68c2e7",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRRNamespace.hrrTrendPeriodEntry": "05ffe7fc87a51e9a"
    }
   },
   {
    "key": "var HRRNamespace.hrrRecentAvg1minPeriodEntry",
-   "hash": "77a8e6c80c7af673",
-   "does": "Parameterized fact `hrr.recent_avg_1min($period)`: mean of bestAtOneMinute.drop over HRR-bearing workouts in the period.",
+   "hash": "b4bf596454f70e45",
+   "does": "Parameterized fact `hrr.recent_avg_1min($period)`: averageDrop over bestAtOneMinute.drop.",
    "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.hrrAvailability()",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.sessionsWithHRR(_:)"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.averageDrop(_:label:drop:)"
    ],
    "reads": [
     "archive:SessionArchive.retrieveLightweight (workoutMetadata.hrrSamples)"
    ],
    "writes": [],
-   "branches": [
-    {
-     "at": "+9",
-     "cond": "any 1-min drops",
-     "effect": "returns mean; else missing notRecorded"
-    }
-   ],
+   "branches": [],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.averageDrop(_:label:drop:)": "1b8d975bd76d4ea1",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.hrrAvailability()": "b5339f8c5264de8f",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.sessionsWithHRR(_:)": "cb2ed231f797a44e",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRVLiveNamespace.missing(_:)": "a6963a4dcd508b24",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute": "080c4f9acef7ff40",
     "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173"
    }
   },
   {
    "key": "var HRRNamespace.hrrRecentAvg2minPeriodEntry",
-   "hash": "505d9f60058429d2",
-   "does": "Parameterized fact `hrr.recent_avg_2min($period)`: mean of bestAtTwoMinutes.drop over HRR-bearing workouts in the period.",
+   "hash": "f9cd4bba574b9725",
+   "does": "Parameterized fact `hrr.recent_avg_2min($period)`: averageDrop over bestAtTwoMinutes.drop.",
    "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.hrrAvailability()",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.sessionsWithHRR(_:)"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.averageDrop(_:label:drop:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieveLightweight (workoutMetadata.hrrSamples)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.averageDrop(_:label:drop:)": "1b8d975bd76d4ea1",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.hrrAvailability()": "b5339f8c5264de8f",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtTwoMinutes": "85c645f2be66d347",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173"
+   }
+  },
+  {
+   "key": "func HRRNamespace.averageDrop(_:label:drop:)",
+   "hash": "29ae2bcd7dbcd710",
+   "does": "Mean of the given drop (1- or 2-minute reading) over the HRR-bearing workouts in the period; invalidParameter for an unknown period, notRecorded when no workout has that reading.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.sessionsWithHRR(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.unknownPeriod(_:)"
    ],
    "reads": [
     "archive:SessionArchive.retrieveLightweight (workoutMetadata.hrrSamples)"
@@ -951,35 +922,41 @@
    "writes": [],
    "branches": [
     {
-     "at": "+9",
-     "cond": "any 2-min drops",
-     "effect": "returns mean; else missing notRecorded"
-    }
-   ],
-   "flags": [
+     "at": "+1",
+     "cond": "period does not parse",
+     "effect": "unknownPeriod"
+    },
     {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Closure duplicates hrrRecentAvg1minPeriodEntry's except for the bestAtTwoMinutes key path.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift:388",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift:406"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+3",
+     "cond": "no drops",
+     "effect": "missing notRecorded; else the mean"
     }
    ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.hrrAvailability()": "b5339f8c5264de8f",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.sessionsWithHRR(_:)": "cb2ed231f797a44e",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRVLiveNamespace.missing(_:)": "a6963a4dcd508b24",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtTwoMinutes": "85c645f2be66d347",
-    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.sessionsWithHRR(_:)": "b298e49933cae9fa",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.unknownPeriod(_:)": "bd7919ef948d912e",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRVLiveNamespace.missing(_:)": "a6963a4dcd508b24"
+   }
+  },
+  {
+   "key": "func HRRNamespace.unknownPeriod(_:)",
+   "hash": "be215e2e3d0279c4",
+   "does": "Static: missing invalidParameter naming the period and the accepted ones (last_7d / last_14d / last_30d / last_90d / all_time).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRVLiveNamespace.missing(_:)": "a6963a4dcd508b24"
    }
   },
   {
    "key": "var HRRNamespace.hrrTrendPeriodEntry",
-   "hash": "5a31e8bbbc6b7692",
-   "does": "Parameterized fact `hrr.trend($period)` executing resolveHrrTrendPeriod.",
+   "hash": "1b84d909732863b4",
+   "does": "Parameterized fact `hrr.trend($period)` executing resolveHrrTrendPeriod; its description says the halves are split by count, not by time.",
    "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.hrrAvailability()",
@@ -991,16 +968,17 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.hrrAvailability()": "b5339f8c5264de8f",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.resolveHrrTrendPeriod(_:)": "7bde7fceeefaba3a"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.resolveHrrTrendPeriod(_:)": "b9ef822b49499c29"
    }
   },
   {
    "key": "func HRRNamespace.resolveHrrTrendPeriod(_:)",
-   "hash": "a6d39c5592e1166a",
-   "does": "Sorts HRR-bearing workouts' 1-min drops oldest→newest, splits by count into halves (first half smaller on odd counts) and returns {first_half_avg, second_half_avg, change_bpm, sample_size}.",
+   "hash": "391e25ca60fa5000",
+   "does": "Sorts HRR-bearing workouts' 1-min drops oldest→newest, splits by count into halves (first half smaller on odd counts) and returns {first_half_avg, second_half_avg, change_bpm, sample_size}; invalidParameter for an unknown period.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.sessionsWithHRR(_:)"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.sessionsWithHRR(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.unknownPeriod(_:)"
    ],
    "reads": [
     "archive:SessionArchive.retrieveLightweight (workoutMetadata.hrrSamples)"
@@ -1008,30 +986,25 @@
    "writes": [],
    "branches": [
     {
-     "at": "+3",
+     "at": "+1",
+     "cond": "period does not parse",
+     "effect": "unknownPeriod"
+    },
+    {
+     "at": "+4",
      "cond": "session has a 1-min drop",
      "effect": "included; else dropped"
     },
     {
-     "at": "+7",
+     "at": "+8",
      "cond": "≥2 drops",
      "effect": "computes halves; else missing notYetComputed"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Description says it 'splits the window in half', but the split is by sample count (sessions.count/2), not by time; clustered workouts make 'first half' and 'second half' cover very different spans.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift:422",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift:438"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.sessionsWithHRR(_:)": "cb2ed231f797a44e",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.sessionsWithHRR(_:)": "b298e49933cae9fa",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.unknownPeriod(_:)": "bd7919ef948d912e",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRVLiveNamespace.missing(_:)": "a6963a4dcd508b24",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute": "080c4f9acef7ff40",
     "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173"

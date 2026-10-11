@@ -1,19 +1,19 @@
 {
  "file": "Emuqu/Sources/Models/RRModels.swift",
- "hash": "063916476a952d64",
+ "hash": "9bba59086509a85b",
  "role": "Core RR-interval and HRV-result model types: the beat point/series with timing helpers, artifact flags, time/frequency/nonlinear/ANS metric structs, training-context snapshot, the persisted HRVAnalysisResult, and localisation of its stored English window classification/selection-reason strings.",
  "types": [
   "RRPoint: struct — one RR beat (t_ms cumulative start, rr_ms, optional wallClockMs and device HR), Codable/Equatable",
   "RRSeries: struct — ordered RRPoints + sessionId + startDate with duration, gap and time-conversion helpers",
   "ArtifactFlags: struct — per-beat artifact classification (isArtifact, ArtifactType, confidence, corrected)",
   "ArtifactFlags.ArtifactType: enum — none/ectopic/missed/extra/technical",
-  "TimeDomainMetrics: struct — meanRR, SDNN, RMSSD, pNN50, SDSD, HR stats, triangular index; custom Codable with schemaVersion",
+  "TimeDomainMetrics: struct — meanRR, SDNN, RMSSD, pNN50, SDSD, HR stats (with hrRangeIsApproximate marking a mean ± SD stand-in range), triangular index; custom Codable with schemaVersion",
   "FrequencyDomainMetrics: struct — VLF/LF/HF/LF:HF/total power + normalized units",
   "NonlinearMetrics: struct — SD1/SD2, entropies, DFA α1/α2/R²",
   "ANSMetrics: struct — stress/PNS/SNS indexes, HRV readiness, respiration, nocturnal HR dip",
   "PeakCapacity: struct — highest sustained RMSSD window summary",
-  "TrainingContext: struct — ATL/CTL/TSB/yesterday TRIMP/VO2max/recent workouts snapshot frozen with a session",
-  "WorkoutSnapshot: struct — date/type/duration/load of one workout",
+  "TrainingContext: struct — ATL/CTL/TSB/yesterday TRIMP/VO2max/five most recent workouts snapshot frozen with a session",
+  "WorkoutSnapshot: struct — date/type/duration/load (userScaledLoad, stored as `trimp`) of one workout",
   "HRVAnalysisResult: struct — complete persisted analysis for a window incl. window-selection provenance and overnight HR summary",
   "HRVAnalysisResult.TimeRange: struct — Codable ms range for organized-recovery zones",
   "HRVAnalysisResult: extension — display (localized) window classification and selection reason",
@@ -22,33 +22,10 @@
  ],
  "state": [
   "mem:ArtifactFlags.clean (static let, non-artifact flag)",
-  "mem:TimeDomainMetrics.currentSchemaVersion = 1 (written to archive as schemaVersion)",
-  "mem:TrainingContext.empty (static let all-zero context)"
+  "mem:TimeDomainMetrics.currentSchemaVersion = 1 (written to archive as schemaVersion)"
  ],
- "toplevel": "Codable synthesis for RRPoint, RRSeries, ArtifactFlags, FrequencyDomainMetrics, NonlinearMetrics, ANSMetrics, PeakCapacity, TrainingContext, WorkoutSnapshot, HRVAnalysisResult (persisted in the session archive / CloudKit payloads); TimeDomainMetrics has hand-written CodingKeys including schemaVersion. Static lets ArtifactFlags.clean and TrainingContext.empty.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "TrainingContext.recentWorkouts doc says 'last 3 days for context' but the snapshot builder keeps the 5 most recent workouts of TrainingLoad's 14-day list; WorkoutSnapshot.trimp is filled from userScaledLoad, not TRIMP.",
-   "evidence": [
-    "Emuqu/Sources/Models/RRModels.swift:494",
-    "Emuqu/Sources/Models/RRModels.swift:557",
-    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:580",
-    "Emuqu/Sources/Models/RRModels.swift:562"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "TrainingContext.empty (static let) has zero references in app or tests; grep for 'TrainingContext.empty' and '.empty' on TrainingContext-typed sites finds only the declaration.",
-   "evidence": [
-    "Emuqu/Sources/Models/RRModels.swift:567"
-   ],
-   "found": "second read"
-  }
- ],
+ "toplevel": "Codable synthesis for RRPoint, RRSeries, ArtifactFlags, FrequencyDomainMetrics, NonlinearMetrics, ANSMetrics, PeakCapacity, TrainingContext, WorkoutSnapshot, HRVAnalysisResult (persisted in the session archive / CloudKit payloads); TimeDomainMetrics has hand-written CodingKeys including schemaVersion and hrRangeIsApproximate. Static let ArtifactFlags.clean.",
+ "flags": [],
  "units": [
   {
    "key": "func RRPoint.shifted(by:)",
@@ -121,18 +98,6 @@
    "key": "var RRPoint.endMs",
    "hash": "e663cbeb6e6e79cf",
    "does": "Beat end time: t_ms + rr_ms.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [],
-   "deps": {}
-  },
-  {
-   "key": "var RRPoint.midpointMs",
-   "hash": "bdb3849780c44a1a",
-   "does": "Beat midpoint as Double ms: t_ms + rr_ms/2 (used for spectral resampling and sleep-stage windows).",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -303,10 +268,10 @@
     {
      "kind": "dead",
      "sev": "low",
-     "text": "RRSeries.detectGaps has no production caller; only EmuquTests/RRModelsTests.swift:143 (its only in-file caller totalGapDurationMs is itself uncalled) references it (grep of Emuqu/ and EmuquTests/).",
+     "text": "RRSeries.detectGaps has no production caller; only EmuquTests/RRModelsTests.swift:143 references it (grep of Emuqu/ and EmuquTests/).",
      "evidence": [
       "Emuqu/Sources/Models/RRModels.swift:114",
-      "EmuquTests/RRModelsTests.swift:143 (its only in-file caller totalGapDurationMs is itself uncalled)"
+      "EmuquTests/RRModelsTests.swift:143"
      ],
      "found": "first read, upheld on second"
     }
@@ -334,32 +299,6 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0"
-   }
-  },
-  {
-   "key": "var RRSeries.totalGapDurationMs",
-   "hash": "999d549607dd150b",
-   "does": "Sum of gapDurationMs over detectGaps() with default 2000 ms threshold.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.detectGaps(thresholdMs:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "totalGapDurationMs has zero references anywhere in the repo (app or tests); its doc claims use for sleep calculations.",
-     "evidence": [
-      "Emuqu/Sources/Models/RRModels.swift:133"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.detectGaps(thresholdMs:)": "dbc678523a560cbc"
    }
   },
   {
@@ -414,38 +353,6 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0"
-   }
-  },
-  {
-   "key": "func RRSeries.absoluteMidpoint(at:)",
-   "hash": "dcf2b82cef54f5a4",
-   "does": "Date of the midpoint of beat `index` (startDate + midpointMs); nil out of range.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.midpointMs"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "index out of range",
-     "effect": "returns nil; otherwise startDate + midpointMs/1000"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "absoluteMidpoint(at:) has zero references in the repo (app or tests).",
-     "evidence": [
-      "Emuqu/Sources/Models/RRModels.swift:165"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.midpointMs": "f0542bc9ef0a60d7"
    }
   },
   {
@@ -552,8 +459,8 @@
   },
   {
    "key": "func RRSeries.indexClosestToWallClock(_:)",
-   "hash": "79a532a4952c9a1f",
-   "does": "Index of the beat closest to an absolute date using wallClockMs (or t_ms per point when absent) via binary search; nil for empty series.",
+   "hash": "f7893edd751a2512",
+   "does": "Index of the beat closest to an absolute date via binary search, keyed on wallClockMs when every point has one and on t_ms otherwise (one ordered key either way); nil for an empty series.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)",
@@ -569,8 +476,8 @@
     },
     {
      "at": "+3",
-     "cond": "point lacks wallClockMs",
-     "effect": "uses its t_ms as the search key"
+     "cond": "some point lacks wallClockMs",
+     "effect": "search on t_ms; otherwise on wallClockMs"
     }
    ],
    "flags": [
@@ -583,22 +490,12 @@
       "EmuquTests/RRModelsTests.swift:206"
      ],
      "found": "first read, upheld on second"
-    },
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Search key mixes wallClockMs and t_ms per point; closestIndex requires keys ordered, which a series with partial wall clocks (e.g. merged internal + streamed) does not guarantee.",
-     "evidence": [
-      "Emuqu/Sources/Models/RRModels.swift:224",
-      "Emuqu/Sources/Models/RRModels.swift:190"
-     ],
-     "found": "first read, upheld on second"
     }
    ],
    "deps": {
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0",
     "Emuqu/Sources/Models/RRModels.swift::func RRSeries.closestIndex(to:key:)": "9dd9dec04ac4869d",
-    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac"
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "6d761b0522590a2a"
    }
   },
   {
@@ -650,8 +547,8 @@
   },
   {
    "key": "init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)",
-   "hash": "43a2f85194bb40b2",
-   "does": "Fixture init: stores given metrics and approximates minHR=meanHR-sdHR, maxHR=meanHR+sdHR.",
+   "hash": "51d065de4dd491c4",
+   "does": "Fixture init: stores given metrics, approximates minHR=meanHR-sdHR, maxHR=meanHR+sdHR and marks hrRangeIsApproximate true.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -673,8 +570,8 @@
   },
   {
    "key": "init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:minHR:maxHR:triangularIndex:)",
-   "hash": "b138b2b47044ec84",
-   "does": "Full TimeDomainMetrics init storing every field including measured min/max HR.",
+   "hash": "e34ee7dac4d5bbb6",
+   "does": "Full TimeDomainMetrics init storing every field including measured min/max HR; hrRangeIsApproximate false.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -685,8 +582,8 @@
   },
   {
    "key": "init TimeDomainMetrics(from:)",
-   "hash": "79af310c9a21ce19",
-   "does": "Decodes TimeDomainMetrics from archive: reads and discards optional schemaVersion, requires the seven core doubles, optional triangularIndex, and defaults missing minHR/maxHR to meanHR ∓ sdHR.",
+   "hash": "be1ef079b3627147",
+   "does": "Decodes TimeDomainMetrics from archive: reads and discards optional schemaVersion, requires the seven core doubles, optional triangularIndex, defaults missing minHR/maxHR to meanHR ∓ sdHR, and sets hrRangeIsApproximate from the stored marker or, without one, true when either bound was missing.",
    "entry": "Decodable synthesis/use: called by JSONDecoder when HRVAnalysisResult is decoded from the archive/CloudKit payload.",
    "calls": [],
    "reads": [],
@@ -698,21 +595,26 @@
      "effect": "defaults to 0 and is discarded (value never used)"
     },
     {
-     "at": "+13",
+     "at": "+16",
      "cond": "minHR absent (legacy archive)",
      "effect": "minHR = meanHR - sdHR (approximation)"
     },
     {
-     "at": "+14",
+     "at": "+17",
      "cond": "maxHR absent (legacy archive)",
      "effect": "maxHR = meanHR + sdHR (approximation)"
+    },
+    {
+     "at": "+18",
+     "cond": "hrRangeIsApproximate absent",
+     "effect": "true when min or max was absent; otherwise the stored value"
     }
    ],
    "flags": [
     {
      "kind": "silent-failure",
      "sev": "low",
-     "text": "Legacy results without minHR/maxHR get mean±SD substituted with no marker; HRVDetailV2View's 'HR range' cell shows this approximation as if measured.",
+     "text": "Legacy results without minHR/maxHR get mean±SD substituted; hrRangeIsApproximate now marks them, but HRVDetailV2View's 'HR range' cell does not read the marker and still shows the approximation as if measured.",
      "evidence": [
       "Emuqu/Sources/Models/RRModels.swift:369",
       "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift:482"
@@ -724,13 +626,19 @@
   },
   {
    "key": "func TimeDomainMetrics.encode(to:)",
-   "hash": "a7253f7d7ffb0b2e",
-   "does": "Encodes TimeDomainMetrics with schemaVersion=1 plus all fields; triangularIndex only if present.",
+   "hash": "b9b1d73f2723e4c7",
+   "does": "Encodes TimeDomainMetrics with schemaVersion=1 plus all fields; triangularIndex only if present; hrRangeIsApproximate written (true) only when set.",
    "entry": "Encodable: called by JSONEncoder when persisting HRVAnalysisResult.",
    "calls": [],
    "reads": [],
    "writes": [],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "hrRangeIsApproximate",
+     "effect": "encode true; otherwise the key is omitted"
+    }
+   ],
    "flags": [],
    "deps": {}
   },
@@ -961,18 +869,18 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.localized(_:)": "0778af712a0fae0a"
+    "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.localized(_:)": "afa1067b05c39859"
    }
   },
   {
    "key": "func WindowSelectionReasonText.localized(_:)",
-   "hash": "8a0ceb2ba7a54b39",
+   "hash": "840eea94bb601bd3",
    "does": "Recognises the 4 English shapes WindowSelector writes ('No consolidated recovery detected', 'Organized Recovery (RMSSD x ms, α1=y, CV z%) at p%', 'Manual selection at p% (RMSSD …)', 'Peak <metric> (v ms, α1=…, CV …%) at p%') and returns a localized sentence with locale-formatted numbers; nil otherwise.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
     "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.numbers(in:valueAfter:)",
-    "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.field(_:after:before:)"
+    "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.peakMetric(in:)"
    ],
    "reads": [],
    "writes": [],
@@ -994,8 +902,8 @@
     },
     {
      "at": "+11",
-     "cond": "prefix 'Peak ' and metric field between 'Peak ' and ' (' parses and numbers parse (bracketed value)",
-     "effect": "returns localized peak sentence; metric for Total-Power method parses as 'SDNN' because the stored name is 'SDNN (Total Power proxy)'. Otherwise falls through to return nil"
+     "cond": "prefix 'Peak ', peakMetric parses and numbers parse (bracketed value)",
+     "effect": "returns localized peak sentence with the full metric name, e.g. 'SDNN (Total Power proxy)'. Otherwise falls through to return nil"
     }
    ],
    "flags": [
@@ -1011,21 +919,11 @@
       "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift:639"
      ],
      "found": "first read, upheld on second"
-    },
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Reason for the Highest Total Power method ('Peak SDNN (Total Power proxy) (…') is rendered as 'Peak SDNN at …' because the metric field stops at the first ' (', dropping the proxy qualifier; the user cannot tell Total Power from SDNN selection.",
-     "evidence": [
-      "Emuqu/Sources/Models/RRModels.swift:696",
-      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:716"
-     ],
-     "found": "first read, upheld on second"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.field(_:after:before:)": "949f264071cb2b3d",
     "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.numbers(in:valueAfter:)": "db71f96024fe5296",
+    "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.peakMetric(in:)": "fa287aece797c899",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.position(at:)": "dd580b6b4eefe2c4"
    }
@@ -1095,6 +993,24 @@
     "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.field(_:after:before:)": "949f264071cb2b3d",
     "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.upperBound": "cc499f4494650948"
    }
+  },
+  {
+   "key": "func WindowSelectionReasonText.peakMetric(in:)",
+   "hash": "799a74fecd4c867d",
+   "does": "The metric between 'Peak ' and the ' (' that opens the numbers (the last one before ' ms, α1='): 'SDNN', 'RMSSD' or 'SDNN (Total Power proxy)'; nil when the markers are missing or out of order.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "'Peak ', ' ms, α1=' and an opening ' (' between them found in order",
+     "effect": "return the text between; otherwise nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "func WindowSelectionReasonText.bracketedValue(in:)",

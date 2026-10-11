@@ -16,9 +16,9 @@ struct GPXPreviewPayload: Identifiable {
     let session: HRVSession
 }
 
-/// Map preview + summary stats + Send button. Dismisses itself and
-/// invokes `onSend` (which opens the system share sheet at the call
-/// site). Cancel just closes the preview without sharing.
+/// Map preview + summary stats + Send button. Send only invokes `onSend`;
+/// the presenter dismisses the sheet (by clearing its payload) and opens the
+/// system share sheet. Cancel just closes the preview without sharing.
 struct GPXPreviewSheet: View {
     let payload: GPXPreviewPayload
     let onSend: () -> Void
@@ -139,8 +139,9 @@ struct GPXPreviewSheet: View {
     }
 }
 
-/// Wraps MKMapView to render the GPX track polyline. Auto-fits the
-/// camera to the route. Pure UIKit-bridge so we get the same map
+/// Wraps MKMapView to render the GPX track polyline. Fits the camera to
+/// the route once per track, so a parent re-render does not undo the
+/// user's pan or zoom. Pure UIKit-bridge so we get the same map
 /// rendering Apple/Strava users expect.
 struct GPXPreviewMap: UIViewRepresentable {
     let track: [CLLocation]
@@ -154,21 +155,37 @@ struct GPXPreviewMap: UIViewRepresentable {
     }
 
     func updateUIView(_ map: MKMapView, context: Context) {
+        guard !context.coordinator.isShowing(track) else { return }
+        context.coordinator.renderedTrack = track
         map.removeOverlays(map.overlays)
         guard !track.isEmpty else { return }
         let coords = track.map(\.coordinate)
         let polyline = MKPolyline(coordinates: coords, count: coords.count)
         map.addOverlay(polyline)
-        // Auto-zoom to fit, with a little padding
-        var rect = polyline.boundingMapRect
-        let padding = max(rect.size.width, rect.size.height) * 0.15
-        rect = rect.insetBy(dx: -padding, dy: -padding)
-        map.setVisibleMapRect(rect, animated: false)
+        map.setVisibleMapRect(Self.fittedRect(for: polyline), animated: false)
+    }
+
+    /// The route's bounds padded by 15 % of the longer side, and by at least
+    /// 250 m: a one-point track has a zero-size rect that would otherwise zoom
+    /// to the maximum.
+    static func fittedRect(for polyline: MKPolyline) -> MKMapRect {
+        let rect = polyline.boundingMapRect
+        let minimumPadding = MKMapPointsPerMeterAtLatitude(polyline.coordinate.latitude) * 250
+        let padding = max(max(rect.size.width, rect.size.height) * 0.15, minimumPadding)
+        return rect.insetBy(dx: -padding, dy: -padding)
     }
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
     class Coordinator: NSObject, MKMapViewDelegate {
+        /// The track last drawn, so updates for the same track leave the map alone.
+        var renderedTrack: [CLLocation]?
+
+        func isShowing(_ track: [CLLocation]) -> Bool {
+            guard let renderedTrack else { return false }
+            return renderedTrack.elementsEqual(track) { $0 === $1 }
+        }
+
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
             if let polyline = overlay as? MKPolyline {
                 let renderer = MKPolylineRenderer(polyline: polyline)

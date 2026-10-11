@@ -6,6 +6,9 @@ extension MorningSessionPipeline {
     /// Process overnight data (used for both initial streaming and background refinement).
     /// When `isBackgroundRefinement` is true, all global UI state mutations are skipped —
     /// the caller is responsible for deciding what to do with the returned session.
+    /// `awaitsReview: false` (a pause) publishes the result without the
+    /// acceptance state and without the pre-archive: the caller archives the
+    /// night as paused itself, and a paused night is not reviewed.
     ///
     /// This is now a thin wrapper around `MorningProcessingService`. It delegates
     /// the heavy analysis work to the service, then applies the results to the
@@ -25,7 +28,7 @@ extension MorningSessionPipeline {
         reconnectCount: Int,
         streamingBeats: Int = 0,
         deviceBeats: Int? = nil,
-        isBackgroundRefinement: Bool = false,
+        isBackgroundRefinement: Bool = false, awaitsReview: Bool = true,
         prefetchedSleepData: SleepData? = nil
     ) async -> HRVSession {
         debugLog("[RRCollector] Processing \(dataSource) data for analysis...")
@@ -45,18 +48,21 @@ extension MorningSessionPipeline {
         )
         var finalSession = result.session
         freezeTrainingSnapshot(on: &finalSession, freshContext: freshContext)
-        publishForeground(result, finalSession: finalSession, skip: isBackgroundRefinement)
+        publishForeground(result, finalSession: finalSession, skip: isBackgroundRefinement, awaitsReview: awaitsReview)
         debugLog("[RRCollector] Overnight streaming analysis complete: \(points.count) RR points")
         return finalSession
     }
 
     /// Apply the result to observable state and pre-archive for crash safety.
     /// Both are skipped for background refinement — the caller owns that
-    /// decision.
-    private func publishForeground(_ result: MorningProcessingService.ProcessingResult, finalSession: HRVSession, skip: Bool) {
+    /// decision; a night that does not await review is published without
+    /// the acceptance state and not pre-archived.
+    private func publishForeground(
+        _ result: MorningProcessingService.ProcessingResult, finalSession: HRVSession, skip: Bool, awaitsReview: Bool
+    ) {
         guard !skip else { return }
-        applyProcessingResult(result, finalSession: finalSession)
-        archiveForReview(finalSession)
+        applyProcessingResult(result, finalSession: finalSession, awaitsReview: awaitsReview)
+        if awaitsReview { archiveForReview(finalSession) }
     }
 
     /// Settings snapshot so the service never reads `SettingsManager.shared`.
@@ -115,12 +121,15 @@ extension MorningSessionPipeline {
         }
     }
 
-    private func applyProcessingResult(_ result: MorningProcessingService.ProcessingResult, finalSession: HRVSession) {
+    private func applyProcessingResult(
+        _ result: MorningProcessingService.ProcessingResult, finalSession: HRVSession, awaitsReview: Bool
+    ) {
+        let awaitsAcceptance = awaitsReview && finalSession.state == .complete
         collector.currentSession = finalSession
         collector.verificationResult = result.verificationResult
         collector.recoveryWindow = result.recoveryWindow
-        collector.needsAcceptance = finalSession.state == .complete
-        if finalSession.state == .complete {
+        collector.needsAcceptance = awaitsAcceptance
+        if awaitsAcceptance {
             collector.recordingPhase = .awaitingAcceptance
         }
         collector.baselineDeviation = result.baselineDeviation
@@ -131,6 +140,9 @@ extension MorningSessionPipeline {
     /// card never loses it. A night that was not in the archive before is
     /// remembered so "Discard" can take it back out. The morning, the
     /// device-recording Stop, Retry and Recover all save through here.
+    /// A failed save is reported to the user, and the night is then not in
+    /// the archive: the morning keeps its recording marker for it
+    /// (`OvernightStreamingCoordinator.clearPersistedStateIfSaved`).
     func archiveForReview(_ finalSession: HRVSession) {
         guard finalSession.state == .complete else { return }
         let isNewEntry = !collector.archive.entries.contains { $0.sessionId == finalSession.id }
@@ -141,7 +153,8 @@ extension MorningSessionPipeline {
             collector.archiveSignal.notifyChanged()
             if isNewEntry { collector.sessionState.reviewArchivedSessionId = finalSession.id }
         } catch {
-            debugLog("[RRCollector] Warning: Failed to pre-archive session for review: \(error)")
+            debugLog("[RRCollector] Failed to pre-archive session for review: \(error)", level: .error)
+            collector.lastError = error
         }
     }
 
@@ -164,8 +177,9 @@ extension MorningSessionPipeline {
     /// "Discard" on the review card: move the night saved for review to
     /// Trash (restorable from there), tell iCloud, and rebuild the baseline
     /// without it, since the morning flow already folded it in. Only the id
-    /// saved for this review is touched, never a night that was already in
-    /// the archive.
+    /// saved for this review is touched (`SessionState.reviewArchivedSessionId`):
+    /// a night newly pre-archived for it, or a paused night finalized for
+    /// review with Done. Any other night already in the archive is not.
     func discardReviewArchivedSession() {
         let reviewId = collector.sessionState.reviewArchivedSessionId
         collector.sessionState.reviewArchivedSessionId = nil

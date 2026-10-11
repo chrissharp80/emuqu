@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift",
- "hash": "5507706229834349",
+ "hash": "f2c2e38b3e3f18b9",
  "role": "Onboarding page 4: explains which Apple Health categories are read/written, fires HealthKitManager.requestAuthorization on Connect, then infers granted scopes from 30-day data presence and shows a status card; Skip for now records the skip in UserDefaults.",
  "types": [
   "OnboardingHealthPage: struct — Apple Health permission page"
@@ -9,23 +9,12 @@
   "@State requesting (Bool) — auth in flight",
   "@State didAttempt (Bool) — Connect completed",
   "@State grantedScopes (Set<String>) — result of grantedScopeSummary",
+  "@State authorizationError (String?) — reason the Health request threw, shown instead of the scope status",
   "static statusCardID = \"onboarding.health.status\" (scroll anchor id)",
   "ud:healthAccessSkippedInOnboarding written (key declared in Constants.swift:83)"
  ],
- "toplevel": "#Preview builds the page with a fresh RRCollector.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Header doc promises \"confirmation card 'You're connected' + scope summary\" and for partial grants a \"warning card listing what's missing\"; allScopesGrantedRow shows no scope summary and scopesPendingRow is fixed generic text that names no missing category, although grantedScopes holds exactly which of sleep/heartRate/vitals/workouts were found.",
-   "evidence": [
-    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift:20-24",
-    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift:244-256",
-    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift:300-312"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "Global @MainActor func openAppSettings() (shared with OnboardingSensorPage). #Preview builds the page with a fresh RRCollector.",
+ "flags": [],
  "units": [
   {
    "key": "var OnboardingHealthPage.hk",
@@ -202,7 +191,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.statusCard": "32c42478f8d208f3"
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.statusCard": "f91964d940b2df1f"
    }
   },
   {
@@ -221,9 +210,9 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::func OnboardingHealthPage.requestHealthAuthorization()": "994a0228c183ccb0",
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::func OnboardingHealthPage.requestHealthAuthorization()": "da0c3462724a19fe",
     "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.connectHealthLabel": "44eae80bf2698495",
-    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "be0e101d5d8a0f4b"
+    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "90992ed75b9feffe"
    }
   },
   {
@@ -324,10 +313,11 @@
   },
   {
    "key": "var OnboardingHealthPage.statusCard",
-   "hash": "493e3f14e62900c1",
-   "does": "Chooses the status row from grantedScopes size.",
+   "hash": "b1ccc0648e315d19",
+   "does": "Chooses the status row: the failure row when the Health request threw, else by grantedScopes size.",
    "entry": "SwiftUI view composition.",
    "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::func OnboardingHealthPage.authorizationFailedRow(_:)",
     "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.allScopesGrantedRow",
     "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.noDataVisibleRow",
     "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.scopesPendingRow"
@@ -336,18 +326,24 @@
    "writes": [],
    "branches": [
     {
-     "at": "+2",
-     "cond": "grantedScopes.count >= 4",
-     "effect": "true: allScopesGrantedRow (\"You're connected\"). Max possible count is 4 (sleep, heartRate, vitals, workouts per HealthKitManager.swift:161-180), so this needs a workout sample in the last 30 days."
+     "at": "+1",
+     "cond": "authorizationError set",
+     "effect": "authorizationFailedRow with the reason"
     },
     {
-     "at": "+4",
+     "at": "+3",
+     "cond": "grantedScopes.count >= 4",
+     "effect": "allScopesGrantedRow (\"You're connected\"); max count is 4, so this needs a workout sample in the last 30 days"
+    },
+    {
+     "at": "+5",
      "cond": "grantedScopes.isEmpty",
-     "effect": "true: noDataVisibleRow (caution + Open Settings). false (1-3 scopes): scopesPendingRow."
+     "effect": "noDataVisibleRow (caution + Open Settings); 1-3 scopes: scopesPendingRow"
     }
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::func OnboardingHealthPage.authorizationFailedRow(_:)": "a24c5275f90cb84c",
     "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.allScopesGrantedRow": "2900356b22bcce5b",
     "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.noDataVisibleRow": "de7b2851eceb51e3",
     "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.scopesPendingRow": "c1851d0ee972af7e"
@@ -385,18 +381,18 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.openHealthButton": "0e5997d33df84311",
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.openHealthButton": "7f735988b1267ca6",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
    }
   },
   {
    "key": "var OnboardingHealthPage.openHealthButton",
-   "hash": "f703c3625cc0932d",
-   "does": "Bordered \"Open Settings\" button calling openSettings.",
+   "hash": "494af9bbd7c3a660",
+   "does": "Bordered \"Open Settings\" button calling the shared openAppSettings().",
    "entry": "SwiftUI Button action.",
    "calls": [
-    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::func OnboardingHealthPage.openSettings()",
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::func openAppSettings()",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
@@ -405,28 +401,25 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::func OnboardingHealthPage.openSettings()": "d9873bb99298de92"
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::func openAppSettings()": "2bc87244a367c4be"
    }
   },
   {
-   "key": "func OnboardingHealthPage.openSettings()",
-   "hash": "64a0d1239859f005",
-   "does": "Opens UIApplication.openSettingsURLString (the app's Settings page).",
-   "entry": "Button action from openHealthButton.",
+   "key": "func OnboardingHealthPage.authorizationFailedRow(_:)",
+   "hash": "56dd1c1f6388d57f",
+   "does": "Caution row 'Apple Health authorization failed: <reason>' (wongCaution triangle, caution-tinted background).",
+   "entry": null,
    "calls": [
-    "ext:UIApplication.shared.open"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "URL(string: openSettingsURLString) parses (guard)",
-     "effect": "nil: return silently. non-nil: open it."
-    }
-   ],
+   "branches": [],
    "flags": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
   },
   {
    "key": "var OnboardingHealthPage.scopesPendingRow",
@@ -448,8 +441,8 @@
   },
   {
    "key": "func OnboardingHealthPage.requestHealthAuthorization()",
-   "hash": "b009edc310e4102a",
-   "does": "Sets requesting; awaits HealthKitManager.requestAuthorization (clears the skip key, prompts if not yet requested this process); a thrown error is only logged as warning; then sets grantedScopes = await grantedScopeSummary() (30-day sample-presence probe per category), requesting=false, didAttempt=true.",
+   "hash": "5ec485b12b0943dd",
+   "does": "Sets requesting and clears authorizationError; awaits HealthKitManager.requestAuthorization (clears the skip key, prompts if not yet requested this process); a thrown error is logged as a warning and its localizedDescription stored in authorizationError, so the status card reports the failure instead of an empty grant; then sets grantedScopes = await grantedScopeSummary(), requesting=false, didAttempt=true.",
    "entry": "Task from connectHealthButton tap.",
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.requestAuthorization()",
@@ -464,33 +457,43 @@
    ],
    "writes": [
     "ud:healthAccessSkippedInOnboarding (removed inside requestAuthorization)",
-    "mem:HealthKitManager.authorizationRequested (set on success)"
+    "mem:HealthKitManager.authorizationRequested (set on success)",
+    "mem:OnboardingHealthPage.authorizationError"
    ],
    "branches": [
     {
      "at": "+5",
-     "cond": "catch from hk.requestAuthorization()",
-     "effect": "error is logged via debugLog(.warning) and swallowed; flow continues to grantedScopeSummary and didAttempt=true, so the user sees the data-presence status card (usually \"can't see any Health data\") with no mention the request failed."
+     "cond": "hk.requestAuthorization throws",
+     "effect": "logged and shown via authorizationError; continues to the probe"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "A thrown requestAuthorization error (e.g. HealthKitError.notAvailable) is only logged; the page then shows the same status card as a successful sheet with no data and switches to Continue, so the user is not told the Health request failed.",
-     "evidence": [
-      "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift:317-326",
-      "Emuqu/Sources/Collection/HealthKitManager.swift:536-540"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.grantedScopeSummary()": "68075fce7a25eb98",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.grantedScopeSummary()": "ac0ee30701f16f8b",
     "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.requestAuthorization()": "0554c5246dd39562",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
     "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.hk": "23efcb0768e580dc"
    }
+  },
+  {
+   "key": "func openAppSettings()",
+   "hash": "03756fde1df5e572",
+   "does": "Opens this app's page in iOS Settings via UIApplication.openSettingsURLString; does nothing if the URL cannot be built.",
+   "entry": "Open Settings buttons on the onboarding Health and Sensor pages",
+   "calls": [
+    "ext:UIApplication.open(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "URL init fails",
+     "effect": "returns"
+    }
+   ],
+   "flags": [],
+   "deps": {}
   }
  ],
  "deps": {}

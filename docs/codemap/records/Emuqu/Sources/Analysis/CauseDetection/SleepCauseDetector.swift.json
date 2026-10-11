@@ -7,30 +7,17 @@
  ],
  "state": [],
  "toplevel": "Conforms to CauseDetectionStrategy (CauseDetector.swift:102); instantiated by CauseDetector.init (CauseDetector.swift:117) and tests (EmuquTests/CauseDetectorTests.swift:229).",
- "flags": [
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "detectFrequentAwakenings hard-codes 30 awake minutes instead of HRVThresholds.sleepFragmentedAwakeMinutes (=30, used by AnalysisSleepInput.isFragmented); a change to the constant would not move this detector.",
-   "evidence": [
-    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift:113",
-    "Emuqu/Sources/Analysis/HRVThresholds.swift:186",
-    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift:33"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "func SleepCauseDetector.detectCauses(in:)",
-   "hash": "7cf77fdda880dd2a",
-   "does": "Strategy entry: for good/excellent readings returns only positive sleep causes; otherwise, when last night had >0 sleep minutes, concatenates insufficient-sleep, fragmented-sleep, frequent-awakening, low-deep-sleep and below-average/declining-trend causes.",
+   "hash": "e12cd02ed3019c53",
+   "does": "Strategy entry: for good/excellent readings returns only positive sleep causes; otherwise, when last night had >0 sleep minutes, concatenates insufficient-sleep, one wakefulness cause (fragmented sleep, else frequent awakenings), low-deep-sleep and below-average/declining-trend causes.",
    "entry": "dyn:CauseDetectionStrategy.detectCauses called by CauseDetector.detectCauses / detectPositiveCausesOnly (CauseDetector.swift:140,155)",
    "calls": [
     "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectPositiveSleepCauses(in:)",
     "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectInsufficientSleep(sleep:)",
-    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectFragmentedSleep(sleep:)",
-    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectFrequentAwakenings(sleep:context:)",
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectWakefulness(sleep:context:)",
     "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectLowDeepSleep(sleep:context:)",
     "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectSleepTrendIssues(in:)"
    ],
@@ -45,18 +32,17 @@
     {
      "at": "+9",
      "cond": "sleep.totalSleepMinutes > 0",
-     "effect": "false (no sleep data / AnalysisSleepInput.empty): returns []; true: runs all five negative detectors"
+     "effect": "false (no sleep data / AnalysisSleepInput.empty): returns []; true: runs the negative detectors"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.isGoodReading(rmssd:stress:lfhf:dfa:)": "f75be3d3da4a805f",
-    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectFragmentedSleep(sleep:)": "b4d44f069a977c0b",
-    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectFrequentAwakenings(sleep:context:)": "0299f87dde4847e4",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.isGoodReading(rmssd:)": "a553c84c2cc0efa5",
     "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectInsufficientSleep(sleep:)": "fd0fad081645ac96",
     "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectLowDeepSleep(sleep:context:)": "b5a3e61892dd8572",
     "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectPositiveSleepCauses(in:)": "a7b28cb67e0eee9c",
     "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectSleepTrendIssues(in:)": "1731efdf9201512a",
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectWakefulness(sleep:context:)": "0714a92085406c8d",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183"
    }
   },
@@ -214,9 +200,33 @@
    }
   },
   {
+   "key": "func SleepCauseDetector.detectWakefulness(sleep:context:)",
+   "hash": "642ddd4bd816c33c",
+   "does": "One cause for the night's time awake: detectFragmentedSleep's cause when it fires, else detectFrequentAwakenings', so the top-3 list never spends two slots on the same awake minutes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectFragmentedSleep(sleep:)",
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectFrequentAwakenings(sleep:context:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "fragmented-sleep cause empty",
+     "effect": "frequent-awakenings check; else the fragmented cause"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectFragmentedSleep(sleep:)": "b4d44f069a977c0b",
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectFrequentAwakenings(sleep:context:)": "6c67c7619d05b3ab"
+   }
+  },
+  {
    "key": "func SleepCauseDetector.detectFrequentAwakenings(sleep:context:)",
-   "hash": "9f0fd024193b0116",
-   "does": "Emits 'Frequent Awakenings' (moderate, 0.55) when awake minutes > 30 and RMSSD < HRVThresholds.rmssdGood (35 ms).",
+   "hash": "760153987adf449b",
+   "does": "Emits 'Frequent Awakenings' (moderate, 0.55) when awake minutes > HRVThresholds.sleepFragmentedAwakeMinutes (30) and RMSSD < HRVThresholds.rmssdGood (35 ms). Called only when 'Fragmented Sleep' did not fire.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
@@ -226,23 +236,11 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "awakeMinutes > 30 && rmssd < 35",
+     "cond": "awakeMinutes > sleepFragmentedAwakeMinutes (30) && rmssd < 35",
      "effect": "false: returns []; true: returns the single cause"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Both 'Fragmented Sleep' and 'Frequent Awakenings' fire off the same awake minutes on one night, so the top-3 list (CauseDetector.swift:145) can spend two slots on one sleep fact.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift:104",
-      "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift:113",
-      "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift:145"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"

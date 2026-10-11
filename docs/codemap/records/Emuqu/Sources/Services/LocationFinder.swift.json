@@ -1,38 +1,17 @@
 {
  "file": "Emuqu/Sources/Services/LocationFinder.swift",
- "hash": "de9790f95ce1a4c5",
- "role": "One-shot 'where am I' lookup off the main actor: ensures location authorization (prompting if undetermined), races CLLocationUpdate.liveUpdates against a timeout for the first fix, and reverse-geocodes it through RoadGeocodingService.",
+ "hash": "c083d7a6ea8e0054",
+ "role": "One-shot 'where am I' fix: ensures location authorization (status read and prompt on the main actor through one retained manager, prompting if undetermined), then races CLLocationUpdate.liveUpdates off the main actor against a timeout for the first fresh, reasonably accurate fix. Callers geocode it themselves.",
  "types": [
-  "LocationFinder: final class @MainActor NSObject — singleton shell; all behaviour is static nonisolated",
-  "LocationFinder.LookupError: enum — permissionDenied, locationServicesDisabled, timeout, noFix, geocodeFailed",
-  "LocationFinder.DetailedFix: struct — coordinate, altitude, accuracy, course, speed, time, RoadContext"
+  "LocationFinder: enum @MainActor — static one-shot fix; the fix path is nonisolated",
+  "LocationFinder.LookupError: enum — permissionDenied, locationServicesDisabled, timeout, noFix"
  ],
  "state": [
-  "mem:LocationFinder.shared (singleton, LocationFinder.swift:23)",
-  "mem:LocationFinder.authorizationManager (static CLLocationManager kept for process life, LocationFinder.swift:117)"
+  "mem:LocationFinder.authorizationManager (static CLLocationManager created on the main actor, kept for process life)",
+  "mem:LocationFinder.maxUsableAccuracyMeters = 200, maxUsableAgeSeconds = 60 (static)"
  ],
  "toplevel": "No top-level code beyond declarations; `@preconcurrency import CoreLocation`.",
  "flags": [
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "LookupError.geocodeFailed is never thrown anywhere (grep finds only its declaration).",
-   "evidence": [
-    "Emuqu/Sources/Services/LocationFinder.swift:208"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Header says the static path runs entirely off the main actor and never hops back to it, but promptForAuthorization awaits a @MainActor function and reverseGeocode awaits Task { @MainActor }; harmless with today's suspending caller (AppFactResolver+LiveNavigation.swift:520-522 \"no semaphore bridge\") but the stated deadlock-freedom under a semaphore-blocked main thread is false.",
-   "evidence": [
-    "Emuqu/Sources/Services/LocationFinder.swift:35-45",
-    "Emuqu/Sources/Services/LocationFinder.swift:99",
-    "Emuqu/Sources/Services/LocationFinder.swift:183-185"
-   ],
-   "found": "first read, upheld on second"
-  },
   {
    "kind": "untested",
    "sev": "low",
@@ -45,41 +24,9 @@
  ],
  "units": [
   {
-   "key": "func LocationFinder.detachedCurrentLocation(timeoutSec:)",
-   "hash": "004c70472ad73ae2",
-   "does": "Ensures authorization, gets the first usable fix within timeoutSec, and returns its reverse-geocoded RoadContext.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.ensureAuthorization()",
-    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.firstUsableLocation(timeoutSec:)",
-    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.reverseGeocode(_:)"
-   ],
-   "reads": [
-    "net:Apple CLGeocoder"
-   ],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "detachedCurrentLocation has no caller in the repo, including tests (grep finds only its declaration and a doc comment).",
-     "evidence": [
-      "Emuqu/Sources/Services/LocationFinder.swift:47"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.ensureAuthorization()": "3ebf8f812ea3d148",
-    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.firstUsableLocation(timeoutSec:)": "d8a19285ddd16ed0",
-    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.reverseGeocode(_:)": "941c63f0f4e7f2bc"
-   }
-  },
-  {
    "key": "func LocationFinder.detachedFirstUsableLocation(timeoutSec:)",
    "hash": "43e7ee52ab0d7675",
-   "does": "Ensures authorization and returns the first usable raw CLLocation within timeoutSec (no geocode). Used by AppLaunchTasks prewarm with 8 s.",
+   "does": "Ensures authorization and returns the first usable raw CLLocation within timeoutSec (no geocode). Used by the AppLaunchTasks road-context prewarm (8 s) and the assistant's cold routing fix (AppFactResolver+LiveNavigation, 5 s).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.ensureAuthorization()",
@@ -90,127 +37,64 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.ensureAuthorization()": "3ebf8f812ea3d148",
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.ensureAuthorization()": "aa2ac6921c224086",
     "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.firstUsableLocation(timeoutSec:)": "d8a19285ddd16ed0"
    }
   },
   {
-   "key": "func LocationFinder.detachedCurrentDetailedFix(timeoutSec:)",
-   "hash": "fe5010d93f961a39",
-   "does": "Ensures authorization, gets the first usable fix, reverse-geocodes it, and returns a DetailedFix with altitude/course/speed only when their CL values are valid (>=0).",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.ensureAuthorization()",
-    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.firstUsableLocation(timeoutSec:)",
-    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.reverseGeocode(_:)"
-   ],
-   "reads": [
-    "net:Apple CLGeocoder"
-   ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+6",
-     "cond": "verticalAccuracy >= 0",
-     "effect": "true: altitude; false: nil"
-    },
-    {
-     "at": "+8",
-     "cond": "course >= 0",
-     "effect": "true: course; false: nil"
-    },
-    {
-     "at": "+9",
-     "cond": "speed >= 0",
-     "effect": "true: speed; false: nil"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "The only caller (coldGPSFix) uses just the coordinate and discards the RoadContext, yet this always performs a queued reverse geocode (5 s runWithTimeout plus queue/rate floor) after a fix that may itself take up to 5 s, all inside a 7 s outer budget; a fix obtained after ~2 s is thrown away as \"no fix\". detachedFirstUsableLocation is the matching geocode-free call.",
-     "evidence": [
-      "Emuqu/Sources/Services/LocationFinder.swift:66",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift:526-535",
-      "Emuqu/Sources/Services/RoadGeocodingService.swift:151-152"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "14fe5393356bdfc1",
-    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.ensureAuthorization()": "3ebf8f812ea3d148",
-    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.firstUsableLocation(timeoutSec:)": "d8a19285ddd16ed0",
-    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.reverseGeocode(_:)": "941c63f0f4e7f2bc"
-   }
-  },
-  {
    "key": "func LocationFinder.ensureAuthorization()",
-   "hash": "6f8fe90c6041af59",
-   "does": "Checks authorization status: authorized → continue, denied/restricted/unknown → throw permissionDenied, notDetermined → prompt and wait; then throws locationServicesDisabled if location services are off.",
+   "hash": "1ac551a97bd1bb7b",
+   "does": "Reads the authorization status on the main actor (authorizationStatus): authorized → continue, denied/restricted/unknown → throw permissionDenied, notDetermined → prompt and wait; then throws locationServicesDisabled if location services are off.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.locationAuthorizationStatus()",
     "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.promptForAuthorization()",
-    "ext:CLLocationManager.authorizationStatus",
     "ext:CLLocationManager.locationServicesEnabled"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+3",
+     "at": "+2",
      "cond": "case .authorizedWhenInUse, .authorizedAlways",
      "effect": "continue to services check"
     },
     {
-     "at": "+5",
+     "at": "+4",
      "cond": "case .denied, .restricted",
      "effect": "throw permissionDenied"
     },
     {
-     "at": "+7",
+     "at": "+6",
      "cond": "case .notDetermined",
      "effect": "await promptForAuthorization (may throw)"
     },
     {
-     "at": "+9",
+     "at": "+8",
      "cond": "@unknown default",
      "effect": "throw permissionDenied"
     },
     {
-     "at": "+12",
-     "cond": "locationServicesEnabled()",
-     "effect": "false: throw locationServicesDisabled; true: return"
+     "at": "+11",
+     "cond": "locationServicesEnabled() false",
+     "effect": "throw locationServicesDisabled"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Instantiates CLLocationManager() on whatever thread the detached caller runs, while requestAuthorizationOnMainActor's own comment says CLLocationManager init must happen on the main thread.",
-     "evidence": [
-      "Emuqu/Sources/Services/LocationFinder.swift:80",
-      "Emuqu/Sources/Services/LocationFinder.swift:102",
-      "Emuqu/Sources/Services/LocationFinder.swift:108",
-      "Emuqu/Sources/Services/LocationFinder.swift:121-122"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.promptForAuthorization()": "56084ef34b12f53b"
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.locationAuthorizationStatus()": "fae74b5835684832",
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.promptForAuthorization()": "6b530420e5c6caaa"
    }
   },
   {
    "key": "func LocationFinder.promptForAuthorization()",
-   "hash": "5687d16ddcb13adb",
-   "does": "Shows the When-In-Use prompt on the main actor, then polls status every 250 ms for up to 10 s; returns when authorized, throws permissionDenied on denial or if still undetermined after 10 s.",
+   "hash": "bf178bbf72df1771",
+   "does": "Shows the When-In-Use prompt on the main actor, then polls the status (on the main actor) every 250 ms for up to 10 s; returns when authorized, throws permissionDenied on denial or if still undetermined after 10 s.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.requestAuthorizationOnMainActor()",
     "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)",
-    "ext:CLLocationManager.authorizationStatus"
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.locationAuthorizationStatus()"
    ],
    "reads": [],
    "writes": [],
@@ -223,7 +107,7 @@
     {
      "at": "+5",
      "cond": "status authorized",
-     "effect": "break out of loop"
+     "effect": "return"
     },
     {
      "at": "+6",
@@ -231,25 +115,24 @@
      "effect": "throw permissionDenied"
     },
     {
-     "at": "+11",
-     "cond": "final status authorized",
-     "effect": "false: throw permissionDenied (includes user still looking at the prompt after 10 s); true: return"
+     "at": "+10",
+     "cond": "loop ran out",
+     "effect": "throw permissionDenied"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.requestAuthorizationOnMainActor()": "d88c011655114372",
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.locationAuthorizationStatus()": "fae74b5835684832",
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.requestAuthorizationOnMainActor()": "6fee928161010a89",
     "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851"
    }
   },
   {
-   "key": "func LocationFinder.requestAuthorizationOnMainActor()",
-   "hash": "c19dcc24b180a658",
-   "does": "On the main actor, reuses or creates the retained static CLLocationManager and calls requestWhenInUseAuthorization().",
+   "key": "func LocationFinder.mainThreadManager()",
+   "hash": "7a5872aab37e0f1d",
+   "does": "On the main actor, returns the retained authorizationManager, creating and storing a CLLocationManager on first use.",
    "entry": null,
-   "calls": [
-    "ext:CLLocationManager.requestWhenInUseAuthorization"
-   ],
+   "calls": [],
    "reads": [
     "mem:LocationFinder.authorizationManager"
    ],
@@ -258,13 +141,50 @@
    ],
    "branches": [
     {
-     "at": "+4",
-     "cond": "authorizationManager ?? CLLocationManager()",
-     "effect": "reuse existing manager, else create one"
+     "at": "+1",
+     "cond": "?? — no manager yet",
+     "effect": "create one"
     }
    ],
    "flags": [],
    "deps": {}
+  },
+  {
+   "key": "func LocationFinder.locationAuthorizationStatus()",
+   "hash": "6137c5639e5fca4f",
+   "does": "On the main actor, the retained manager's authorizationStatus.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.mainThreadManager()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.mainThreadManager()": "c1b2bcc142dd9850"
+   }
+  },
+  {
+   "key": "func LocationFinder.requestAuthorizationOnMainActor()",
+   "hash": "07b584dfcbc537e1",
+   "does": "On the main actor, calls requestWhenInUseAuthorization() on the retained manager (mainThreadManager).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.mainThreadManager()",
+    "ext:CLLocationManager.requestWhenInUseAuthorization"
+   ],
+   "reads": [
+    "mem:LocationFinder.authorizationManager"
+   ],
+   "writes": [
+    "mem:LocationFinder.authorizationManager"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.mainThreadManager()": "c1b2bcc142dd9850"
+   }
   },
   {
    "key": "func LocationFinder.firstUsableLocation(timeoutSec:)",
@@ -310,19 +230,20 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.firstUsableLiveFix()": "17423f35ed972a63",
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.firstUsableLiveFix()": "7211f3f5c2fa0a0b",
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.cancelAll()": "be8542994382987c",
     "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
    }
   },
   {
    "key": "func LocationFinder.firstUsableLiveFix()",
-   "hash": "d7c80e660058e8b4",
-   "does": "Iterates CLLocationUpdate.liveUpdates() and returns the first update whose location has horizontalAccuracy >= 0; throws noFix if the stream ends.",
+   "hash": "243f0ff1a44df1e9",
+   "does": "Iterates CLLocationUpdate.liveUpdates() and returns the first update whose location isUsable (accuracy 0…200 m, at most 60 s old); throws noFix if the stream ends.",
    "entry": null,
    "calls": [
     "ext:CLLocationUpdate.liveUpdates",
-    "ext:Task.checkCancellation"
+    "ext:Task.checkCancellation",
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.isUsable(_:)"
    ],
    "reads": [],
    "writes": [],
@@ -334,82 +255,25 @@
     },
     {
      "at": "+3",
-     "cond": "update.location exists and accuracy >= 0",
+     "cond": "location present and usable",
      "effect": "false: continue; true: return location"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Accepts the first fix with any non-negative accuracy and any age: a coarse (hundreds of m) or cached first update is returned as \"usable\", and DetailedFix callers that only use the coordinate do not check accuracy.",
-     "evidence": [
-      "Emuqu/Sources/Services/LocationFinder.swift:173",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift:529-532"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
-  },
-  {
-   "key": "func LocationFinder.reverseGeocode(_:)",
-   "hash": "27a4c4c139b30460",
-   "does": "Reverse-geocodes on the main actor through RoadGeocodingService.reverseGeocodeQueued and maps the placemark (or nil) into a RoadContext with observedAt = now and the fix coordinate; all fields nil when geocoding failed.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.roadGeocodingService",
-    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.reverseGeocodeQueued(_:)"
-   ],
-   "reads": [
-    "net:Apple CLGeocoder"
-   ],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "A failed geocode yields a RoadContext with every name field nil rather than an error (LookupError.geocodeFailed exists but is unused), so callers cannot tell \"no network\" from \"no road here\".",
-     "evidence": [
-      "Emuqu/Sources/Services/LocationFinder.swift:183-200",
-      "Emuqu/Sources/Services/LocationFinder.swift:208"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.reverseGeocodeQueued(_:)": "1f10f2d613cc85f5",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "236ffadb120d332c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.roadGeocodingService": "ee10887ea28ab419"
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.isUsable(_:)": "edaa91ae9db3ede8"
    }
   },
   {
-   "key": "init LocationFinder()",
-   "hash": "674bab61d8ff17db",
-   "does": "Private NSObject init for the singleton; no state.",
-   "entry": "static let shared lazy initialization",
+   "key": "func LocationFinder.isUsable(_:)",
+   "hash": "dbd6ca2d5fc9771d",
+   "does": "True when horizontal accuracy is within 0…maxUsableAccuracyMeters (200 m) and the fix is no older than maxUsableAgeSeconds (60 s).",
+   "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "LocationFinder.shared (the only caller of this init) is reached only through LocationServices.locationFinder, which nothing reads (grep '\\.locationFinder' finds only the AppDependencies declarations), and every LocationFinder behaviour is a static nonisolated method; the instance, the singleton and the override slot are unused.",
-     "evidence": [
-      "Emuqu/Sources/Services/LocationFinder.swift:23",
-      "Emuqu/Sources/Services/LocationFinder.swift:233-235",
-      "Emuqu/Sources/Utilities/AppDependencies.swift:596-599",
-      "Emuqu/Sources/Utilities/AppDependencies.swift:273-276"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {}
   }
  ],

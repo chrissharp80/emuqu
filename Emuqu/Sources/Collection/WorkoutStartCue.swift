@@ -151,6 +151,11 @@ enum WorkoutStartCue {
     ///
     /// Speak via SafeObjC shim. NSException from
     /// a degraded speech daemon would otherwise crash the app.
+    ///
+    /// The voice lookup is a blocking call that cancellation cannot
+    /// interrupt, so cancellation is checked once it returns: when the
+    /// watchdog has already given up on the cue, it is skipped rather than
+    /// spoken late.
     private static func buildAndSpeakStartUtterance(
         phrase: String,
         lang: String,
@@ -158,11 +163,12 @@ enum WorkoutStartCue {
         releaser: CueAudioSessionReleaser
     ) async {
         let s0 = Date()
-        let utterance = AVSpeechUtterance(string: phrase)
-        utterance.rate = AVSpeechUtteranceDefaultSpeechRate
-        utterance.voice = Self.cachedCompactVoice(forLanguage: lang)
-        utterance.volume = 0.9
+        let utterance = makeStartUtterance(phrase: phrase, lang: lang)
         let s1 = Date()
+        guard !Task.isCancelled else {
+            debugLog("[announceStart] voice prep outran the watchdog (\(Int(s1.timeIntervalSince(s0) * 1000))ms) — cue skipped, not spoken late")
+            return
+        }
         releaser.track(utterance, token: audio.beginCue())
         var speakErr: NSError?
         let speakOK = FRSafeSpeak(announceSynthesizer, utterance, &speakErr)
@@ -177,6 +183,14 @@ enum WorkoutStartCue {
         debugLog("[announceStart] off-main utter+voice=\(voiceMs)ms speak.queue=\(speakMs)ms")
     }
 
+    private static func makeStartUtterance(phrase: String, lang: String) -> AVSpeechUtterance {
+        let utterance = AVSpeechUtterance(string: phrase)
+        utterance.rate = AVSpeechUtteranceDefaultSpeechRate
+        utterance.voice = Self.cachedCompactVoice(forLanguage: lang)
+        utterance.volume = 0.9
+        return utterance
+    }
+
     /// Wall-clock watchdog. The user's haptic + chime
     /// ALREADY fired by the time we're here. If the speech daemon
     /// is degraded (phone-call interruption recovery, route change,
@@ -187,9 +201,11 @@ enum WorkoutStartCue {
     /// A beta tester log showed 11.5 s of this
     /// path stalling and being perceived as "took forever."
     ///
-    /// Fire-and-forget: the synthesizer's own queue still picks up the
-    /// utterance if the daemon recovers later; if not, the user got the
-    /// haptic + chime which is the actually-important feedback.
+    /// The cancel it sends is honoured once the stalled voice lookup returns
+    /// (`buildAndSpeakStartUtterance` skips the cue then); a stall inside
+    /// the speak call itself cannot be stopped, and that utterance may still
+    /// play when the daemon recovers. Either way the user got the haptic +
+    /// chime, which is the actually-important feedback.
     ///
     /// A finished task is not cancelled, so completion is tracked on its own:
     /// only work still running at 800 ms is reported as stalled.
@@ -203,7 +219,7 @@ enum WorkoutStartCue {
             await sleepQuietly(800_000_000, context: "installAnnounceWatchdog")
             guard !finished.withLock({ $0 }), !announceWork.isCancelled else { return }
             announceWork.cancel()
-            debugLogExternal("[announceStart] the speech daemon didn't start inside 800 ms — started without the spoken cue; the haptic and chime already played", cause: .os)
+            debugLogExternal("[announceStart] the speech daemon didn't start inside 800 ms — the spoken cue is skipped unless it was already queued; the haptic and chime already played", cause: .os)
         }
     }
 

@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Utilities/Errors.swift",
- "hash": "d90e362650e094b1",
+ "hash": "5bbd5598c82ff0a1",
  "role": "Defines PipelineError (HRV analysis failure categories with log descriptions) and the attempt/sleepQuietly helpers that replace try? with a logged swallow.",
  "types": [
   "PipelineError: enum (Error, LocalizedError) — analysis pipeline failure kinds"
@@ -11,8 +11,8 @@
  "units": [
   {
    "key": "var PipelineError.errorDescription",
-   "hash": "4b0eb7933faec9e4",
-   "does": "Returns a short English description per PipelineError case with the session UUID's first 8 chars.",
+   "hash": "8231f9c9c1a24e45",
+   "does": "Returns a short English description per PipelineError case with the session UUID's first 8 chars; healthKitFetchFailed appends the underlying error's localizedDescription.",
    "entry": "LocalizedError witness; read via error.localizedDescription in HRVAnalysisPipeline+Metrics.swift:134",
    "calls": [],
    "reads": [],
@@ -40,43 +40,16 @@
     },
     {
      "at": "+10",
-     "cond": "noRecoveryWindow",
-     "effect": "'No recovery window found …'"
-    },
-    {
-     "at": "+12",
      "cond": "insufficientRange",
      "effect": "'Invalid window range …'"
     },
     {
-     "at": "+14",
+     "at": "+12",
      "cond": "healthKitFetchFailed",
-     "effect": "'Apple Health <op> failed …' (underlying error dropped)"
+     "effect": "'Apple Health <op> failed for session …: <underlying.localizedDescription>'"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "PipelineError.noRecoveryWindow is never constructed anywhere in the repo (its only occurrence is this case), so this description is unreachable.",
-     "evidence": [
-      "Emuqu/Sources/Utilities/Errors.swift:25",
-      "Emuqu/Sources/Utilities/Errors.swift:11"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "healthKitFetchFailed's description discards the associated `underlying` error, and logPipelineError logs only error.localizedDescription, so a HealthKit daytime-resting-HR fetch failure is logged as 'Apple Health daytimeRestingHR failed …' with no reason (auth denied, protected data, etc.).",
-     "evidence": [
-      "Emuqu/Sources/Utilities/Errors.swift:29",
-      "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift:72",
-      "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift:134"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {

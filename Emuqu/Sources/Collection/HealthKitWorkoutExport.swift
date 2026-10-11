@@ -16,9 +16,12 @@ import HealthKit
 // initialiser is deprecated. The builder pattern also lets us add sample
 // types incrementally without re-constructing the workout on each field.
 //
-// Energy calculation: uses the same METs × 3.5 × kg × min / 200 formula
-// that the post-summary shows, with the user's real body weight from
-// settings. Reference: Ainsworth 2011, Compendium of Physical Activities.
+// Energy calculation: the METs × 3.5 × kg × min / 200 formula the
+// post-summary also uses, with the user's real body weight from settings,
+// applied tick interval by tick interval (ticks without METs add nothing).
+// The post-summary card applies it once to the average METs over the active
+// time, so the two totals can differ when ticks lack METs or have gaps.
+// Reference: Ainsworth 2011, Compendium of Physical Activities.
 
 enum HealthKitWorkoutExport {
     /// Save a finished workout to HealthKit. Idempotent only by caller —
@@ -223,7 +226,10 @@ enum HealthKitWorkoutExport {
     /// rather than adding erg metres to Walking + Running Distance.
     ///
     /// The ticks are taken in time order, so each sample's span runs forwards
-    /// even when a merged or recovered list arrives out of order.
+    /// even when a merged or recovered list arrives out of order. A span
+    /// starts where the last written delta ended (the workout start before
+    /// the first), so a delta that built up over ticks that did not advance
+    /// covers all of them, not just the last tick interval.
     /// `delta.isFinite` defends against the (unlikely) case where
     /// dist arithmetic produces an infinity. NaN already short-circuits on
     /// `dist > lastDistance` (NaN > x is always false).
@@ -234,20 +240,20 @@ enum HealthKitWorkoutExport {
     ) -> [HKQuantitySample] {
         guard let distanceTypeId = distanceType(for: sport),
               let distType = HKQuantityType.quantityType(forIdentifier: distanceTypeId) else { return [] }
-        let ordered = inTimeOrder(samples)
         var lastDistance: Double = 0
+        var spanStart = 0
         var out: [HKQuantitySample] = []
-        for (idx, s) in ordered.enumerated() {
+        for s in inTimeOrder(samples) {
             guard let dist = s.distanceMeters, dist > lastDistance else { continue }
             let delta = dist - lastDistance
             guard delta.isFinite, delta > 0 else { continue }
             lastDistance = dist
-            let prevOffset = idx > 0 ? TimeInterval(ordered[idx - 1].offsetSec) : 0
             let sample = HealthSampleFactory.quantitySample(
                 type: distType, value: delta, unit: .meter(),
-                start: startDate.addingTimeInterval(prevOffset),
+                start: startDate.addingTimeInterval(TimeInterval(spanStart)),
                 end: startDate.addingTimeInterval(TimeInterval(s.offsetSec))
             )
+            spanStart = s.offsetSec
             if let sample { out.append(sample) }
         }
         return out
@@ -277,7 +283,8 @@ enum HealthKitWorkoutExport {
         var out: [HKQuantitySample] = []
         for (idx, s) in ordered.enumerated() {
             guard let mets = s.mets, mets > 0, mets.isFinite else { continue }
-            let prevOffset = idx > 0 ? ordered[idx - 1].offsetSec : s.offsetSec
+            // The first tick covers the time since the workout began.
+            let prevOffset = idx > 0 ? ordered[idx - 1].offsetSec : 0
             let durationSec = max(1, s.offsetSec - prevOffset)
             let minutes = Double(durationSec) / 60.0
             let kcal = (mets * mlOxygenPerKgPerMET * bodyWeightKg * minutes) / mlOxygenPerKcal

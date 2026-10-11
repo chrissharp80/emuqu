@@ -51,7 +51,7 @@
   {
    "key": "func FactNumericArgument.integer(_:)",
    "hash": "f9503ec115afa6e4",
-   "does": "Parses via value(_:) then converts with Int(exactly:); throws if not exactly representable.",
+   "does": "Parses via value(_:) then converts with Int(exactly:), the non-trapping unwrap; for the integral parameters every caller uses, value(_:) has already rejected fractions and bounded the range, so the throw only fires if called on a non-integral parameter (as its doc says).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.value(_:)",
@@ -66,22 +66,7 @@
      "effect": "throws FactArgumentError '<name> must be <requirement>' (unreachable for integral params since value() already rejected fractions and ranges are ≤100000)"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "The Int(exactly:) guard at line 42 cannot fail for any caller: integer(_:) is only called on integral parameters (ordinal, maxResults, lookbackSeconds, horizonDays), whose value(_:) already rejected fractions and bounded the value to at most 100000.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift:42",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift:50",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift:302",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift:158",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift:333",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift:339"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.value(_:)": "8034cd0f43244764",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::var FactNumericArgument.requirement": "68810af19e59c85b"

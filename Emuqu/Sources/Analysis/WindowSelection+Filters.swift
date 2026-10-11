@@ -4,8 +4,17 @@ import Foundation
 
 extension WindowSelector {
     /// Filter out isolated spikes: windows whose RMSSD is ≥50% higher than BOTH neighbors.
-    /// Edge windows (first/last) are never classified as spikes.
+    /// Edge windows (first/last) are never classified as spikes, so a
+    /// non-empty input always leaves a non-empty result.
     /// Threshold lives on `WindowSelector.Config.isolatedSpikeRatio`.
+    ///
+    /// "Neighbours" are the adjacent SURVIVING windows of the scan, not grid
+    /// positions. Grid-adjacent windows overlap (step ≤ half a window), share
+    /// most of their successive differences, and so practically never differ
+    /// by 1.5×: in practice the filter fires on a window whose grid neighbours
+    /// were rejected by the artifact or clean-beat gates — a clean stretch
+    /// standing alone between rejected ones, compared with the nearest clean
+    /// windows on either side.
     func filterIsolatedSpikes(_ windows: [ScoredRecoveryBlock]) -> (sustained: [ScoredRecoveryBlock], rejectedCount: Int) {
         var sustained: [ScoredRecoveryBlock] = []
         var rejectedCount = 0
@@ -30,87 +39,9 @@ extension WindowSelector {
             && windows[i].rmssd >= next * config.isolatedSpikeRatio
     }
 
-    // MARK: - Ectopic Beat Filtering
-
-    /// Filter ectopic beats using 20% deviation from local median.
-    /// Based on research: PMC3268104, Kubios methodology.
-    /// Single beats that deviate >20% from surrounding median are filtered.
-    ///
-    /// Uses an insertion-sorted sliding window: O(n * w) total — each step
-    /// removes one element and inserts one via binary search, avoiding a
-    /// full re-sort per position.
-    func filterEctopicBeats(_ rrValues: [Double]) -> [Double] {
-        zip(rrValues, ectopicKeepMask(rrValues)).filter { $0.1 }.map { $0.0 }
-    }
-
-    /// Per beat, whether `filterEctopicBeats` keeps it. Every beat is kept
-    /// when there are too few to form a local median.
-    func ectopicKeepMask(_ rrValues: [Double]) -> [Bool] {
-        guard rrValues.count > config.localMedianWindow else { return Array(repeating: true, count: rrValues.count) }
-        let halfWindow = config.localMedianWindow / 2
-        var kept: [Bool] = []
-        kept.reserveCapacity(rrValues.count)
-        var sorted: [Double] = []
-        sorted.reserveCapacity(config.localMedianWindow + 2)
-        // Bootstrap the window centred on position 0.
-        for j in 0 ..< min(rrValues.count, halfWindow + 1) {
-            sorted.insert(rrValues[j], at: sorted.sortedInsertionIndex(of: rrValues[j]))
-        }
-        for i in 0 ..< rrValues.count {
-            if i > 0 { slideWindow(&sorted, values: rrValues, to: i, halfWindow: halfWindow) }
-            kept.append(keepsBeat(rrValues[i], window: sorted))
-        }
-        return kept
-    }
-
-    /// Advances the sorted window one position: the beat entering on the right
-    /// is inserted, the one leaving on the left removed.
-    private func slideWindow(_ sorted: inout [Double], values: [Double], to i: Int, halfWindow: Int) {
-        let newRight = i + halfWindow
-        if newRight < values.count {
-            sorted.insert(values[newRight], at: sorted.sortedInsertionIndex(of: values[newRight]))
-        }
-        let oldLeft = i - halfWindow - 1
-        if oldLeft >= 0, let idx = sorted.sortedFirstIndex(of: values[oldLeft]) {
-            sorted.remove(at: idx)
-        }
-    }
-
-    /// Whether the beat is within the ectopic threshold of its local median.
-    /// The median excludes the beat itself so a wild value can't drag the
-    /// reference toward itself and survive.
-    private func keepsBeat(_ rr: Double, window sorted: [Double]) -> Bool {
-        let localMedian = medianExcluding(sorted, value: rr)
-        guard localMedian > 0 else { return true }
-        return abs(rr - localMedian) / localMedian <= config.ectopicThresholdPercent
-    }
-
-    // MARK: - Sliding Window Helpers
-
-    /// Median of a sorted array, excluding one occurrence of `value`.
-    /// Computes in-place without allocating a temporary array.
-    private func medianExcluding(_ sorted: [Double], value: Double) -> Double {
-        let n = sorted.count
-        guard n > 1 else { return 0 }
-        let skipIdx = sorted.firstIndex(of: value) ?? -1
-        let effectiveCount = skipIdx >= 0 ? n - 1 : n
-        guard effectiveCount > 0 else { return 0 }
-        let mid = effectiveCount / 2
-        guard effectiveCount.isMultiple(of: 2) else {
-            return sorted[Self.realIndex(mid, skipping: skipIdx)]
-        }
-        return (sorted[Self.realIndex(mid - 1, skipping: skipIdx)]
-            + sorted[Self.realIndex(mid, skipping: skipIdx)]) / 2.0
-    }
-
-    /// Maps a logical index in the "skipped" view onto the real array index.
-    private static func realIndex(_ logical: Int, skipping skipIdx: Int) -> Int {
-        guard skipIdx >= 0 else { return logical }
-        return logical < skipIdx ? logical : logical + 1
-    }
-
     /// RMSSD over successive differences between beats that are ADJACENT in
-    /// the original series (`index`), both kept by the ectopic gate, and not
+    /// the original series (`index`), both kept by the ectopic gate
+    /// (`TimeDomainAnalyzer.ectopicKeepMask`), and not
     /// separated by a recording break (`breaks`: indices whose beat follows
     /// one, `TimeDomainAnalyzer.isRecordingBreak`). The
     /// Task Force definition is the difference between adjacent NN intervals;
@@ -142,21 +73,13 @@ extension WindowSelector {
 
     // MARK: - Legacy API (for compatibility)
 
+    /// `findBestWindow` with only a wake time. Kept for the window-selection
+    /// tests, its only callers.
     func selectRecoveryWindow(
         series: RRSeries,
         flags: [ArtifactFlags],
         wakeTimeMs: Int64
     ) -> RecoveryWindow? {
         findBestWindow(in: series, flags: flags, wakeTimeMs: wakeTimeMs)
-    }
-
-    func selectRecoveryWindow(
-        series: RRSeries,
-        flags: [ArtifactFlags],
-        sessionStart: Date,
-        wakeTime: Date
-    ) -> RecoveryWindow? {
-        let wakeTimeMs = MillisecondOffset.between(wakeTime, and: sessionStart, fallback: 0)
-        return findBestWindow(in: series, flags: flags, wakeTimeMs: wakeTimeMs)
     }
 }

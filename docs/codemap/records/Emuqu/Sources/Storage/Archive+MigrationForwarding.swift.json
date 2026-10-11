@@ -40,35 +40,6 @@
    }
   },
   {
-   "key": "func SessionArchive.removeDuplicates()",
-   "hash": "45d5f847c10fa0b9",
-   "does": "Forwards to ArchiveMigrations.removeDuplicates.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::var SessionArchive.migrations",
-    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.removeDuplicates()"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No caller anywhere in the repo (grep 'removeDuplicates' finds only this forwarder and ArchiveMigrations' own call at Archive+Migrations.swift:42).",
-     "evidence": [
-      "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift:15",
-      "Emuqu/Sources/Storage/Archive+Migrations.swift:42"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::var SessionArchive.migrations": "8fbbd31fd70aeb5e",
-    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.removeDuplicates()": "6cc361fb8ad878b5"
-   }
-  },
-  {
    "key": "func SessionArchive.relinkSameNightSessions()",
    "hash": "d8f3bacb72d8e4fa",
    "does": "Forwards to ArchiveMigrations.relinkSameNightSessions.",
@@ -148,7 +119,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "cc7339a6e88ee7d0"
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "a1dfa152efbfbd25"
    }
   }
  ],

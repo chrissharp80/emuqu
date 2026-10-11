@@ -90,24 +90,27 @@ extension ReportSectionRenderer {
         return demographicParts
     }
 
-    func drawSummaryCard(result: HRVAnalysisResult, ans: ANSMetrics?, compositeScore: Double? = nil, yPosition: CGFloat, in context: UIGraphicsPDFRendererContext, pageRect: CGRect) -> CGFloat {
+    /// `baselineRMSSD` is the user's own baseline (the one the score and the
+    /// report's summary rate HRV against); nil before there is one.
+    func drawSummaryCard(result: HRVAnalysisResult, ans: ANSMetrics?, compositeScore: Double? = nil, baselineRMSSD: Double?, yPosition: CGFloat, in context: UIGraphicsPDFRendererContext, pageRect: CGRect) -> CGFloat {
         let contentWidth = pageRect.width - config.margins.left - config.margins.right
-        var y = drawSummaryHero(result: result, ans: ans, compositeScore: compositeScore, y: yPosition, contentWidth: contentWidth, in: context)
+        let rating = heroHRVRating(result.timeDomain.rmssd, baselineRMSSD: baselineRMSSD)
+        var y = drawSummaryHero(result: result, rating: rating, ans: ans, compositeScore: compositeScore, y: yPosition, contentWidth: contentWidth, in: context)
         y = drawSummaryHRStats(result: result, y: y, contentWidth: contentWidth)
         return y
     }
 
     /// The big RMSSD number, its assessment badge and age context, with the
     /// readiness gauge on the right.
-    private func drawSummaryHero(result: HRVAnalysisResult, ans: ANSMetrics?, compositeScore: Double?, y: CGFloat, contentWidth: CGFloat, in context: UIGraphicsPDFRendererContext) -> CGFloat {
+    private func drawSummaryHero(result: HRVAnalysisResult, rating: HeroHRVRating, ans: ANSMetrics?, compositeScore: Double?, y: CGFloat, contentWidth: CGFloat, in context: UIGraphicsPDFRendererContext) -> CGFloat {
         var y = y
         // Large HRV Hero Section
         let heroHeight: CGFloat = 90
         let heroRect = CGRect(x: config.margins.left, y: y, width: contentWidth, height: heroHeight)
         UIColor(white: 0.97, alpha: 1.0).setFill()
         UIBezierPath(roundedRect: heroRect, cornerRadius: 10).fill()
-        drawHeroRMSSDValue(result: result, y: y, heroRect: heroRect)
-        drawHeroAssessment(result: result, y: y)
+        drawHeroRMSSDValue(result: result, color: hrvCategoryColor(rating.category), y: y)
+        drawHeroAssessment(rating, y: y)
         // Readiness gauge on the right side — prefer composite score (includes sleep/training/vitals)
         let gaugeScore: Double? = compositeScore.map { $0 / 10.0 } ?? ans?.readinessScore
         if let readiness = gaugeScore {
@@ -120,11 +123,11 @@ extension ReportSectionRenderer {
 
     /// The big RMSSD number with "ms" after it. The pair keeps its
     /// left-to-right order on a mirrored page, as "45 ms" does inside a line.
-    private func drawHeroRMSSDValue(result: HRVAnalysisResult, y: CGFloat, heroRect: CGRect) {
+    private func drawHeroRMSSDValue(result: HRVAnalysisResult, color: UIColor, y: CGFloat) {
         let rmssd = result.timeDomain.rmssd
         let rmssdValueAttr: [NSAttributedString.Key: Any] = [
             .font: UIFont.systemFont(ofSize: 48, weight: .bold),
-            .foregroundColor: hrvScoreColor(rmssd)
+            .foregroundColor: color
         ]
         let unitAttr: [NSAttributedString.Key: Any] = [
             .font: UIFont.systemFont(ofSize: 16, weight: .medium),
@@ -140,17 +143,19 @@ extension ReportSectionRenderer {
         }
     }
 
-    /// "HRV (RMSSD)" caption plus the assessment badge and age-context line.
-    private func drawHeroAssessment(result: HRVAnalysisResult, y: CGFloat) {
-        let rmssd = result.timeDomain.rmssd
+    /// "HRV (RMSSD)" caption plus the assessment badge and, for the
+    /// population band, the age-context phrase just after the badge.
+    private func drawHeroAssessment(_ rating: HeroHRVRating, y: CGFloat) {
         // HRV label and assessment
         let hrvLabelAttr: [NSAttributedString.Key: Any] = [
             .font: config.captionFont,
             .foregroundColor: UIColor.gray
         ]
         String(localized: "HRV (RMSSD)", bundle: LanguageManager.appBundle).pdfDraw(at: CGPoint(x: config.margins.left + 20, y: y + 68), withAttributes: hrvLabelAttr)
-        drawHeroBadge(rmssd: rmssd, y: y)
-        drawHeroAgeContext(rmssd: rmssd, y: y)
+        let badgeMaxX = drawHeroBadge(rating.category, y: y)
+        if let ageContext = rating.ageContext {
+            drawHeroAgeContext(ageContext, x: badgeMaxX + 8, y: y)
+        }
     }
 
     /// Where the assessment badge starts: 85 pt in, or after the "HRV (RMSSD)"
@@ -161,10 +166,12 @@ extension ReportSectionRenderer {
         return config.margins.left + max(85, 20 + ceil(labelWidth) + 8)
     }
 
-    private func drawHeroBadge(rmssd: Double, y: CGFloat) {
-        let rmssdColor = hrvScoreColor(rmssd)
+    /// The assessment badge; returns its right edge so the age phrase can
+    /// follow the badge as drawn.
+    private func drawHeroBadge(_ category: RMSSDCategory, y: CGFloat) -> CGFloat {
+        let rmssdColor = hrvCategoryColor(category)
         // Assessment badge
-        let assessment = hrvScoreLabel(rmssd)
+        let assessment = category.localizedLabel
         let badgeAttr: [NSAttributedString.Key: Any] = [
             .font: UIFont.systemFont(ofSize: 9, weight: .semibold),
             .foregroundColor: rmssdColor
@@ -174,24 +181,16 @@ extension ReportSectionRenderer {
         rmssdColor.withAlphaComponent(0.15).setFill()
         UIBezierPath(roundedRect: badgeRect, cornerRadius: 8).fill()
         assessment.pdfDraw(at: CGPoint(x: badgeRect.minX + 6, y: y + 68), withAttributes: badgeAttr)
+        return badgeRect.maxX
     }
 
-    private func drawHeroAgeContext(rmssd: Double, y: CGFloat) {
-        let assessment = hrvScoreLabel(rmssd)
-        let badgeAttr: [NSAttributedString.Key: Any] = [
-            .font: UIFont.systemFont(ofSize: 8, weight: .semibold),
-            .foregroundColor: UIColor.white
+    /// Age context (e.g. "Above average for your age") at `x`.
+    private func drawHeroAgeContext(_ ageContext: String, x: CGFloat, y: CGFloat) {
+        let contextAttr: [NSAttributedString.Key: Any] = [
+            .font: UIFont.systemFont(ofSize: 8, weight: .regular),
+            .foregroundColor: UIColor.gray
         ]
-        let badgeSize = assessment.size(withAttributes: badgeAttr)
-        let badgeRect = CGRect(x: heroBadgeX, y: y + 66, width: badgeSize.width + 12, height: 14)
-        // Age context (e.g., "above average for your age")
-        if let ageContext = hrvAgeContext(rmssd) {
-            let contextAttr: [NSAttributedString.Key: Any] = [
-                .font: UIFont.systemFont(ofSize: 8, weight: .regular),
-                .foregroundColor: UIColor.gray
-            ]
-            ageContext.pdfDraw(at: CGPoint(x: badgeRect.maxX + 8, y: y + 68), withAttributes: contextAttr)
-        }
+        ageContext.pdfDraw(at: CGPoint(x: x, y: y + 68), withAttributes: contextAttr)
     }
 
     private func drawSummaryHRStats(result: HRVAnalysisResult, y: CGFloat, contentWidth: CGFloat) -> CGFloat {
@@ -209,18 +208,21 @@ extension ReportSectionRenderer {
             (String(localized: "Max HR", bundle: LanguageManager.appBundle), String(format: "%.0f bpm", locale: LanguageManager.appLocale, result.timeDomain.maxHR), UIColor(red: 0.8, green: 0.4, blue: 0.5, alpha: 1)),
             ("SDNN", String(format: "%.1f ms", locale: LanguageManager.appLocale, result.timeDomain.sdnn), config.primaryColor)
         ]
-        drawHRStatBoxes(hrStats, y: y, boxWidth: boxWidth, statsHeight: statsHeight)
+        drawStatBoxRow(hrStats, y: y + 6, boxWidth: boxWidth, boxHeight: statsHeight - 12)
         return y + statsHeight + 15
     }
 
-    private func drawHRStatBoxes(_ hrStats: [(String, String, UIColor)], y: CGFloat, boxWidth: CGFloat, statsHeight: CGFloat) {
-        for (i, stat) in hrStats.enumerated() {
+    /// One row of evenly-spaced compact stat boxes from the left margin, each
+    /// inset 4 pt; an empty title leaves its column blank. The one copy of
+    /// this loop: the generator's sleep, training and vitals rows use it too.
+    func drawStatBoxRow(_ items: [(String, String, UIColor)], y: CGFloat, boxWidth: CGFloat, boxHeight: CGFloat) {
+        for (i, stat) in items.enumerated() where !stat.0.isEmpty {
             let boxX = config.margins.left + CGFloat(i) * boxWidth
             drawCompactStatBox(
                 title: stat.0,
                 value: stat.1,
                 color: stat.2,
-                rect: CGRect(x: boxX + 4, y: y + 6, width: boxWidth - 8, height: statsHeight - 12)
+                rect: CGRect(x: boxX + 4, y: y, width: boxWidth - 8, height: boxHeight)
             )
         }
     }
@@ -301,8 +303,26 @@ extension ReportSectionRenderer {
         return AgeAdjustedHRV.interpret(rmssd: rmssd, age: settings.age, sex: sex)
     }
 
-    func hrvScoreColor(_ rmssd: Double) -> UIColor {
-        switch ageAdjustedInterpretation(rmssd).category {
+    /// How the hero rates tonight's RMSSD, and the age phrase that goes with it.
+    struct HeroHRVRating {
+        let category: RMSSDCategory
+        /// Only for the population band; a personal rating has no age phrase.
+        let ageContext: String?
+    }
+
+    /// Against the user's own baseline once there is one — the bands the
+    /// report's summary and Today use (`AnalysisSummaryGenerator.personalCategory`)
+    /// — and by age and sex before that.
+    func heroHRVRating(_ rmssd: Double, baselineRMSSD: Double?) -> HeroHRVRating {
+        if let baseline = baselineRMSSD, baseline > 0 {
+            return HeroHRVRating(category: AnalysisSummaryGenerator.personalCategory(ratio: rmssd / baseline), ageContext: nil)
+        }
+        let interpretation = ageAdjustedInterpretation(rmssd)
+        return HeroHRVRating(category: interpretation.category, ageContext: interpretation.localizedAgeContext)
+    }
+
+    func hrvCategoryColor(_ category: RMSSDCategory) -> UIColor {
+        switch category {
         case .excellent: config.secondaryColor
         case .good: config.secondaryColor.withAlphaComponent(0.8)
         case .fair: UIColor(red: 0.85, green: 0.65, blue: 0.2, alpha: 1)
@@ -311,39 +331,14 @@ extension ReportSectionRenderer {
         }
     }
 
-    func hrvScoreLabel(_ rmssd: Double) -> String {
-        ageAdjustedInterpretation(rmssd).localizedLabel
-    }
-
-    /// Age context for PDF reports, in the app language and sentence case.
-    func hrvAgeContext(_ rmssd: Double) -> String? {
-        ageAdjustedInterpretation(rmssd).localizedAgeContext
-    }
-
-    /// Readiness color aligned with RecoveryScoreCalculator.readinessLabel tiers (7.0/4.5/2.0)
+    /// Readiness color on the readiness-label tiers
+    /// (`RecoveryScoreConstants.ReadinessLabels`: Ready / Moderate / Fatigued / Rest).
     func readinessColor(_ score: Double) -> UIColor {
-        if score >= 7.0 { return config.secondaryColor }
-        if score >= 4.5 { return UIColor(red: 0.85, green: 0.65, blue: 0.2, alpha: 1) }
-        if score >= 2.0 { return config.accentColor }
+        let tiers = RecoveryScoreConstants.ReadinessLabels.self
+        if score >= tiers.readyThreshold { return config.secondaryColor }
+        if score >= tiers.moderateThreshold { return UIColor(red: 0.85, green: 0.65, blue: 0.2, alpha: 1) }
+        if score >= tiers.fatiguedThreshold { return config.accentColor }
         return UIColor(red: 0.76, green: 0.42, blue: 0.42, alpha: 1)
-    }
-
-    func drawSummaryBox(title: String, value: String, color: UIColor, rect: CGRect) {
-        // Value
-        let valueAttributes: [NSAttributedString.Key: Any] = [
-            .font: UIFont.systemFont(ofSize: 20, weight: .bold),
-            .foregroundColor: color
-        ]
-        let valueRect = CGRect(x: rect.minX, y: rect.minY, width: rect.width, height: 28)
-        value.pdfDraw(in: valueRect, withAttributes: valueAttributes)
-
-        // Title
-        let titleAttributes: [NSAttributedString.Key: Any] = [
-            .font: config.captionFont,
-            .foregroundColor: UIColor.gray
-        ]
-        let titleRect = CGRect(x: rect.minX, y: rect.minY + 30, width: rect.width, height: 14)
-        title.pdfDraw(in: titleRect, withAttributes: titleAttributes)
     }
 
     // MARK: - Metric Sections
@@ -593,7 +588,7 @@ extension ReportSectionRenderer {
     /// Height of one factor row; the loop advances by it and the row draws to it.
     private static let factorRowHeight: CGFloat = 38
 
-    /// Colour for a factor's impact — green helping, red hurting, grey neutral.
+    /// Colour for a factor's impact — green helping, red hurting, yellow neutral.
     /// One definition; the dot and the bar fill both read from it.
     private func factorImpactColour(_ impact: RecoveryScoreCalculator.ScoreFactor.Impact) -> UIColor {
         switch impact {
@@ -657,19 +652,41 @@ extension ReportSectionRenderer {
         breakdown: RecoveryScoreCalculator.ScoreBreakdown, loadLevel: TrainingAdviceGate.LoadLevel?,
         y: CGFloat, contentWidth: CGFloat
     ) -> CGFloat {
+        let layout = compositeMessageLayout(breakdown: breakdown, loadLevel: loadLevel, contentWidth: contentWidth)
+        let top = y + Self.compositeBadgeHeight + 4
+        layout.message.pdfDraw(in: CGRect(x: config.margins.left + 8, y: top, width: contentWidth - 16, height: layout.height), withAttributes: layout.attributes)
+        return top + layout.height + 8
+    }
+
+    /// The verdict message, its style and its wrapped height at the width
+    /// drawCompositeMessage draws it.
+    private func compositeMessageLayout(
+        breakdown: RecoveryScoreCalculator.ScoreBreakdown, loadLevel: TrainingAdviceGate.LoadLevel?, contentWidth: CGFloat
+    ) -> (message: String, attributes: [NSAttributedString.Key: Any], height: CGFloat) {
         let msgAttr: [NSAttributedString.Key: Any] = [
             .font: UIFont.systemFont(ofSize: 9),
             .foregroundColor: UIColor.darkGray
         ]
         let message = ScoreBreakdownCopy.message(for: breakdown, loadLevel: loadLevel)
-        let width = contentWidth - 16
         let bounds = message.boundingRect(
-            with: CGSize(width: width, height: .greatestFiniteMagnitude),
+            with: CGSize(width: contentWidth - 16, height: .greatestFiniteMagnitude),
             options: [.usesLineFragmentOrigin, .usesFontLeading], attributes: msgAttr, context: nil
         )
-        let top = y + Self.compositeBadgeHeight + 4
-        message.pdfDraw(in: CGRect(x: config.margins.left + 8, y: top, width: width, height: ceil(bounds.height)), withAttributes: msgAttr)
-        return top + ceil(bounds.height) + 8
+        return (message, msgAttr, ceil(bounds.height))
+    }
+
+    /// The height drawScoreBreakdownSection takes for this breakdown, so the
+    /// caller can start a new page before it instead of drawing the factor
+    /// rows over the footer. Mirrors each block's advance: heading 20, badge
+    /// and message, one row per factor, the penalty block, the math line, 8.
+    func scoreBreakdownHeight(
+        breakdown: RecoveryScoreCalculator.ScoreBreakdown, loadLevel: TrainingAdviceGate.LoadLevel?, contentWidth: CGFloat
+    ) -> CGFloat {
+        let message = compositeMessageLayout(breakdown: breakdown, loadLevel: loadLevel, contentWidth: contentWidth).height
+        let factors = CGFloat(breakdown.factors.count) * (Self.factorRowHeight + 4)
+        let penalties: CGFloat = breakdown.penalties.isEmpty ? 0 : 18 + CGFloat(breakdown.penalties.count) * 12 + 28
+        let mathLine: CGFloat = showsWeightedAverageNote(breakdown) ? 14 : 0
+        return 20 + Self.compositeBadgeHeight + 4 + message + 8 + factors + penalties + mathLine + 8
     }
 
     /// One horizontal bar per scoring factor, in the order the score uses them.
@@ -798,19 +815,26 @@ extension ReportSectionRenderer {
         ]).pdfDraw(in: explainRect)
     }
 
+    /// The math line appears when penalties applied and the composite sits
+    /// more than a point under the weighted average — the condition the
+    /// app's penalty message (`ScoreBreakdownCopy`) uses.
+    private func showsWeightedAverageNote(_ breakdown: RecoveryScoreCalculator.ScoreBreakdown) -> Bool {
+        !breakdown.penalties.isEmpty && breakdown.gapFromFactors > 1
+    }
+
     /// Transparency line: when vitals penalties took more than a point off the
     /// weighted average, say so rather than letting the bars look wrong. A gap
     /// with no penalty behind it (baseline drift) is not labelled "Vitals".
     private func drawWeightedAverageNote(breakdown: RecoveryScoreCalculator.ScoreBreakdown, y: CGFloat, contentWidth: CGFloat) -> CGFloat {
         var y = y
         // Weighted average vs final (transparency)
-        let weightedAvg = breakdown.factors.reduce(0.0) { $0 + $1.contribution }
-        if !breakdown.penalties.isEmpty, weightedAvg - breakdown.compositeScore > 1 {
+        if showsWeightedAverageNote(breakdown) {
             let mathAttr: [NSAttributedString.Key: Any] = [
                 .font: UIFont.monospacedSystemFont(ofSize: 8, weight: .regular),
                 .foregroundColor: UIColor.darkGray
             ]
-            let penaltyTotal = weightedAvg - breakdown.compositeScore
+            let penaltyTotal = breakdown.gapFromFactors
+            let weightedAvg = breakdown.compositeScore + penaltyTotal
             let mathStr = String(localized: "Weighted average: \(String(format: "%.1f", locale: LanguageManager.appLocale, weightedAvg))  −  Vitals: \(String(format: "%.1f", locale: LanguageManager.appLocale, penaltyTotal))  =  Final: \(String(format: "%.0f", locale: LanguageManager.appLocale, breakdown.compositeScore))", bundle: LanguageManager.appBundle)
             mathStr.pdfDraw(at: CGPoint(x: config.margins.left + 8, y: y), withAttributes: mathAttr)
             y += 14

@@ -204,8 +204,17 @@ final class StoreKitManager {
     /// a store build: a fresh review install has no sessions and so meets the
     /// customer's paywall. Debug builds are developer installs, and the UI
     /// suites seed history on purpose, so they skip it.
-    func grandfatherExistingUserIfNeeded(hasHistory: Bool, now: Date) {
+    ///
+    /// The look is recorded once and never repeated, so it is only taken when
+    /// the answer is known: `hasHistory` nil (the archive index could not be
+    /// read or decoded this launch) skips it, to be taken on a later launch,
+    /// rather than stamping a returning tester as having no history.
+    func grandfatherExistingUserIfNeeded(hasHistory: Bool?, now: Date) {
         guard !Self.isDebugBuild else { return }
+        guard let hasHistory else {
+            debugLog("[StoreKit] session history unknown this launch (archive index unreadable) — history check deferred", level: .warning)
+            return
+        }
         EntitlementAnchor.recordHistoryCheck(hasHistory: hasHistory, wallClock: now)
     }
 
@@ -389,16 +398,25 @@ final class StoreKitManager {
 
         do {
             try await AppStore.sync()
-            await refreshStatus()
-            return hasPurchasedProduct
-                ? String(localized: "Your purchase has been restored.", bundle: LanguageManager.appBundle)
-                : String(localized: "No purchase of Emuqu was found for this Apple ID.", bundle: LanguageManager.appBundle)
+            let sweep = await sweepAndApply()
+            return Self.restoreMessage(for: sweep)
         } catch StoreKitError.userCancelled {
             return nil
         } catch {
             debugLog("[StoreKit] Restore error: \(error)")
             return String(localized: "Could not restore purchases. Please try again.", bundle: LanguageManager.appBundle)
         }
+    }
+
+    /// What a Restore found, answered from its own sweep rather than the
+    /// published state: a newer refresh may have superseded it, and an
+    /// inconclusive sweep says nothing about whether a purchase exists.
+    private static func restoreMessage(for sweep: EntitlementSweep) -> String {
+        let b = LanguageManager.appBundle
+        guard sweep.storeKitAnswered else { return String(localized: "Could not restore purchases. Please try again.", bundle: b) }
+        return sweep.hasEntitlement
+            ? String(localized: "Your purchase has been restored.", bundle: b)
+            : String(localized: "No purchase of Emuqu was found for this Apple ID.", bundle: b)
     }
 
     // MARK: - Entitlement Check
@@ -414,11 +432,17 @@ final class StoreKitManager {
             isPurchased = true
             return
         }
+        _ = await sweepAndApply()
+    }
+
+    /// One entitlement sweep, applied unless a newer refresh started while it
+    /// ran; returned either way so a caller can answer from it.
+    private func sweepAndApply() async -> EntitlementSweep {
         refreshGeneration += 1
         let generation = refreshGeneration
         let sweep = await entitlementSweep()
-        guard generation == refreshGeneration else { return }
-        apply(sweep)
+        if generation == refreshGeneration { apply(sweep) }
+        return sweep
     }
 
     /// Writes one entitlement sweep's answer into the published state.
@@ -578,11 +602,20 @@ final class StoreKitManager {
     /// launch gate but computed `isPurchased = false`, which is one half of
     /// how a trial user can end up staring at a hard paywall.
     static var isTrialActive: Bool {
+        let clock = trialClock
+        return TrialPolicy.isActive(start: clock.start, now: clock.now)
+    }
+
+    /// The one resolution of the trial clock: the start as this device keeps
+    /// it (the durable anchor first, the synced settings as fallback) and the
+    /// time it reads (the wall clock, never earlier than the anchor's
+    /// high-water mark, so winding the device clock back does not stretch
+    /// the trial).
+    private static var trialClock: (start: Date?, now: Date) {
         let anchor = EntitlementAnchor.cached()
-        let start = anchor.trialStartDate ?? AppDependencies.current.app.settingsManager.settings.trialStartDate
-        return TrialPolicy.isActive(
-            start: start,
-            now: EntitlementAnchor.effectiveNow(anchor, wallClock: Date())
+        return (
+            anchor.trialStartDate ?? AppDependencies.current.app.settingsManager.settings.trialStartDate,
+            EntitlementAnchor.effectiveNow(anchor, wallClock: Date())
         )
     }
 
@@ -590,8 +623,7 @@ final class StoreKitManager {
     /// anchor first, the synced settings as fallback. Nil when no trial
     /// start is kept here.
     static var localTrialStart: Date? {
-        EntitlementAnchor.cached().trialStartDate
-            ?? AppDependencies.current.app.settingsManager.settings.trialStartDate
+        trialClock.start
     }
 
     /// Whether this device keeps a trial start, by any route.
@@ -599,22 +631,11 @@ final class StoreKitManager {
         localTrialStart != nil
     }
 
-    /// The time the trial clock reads: the wall clock, never earlier than the
-    /// anchor's high-water mark, so winding the device clock back does not
-    /// stretch the trial.
-    static var trialClockNow: Date {
-        EntitlementAnchor.effectiveNow(EntitlementAnchor.cached(), wallClock: Date())
-    }
-
     /// Days left in the free trial, or 0 when it is not running. Resolved the
     /// same way `isTrialActive` is, so the two cannot disagree.
     static var trialDaysRemaining: Int {
-        let anchor = EntitlementAnchor.cached()
-        let start = anchor.trialStartDate ?? AppDependencies.current.app.settingsManager.settings.trialStartDate
-        return TrialPolicy.daysRemaining(
-            start: start,
-            now: EntitlementAnchor.effectiveNow(anchor, wallClock: Date())
-        )
+        let clock = trialClock
+        return TrialPolicy.daysRemaining(start: clock.start, now: clock.now)
     }
 
     /// Whether the user has access right now, by ANY route.
@@ -664,8 +685,12 @@ final class StoreKitManager {
     ///
     /// On `.unverified` this clears the LEGACY TestFlight flag so a
     /// tampered device cannot have it migrated into the durable anchor on
-    /// a later launch. It deliberately does NOT revoke an anchor that is
-    /// already established.
+    /// a later launch. The migration runs before this check on every launch
+    /// (it has to precede the launch gate), so a tampered flag present on
+    /// the first launch is migrated before the check can clear it; the
+    /// anchor it writes grants access only on an install verified as a
+    /// production build (`isGrandfatheredBetaTester`). It deliberately does
+    /// NOT revoke an anchor that is already established.
     ///
     /// That asymmetry is the intended trade. The anchor is only ever
     /// written on positive proof of beta use, whereas
@@ -722,14 +747,28 @@ final class StoreKitManager {
     }
 
     private func verifyAppTransactionInBackground() {
-        Task.detached(priority: .utility) { await Self.verifyAppTransaction() }
+        Task.detached(priority: .utility) { await Self.verifyAppTransactionWithRetries() }
     }
 
-    /// A network / sandbox failure leaves state as-is — next launch's check
-    /// retries. A verified environment can open a route the launch gate
-    /// could not see yet, so the entitlement is refreshed after it; the
-    /// `isPurchased` flip then takes down a paywall that no longer applies.
-    private static func verifyAppTransaction() async {
+    /// Delays before each AppTransaction attempt. A lookup that fails (offline
+    /// at launch, after a reinstall or on a new phone) is tried again within
+    /// this process, so a grandfathered tester is let in once the network is
+    /// back instead of meeting the paywall until the next launch.
+    nonisolated private static let appTransactionAttemptDelays: [TimeInterval] = [0, 30, 120, 600]
+
+    private static func verifyAppTransactionWithRetries() async {
+        for delay in appTransactionAttemptDelays {
+            if delay > 0 { await sleepQuietly(UInt64(delay * 1_000_000_000), context: "AppTransaction retry") }
+            if await verifyAppTransaction() { return }
+        }
+    }
+
+    /// True once AppTransaction answered (verified or unverified); false when
+    /// the lookup failed, so the caller tries again. A verified environment
+    /// can open a route the launch gate could not see yet, so the entitlement
+    /// is refreshed after it; the `isPurchased` flip then takes down a paywall
+    /// that no longer applies.
+    private static func verifyAppTransaction() async -> Bool {
         do {
             switch try await AppTransaction.shared {
             case let .verified(appTransaction):
@@ -739,8 +778,10 @@ final class StoreKitManager {
                 UserDefaults.standard.set(false, forKey: lastKnownTestFlightKey)
                 debugLog("[StoreKit] AppTransaction unverified — legacy TestFlight flag cleared", level: .warning)
             }
+            return true
         } catch {
             debugLog("[StoreKit] AppTransaction lookup failed: \(error)", level: .warning)
+            return false
         }
     }
 

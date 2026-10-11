@@ -4,7 +4,9 @@ import os
 /// Recovery window selection - finds best ORGANIZED recovery window
 /// Algorithm:
 /// 1. Build all windows within 30-70% of sleep (anchored to actual sleep, not recording)
-/// 2. Filter ISOLATED SPIKES only (temporal discontinuity: much higher than BOTH neighbors)
+/// 2. Filter ISOLATED SPIKES only: a window much higher than BOTH neighbouring
+///    surviving windows (in practice, a clean window between rejected stretches;
+///    see `filterIsolatedSpikes`)
 /// 3. Compute organization metrics for each window: DFA α1 and HR CV. (LF/HF
 ///    is NOT computed per window — `scoredBlock` passes `lfHfRatio: nil` — so
 ///    the LF/HF alternative in `ScoredRecoveryBlock.isOrganizedRecovery` is
@@ -12,7 +14,9 @@ import os
 /// 4. Classify windows as "Organized Recovery" vs "High Variability"
 /// 5. Among ORGANIZED windows only, select the highest Tier 1 recovery score
 ///    against the baseline when one exists, else the highest RMSSD
-/// 6. If no organized windows, return nil (peak capacity captured separately)
+/// 6. If no organized windows, `findBestWindow` returns nil (peak capacity is
+///    captured separately); `findBestWindowWithCapacity` then falls back to
+///    the band's peak-RMSSD window, marked not organized
 ///
 /// Key principles. The selection heuristics below are the app's own; only the
 /// artifact and stability handling is research-backed. "Organized" here names a
@@ -131,19 +135,16 @@ final class WindowSelector: Sendable {
         static let maxOrganizedLfHf: Double = 1.5
     }
 
-    /// Complete result including both recovery window and peak capacity
-    /// Recovery window may be nil if no organized parasympathetic plateau occurred
-    /// Peak capacity is always computed if any sustained windows exist
+    /// Complete result including both recovery window and peak capacity.
+    /// Peak capacity is computed whenever any sustained window exists.
     struct WindowSelectionResult {
-        /// Consolidated recovery window (nil if no organized recovery detected)
+        /// The window the analysis runs on: the best organized window, or —
+        /// when the night had none — the band's peak-RMSSD window with
+        /// `isOrganizedRecovery == false`. Nil only when neither exists.
+        /// Whether recovery was organized is that flag, not this being non-nil.
         let recoveryWindow: RecoveryWindow?
         /// Peak capacity - highest sustained HRV regardless of organization
         let peakCapacity: PeakCapacity?
-
-        /// Whether consolidated recovery was detected
-        var hasConsolidatedRecovery: Bool {
-            recoveryWindow != nil
-        }
     }
 
     init(config: Config = .default) {

@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/Theme.swift",
- "hash": "c10a0cac358d2f5b",
+ "hash": "04c3d7efda88886f",
  "role": "Central design tokens: AppTheme colour palette (theme- and colour-theme-aware via the settings singleton), Wong status colours and their text variants, metric/HRV/readiness/data-source/tag colour and label helpers, layout constants, View card/background modifiers, and Zen button styles.",
  "types": [
   "AppTheme: enum — static palette and helper functions",
@@ -12,10 +12,9 @@
  ],
  "state": [
   "mem:AppTheme.wongOptimal/wongGood/wongCaution/wongAttention (static let, fixed Wong 2011 colours)",
-  "mem:AppTheme.sage/terracotta/dustyRose/sand/softGold/mist (static let)",
-  "mem:AppTheme.secondary/secondaryLight/secondaryDark/accent(=terracotta)/success(=sage)/warning/alert (static let)",
-  "mem:AppTheme.heartRateColor(=terracotta)/hfColor(=sage)/vlfColor (static let)",
-  "mem:AppTheme.cornerRadius 16/smallCornerRadius 10/padding 16/smallPadding 10/cardShadowRadius 12 (static let)"
+  "mem:AppTheme.sage/terracotta/dustyRose/softGold/mist (static let)",
+  "mem:AppTheme.secondary/accent(=terracotta)/warning/alert (static let)",
+  "mem:AppTheme.cornerRadius 16/smallCornerRadius 10/padding 16/cardShadowRadius 12 (static let)"
  ],
  "toplevel": "Static let colour constants listed in state; line 681 note says Color hex extension lives in HRVSession.swift. All theme-aware computed colours read AppDependencies.current.app.settingsManager.settings (colorTheme, appearanceTheme) at call time; SwiftUI re-renders only when an observing view re-evaluates.",
  "flags": [
@@ -28,33 +27,6 @@
     "Emuqu/Sources/Views/Theme.swift:250"
    ],
    "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "File header says 'Blue primary (trust/calm), green accents', but AppTheme.accent is terracotta (coral red) and primary follows the user's colour theme.",
-   "evidence": [
-    "Emuqu/Sources/Views/Theme.swift:3",
-    "Emuqu/Sources/Views/Theme.swift:4",
-    "Emuqu/Sources/Views/Theme.swift:227"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "Stored constants with no reference anywhere in the repo (grep AppTheme.<name> incl. tests): sand, success, heartRateColor, hfColor, vlfColor, secondaryLight, secondaryDark, smallPadding.",
-   "evidence": [
-    "Emuqu/Sources/Views/Theme.swift:214",
-    "Emuqu/Sources/Views/Theme.swift:225",
-    "Emuqu/Sources/Views/Theme.swift:226",
-    "Emuqu/Sources/Views/Theme.swift:232",
-    "Emuqu/Sources/Views/Theme.swift:373",
-    "Emuqu/Sources/Views/Theme.swift:376",
-    "Emuqu/Sources/Views/Theme.swift:384",
-    "Emuqu/Sources/Views/Theme.swift:556"
-   ],
-   "found": "second read"
   }
  ],
  "units": [
@@ -83,12 +55,13 @@
   },
   {
    "key": "var AppTheme.primary",
-   "hash": "2b0623ff419854fa",
+   "hash": "557fcb55f9af131d",
    "does": "Primary accent colour: picks an RGB per colour theme (blue/teal/indigo/purple/rose/orange), the brighter variant when appearance is .dark, the light variant for .light and .dim.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryForDarkAppearance",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryForLightAppearance"
    ],
    "reads": [
     "mem:SettingsManager.settings.appearanceTheme",
@@ -159,8 +132,57 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme": "44bb6778d825fb3a",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryForDarkAppearance": "535a0074fd3ef161",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryForLightAppearance": "627a2a147ca73c89"
+   }
+  },
+  {
+   "key": "var AppTheme.primaryForDarkAppearance",
+   "hash": "435017f5a5cc8e37",
+   "does": "`primary`'s dark-appearance RGB for the current colour theme (blue/teal/indigo/purple/rose/orange); also the dim theme's primaryText.",
+   "entry": "Read by primary and primaryText.",
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "switch on colour theme",
+     "effect": "one RGB per theme"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme": "44bb6778d825fb3a"
+   }
+  },
+  {
+   "key": "var AppTheme.primaryForLightAppearance",
+   "hash": "9f481e06849155d0",
+   "does": "`primary`'s light/dim-appearance RGB for the current colour theme.",
+   "entry": "Read by primary.",
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "switch on colour theme",
+     "effect": "one RGB per theme"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme": "44bb6778d825fb3a"
    }
   },
   {
@@ -261,13 +283,13 @@
   },
   {
    "key": "var AppTheme.primaryText",
-   "hash": "2c2fc74cc8f34e16",
+   "hash": "cbba9072a49d4d76",
    "does": "Primary for text: returns `primary` unless appearance is .dim, where it returns the dark-appearance accent for the colour theme.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryForDarkAppearance"
    ],
    "reads": [
     "mem:SettingsManager.settings.appearanceTheme",
@@ -311,22 +333,11 @@
      "effect": "dark orange accent"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Per-theme RGB values duplicate the dark-arm literals in `primary` (lines 17-22) instead of sharing them; editing one leaves the other stale.",
-     "evidence": [
-      "Emuqu/Sources/Views/Theme.swift:73",
-      "Emuqu/Sources/Views/Theme.swift:17"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme": "44bb6778d825fb3a",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryForDarkAppearance": "535a0074fd3ef161"
    }
   },
   {
@@ -1032,35 +1043,6 @@
    }
   },
   {
-   "key": "var AppTheme.rmssdColor",
-   "hash": "fa30d5c8b41e9181",
-   "does": "RMSSD metric colour: returns primary.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary"
-   ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme",
-    "mem:SettingsManager.settings.colorTheme"
-   ],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "AppTheme.rmssdColor has no reference outside its declaration in the whole repo (grep over all .swift incl. EmuquTests/EmuquUITests).",
-     "evidence": [
-      "Emuqu/Sources/Views/Theme.swift:360"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
-   }
-  },
-  {
    "key": "var AppTheme.sdnnColor",
    "hash": "65e233dc3a19cab1",
    "does": "SDNN violet: #8C61D1 for light and dim, brighter #AD8AF0 for dark.",
@@ -1090,74 +1072,41 @@
    }
   },
   {
-   "key": "var AppTheme.lfColor",
-   "hash": "acda5050808bdbf8",
-   "does": "LF power colour: returns primaryLight.",
+   "key": "func AppTheme.readinessColor(_:)",
+   "hash": "002c38db79d9f518",
+   "does": "Readiness colour for the ReadinessScoring.readinessLabel(for:) band (its thresholds and clamping): Ready sage, Moderate softGold (also a non-finite score), Fatigued terracotta, else dustyRose.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryLight"
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:)"
    ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme",
-    "mem:SettingsManager.settings.colorTheme"
-   ],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "AppTheme.lfColor has no reference outside its declaration in the whole repo (grep over all .swift incl. EmuquTests/EmuquUITests).",
-     "evidence": [
-      "Emuqu/Sources/Views/Theme.swift:379"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryLight": "834bd116ec7451d0"
-   }
-  },
-  {
-   "key": "func AppTheme.readinessColor(_:)",
-   "hash": "8a25c813cbd29817",
-   "does": "Readiness (0-10) colour: >=7 sage, >=4.5 softGold, >=2 terracotta, else dustyRose.",
-   "entry": null,
-   "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+1",
-     "cond": "score >= 7.0",
+     "at": "+2",
+     "cond": "label Ready",
      "effect": "sage"
     },
     {
-     "at": "+2",
-     "cond": "score >= 4.5",
+     "at": "+3",
+     "cond": "label Moderate",
      "effect": "softGold"
     },
     {
-     "at": "+3",
-     "cond": "score >= 2.0",
-     "effect": "terracotta; below 2.0 (and NaN, which fails every comparison) → dustyRose"
-    }
-   ],
-   "flags": [
+     "at": "+4",
+     "cond": "label Fatigued",
+     "effect": "terracotta"
+    },
     {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Hard-codes 7.0/4.5/2.0 instead of RecoveryScoreConstants.ReadinessLabels thresholds and skips ReadinessScoring.tenScaleClamped, so a non-finite score is coloured 'Rest' (dustyRose) while readinessLabel maps it to the midpoint 5.0 ('Moderate'); thresholds can drift from the label.",
-     "evidence": [
-      "Emuqu/Sources/Views/Theme.swift:391",
-      "Emuqu/Sources/Analysis/ReadinessScoring.swift:336",
-      "Emuqu/Sources/Utilities/Constants+RecoveryScore.swift:208",
-      "Emuqu/Sources/Analysis/ReadinessScoring.swift:375"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+5",
+     "cond": "otherwise (Rest)",
+     "effect": "dustyRose"
     }
    ],
-   "deps": {}
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:)": "855c8b68d2abcbc7"
+   }
   },
   {
    "key": "func AppTheme.recoveryColor(_:)",
@@ -1178,158 +1127,91 @@
    }
   },
   {
-   "key": "func AppTheme.hrvLabel(_:baseline:)",
-   "hash": "e56cd313d7b77e6f",
-   "does": "HRV word: with a positive baseline, maps AnalysisSummaryGenerator.personalCategory(hrv/baseline) to Excellent/Good/Fair/Reduced/Low; otherwise absolute RMSSD tiers >=60 Excellent, >=45 Good, >=30 Fair, else Low.",
-   "entry": null,
+   "key": "func AppTheme.hrvCategory(_:baseline:)",
+   "hash": "01e26b7785fa1d94",
+   "does": "The night's RMSSDCategory by the rule 'What This Means' (AnalysisSummaryGenerator.hrvCategory) uses: personalCategory(hrv/baseline) with a positive baseline, else AgeAdjustedHRV.interpret with the user's age and sex from settings (absolute bands when no age).",
+   "entry": "Called from hrvLabel, hrvColor and hrvTextColor.",
    "calls": [
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.personalCategory(ratio:)",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.interpret(rmssd:age:sex:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.age"
    ],
-   "reads": [],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
    "writes": [],
    "branches": [
     {
      "at": "+1",
      "cond": "baseline non-nil and > 0",
-     "effect": "baseline-relative 5-tier label; else absolute thresholds"
+     "effect": "personal category"
     },
     {
      "at": "+5",
-     "cond": "category .excellent",
-     "effect": "Excellent"
-    },
-    {
-     "at": "+6",
-     "cond": "category .good",
-     "effect": "Good"
-    },
-    {
-     "at": "+7",
-     "cond": "category .fair",
-     "effect": "Fair"
-    },
-    {
-     "at": "+8",
-     "cond": "category .reduced",
-     "effect": "Reduced"
-    },
-    {
-     "at": "+9",
-     "cond": "category .low",
-     "effect": "Low"
-    },
-    {
-     "at": "+12",
-     "cond": "hrv >= 60",
-     "effect": "Excellent"
-    },
-    {
-     "at": "+13",
-     "cond": "hrv >= 45",
-     "effect": "Good"
-    },
-    {
-     "at": "+14",
-     "cond": "hrv >= 30",
-     "effect": "Fair; below 30 (or NaN) → Low"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "hack",
-     "sev": "low",
-     "text": "Absolute RMSSD cut-offs 60/45/30 ms are inline magic numbers with no age adjustment, used by SessionHRVDetailView without a baseline, while the same file's baseline path uses named StressNormativeConstants.",
-     "evidence": [
-      "Emuqu/Sources/Views/Theme.swift:424",
-      "Emuqu/Sources/Views/SessionHRVDetailView.swift:105"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "Without a baseline the label uses fixed 60/45/30 ms cut-offs, while \"What This Means\" (hrvCategory) uses the age-adjusted category; MorningResultsView passes nil baseline until baselineStats load and SessionHRVDetailView never passes one, so the same night gets two different HRV verdicts — the exact \"third answer\" the MorningResultsView comment says was removed.",
-     "evidence": [
-      "Emuqu/Sources/Views/Theme.swift:424",
-      "Emuqu/Sources/Views/Theme.swift:427",
-      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift:27",
-      "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift:353",
-      "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift:362",
-      "Emuqu/Sources/Views/SessionHRVDetailView.swift:105"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.personalCategory(ratio:)": "dc4d1279a4428011",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
-   }
-  },
-  {
-   "key": "func AppTheme.hrvColor(_:baseline:)",
-   "hash": "1e3d38fc55cc0029",
-   "does": "HRV colour: baseline-relative categories excellent→sage, good→softGold, fair→terracotta, reduced/low→dustyRose; absolute tiers >=60 sage, >=45 softGold, >=30 terracotta, else dustyRose.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.personalCategory(ratio:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "baseline non-nil and > 0",
-     "effect": "category-based colour; else absolute"
-    },
-    {
-     "at": "+5",
-     "cond": "category .excellent",
-     "effect": "sage"
-    },
-    {
-     "at": "+6",
-     "cond": "category .good",
-     "effect": "softGold"
-    },
-    {
-     "at": "+7",
-     "cond": "category .fair",
-     "effect": "terracotta"
-    },
-    {
-     "at": "+8",
-     "cond": "category .reduced or .low",
-     "effect": "dustyRose"
-    },
-    {
-     "at": "+11",
-     "cond": "hrv >= 60",
-     "effect": "sage"
-    },
-    {
-     "at": "+12",
-     "cond": "hrv >= 45",
-     "effect": "softGold"
-    },
-    {
-     "at": "+13",
-     "cond": "hrv >= 30",
-     "effect": "terracotta; else dustyRose"
+     "cond": "biologicalSex male/female/other or nil",
+     "effect": "sex passed; other/nil → nil"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.personalCategory(ratio:)": "dc4d1279a4428011"
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.personalCategory(ratio:)": "dc4d1279a4428011",
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.interpret(rmssd:age:sex:)": "2e243dc56ab312b2",
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "315f6413360002af",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.age": "1087428d4318dc8f",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "55c985aa6bd25115",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+   }
+  },
+  {
+   "key": "func AppTheme.hrvLabel(_:baseline:)",
+   "hash": "45fcc3e028bbe8f0",
+   "does": "HRV word: hrvCategory's localizedLabel (Excellent/Good/Fair/Reduced/Low), so the label matches 'What This Means' with or without a baseline.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvCategory(_:baseline:)",
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::var RMSSDCategory.localizedLabel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::var RMSSDCategory.localizedLabel": "34fa7b333dfcae74",
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvCategory(_:baseline:)": "48bf4341199366c9"
+   }
+  },
+  {
+   "key": "func AppTheme.hrvColor(_:baseline:)",
+   "hash": "092f2facc02abe5c",
+   "does": "HRV colour of the hrvCategory tier: excellent sage, good softGold, fair terracotta, reduced/low dustyRose.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvCategory(_:baseline:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "switch on hrvCategory",
+     "effect": "one colour per tier"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvCategory(_:baseline:)": "48bf4341199366c9"
    }
   },
   {
    "key": "func AppTheme.hrvTextColor(_:baseline:)",
-   "hash": "45050cfe0dacbbe4",
-   "does": "Text variant of hrvColor: switches on the returned Color by equality — sage→sageText, softGold→softGoldText, terracotta→terracottaText, anything else→dustyRoseText.",
+   "hash": "6c8943559a5e1f66",
+   "does": "Text shade of the hrvCategory tier: excellent sageText, good softGoldText, fair terracottaText, reduced/low dustyRoseText.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvColor(_:baseline:)",
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvCategory(_:baseline:)",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.softGoldText",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.terracottaText",
@@ -1341,88 +1223,19 @@
    "writes": [],
    "branches": [
     {
-     "at": "+2",
-     "cond": "hrvColor == sage",
-     "effect": "sageText"
-    },
-    {
-     "at": "+3",
-     "cond": "== softGold",
-     "effect": "softGoldText"
-    },
-    {
-     "at": "+4",
-     "cond": "== terracotta",
-     "effect": "terracottaText"
-    },
-    {
-     "at": "+5",
-     "cond": "default",
-     "effect": "dustyRoseText"
+     "at": "+1",
+     "cond": "switch on hrvCategory",
+     "effect": "one text shade per tier"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Maps tiers by comparing SwiftUI Color values for equality; it works only while hrvColor returns exactly these static constants — any change there (opacity, theme-dependent colour) silently falls to the dustyRose default.",
-     "evidence": [
-      "Emuqu/Sources/Views/Theme.swift:450",
-      "Emuqu/Sources/Views/Theme.swift:454"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvColor(_:baseline:)": "9902e2d11d133ee2",
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvCategory(_:baseline:)": "48bf4341199366c9",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.dustyRoseText": "42a7b75ca4dc32cd",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "7646093d377bac7c",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.softGoldText": "12fb8e2fb33c18ef",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.terracottaText": "6a18b5025ee3e850"
    }
-  },
-  {
-   "key": "func AppTheme.dataSourceIcon(_:)",
-   "hash": "7ba633767517cc26",
-   "does": "SF Symbol for a data-source key: composite/internal/streaming, else questionmark.circle.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "\"composite\"",
-     "effect": "arrow.triangle.merge"
-    },
-    {
-     "at": "+3",
-     "cond": "\"internal\"",
-     "effect": "internaldrive.fill"
-    },
-    {
-     "at": "+4",
-     "cond": "\"streaming\"",
-     "effect": "antenna.radiowaves.left.and.right"
-    },
-    {
-     "at": "+5",
-     "cond": "default",
-     "effect": "questionmark.circle"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "AppTheme.dataSourceIcon has no reference outside its declaration in the whole repo (grep over all .swift incl. EmuquTests/EmuquUITests).",
-     "evidence": [
-      "Emuqu/Sources/Views/Theme.swift:461"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
   },
   {
    "key": "func AppTheme.dataSourceColor(_:)",
@@ -1592,223 +1405,6 @@
    }
   },
   {
-   "key": "var AppTheme.poincarePointColor",
-   "hash": "81322924b76abc7f",
-   "does": "Chart colour poincarePointColor: primary @0.5.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary"
-   ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme",
-    "mem:SettingsManager.settings.colorTheme"
-   ],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "AppTheme.poincarePointColor has no reference outside its declaration in the whole repo (grep over all .swift incl. EmuquTests/EmuquUITests).",
-     "evidence": [
-      "Emuqu/Sources/Views/Theme.swift:516"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
-   }
-  },
-  {
-   "key": "var AppTheme.poincareEllipseColor",
-   "hash": "6f3d00ea039b7295",
-   "does": "Chart colour poincareEllipseColor: primary @0.12.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary"
-   ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme",
-    "mem:SettingsManager.settings.colorTheme"
-   ],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "AppTheme.poincareEllipseColor has no reference outside its declaration in the whole repo (grep over all .swift incl. EmuquTests/EmuquUITests).",
-     "evidence": [
-      "Emuqu/Sources/Views/Theme.swift:520"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
-   }
-  },
-  {
-   "key": "var AppTheme.poincareEllipseStroke",
-   "hash": "4bcc0754553bf9e2",
-   "does": "Chart colour poincareEllipseStroke: primary @0.4.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary"
-   ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme",
-    "mem:SettingsManager.settings.colorTheme"
-   ],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "AppTheme.poincareEllipseStroke has no reference outside its declaration in the whole repo (grep over all .swift incl. EmuquTests/EmuquUITests).",
-     "evidence": [
-      "Emuqu/Sources/Views/Theme.swift:524"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
-   }
-  },
-  {
-   "key": "var AppTheme.tachogramLine",
-   "hash": "136d95735bf59371",
-   "does": "Chart colour tachogramLine: primary.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary"
-   ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme",
-    "mem:SettingsManager.settings.colorTheme"
-   ],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "AppTheme.tachogramLine has no reference outside its declaration in the whole repo (grep over all .swift incl. EmuquTests/EmuquUITests).",
-     "evidence": [
-      "Emuqu/Sources/Views/Theme.swift:528"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
-   }
-  },
-  {
-   "key": "var AppTheme.tachogramFill",
-   "hash": "f17a81db4616669e",
-   "does": "Chart colour tachogramFill: primary @0.15.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary"
-   ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme",
-    "mem:SettingsManager.settings.colorTheme"
-   ],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "AppTheme.tachogramFill has no reference outside its declaration in the whole repo (grep over all .swift incl. EmuquTests/EmuquUITests).",
-     "evidence": [
-      "Emuqu/Sources/Views/Theme.swift:532"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
-   }
-  },
-  {
-   "key": "func AppTheme.tagColor(for:)",
-   "hash": "0a2075c531bbdfa8",
-   "does": "Tag colour by lowercased name: morning softGold, exercise terracotta, recovery sage, evening dustyRose, night/sleep/pre-sleep primaryDark, stressed alert, relaxed mist, else primaryLight.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryDark",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryLight"
-   ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme",
-    "mem:SettingsManager.settings.colorTheme"
-   ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "\"morning\"",
-     "effect": "softGold"
-    },
-    {
-     "at": "+3",
-     "cond": "\"post-exercise\"/\"exercise\"",
-     "effect": "terracotta"
-    },
-    {
-     "at": "+4",
-     "cond": "\"recovery\"",
-     "effect": "sage"
-    },
-    {
-     "at": "+5",
-     "cond": "\"evening\"",
-     "effect": "dustyRose"
-    },
-    {
-     "at": "+6",
-     "cond": "\"night\"/\"sleep\"/\"pre-sleep\"",
-     "effect": "primaryDark"
-    },
-    {
-     "at": "+7",
-     "cond": "\"stressed\"",
-     "effect": "alert (pure red)"
-    },
-    {
-     "at": "+8",
-     "cond": "\"relaxed\"",
-     "effect": "mist"
-    },
-    {
-     "at": "+9",
-     "cond": "default",
-     "effect": "primaryLight"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "AppTheme.tagColor(for:) has no reference outside its declaration in the whole repo (grep over all .swift incl. EmuquTests/EmuquUITests); SettingsSubviews uses an unrelated @Binding named tagColor.",
-     "evidence": [
-      "Emuqu/Sources/Views/Theme.swift:538"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryDark": "f0f931939f03a4f6",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryLight": "834bd116ec7451d0"
-   }
-  },
-  {
    "key": "var AppTheme.cardShadow",
    "hash": "1cc06fefa62adf84",
    "does": "Card shadow colour: black @0.06 light, @0.20 dim, @0.30 dark.",
@@ -1863,36 +1459,6 @@
    }
   },
   {
-   "key": "func View.elevatedCard()",
-   "hash": "f849b0b1a70da3af",
-   "does": "Elevated card modifier: padding, cardElevated, corners, shadow radius 16 y 4.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardElevated",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardShadow"
-   ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme"
-   ],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "View.elevatedCard() has no reference outside its declaration in the whole repo (grep over all .swift incl. EmuquTests/EmuquUITests).",
-     "evidence": [
-      "Emuqu/Sources/Views/Theme.swift:582"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardElevated": "d8e990dc733dd00d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardShadow": "32095e3a90467f83"
-   }
-  },
-  {
    "key": "func View.heroCard()",
    "hash": "f002369e2f29c3dd",
    "does": "Hero card modifier: padding, heroGradient background, corners, primary-tinted shadow.",
@@ -1911,35 +1477,6 @@
    "deps": {
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.heroGradient": "d005c32e2a9fb187",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
-   }
-  },
-  {
-   "key": "func View.gradientForeground()",
-   "hash": "c1cc96f9a4c71187",
-   "does": "Applies primaryGradient as foreground style.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryGradient"
-   ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme",
-    "mem:SettingsManager.settings.colorTheme"
-   ],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "View.gradientForeground() has no reference outside its declaration in the whole repo (grep over all .swift incl. EmuquTests/EmuquUITests).",
-     "evidence": [
-      "Emuqu/Sources/Views/Theme.swift:598"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryGradient": "2d47496eb2a59932"
    }
   },
   {
@@ -1979,39 +1516,12 @@
    }
   },
   {
-   "key": "func View.sectionHeader()",
-   "hash": "08c7531437cec342",
-   "does": "Section header text style: subheadline semibold, textSecondary, uppercase, tracking 0.5.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary"
-   ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme"
-   ],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "View.sectionHeader() has no reference outside its declaration in the whole repo (grep over all .swift incl. EmuquTests/EmuquUITests); 'sectionHeader' hits are unrelated private members in HistoryCalendarView/LLMPromptAuditView.",
-     "evidence": [
-      "Emuqu/Sources/Views/Theme.swift:614"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
-   }
-  },
-  {
    "key": "func ZenButtonStyle.makeBody(configuration:)",
-   "hash": "b230e475f3fd6605",
-   "does": "Filled button: headline white label, padding, rounded fill in `color` (disabled: textTertiary@35%), coloured shadow when enabled, 0.7 opacity when disabled, 0.97 press scale when enabled.",
+   "hash": "2b6ee17dba254ae8",
+   "does": "Filled button: headline label in labelColor when enabled (white where white clears 4.5:1 on the fill, else black) and white when disabled, padding, rounded fill in `color` (disabled: textTertiary@35%), coloured shadow when enabled, 0.7 opacity when disabled, 0.97 press scale when enabled.",
    "entry": "SwiftUI ButtonStyle.makeBody for buttons using .buttonStyle(.zen(...))",
    "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var ZenButtonStyle.labelColor",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary"
    ],
    "reads": [
@@ -2040,26 +1550,69 @@
      "effect": "scale 0.97; else 1"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Draws a white label on the caller's colour, yet Theme.swift documents that white on `primary` fails WCAG 4.5:1 in every colour theme and that `primaryFilled` must be used for white text; callers pass AppTheme.primary, sage (#34C77A) and mist (#4DC7E5), all light fills, so onboarding/import CTA labels are low-contrast.",
-     "evidence": [
-      "Emuqu/Sources/Views/Theme.swift:634",
-      "Emuqu/Sources/Views/Theme.swift:30",
-      "Emuqu/Sources/Views/Theme.swift:32",
-      "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift:190",
-      "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift:158",
-      "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift:337"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/Theme.swift::var ZenButtonStyle.labelColor": "ae9fddd6502fa456",
     "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
    }
+  },
+  {
+   "key": "var ZenButtonStyle.labelColor",
+   "hash": "dc6b16c859c4e2ee",
+   "does": "White when whiteClearsContrast on the fill colour resolved in the current environment, else black.",
+   "entry": "Read by makeBody.",
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::func ZenButtonStyle.whiteClearsContrast(on:)",
+    "ext:Color.resolve(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "white clears 4.5:1",
+     "effect": ".white; else .black"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::func ZenButtonStyle.whiteClearsContrast(on:)": "2a66a3302aafff5d"
+   }
+  },
+  {
+   "key": "func ZenButtonStyle.whiteClearsContrast(on:)",
+   "hash": "0e982ce405f75955",
+   "does": "Whether white text on the resolved fill reaches 4.5:1: WCAG relative luminance from the linearized sRGB channels, contrast 1.05/(L+0.05).",
+   "entry": "Called from labelColor.",
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::func ZenButtonStyle.linearized(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::func ZenButtonStyle.linearized(_:)": "928af3fb6bea3fc7"
+   }
+  },
+  {
+   "key": "func ZenButtonStyle.linearized(_:)",
+   "hash": "c96a4d924b60e54f",
+   "does": "sRGB channel to linear: c/12.92 at or below 0.04045, else ((c+0.055)/1.055)^2.4.",
+   "entry": "Called from whiteClearsContrast.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "channel ≤ 0.04045",
+     "effect": "linear segment; else power curve"
+    }
+   ],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "func ZenSecondaryButtonStyle.makeBody(configuration:)",
@@ -2107,11 +1660,11 @@
   },
   {
    "key": "func ButtonStyle.zen(_:)",
-   "hash": "31a76959e77218ba",
-   "does": "Factory for ZenButtonStyle with the given colour, defaulting to AppTheme.primary when nil.",
+   "hash": "affe92a4c9b8acdd",
+   "does": "Factory for ZenButtonStyle with the given colour, defaulting to AppTheme.primaryFilled (the accent darkened for a white label) when nil.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryFilled"
    ],
    "reads": [
     "mem:SettingsManager.settings.appearanceTheme",
@@ -2125,22 +1678,9 @@
      "effect": "explicit colour when passed; AppTheme.primary when nil — reached by HistoryView.swift:430 `.zen()`"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "The nil default is AppTheme.primary, not primaryFilled, although ZenButtonStyle draws a white label and Theme documents primary fails white-text contrast in every theme.",
-     "evidence": [
-      "Emuqu/Sources/Views/Theme.swift:670",
-      "Emuqu/Sources/Views/Theme.swift:634",
-      "Emuqu/Sources/Views/Theme.swift:50",
-      "Emuqu/Sources/Views/HistoryView.swift:430"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryFilled": "2f1e670aa8894ea8"
    }
   },
   {

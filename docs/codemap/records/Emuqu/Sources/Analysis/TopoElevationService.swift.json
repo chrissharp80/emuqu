@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Analysis/TopoElevationService.swift",
- "hash": "d1741edba2559e11",
+ "hash": "d666815720cc505d",
  "role": "Retroactive DEM elevation lookup: downsamples a workout track to <=100 points, queries OpenTopoData (ned10m for US-ish coords, then srtm30m), and computes sustained-climb gain/loss with a 15 m threshold.",
  "types": [
   "TopoElevationService: enum — namespace",
@@ -11,6 +11,7 @@
  ],
  "state": [
   "static let userAgent = \"Emuqu/<appVersion> iOS (chrissharp80@gmail.com)\"",
+  "static let requestSpacingNanoseconds = 1_000_000_000 (gap before the SRTM retry after a failed NED call)",
   "net:api.opentopodata.org/v1/{ned10m|srtm30m}"
  ],
  "toplevel": "Global static userAgent built from Bundle.main.appVersion. No mutable state.",
@@ -56,8 +57,8 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.downsampleIndices(count:target:)": "edb5fc6bb3526696",
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.fetchElevations(for:)": "aaa7adca46bf3f8d",
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.sustainedClimb(in:threshold:)": "875e6e16f35e2d1b"
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.fetchElevations(for:)": "6b9e5bfb3acb0ea1",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.sustainedClimb(in:threshold:)": "c3f4018faf41d834"
    }
   },
   {
@@ -83,19 +84,7 @@
      "effect": "feed each delta to ClimbRun.step"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Doc comment says sustainedClimb 'produces the elevation gain shown on every workout and feeds grade-adjusted pace', but its only production caller is elevations(for:) (:99), which is only invoked by the user-tapped DEM lookup in FitnessPostSummaryView+Cards.swift:689 (other references are tests).",
-     "evidence": [
-      "Emuqu/Sources/Analysis/TopoElevationService.swift:113",
-      "Emuqu/Sources/Analysis/TopoElevationService.swift:99",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift:689"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.finish(threshold:)": "35ff9f22b83feb12",
     "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.step(by:threshold:)": "f0d4a51a7bc8ed6a",
@@ -215,12 +204,13 @@
   },
   {
    "key": "func TopoElevationService.fetchElevations(for:)",
-   "hash": "9495137d224fea72",
-   "does": "If the first coordinate is in a US bounding box, tries OpenTopoData ned10m and returns its values on success; on any ned10m error (swallowed) or non-US, queries srtm30m and propagates its error.",
+   "hash": "63ebd7d22f2b29a7",
+   "does": "If the first coordinate is in a US bounding box, tries OpenTopoData ned10m and returns its values on success; on a ned10m error (swallowed) waits requestSpacingNanoseconds (1 s, the operator's one-call-per-second limit) and then queries srtm30m; non-US coordinates go straight to srtm30m. SRTM errors (and a cancellation during the wait) propagate.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.isLikelyUS(coord:)",
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.fetchFromOpenTopoData(coords:dataset:)"
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.fetchFromOpenTopoData(coords:dataset:)",
+    "ext:Swift.Task.sleep(nanoseconds:)"
    ],
    "reads": [
     "net:api.opentopodata.org"
@@ -235,26 +225,14 @@
     {
      "at": "+4",
      "cond": "ned10m fetch succeeded (try?)",
-     "effect": "return its values; error swallowed and falls back to srtm30m"
+     "effect": "return its values; on error wait 1 s, then srtm30m"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "When ned10m fails (e.g. Toronto/Vancouver/Montreal fall inside the US box at :217), the srtm30m request is sent immediately with no delay, contradicting the 1-call-per-second limit the file itself documents (:23-24); any rejection of that second call is surfaced to the user as 'Elevation lookup failed'.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/TopoElevationService.swift:204",
-      "Emuqu/Sources/Analysis/TopoElevationService.swift:208",
-      "Emuqu/Sources/Analysis/TopoElevationService.swift:23",
-      "Emuqu/Sources/Analysis/TopoElevationService.swift:217"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.fetchFromOpenTopoData(coords:dataset:)": "9fa41cc35339b178",
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.isLikelyUS(coord:)": "dd9067cd70f83265"
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.isLikelyUS(coord:)": "dd9067cd70f83265",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
    }
   },
   {

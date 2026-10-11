@@ -38,16 +38,16 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReportGenerator.drawSectionHeading(_:yPosition:pageRect:)": "10e96263462269ee",
-    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func PDFReportGenerator.drawStatBoxRow(_:y:boxWidth:)": "0e89b79b7cb07aef",
-    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func PDFReportGenerator.sleepSummaryBoxes(_:)": "682b6a3e503b79f1",
-    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func sleepStageBoxes(_:)": "f80fd9066506659c",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func PDFReportGenerator.drawStatBoxRow(_:y:boxWidth:)": "02b779f0a46ec47c",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func PDFReportGenerator.sleepSummaryBoxes(_:)": "a010b27ab934962f",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func sleepStageBoxes(_:)": "8a4adae82a36ea38",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },
   {
    "key": "func PDFReportGenerator.sleepSummaryBoxes(_:)",
-   "hash": "e2d0c1f7e594366c",
-   "does": "Builds the 4 summary boxes: total sleep, efficiency (rounded %, 'Not measured' when nil), awake ('—' when 0), in bed.",
+   "hash": "90c8b2829532e242",
+   "does": "Builds the 4 summary boxes: total sleep, efficiency (rounded %, 'Not measured' when nil), awake (formatted, '0m' included, when the night's wake was measured — efficiency known or awake > 0 — else '—'), in bed.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
@@ -64,22 +64,12 @@
      "effect": "efficiency text 'Not measured'; else rounded percent"
     },
     {
-     "at": "+4",
-     "cond": "awakeMinutes > 0",
-     "effect": "true: formatted awake; false: '—'"
+     "at": "+7",
+     "cond": "wake measured (sleepEfficiency non-nil or awakeMinutes > 0)",
+     "effect": "true: formatted awake minutes (0 prints as 0m); false: '—'"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "A measured awake time of 0 minutes prints as '—' (missing) rather than '0m', so a night with no wake reads as unmeasured.",
-     "evidence": [
-      "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift:34"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
     "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportHoursMinutes(_:)": "1540d443b9ef0dc7",
@@ -113,24 +103,20 @@
   },
   {
    "key": "func PDFReportGenerator.drawStatBoxRow(_:y:boxWidth:)",
-   "hash": "06989020c6b81c53",
-   "does": "Draws one row of 36pt compact stat boxes at boxWidth spacing, skipping items with empty titles (spacers).",
+   "hash": "174a7e25b6d8f680",
+   "does": "Draws one row of 36pt compact stat boxes at boxWidth spacing through the shared ReportSectionRenderer.drawStatBoxRow, skipping items with empty titles (spacers).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawCompactStatBox(title:value:color:rect:)"
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawStatBoxRow(_:y:boxWidth:boxHeight:)"
    ],
    "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "for each item where title non-empty",
-     "effect": "draws a box; empty-title items skipped"
-    }
-   ],
+   "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawCompactStatBox(title:value:color:rect:)": "b2ae09f2a96271e3"
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections": "ec5286f15186db1c",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawStatBoxRow(_:y:boxWidth:boxHeight:)": "7103664dc82eeac5"
    }
   },
   {
@@ -150,7 +136,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReportGenerator.drawSectionHeading(_:yPosition:pageRect:)": "10e96263462269ee",
-    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func PDFReportGenerator.drawStatBoxRow(_:y:boxWidth:)": "0e89b79b7cb07aef",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func PDFReportGenerator.drawStatBoxRow(_:y:boxWidth:)": "02b779f0a46ec47c",
     "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func PDFReportGenerator.trainingLoadBoxes(_:)": "2bdfabe4c8dc2815",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
@@ -192,8 +178,8 @@
   },
   {
    "key": "func PDFReportGenerator.drawVitalsSection(vitals:yPosition:in:pageRect:)",
-   "hash": "1cbb3168843fb565",
-   "does": "Draws 'Recovery Vitals' heading and, if any vitals boxes exist, a card with them spread evenly; returns y below (heading only when none).",
+   "hash": "2b5a36ef81840533",
+   "does": "Draws 'Recovery Vitals' heading and a card with the vitals boxes spread evenly (boxWidth = contentWidth / max(1, count)); returns y below. The only caller draws it when vitals.hasAnyData, and each of those readings yields a box.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
@@ -203,29 +189,11 @@
    ],
    "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+5",
-     "cond": "items empty",
-     "effect": "returns y after heading (heading with no content)"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "The `items.isEmpty` early return cannot run from the only caller: drawPage1Sections calls this only when vitals.hasAnyData, and every hasAnyData condition (resp rate, SpO2, wristTemperature, wristTemperatureLacksBaseline, resting HR) produces a box.",
-     "evidence": [
-      "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift:108",
-      "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift:51",
-      "Emuqu/Sources/Export/PDFReportGenerator.swift:207"
-     ],
-     "found": "second read"
-    }
-   ],
+   "branches": [],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReportGenerator.drawSectionHeading(_:yPosition:pageRect:)": "10e96263462269ee",
-    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func PDFReportGenerator.drawStatBoxRow(_:y:boxWidth:)": "0e89b79b7cb07aef",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func PDFReportGenerator.drawStatBoxRow(_:y:boxWidth:)": "02b779f0a46ec47c",
     "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func PDFReportGenerator.vitalsBoxes(_:)": "42a64dff0810a333",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
@@ -341,7 +309,7 @@
   {
    "key": "func sleepStageBoxes(_:)",
    "hash": "379608258a177d1b",
-   "does": "Builds the stage row: Deep (with % share), REM (with % share), Light (total - deep - REM), and an empty spacer.",
+   "does": "Builds the stage row: Deep (with % share), REM (with % share), Light (total − deep − REM, '—' unless both deep and REM were measured), and an empty spacer.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Export/PDFReportGenerator.swift::var PDFReportGenerator.SleepData.deepSleepFormatted",
@@ -362,7 +330,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportHoursMinutes(_:)": "1540d443b9ef0dc7",
-    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func lightSleepFormatted(_:)": "58dd02d54fe11aa7",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func lightSleepFormatted(_:)": "aa917d12ef3bfb46",
     "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func stageShare(_:of:)": "455070b179980142",
     "Emuqu/Sources/Export/PDFReportGenerator.swift::var PDFReportGenerator.SleepData.deepSleepFormatted": "5232932b73a9171c",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183",
@@ -393,8 +361,8 @@
   },
   {
    "key": "func lightSleepFormatted(_:)",
-   "hash": "8eca1eadf1731253",
-   "does": "Light = total - (deep ?? 0) - (rem ?? 0), formatted; '—' when total <= 0 or the remainder is <= 0.",
+   "hash": "be4280bee202e228",
+   "does": "Light = total − deep − REM, formatted; '—' when total <= 0, when deep or REM was not measured (a missing stage is not folded into Light), or the remainder is <= 0.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportHoursMinutes(_:)"
@@ -404,13 +372,8 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "totalSleepMinutes > 0",
+     "cond": "totalSleepMinutes > 0 and deep and REM both measured",
      "effect": "false: '—'"
-    },
-    {
-     "at": "+2",
-     "cond": "deep/rem ?? 0",
-     "effect": "missing stage counted as 0, so a missing deep (or REM) value is folded into Light"
     },
     {
      "at": "+3",

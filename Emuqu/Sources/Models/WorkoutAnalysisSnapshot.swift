@@ -10,9 +10,10 @@ import Foundation
 // SwiftUI body pass (multiple O(n) scans per render is what makes
 // post-summary loading feel blocking).
 //
-// Persisting the snapshot also means the CSV / PDF exporters and the
-// AI context read the same cached insights, so a single source of
-// truth feeds every surface that reports a "session summary."
+// Persisting the snapshot also means the post-workout summary and the
+// AI context (the assistant's workout and session facts) read the same
+// cached insights. The CSV and PDF exporters do not read it; they work
+// from the session and its metadata.
 //
 // Additive-only field layout. New fields decode to nil for older
 // snapshots, so the schema evolves without breaking stored sessions.
@@ -88,8 +89,8 @@ struct WorkoutAnalysisSnapshot: Codable, Equatable {
     // MARK: Session narrative
 
     /// The "how you did" coach-style narrative string, pre-generated so
-    /// the in-app card and the PDF's executive-summary page agree
-    /// verbatim. Nil rather than empty when there was nothing to say.
+    /// the in-app card and the assistant's session facts quote the same
+    /// text. Nil rather than empty when there was nothing to say.
     let howYouDidNarrative: String?
     /// Hero plain-English α1 summary ("Solid aerobic-base effort…").
     let heroNarrative: String?
@@ -103,12 +104,6 @@ struct WorkoutAnalysisSnapshot: Codable, Equatable {
     /// to another language), is rebuilt when the workout is opened.
     var needsRebuild: Bool {
         schemaVersion < Self.currentVersion || narrativeLanguage != LanguageManager.appLocale.identifier
-    }
-
-    /// The narrative a "How you did" card shows: the coach narrative, else
-    /// the hero summary, else nil — never an empty string.
-    var displayNarrative: String? {
-        [howYouDidNarrative, heroNarrative].compactMap { $0 }.first { !$0.isEmpty }
     }
 
     // MARK: Init

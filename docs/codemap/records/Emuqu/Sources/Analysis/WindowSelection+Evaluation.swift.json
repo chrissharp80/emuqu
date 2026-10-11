@@ -10,20 +10,7 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "med",
-   "text": "scanWindows' doc (and Config.maxArtifactRate's doc) say the permissive 15% pass runs only if the strict pass 'yields no organized windows'; the code falls back only when the strict pass yields zero windows of any kind. A night with strict-pass windows that are all unorganized never gets the 15% pass, so an organized 10-15% window is never considered and the recovery window falls to the peak-RMSSD fallback.",
-   "evidence": [
-    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift:15",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:33",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:155",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:156"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "func WindowSelector.scanWindows(series:flags:grid:sessionStartMs:sessionEndMs:artifactRateLimit:)",
@@ -49,18 +36,18 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.evaluateWindow(series:flags:startIdx:endIdx:sessionStartMs:sessionEndMs:artifactRateLimit:)": "8b634b5d27eacefa"
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.evaluateWindow(series:flags:startIdx:endIdx:sessionStartMs:sessionEndMs:artifactRateLimit:)": "833d6e9a87f668b5"
    }
   },
   {
    "key": "func WindowSelector.evaluateWindow(series:flags:startIdx:endIdx:sessionStartMs:sessionEndMs:artifactRateLimit:)",
-   "hash": "bf29ea000677f36f",
-   "does": "Evaluates one window: bounds-checked slice, valid non-artifact RR extraction, artifact-rate gate (override or config.maxArtifactRate 0.15), >=50 valid RR, recording-break detection, ectopic gate, then builds the scored block; nil at any failed gate.",
+   "hash": "27e67c69b75df69e",
+   "does": "Evaluates one window: bounds-checked slice, valid non-artifact RR extraction (beats past the flags array count as unverified, against the window), artifact-rate gate (override or config.maxArtifactRate 0.15), >=50 valid RR, recording-break detection, ectopic gate, then builds the scored block; nil at any failed gate.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.windowSlice(series:flags:startIdx:endIdx:)",
     "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.extractValidRRValues(windowPoints:windowFlags:startIdx:)",
-    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.validateArtifactRate(_:limit:windowPoints:windowFlags:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.validateArtifactRate(_:limit:windowPointCount:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.beatsAfterRecordingBreak(in:range:)",
     "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.cleanBeats(rrValues:windowPoints:breaks:)",
@@ -81,16 +68,16 @@
     },
     {
      "at": "+16",
-     "cond": "artifact rate exceeds limit",
+     "cond": "artifact-or-unverified rate exceeds limit",
      "effect": "return nil (logged)"
     },
     {
-     "at": "+19",
+     "at": "+17",
      "cond": "fewer than 50 valid RR values",
      "effect": "log and return nil"
     },
     {
-     "at": "+24",
+     "at": "+22",
      "cond": "cleanBeats returns nil (too few beats survive ectopic gate)",
      "effect": "return nil; else build scoredBlock"
     }
@@ -98,10 +85,10 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.beatsAfterRecordingBreak(in:range:)": "705ef065c9683ac6",
-    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.cleanBeats(rrValues:windowPoints:breaks:)": "5ec668045e178f46",
-    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.extractValidRRValues(windowPoints:windowFlags:startIdx:)": "9c75d1d8cbda6da1",
-    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.scoredBlock(slice:rrValues:artifactRate:clean:sessionStartMs:sessionEndMs:)": "8cf76a8202fa1eb6",
-    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.validateArtifactRate(_:limit:windowPoints:windowFlags:)": "0bcedd12cf35718b",
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.cleanBeats(rrValues:windowPoints:breaks:)": "45409c9d4880c5cd",
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.extractValidRRValues(windowPoints:windowFlags:startIdx:)": "54a5cea3ef35a4c1",
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.scoredBlock(slice:rrValues:artifactRate:clean:sessionStartMs:sessionEndMs:)": "dfc4b5c763600788",
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.validateArtifactRate(_:limit:windowPointCount:)": "b7859b6733fbe75b",
     "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.windowSlice(series:flags:startIdx:endIdx:)": "4f1652ef9c9023e9",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
@@ -130,11 +117,11 @@
   },
   {
    "key": "func WindowSelector.cleanBeats(rrValues:windowPoints:breaks:)",
-   "hash": "23cec86c2017445a",
-   "does": "Runs the ectopic keep-mask over the window's valid RRs, requires min(minCleanBeats 300, max(50, 75% of window points)) survivors, and returns the clean RRs with masked RMSSD over adjacent kept, unbroken pairs.",
+   "hash": "605263ba0b095b89",
+   "does": "Runs TimeDomainAnalyzer.ectopicKeepMask (the gate the reported RMSSD uses) over the window's valid RRs, requires min(minCleanBeats 300, max(50, 75% of window points)) survivors, and returns the clean RRs with masked RMSSD over adjacent kept, unbroken pairs.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.ectopicKeepMask(_:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.ectopicKeepMask(_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.maskedRMSSD(_:kept:breaks:)"
    ],
@@ -149,7 +136,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.ectopicKeepMask(_:)": "5b16b69db6427d70",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.ectopicKeepMask(_:)": "4416f76b49e1dabe",
     "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.maskedRMSSD(_:kept:breaks:)": "c75873750803141f",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
@@ -157,7 +144,7 @@
   {
    "key": "func WindowSelector.scoredBlock(slice:rrValues:artifactRate:clean:sessionStartMs:sessionEndMs:)",
    "hash": "d27d1dfb7a23f279",
-   "does": "Builds the ScoredRecoveryBlock: metrics (mean HR, population-variance SDNN, HR CV), relative position, DFA a1 when >=64 clean beats, ectopic rate, lfHfRatio always nil.",
+   "does": "Builds the ScoredRecoveryBlock: metrics (mean HR, sample-SD SDNN — the reported estimator — and HR CV), relative position, DFA a1 when >=64 clean beats, ectopic rate, lfHfRatio always nil.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.computeWindowMetrics(cleanRRs:rmssd:windowPoints:)",
@@ -183,29 +170,17 @@
      "effect": "return nil; unreachable (non-empty slice guaranteed)"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "computeWindowMetrics uses population variance (divisor N) for SDNN/CV, which the comment admits differs from Statistics' sample variance used elsewhere; the selector's SDNN is therefore not the same estimator as reported SDNN (peakSDNN selection and PeakCapacity.peakSDNN carry it).",
-     "evidence": [
-      "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift:205",
-      "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift:207",
-      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:529"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "93a8b95af9c5a354",
     "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.computeRelativePosition(windowPoints:sessionStartMs:sessionEndMs:)": "f21cf3eee793629a",
-    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.computeWindowMetrics(cleanRRs:rmssd:windowPoints:)": "5dcc9d8279c714eb"
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.computeWindowMetrics(cleanRRs:rmssd:windowPoints:)": "1ffe622727230603"
    }
   },
   {
    "key": "func WindowSelector.extractValidRRValues(windowPoints:windowFlags:startIdx:)",
-   "hash": "7f02bb69b295d124",
-   "does": "Collects (absolute index, rr) for beats that are not flagged artifact (beats beyond the flags array count as non-artifact) and pass HRVConstants.RRInterval.isValid; artifactRate = flagged count / window point count.",
+   "hash": "2e61a2cd2487627a",
+   "does": "Collects (absolute index, rr) for beats that have a flag, are not flagged artifact, and pass HRVConstants.RRInterval.isValid. A beat past the end of the flags array (partial artifact detection on a recovered session) was never checked: it is not collected and counts with the artifacts. artifactRate = (artifact + unverified beats) / window point count.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/Constants.swift::func HRVConstants.RRInterval.isValid(_:)"
@@ -214,42 +189,30 @@
    "writes": [],
    "branches": [
     {
-     "at": "+4",
+     "at": "+5",
      "cond": "for each point in window",
      "effect": "iterate"
     },
     {
-     "at": "+5",
-     "cond": "i < windowFlags.count",
-     "effect": "use flag's isArtifact; else treat as not artifact (truncated flags array)"
+     "at": "+6",
+     "cond": "no flag for this beat, or flagged artifact",
+     "effect": "count it as rejected and skip"
     },
     {
-     "at": "+6",
-     "cond": "not artifact and RR in valid range",
-     "effect": "append; else drop"
+     "at": "+10",
+     "cond": "RR in valid range",
+     "effect": "append; else drop (not counted as artifact)"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "When the flags array is shorter than points (recovered session), unflagged tail beats count as clean and the artifact rate is computed over all points, so a window past the flags tail always passes the artifact gate with rate 0 and only the RR range check protects it.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift:110",
-      "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift:179",
-      "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift:185"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Utilities/Constants.swift::func HRVConstants.RRInterval.isValid(_:)": "330523605d6eeba2"
    }
   },
   {
-   "key": "func WindowSelector.validateArtifactRate(_:limit:windowPoints:windowFlags:)",
-   "hash": "1789f23567faa974",
-   "does": "Returns false (and logs counts) when the window's artifact rate exceeds the limit, else true.",
+   "key": "func WindowSelector.validateArtifactRate(_:limit:windowPointCount:)",
+   "hash": "34288af2187413b1",
+   "does": "Returns false (and logs the rate, limit and the artifact-or-unverified count derived from rate × points) when the window's artifact rate exceeds the limit, else true.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
@@ -270,18 +233,20 @@
   },
   {
    "key": "func WindowSelector.computeWindowMetrics(cleanRRs:rmssd:windowPoints:)",
-   "hash": "ad018a4f13df1247",
-   "does": "Computes window metrics from clean RRs: meanRR, meanHR (computeMeanHR), population SD as SDNN, CV = SD/meanRR, and passes through the masked RMSSD.",
+   "hash": "56f3466707967239",
+   "does": "Computes window metrics from clean RRs: meanRR, meanHR (computeMeanHR), SDNN = Statistics.sampleStandardDeviation (divisor N-1, the estimator the reported SDNN uses), CV = SDNN/meanRR, and passes through the masked RMSSD.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.computeMeanHR(windowPoints:meanRR:)"
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.computeMeanHR(windowPoints:meanRR:)",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.sampleStandardDeviation(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.computeMeanHR(windowPoints:meanRR:)": "9ff3b4bc24d6f20d"
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.computeMeanHR(windowPoints:meanRR:)": "9ff3b4bc24d6f20d",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.sampleStandardDeviation(_:)": "6a1a9d5b3116a177"
    }
   },
   {

@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift",
- "hash": "76f58238d6d35c3f",
+ "hash": "a2399368faac039f",
  "role": "Capability-axis classifier for SmartProviderRouter: classifies a user message on four flags (tools, web, historical depth, speculation) by keyword-gated embedding cosine similarity to prototype centroids, and maps the flag count to a provider tier (quick/auto/deep).",
  "types": [
   "CapabilityClassifier: final class (@MainActor singleton) — classifier",
@@ -11,7 +11,7 @@
   "mem:CapabilityClassifier.shared (singleton; exposed via AppDependencies.swift:655)",
   "mem:CapabilityClassifier.axisThreshold = 0.55",
   "mem:Requirement.none / Requirement.allAxes (static)",
-  "mem:CapabilityClassifier.emailRequestMarkers / toolMarkers / webMarkers / depthMarkers / speculationMarkers (static keyword lists)",
+  "mem:CapabilityClassifier.emailRequestMarkers / toolMarkers / webMarkers / depthMarkers / speculationMarkers (static keyword lists, matched as whole words; bare latest / would i / could i removed)",
   "mem:CapabilityClassifier.prototypes (static phrase lists per axis)",
   "mem:CapabilityClassifier.prototypeCentroids (lazy instance cache of embedded centroids)"
  ],
@@ -113,25 +113,11 @@
      "effect": "returns keyword result; non-English returns .none (Quick tier, no tools)"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "med",
-     "text": "Keyword markers are raw substring tests: 'wind' matches 'window'/'unwind', 'latest' matches 'what's my latest HRV', 'would i'/'could i' match ordinary requests, 'buy'/'stock'/'license' match within other words. When the embedder is unavailable (first launch asset download, older OS) the keyword result is returned directly, escalating plain data lookups from on-device Apple to the cloud tiers (cost, and the user's data leaves the device for that turn).",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift:145",
-      "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift:199",
-      "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift:227",
-      "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift:231",
-      "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift:248"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)": "598ed05d4c3d5227",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)": "f07442db63a3d2d5",
     "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)": "415ee598e877b051",
-    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)": "bcb34519a50b7349"
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)": "4c0f594d0354c673"
    }
   },
   {
@@ -205,8 +191,8 @@
   },
   {
    "key": "func CapabilityClassifier.embeddingClassify(_:)",
-   "hash": "533ac5e8f9a82144",
-   "does": "Embeds the query and returns cosine similarity to each axis centroid; nil when the query cannot be embedded or no centroids exist.",
+   "hash": "34c6152fd866cf39",
+   "does": "Embeds the query and returns cosine similarity to each axis centroid; nil when the query cannot be embedded, no centroids exist, or any centroid's dimension differs from the query's (embedded by another embedder), so the keyword result stands.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embed(_:)",
@@ -224,29 +210,17 @@
      "effect": "returns nil (keyword fallback)"
     },
     {
-     "at": "+3",
-     "cond": "centroids empty",
+     "at": "+5",
+     "cond": "centroids empty or a centroid dimension differs from the query",
      "effect": "returns nil"
     },
     {
-     "at": "+5",
+     "at": "+7",
      "cond": "for each axis centroid",
      "effect": "scores it"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "SmartProviderRouter.embed falls back per call from the contextual embedder to the 512-dim word-vector embedder; prototype centroids are cached once (lazy) from whichever path served them, and cosineSimilarity returns 0 on a dimension mismatch, so any query embedded by the other path scores 0 on every axis and is silently routed to the Quick tier.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift:145",
-      "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift:170",
-      "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift:303"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.cosineSimilarity(_:_:)": "644b9d7baad9bdb0",
     "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embed(_:)": "ab993c103face060",
@@ -255,10 +229,11 @@
   },
   {
    "key": "func CapabilityClassifier.keywordHeuristic(_:)",
-   "hash": "54be66f99a11515f",
-   "does": "Builds a Requirement from substring keyword matches per axis; tools also fire on asksToEmail.",
+   "hash": "0f47814934bbb596",
+   "does": "Builds a Requirement from whole-word keyword matches per axis (CapabilityClassifier.contains); tools also fire on asksToEmail.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.contains(_:phrase:)",
     "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.asksToEmail(_:)"
    ],
    "reads": [],
@@ -266,20 +241,70 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.asksToEmail(_:)": "f46307606349eab9"
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.asksToEmail(_:)": "0e9c6ef60374ed2a",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.contains(_:phrase:)": "d5e93af1942aeb2d"
    }
   },
   {
-   "key": "func CapabilityClassifier.asksToEmail(_:)",
-   "hash": "3038e98d35892002",
-   "does": "True when text starts with 'email ' or contains an email-request marker ('an email', 'please email', 'email me', 'email to ', ...).",
+   "key": "func CapabilityClassifier.contains(_:phrase:)",
+   "hash": "06dc4a75d2b88ef1",
+   "does": "Whether phrase occurs in text as whole words: scans each occurrence and accepts one whose neighbours do not extend a letter/digit at the phrase's edges (isBoundary).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isBoundary(_:edge:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "another occurrence found",
+     "effect": "checks both edges"
+    },
+    {
+     "at": "+5",
+     "cond": "both edges are word boundaries",
+     "effect": "returns true; else searches from the next character"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isBoundary(_:edge:)": "0779bbd9a270fa95"
+   }
+  },
+  {
+   "key": "func CapabilityClassifier.isBoundary(_:edge:)",
+   "hash": "c783d97ab94af1a2",
+   "does": "True when there is no neighbour, the phrase edge is not a letter or digit, or the neighbour is neither a letter nor a digit.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no neighbour or edge not alphanumeric",
+     "effect": "true; else whether the neighbour is non-alphanumeric"
+    }
+   ],
    "flags": [],
    "deps": {}
+  },
+  {
+   "key": "func CapabilityClassifier.asksToEmail(_:)",
+   "hash": "ab83a550bb6e9854",
+   "does": "True when text starts with 'email ' or contains an email-request marker as whole words ('an email', 'please email', 'email me', 'email to ', ...).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.contains(_:phrase:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.contains(_:phrase:)": "d5e93af1942aeb2d"
+   }
   },
   {
    "key": "func CapabilityClassifier.cosineSimilarity(_:_:)",

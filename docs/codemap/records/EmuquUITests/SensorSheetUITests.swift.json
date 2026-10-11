@@ -7,24 +7,12 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Passes the bare '-UITests' launch argument, which no production code reads (only -UITests-FreshInstall at AppLaunchRecovery.swift:185 and -UITests-ForcePaywall/-UITests-SeedArchive at UITestLaunchArguments.swift:18,23 are checked); it is inert",
-   "evidence": [
-    "EmuquUITests/SensorSheetUITests.swift:29",
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift:185",
-    "Emuqu/Sources/Services/UITestLaunchArguments.swift:18"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "func SensorSheetUITests.setUp()",
-   "hash": "5afd054df2a6b2da",
-   "does": "Sets continueAfterFailure=false, creates XCUIApplication, appends launch arguments -UITests, -UITests-FreshInstall and English locale (UITestLanguage.english), launches the app (the app wipes onboarding/disclaimer/paywall flags, settings files and the session archive via AppLaunchRecovery.resetUITestStateIfRequested) and walks every first-run gate with UITestLaunch.toMainUI, ignoring its Bool result.",
+   "hash": "21c84c38230e01df",
+   "does": "Sets continueAfterFailure=false, creates XCUIApplication, appends launch arguments -UITests-FreshInstall and English locale (UITestLanguage.english), launches the app (the app wipes onboarding/disclaimer/paywall flags, settings files and the session archive via AppLaunchRecovery.resetUITestStateIfRequested) and walks every first-run gate with UITestLaunch.toMainUI, ignoring its Bool result.",
    "entry": "XCTest runner: setUp before each test in the class",
    "calls": [
     "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)",
@@ -55,8 +43,8 @@
   },
   {
    "key": "func SensorSheetUITests.openSensorSheet()",
-   "hash": "ec0e3e5d7d5b1b2e",
-   "does": "Opens the Fitness tab, asserts fitness.strapPill appears and that tapSafely sent a tap.",
+   "hash": "5f2414bca3cc9c4e",
+   "does": "Opens the Fitness tab, asserts fitness.strapPill appears within UITestTiming.s(15) — as long as FitnessTabUITests waits for the recorder-gated pre-flight, but failing rather than skipping, because the recorder is bound unconditionally on the tab's first appearance — and that tapSafely sent a tap.",
    "entry": null,
    "calls": [
     "EmuquUITests/SensorSheetUITests.swift::func SensorSheetUITests.openFitnessTab()",
@@ -67,19 +55,7 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Requires fitness.strapPill, declared in WorkoutPreflightView (WorkoutPreflightView.swift:411), which renders only once the recorder exists; FitnessTabUITests skips on exactly that absence as a cold-simulator race, while this suite fails on it",
-     "evidence": [
-      "EmuquUITests/SensorSheetUITests.swift:41",
-      "Emuqu/Sources/Views/WorkoutPreflightView.swift:411",
-      "EmuquUITests/FitnessTabUITests.swift:113"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
     "EmuquUITests/EmuquUITests.swift::func UITestFind.tapSafely(_:in:)": "5ba2bf71286c792e",
@@ -140,7 +116,7 @@
    "deps": {
     "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
     "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68",
-    "EmuquUITests/SensorSheetUITests.swift::func SensorSheetUITests.openSensorSheet()": "488bdfa1e74d54b9",
+    "EmuquUITests/SensorSheetUITests.swift::func SensorSheetUITests.openSensorSheet()": "4cc2c85974262be9",
     "EmuquUITests/SensorSheetUITests.swift::var SensorSheetUITests.sheetRoot": "758930eacbfee076"
    }
   },
@@ -164,14 +140,14 @@
     "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
     "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)": "3baa26cf27145a90",
     "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68",
-    "EmuquUITests/SensorSheetUITests.swift::func SensorSheetUITests.openSensorSheet()": "488bdfa1e74d54b9",
+    "EmuquUITests/SensorSheetUITests.swift::func SensorSheetUITests.openSensorSheet()": "4cc2c85974262be9",
     "EmuquUITests/SensorSheetUITests.swift::var SensorSheetUITests.sheetRoot": "758930eacbfee076"
    }
   },
   {
    "key": "func SensorSheetUITests.testSensorSheetDismissesBackToFitness()",
-   "hash": "42a76ae23c243f27",
-   "does": "Opens the sheet, swipes down fast, asserts fitness.root appears and the tab bar exists.",
+   "hash": "a349daf63a42ade6",
+   "does": "Opens the sheet, swipes down fast, polls (100 ms) up to UITestTiming.s(10) for sensors.root to leave and asserts it has, then asserts fitness.root appears and the tab bar exists.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquUITests/SensorSheetUITests.swift::func SensorSheetUITests.openSensorSheet()",
@@ -181,23 +157,19 @@
    ],
    "reads": [],
    "writes": [],
-   "branches": [],
-   "flags": [
+   "branches": [
     {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "fitness.root stays in the hierarchy under a sheet, so its existence does not prove the sheet was dismissed; sensors.root absence is not asserted",
-     "evidence": [
-      "EmuquUITests/SensorSheetUITests.swift:97"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+5",
+     "cond": "sensors.root still exists and the deadline has not passed",
+     "effect": "sleep 100 ms and re-check"
     }
    ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
     "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
     "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68",
-    "EmuquUITests/SensorSheetUITests.swift::func SensorSheetUITests.openSensorSheet()": "488bdfa1e74d54b9",
+    "EmuquUITests/SensorSheetUITests.swift::func SensorSheetUITests.openSensorSheet()": "4cc2c85974262be9",
     "EmuquUITests/SensorSheetUITests.swift::var SensorSheetUITests.sheetRoot": "758930eacbfee076"
    }
   }

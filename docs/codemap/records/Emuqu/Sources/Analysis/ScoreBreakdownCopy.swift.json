@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift",
  "hash": "5c4ed5592de69357",
- "role": "Localised wording for a ScoreBreakdown: penalty lines (SpO2, missing sleep), recognising stored penalty lines in any shipped language, and the one-paragraph advice message chosen by penalties, baseline drift, and score band/weakest/strongest factor/training load.",
+ "role": "Localised wording for a ScoreBreakdown: penalty lines (SpO2, missing sleep), recognising stored penalty lines in any shipped language and re-wording them with the points they were stored with, and the one-paragraph advice message chosen by penalties, baseline drift, and score band/weakest/strongest weighted factor/training load.",
  "types": [
   "ScoreBreakdownCopy: enum — breakdown copy",
   "ScoreBreakdownCopy.PenaltyKind: private enum — lowBloodOxygen/missingSleep"
@@ -11,24 +11,44 @@
   "mem:ScoreBreakdownCopy.storedPenaltyNames (lazy static map of penalty names in every shipped .lproj)"
  ],
  "toplevel": "storedPenaltyNames is a lazily-initialised static closure (unit :59).",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "displayPenalty re-renders a stored penalty with the CURRENT spo2Penalty / missingSleepPenalty constants, so if either constant changes, historical breakdowns display a point value different from the one actually deducted.",
-   "evidence": [
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift:39",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift:18",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift:23"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "var ScoreBreakdownCopy.lowBloodOxygenPenalty",
-   "hash": "c5fd28c9cdec61cb",
-   "does": "Localised 'Low blood oxygen (−10)' line using RecoveryScoreConstants.Vitals.spo2Penalty.",
+   "hash": "46d3ae2bfe293318",
+   "does": "The penalty line for a new score: lowBloodOxygenLine with Int(RecoveryScoreConstants.Vitals.spo2Penalty).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.lowBloodOxygenLine(points:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.lowBloodOxygenLine(points:)": "22d1f477b3be01a2"
+   }
+  },
+  {
+   "key": "var ScoreBreakdownCopy.missingSleepPenalty",
+   "hash": "50b9f969400fefcc",
+   "does": "The penalty line for a new score: missingSleepLine with Int(RecoveryScoreConstants.missingSleepPenalty).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.missingSleepLine(points:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.missingSleepLine(points:)": "44b652c8114b5da1"
+   }
+  },
+  {
+   "key": "func ScoreBreakdownCopy.lowBloodOxygenLine(points:)",
+   "hash": "4202bc74e858a105",
+   "does": "Localised 'Low blood oxygen (−N)' line in NarrativeLanguage for the given points.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
@@ -42,9 +62,9 @@
    }
   },
   {
-   "key": "var ScoreBreakdownCopy.missingSleepPenalty",
-   "hash": "7281d728a748f1e8",
-   "does": "Localised 'No sleep data (−10)' line using missingSleepPenalty.",
+   "key": "func ScoreBreakdownCopy.missingSleepLine(points:)",
+   "hash": "daa8065d5f31645b",
+   "does": "Localised 'No sleep data (−N)' line in NarrativeLanguage for the given points.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
@@ -71,14 +91,15 @@
   },
   {
    "key": "func ScoreBreakdownCopy.displayPenalty(_:)",
-   "hash": "da612a92d8a9bf81",
-   "does": "Maps a stored penalty line to the app-language line by its name (text before ' ('); unknown lines returned verbatim.",
+   "hash": "15140eae3dc5474e",
+   "does": "Maps a stored penalty line to the app-language line by its name (text before ' ('), keeping the points the line was stored with (storedPoints), so a historical breakdown shows what was actually deducted; the current constant stands in only for a line naming no number. Unknown lines are returned verbatim.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.penaltyName(_:)",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::let ScoreBreakdownCopy.storedPenaltyNames",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::var ScoreBreakdownCopy.lowBloodOxygenPenalty",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::var ScoreBreakdownCopy.missingSleepPenalty"
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.storedPoints(_:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.lowBloodOxygenLine(points:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.missingSleepLine(points:)"
    ],
    "reads": [],
    "writes": [],
@@ -86,26 +107,51 @@
     {
      "at": "+2",
      "cond": "name maps to .lowBloodOxygen",
-     "effect": "returns current lowBloodOxygenPenalty"
-    },
-    {
-     "at": "+3",
-     "cond": "name maps to .missingSleep",
-     "effect": "returns current missingSleepPenalty"
+     "effect": "lowBloodOxygenLine with the stored points, or spo2Penalty when the line names none"
     },
     {
      "at": "+4",
+     "cond": "name maps to .missingSleep",
+     "effect": "missingSleepLine with the stored points, or missingSleepPenalty when the line names none"
+    },
+    {
+     "at": "+6",
      "cond": "name not recognised (nil)",
      "effect": "returns line unchanged"
     }
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.lowBloodOxygenLine(points:)": "22d1f477b3be01a2",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.missingSleepLine(points:)": "44b652c8114b5da1",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.penaltyName(_:)": "d746e1b81f630a98",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.storedPoints(_:)": "4e9dd829fcac6cbd",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::let ScoreBreakdownCopy.storedPenaltyNames": "d7565a6b65b2c52c",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::var ScoreBreakdownCopy.lowBloodOxygenPenalty": "1a35092f9956bc5c",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::var ScoreBreakdownCopy.missingSleepPenalty": "ea5bd1b2b4098085"
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::var ScoreBreakdownCopy.missingSleepPenalty": "ba9e8171680faff8"
    }
+  },
+  {
+   "key": "func ScoreBreakdownCopy.storedPoints(_:)",
+   "hash": "96c20d1e252cb9a9",
+   "does": "The N of a stored line's ' (−N)': the decimal digits (any script, via Character.wholeNumberValue) after the first ' (' read as one number; nil when there is no ' (' or no digit.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "line has a part after ' ('",
+     "effect": "false: nil"
+    },
+    {
+     "at": "+3",
+     "cond": "that part has digits",
+     "effect": "false: nil; true: the digits as an Int"
+    }
+   ],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "func ScoreBreakdownCopy.penaltyName(_:)",
@@ -147,7 +193,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.penaltyName(_:)": "d746e1b81f630a98",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.shippedLanguageBundles()": "4fb5317f01a408ac",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::var ScoreBreakdownCopy.missingSleepPenalty": "ea5bd1b2b4098085"
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::var ScoreBreakdownCopy.missingSleepPenalty": "ba9e8171680faff8"
    }
   },
   {
@@ -188,15 +234,16 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)": "fcd09acf3383cea3"
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)": "b27056eb75799513"
    }
   },
   {
    "key": "func ScoreBreakdownCopy.message(for:loadLevel:)",
-   "hash": "e3636bbc1ee3b907",
-   "does": "Picks the advice paragraph: vitals/penalty message if penalties explain >1 point gap, else baseline-drift message, else score-band message.",
+   "hash": "5863ddc0bec86815",
+   "does": "Picks the advice paragraph from the weighted factors only (scoredFactors: weakest/strongest exclude a weight-0 factor such as Comeback-mode Vitals): vitals/penalty message if penalties explain >1 point gap, else baseline-drift message, else score-band message.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.scoredFactors(_:)",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.vitalsPenaltyMessage(_:weakest:)",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.baselineDriftMessage(_:)",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.bandMessage(_:weakest:strongest:loadLevel:)"
@@ -215,36 +262,34 @@
      "effect": "returns it; else bandMessage"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "weakest/strongest and the all-factors->=60 checks ignore factor weight, so in Comeback mode the Vitals factor (weight 0, still listed) can be named as what is holding the score back ('Strong overall, but vitals is holding you back. Fix that...' / 'Penalties plus weak vitals') although it contributes nothing to the composite.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift:89",
-      "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift:105",
-      "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift:112",
-      "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift:171",
-      "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift:66",
-      "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift:73",
-      "Emuqu/Sources/Utilities/Constants.swift:424"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.bandMessage(_:weakest:strongest:loadLevel:)": "267f839de3a15935",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.baselineDriftMessage(_:)": "321acfc78d5dd5e4",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.vitalsPenaltyMessage(_:weakest:)": "10eeb91f9476d4b9"
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.baselineDriftMessage(_:)": "aa22c33a053d378c",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.scoredFactors(_:)": "60ad3f0b5d6043b2",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.vitalsPenaltyMessage(_:weakest:)": "5004bf5643ca38b4"
    }
   },
   {
+   "key": "func ScoreBreakdownCopy.scoredFactors(_:)",
+   "hash": "066dd66711e4aac9",
+   "does": "The breakdown's factors with weight > 0 — the ones that contribute to the composite.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
    "key": "func ScoreBreakdownCopy.vitalsPenaltyMessage(_:weakest:)",
-   "hash": "cc1cb338dcd81a09",
-   "does": "Penalty message when penalties exist and gapFromFactors>1: SpO2-specific copy if SpO2 is the only penalty and all factors>=60; list of penalties if all factors>=60; 'Penalties plus weak X' if weakest<60; else generic.",
+   "hash": "e2709a59223debf1",
+   "does": "Penalty message when penalties exist and gapFromFactors>1: SpO2-specific copy if SpO2 is the only penalty and all weighted factors>=60; list of penalties if all weighted factors>=60; 'Penalties plus weak X' if the weakest weighted factor<60; else generic.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.gapFromFactors",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.scoredFactors(_:)",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.penaltyList(_:)",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
@@ -259,7 +304,7 @@
     },
     {
      "at": "+4",
-     "cond": "all factors score >= 60",
+     "cond": "all weighted factors score >= 60",
      "effect": "true: strong-components copy; false: weakest check"
     },
     {
@@ -278,6 +323,7 @@
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.gapFromFactors": "7ab83d289abeb803",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)": "b31fa83fd00c415c",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.penaltyList(_:)": "02e49a73e22451f4",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.scoredFactors(_:)": "60ad3f0b5d6043b2",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
    }
   },
@@ -306,18 +352,19 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.displayPenalty(_:)": "dc48db705e4d2fae",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.displayPenalty(_:)": "a885486a54084f3d",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.localeList(_:)": "7ca7c84f1a4cf9ee",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::var ScoreBreakdownCopy.isEnglish": "a9e80efbc95a9c28"
    }
   },
   {
    "key": "func ScoreBreakdownCopy.baselineDriftMessage(_:)",
-   "hash": "9b9d197a87ac2109",
-   "does": "Baseline-drift message when gap>5, no penalties, and all factors>=60; else nil.",
+   "hash": "378dd49454b34667",
+   "does": "Baseline-drift message when gap>5, no penalties, and all weighted factors>=60; else nil.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.gapFromFactors",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.scoredFactors(_:)",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
    ],
    "reads": [],
@@ -325,13 +372,14 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "gap>5 and no penalties and all factors >=60",
+     "cond": "gap>5 and no penalties and all weighted factors >=60",
      "effect": "false returns nil; true returns baselines-improved copy"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.gapFromFactors": "7ab83d289abeb803",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.scoredFactors(_:)": "60ad3f0b5d6043b2",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
    }
   },
@@ -367,19 +415,20 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.decentBandMessage(weakest:strongest:)": "a5cfef635098a8d4",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.decentBandMessage(weakest:strongest:)": "b495d2aac9ad349d",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.lowBandMessage(weakest:)": "9c96980ad9ca9b40",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.mediocreBandMessage(weakest:)": "4fe790394e438835",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.strongBandMessage(_:weakest:loadLevel:)": "7482dac74e1b50c5"
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.mediocreBandMessage(weakest:)": "a8bddc43b9c0ccd9",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.strongBandMessage(_:weakest:loadLevel:)": "f3bfc0ae9e970dab"
    }
   },
   {
    "key": "func ScoreBreakdownCopy.strongBandMessage(_:weakest:loadLevel:)",
-   "hash": "731b1159055eb2fe",
-   "does": "Strong band: easier-session copy when load level .easier; 'X is holding you back' if weakest<60; carriers copy if HRV<72 and other factors exist; else all-clear (go-hard only if load .clear).",
+   "hash": "5bcea92620046f72",
+   "does": "Strong band: easier-session copy when load level .easier; 'X is holding you back' if the weakest weighted factor<60; carriers copy (weighted non-HRV factors) if HRV<72 and other weighted factors exist; else all-clear (go-hard only if load .clear).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.scoredFactors(_:)",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.carriersMessage(_:)",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.allClearMessage(_:goHardAllowed:)",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
@@ -399,15 +448,16 @@
     },
     {
      "at": "+11",
-     "cond": "HRV factor exists with score < 72 and other factors exist",
+     "cond": "weighted HRV factor exists with score < 72 and other weighted factors exist",
      "effect": "returns carriersMessage; else allClearMessage"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.allClearMessage(_:goHardAllowed:)": "4d355e8212f36d67",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.allClearMessage(_:goHardAllowed:)": "52ebfdc452d562dc",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.carriersMessage(_:)": "ec4c21bdd9ab2e62",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)": "b31fa83fd00c415c",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.scoredFactors(_:)": "60ad3f0b5d6043b2",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
    }
   },
@@ -441,10 +491,11 @@
   },
   {
    "key": "func ScoreBreakdownCopy.allClearMessage(_:goHardAllowed:)",
-   "hash": "bf702735b99b9e86",
-   "does": "All-clear copy listing factors; 'Go hard' only when rounded composite>=90 and goHardAllowed; singular/plural forms.",
+   "hash": "5e440dab0bd4f5c8",
+   "does": "All-clear copy listing the weighted factors (a weight-0 factor is not called 'in a good place'); 'Go hard' only when rounded composite>=90 and goHardAllowed; singular/plural forms.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.scoredFactors(_:)",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listPhrase(_:)",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.sentenceCase(_:)",
@@ -454,18 +505,18 @@
    "writes": [],
    "branches": [
     {
-     "at": "+3",
+     "at": "+4",
      "cond": "rounded composite >= 90 and goHardAllowed",
      "effect": "false: 'Normal training is fine' copy; true: 'Go hard' copy"
     },
     {
-     "at": "+5",
-     "cond": "single factor (normal-training copy)",
+     "at": "+6",
+     "cond": "single weighted factor (normal-training copy)",
      "effect": "singular vs plural"
     },
     {
-     "at": "+9",
-     "cond": "single factor (go-hard copy)",
+     "at": "+10",
+     "cond": "single weighted factor (go-hard copy)",
      "effect": "singular vs plural"
     }
    ],
@@ -473,6 +524,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listPhrase(_:)": "cd29ffa21302af26",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)": "b31fa83fd00c415c",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.scoredFactors(_:)": "60ad3f0b5d6043b2",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.sentenceCase(_:)": "8389e10f7b598b2a",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
    }
@@ -498,22 +550,10 @@
     {
      "at": "+5",
      "cond": "weakest label == \"Training Load\"",
-     "effect": "true: training-fatigue copy; false: carrier/drag copy"
+     "effect": "true: training-fatigue copy; false: carrier/drag copy (reached by breakdowns archived when load was a factor, which are still decoded and shown)"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "No current code builds a ScoreFactor labelled 'Training Load' (only HRV, Sleep, Vitals are created); the branch is reachable only for legacy archived breakdowns.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift:219",
-      "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift:90",
-      "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift:119"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)": "b31fa83fd00c415c",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.startName(_:)": "3ac03269ccb87c6d",
@@ -540,21 +580,10 @@
     {
      "at": "+4",
      "cond": "weakest label == \"Training Load\"",
-     "effect": "true: heavy-fatigue copy; false: named-factor copy"
+     "effect": "true: heavy-fatigue copy; false: named-factor copy (reached by breakdowns archived when load was a factor, which are still decoded and shown)"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "'Training Load' factor is never produced by current scoring; legacy records only.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift:230",
-      "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift:90"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)": "b31fa83fd00c415c",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"

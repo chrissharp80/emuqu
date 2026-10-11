@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/PrivacyPolicyView.swift",
- "hash": "a7657394324ac070",
+ "hash": "c9047cc60ef699be",
  "role": "The in-app privacy policy (what is collected, stored, shared, user controls, children, permissions, contact) and AcknowledgementsView (open-source packages, license texts, data sources, Apple frameworks).",
  "types": [
   "PrivacyPolicyView: struct (View) — privacy policy List",
@@ -14,7 +14,7 @@
   "mem:AcknowledgementsView.packages (private let, 11 hard-coded packages, line 481)",
   "mailto:chrissharp80@gmail.com (privacy contact, line 337)"
  ],
- "toplevel": "Pkg.id is `let id = UUID()` (line 468), regenerated whenever AcknowledgementsView is initialised. `packages` (lines 481-548) mirrors Package.resolved 1:1 — all 11 identities and versions match the resolved file at main (polar-ble-sdk 8.3.0, WhisperKit 0.18.0, swift-transformers 1.1.9, swift-jinja 2.3.5, swift-protobuf 1.33.3, swift-crypto 4.5.0, swift-asn1 1.7.0, swift-collections 1.4.1, swift-argument-parser 1.7.1, yyjson 0.12.0, Zip 2.1.2); scripts/check_sbom_drift.sh parses this file to enforce that. Two #Preview blocks (454-458, 703-707) are preview-only. Policy claims spot-checked against code: provider list matches ProviderID (AIProvider.swift:5-11) and vendorName; Overpass hosts match OverpassClient.swift:60-61; OpenTopoData 100 points/11 m matches FitnessPostSummaryView+Cards.swift:614; Settings paths 'iCloud & Data', 'Flo', 'Advanced Data Controls', 'Withdraw consent' exist (SettingsView.swift:216,271; AdvancedDataControlsPage.swift:21; AIAssistantSettingsPage.swift:185); the 13+ age matches HealthDisclaimerView.swift:99.",
+ "toplevel": "Pkg.id is the package name (computed), stable across re-inits. `packages` (lines 481-548) mirrors Package.resolved 1:1 — all 11 identities and versions match the resolved file at main (polar-ble-sdk 8.3.0, WhisperKit 0.18.0, swift-transformers 1.1.9, swift-jinja 2.3.5, swift-protobuf 1.33.3, swift-crypto 4.5.0, swift-asn1 1.7.0, swift-collections 1.4.1, swift-argument-parser 1.7.1, yyjson 0.12.0, Zip 2.1.2); scripts/check_sbom_drift.sh parses this file to enforce that. Two #Preview blocks (454-458, 703-707) are preview-only. Policy claims spot-checked against code: provider list matches ProviderID (AIProvider.swift:5-11) and vendorName; Overpass hosts match OverpassClient.swift:60-61; OpenTopoData 100 points/11 m matches FitnessPostSummaryView+Cards.swift:614; Settings paths 'iCloud & Data', 'Flo', 'Advanced Data Controls', 'Withdraw consent' exist (SettingsView.swift:216,271; AdvancedDataControlsPage.swift:21; AIAssistantSettingsPage.swift:185); the 13+ age matches HealthDisclaimerView.swift:99.",
  "flags": [],
  "units": [
   {
@@ -650,6 +650,18 @@
    }
   },
   {
+   "key": "var AcknowledgementsView.Pkg.id",
+   "hash": "d0d429dfa00c228d",
+   "does": "The package name: unique in the list and stable across re-inits, so ForEach keeps each acknowledgement row's identity.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
    "key": "var AcknowledgementsView.body",
    "hash": "1c8fa0657ec29e19",
    "does": "Form with license intro, package list, license texts, data sources and Apple-frameworks sections; title 'Open Source Licenses'.",
@@ -669,7 +681,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/PrivacyPolicyView.swift::var AcknowledgementsView.acknowledgementsSection": "74b1012865b3a76a",
+    "Emuqu/Sources/Views/PrivacyPolicyView.swift::var AcknowledgementsView.acknowledgementsSection": "67e5cd0ca5d5000c",
     "Emuqu/Sources/Views/PrivacyPolicyView.swift::var AcknowledgementsView.dataSourcesSection": "0c46d05e976fef82",
     "Emuqu/Sources/Views/PrivacyPolicyView.swift::var AcknowledgementsView.licenseIntroSection": "407bdc0dad3c6b47",
     "Emuqu/Sources/Views/PrivacyPolicyView.swift::var AcknowledgementsView.licenseTextsSection": "934f138afab4fe65",
@@ -706,18 +718,7 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Pkg.id is `let id = UUID()`, so every re-init of AcknowledgementsView gives the 11 rows new identities and ForEach treats them as all-new views (lost row state/animations); the package name would be a stable id.",
-     "evidence": [
-      "Emuqu/Sources/Views/PrivacyPolicyView.swift:468",
-      "Emuqu/Sources/Views/PrivacyPolicyView.swift:572"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/PrivacyPolicyView.swift::func AcknowledgementsView.acknowledgementRow(_:)": "95a3db5e5424f558"

@@ -23,7 +23,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore._archive(_:skipSameNightMerge:)": "740d98b7c017d36a",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore._archive(_:skipSameNightMerge:)": "71b5c97dd70f4908",
     "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "807b98551832b9ba"
    }
   },
@@ -59,7 +59,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.archiveBatch(_:)": "fb1d7a87c9092323",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.archiveBatch(_:)": "0e671c7a07f2832c",
     "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "807b98551832b9ba"
    }
   },
@@ -83,31 +83,22 @@
   },
   {
    "key": "func SessionArchive.entryById(_:)",
-   "hash": "4d21ab17d63a5892",
-   "does": "Forwards to ArchiveStore.entryById (caller should hold the lock; HistoryViewModel/CloudKitSessionFreshness call it).",
+   "hash": "06250aec6627e093",
+   "does": "Locked lookup for callers outside the lock (CloudPullCoordinator.refreshIfRemoteIsNewer, tests): takes archiveLock around ArchiveStore.entryById, which reads index and may fill sessionIdLookup. Code already holding the lock calls store.entryById directly (NSLock is not re-entrant).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.entryById(_:)"
    ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "race",
-     "sev": "high",
-     "text": "entryById is documented 'Caller must hold archive.archiveLock' and builds/stores archive.sessionIdLookup from archive.index, but CloudPullCoordinator.refreshIfRemoteIsNewer calls it through this forwarder with no lock, concurrently with locked writers mutating index/sessionIdLookup; Archive.swift states an unlocked index read during a locked write is undefined behaviour (crash race).",
-     "evidence": [
-      "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift:191",
-      "Emuqu/Sources/Storage/Archive+Internal.swift:571",
-      "Emuqu/Sources/Storage/Archive+Internal.swift:576",
-      "Emuqu/Sources/Storage/Archive+Internal.swift:577",
-      "Emuqu/Sources/Storage/Archive.swift:64"
-     ],
-     "found": "second read"
-    }
+   "reads": [
+    "mem:SessionArchive.index",
+    "mem:SessionArchive.sessionIdLookup"
    ],
+   "writes": [
+    "mem:SessionArchive.sessionIdLookup"
+   ],
+   "branches": [],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.entryById(_:)": "e7bc37418ad20f4e",
     "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "807b98551832b9ba"
@@ -133,19 +124,19 @@
   },
   {
    "key": "func SessionArchive.forgetDeletedSession(_:)",
-   "hash": "71225535a7d97c0d",
-   "does": "Forwards to ArchiveStore.forgetDeletedSession.",
+   "hash": "187fc23b40d2f0a8",
+   "does": "Permanently forgets a deleted session: forwards to ArchiveStore.unmarkAsDeleted (the same removal from the deleted list, deletion time forgotten, deleted.json saved; throws).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store",
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.forgetDeletedSession(_:)"
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.unmarkAsDeleted(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.forgetDeletedSession(_:)": "b9bb2c1e140591b2",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.unmarkAsDeleted(_:)": "bbb92c30dc6a2963",
     "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "807b98551832b9ba"
    }
   },
@@ -199,7 +190,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.expireTrash(keepDays:)": "309d6b418de50c1f",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.expireTrash(keepDays:)": "bc9da56fa5b4a1c7",
     "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "807b98551832b9ba"
    }
   },
@@ -253,7 +244,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.unmarkAsDeleted(_:)": "a15e8e7ca31d72dd",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.unmarkAsDeleted(_:)": "bbb92c30dc6a2963",
     "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "807b98551832b9ba"
    }
   },
@@ -325,7 +316,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.deletionTime(of:)": "ea01e6bb195f74f7",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.deletionTime(of:)": "321394cc916f6032",
     "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "807b98551832b9ba"
    }
   },

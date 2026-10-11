@@ -176,7 +176,8 @@ extension WorkoutLiveCoachingNamespace {
             [ACTION] Get the user's current location with FULL navigation detail in ONE call: precise coords, heading (course over ground in degrees, 0=N/90=E + heading_compass cardinal), speed (m/s, mph, km/h), altitude (m + ft), GPS \
             horizontal_accuracy_m, plus the full reverse-geocoded address bundle (road / locality / sub_locality / administrative_area / sub_administrative_area \
             / country / country_code / postal_code / time_zone / area_of_interest / nearest_cross_street / nearest_intersection / compact_address / apple_maps_url / google_maps_url / lat_lon_string). Use for directional / precision \
-            questions: 'which way am I facing', 'am I going up or down', 'how fast am I moving', 'what's the zip code here', 'am I in a different time zone'. Heading and speed are nil when stationary. PRIVACY: precise location is only \
+            questions: 'which way am I facing', 'am I going up or down', 'how fast am I moving', 'what's the zip code here', 'am I in a different time zone'. Heading and speed are nil when stationary. When the address cache is older \
+            than 5 min the coordinates, heading, speed and altitude are still returned, the address fields are left out and address_status is 'pending'. PRIVACY: precise location is only \
             released during an active workout — when none is running this returns notRecorded (location is workout-only; don't guess coordinates). For 'what's around me' / 'turn right in 200 ft' use the directions namespace.
             """,
             parameters: []
@@ -191,20 +192,22 @@ extension WorkoutLiveCoachingNamespace {
         guard self.workoutActive() else { return self.locationGatedOffMessage() }
         // Cache-only read. The app populates AmbientLocationService
         // on foreground; the AI doesn't need to know anything about
-        // permissions, GPS pipelines, or timeouts.
-        if let cachedLoc = AppDependencies.current.location.ambientLocationService.cachedLocation(maxAgeSec: 60),
-           let cachedRoad = AppDependencies.current.location.ambientLocationService.cachedResolvedAddress(maxAgeSec: 300) {
-            return .record(detailedLocationRecord(cachedLoc, road: cachedRoad))
+        // permissions, GPS pipelines, or timeouts. The address cache is
+        // refreshed by distance and rate limit, not by time, so a fresh
+        // fix is still returned when the address is older than 300 s.
+        guard let cachedLoc = AppDependencies.current.location.ambientLocationService.cachedLocation(maxAgeSec: 60) else {
+            return .missing(
+                reason: .notRecorded,
+                detail: "location cache not warm yet — ask the user to open Emuqu for a moment, then ask again"
+            )
         }
-        return .missing(
-            reason: .notRecorded,
-            detail: "location cache not warm yet — ask the user to open Emuqu for a moment, then ask again"
-        )
+        let cachedRoad = AppDependencies.current.location.ambientLocationService.cachedResolvedAddress(maxAgeSec: 300)
+        return .record(detailedLocationRecord(cachedLoc, road: cachedRoad))
     }
 
     private func detailedLocationRecord(
         _ cachedLoc: CLLocation,
-        road cachedRoad: RoadGeocodingService.RoadContext
+        road cachedRoad: RoadGeocodingService.RoadContext?
     ) -> [String: FactValue] {
         let lat = cachedLoc.coordinate.latitude
         let lon = cachedLoc.coordinate.longitude
@@ -217,15 +220,18 @@ extension WorkoutLiveCoachingNamespace {
         lat: Double,
         lon: Double,
         cachedLoc: CLLocation,
-        cachedRoad: RoadGeocodingService.RoadContext
+        cachedRoad: RoadGeocodingService.RoadContext?
     ) -> [String: FactValue] {
         var rec: [String: FactValue] = [
             "status": .string("resolved"),
+            "address_status": .string(cachedRoad == nil ? "pending" : "resolved"),
             "lat": .double(lat),
             "lon": .double(lon),
             "horizontal_accuracy_m": .double(cachedLoc.horizontalAccuracy)
         ]
-        rec.merge(geocodedFields(cachedRoad)) { _, new in new }
+        if let cachedRoad {
+            rec.merge(geocodedFields(cachedRoad)) { _, new in new }
+        }
         rec.merge(mapLinkFields(lat: lat, lon: lon, cachedLoc: cachedLoc)) { _, new in new }
         return rec
     }
@@ -282,7 +288,8 @@ extension WorkoutLiveCoachingNamespace {
             description: """
             [ACTION] Forward-geocode a free-text address the user TOLD you (e.g. 'I'm at the corner of Elm and 5th in Springfield', 'I'm at Lakeside Park entrance'). Apple's geocoder resolves loose natural-language queries — most corner-of \
             / landmark / address phrasings work. On success, the resolved road / city / state / country override the ambient road context so all subsequent live-location reads (and your own next-turn answers) reflect what the user said. \
-            Use this when `workout.live.location.road` returns missing or stale and the user provides a verbal location. Returns the resolved address record on success; returns invalidParameter when the geocoder can't match.
+            Use this when `workout.live.location.road` returns missing or stale and the user provides a verbal location. Returns the resolved address record on success; returns invalidParameter when the geocoder \
+            can't match or can't be reached, and notRecorded when it doesn't answer in time (retry, don't ask the user to rephrase).
             """,
             parameters: [
                 ActionParam("address", "The free-text address the user gave. Examples: 'corner of Elm Pkwy and Hill Rd, Springfield', 'Lakeside Park trailhead', '1600 Pennsylvania Ave Washington DC'. Pass it verbatim — Apple's geocoder handles the parsing.")
@@ -296,25 +303,39 @@ extension WorkoutLiveCoachingNamespace {
         else {
             return .missing(reason: .invalidParameter, detail: "address is required")
         }
-        guard let context = await geocodedRoadContext(query) else {
-            return .missing(reason: .invalidParameter, detail: "geocoder couldn't match '\(query)' — try a more specific address (street + city)")
+        switch await geocodedRoadContext(query) {
+        case let .matched(context)?:
+            // Apply the override on MainActor so the published
+            // `current` propagates correctly.
+            AppDependencies.current.location.roadGeocodingService.overrideContext(context)
+            return .record(roadContextRecord(context))
+        case .unmatched?:
+            return .missing(reason: .invalidParameter, detail: "geocoder couldn't match '\(query)' or couldn't be reached — if it already names a street and city, try again shortly; otherwise ask for a more specific address (street + city)")
+        case nil:
+            return .missing(reason: .notRecorded, detail: "the geocoder didn't answer in time (slow network or rate limit) — the address may be fine; try again in a moment rather than asking the user to rephrase it")
         }
-        // Apply the override on MainActor so the published
-        // `current` propagates correctly.
-        AppDependencies.current.location.roadGeocodingService.overrideContext(context)
-        return .record(roadContextRecord(context))
+    }
+
+    /// What a forward geocode came back with; nil from the timeout race
+    /// means it did not come back in time.
+    private enum AddressLookup: Sendable {
+        case matched(RoadGeocodingService.RoadContext)
+        case unmatched
     }
 
     // Forward-geocode is async; suspend on it directly.
-    // 3 s budget, same App Watchdog rationale as above.
-    // CLGeocoder is typically <500ms; 3s keeps a slow
-    // network from stalling the answer.
-    // Suspending timeout race (no semaphore bridge); timeout
-    // and no-match collapse into the same envelope as the
-    // empty-box path.
-    @MainActor private func geocodedRoadContext(_ query: String) async -> RoadGeocodingService.RoadContext? {
-        await FactResolveTimeout.withTimeout(seconds: 3) {
-            await RoadGeocodingService.geocodeAddress(query)
+    // Suspending timeout race (no semaphore bridge), so the MainActor is
+    // never parked. 7 s budget: the queued geocode can take its own 5 s
+    // CLGeocoder timeout plus the 1 s rate floor, so a shorter cap would
+    // report a slow but valid address as unmatched. A timeout is kept
+    // apart from a no-match so the model doesn't ask the user to rephrase
+    // an address that was never checked.
+    @MainActor private func geocodedRoadContext(_ query: String) async -> AddressLookup? {
+        await FactResolveTimeout.withTimeout(seconds: 7) {
+            if let context = await RoadGeocodingService.geocodeAddress(query) {
+                return AddressLookup.matched(context)
+            }
+            return AddressLookup.unmatched
         }
     }
 
@@ -333,12 +354,16 @@ extension WorkoutLiveCoachingNamespace {
     }
 
     // ── Directions (route the user back to a meaningful place) ─
+    // Not gated on `workoutActive()`: the cloud consent sheet
+    // (ProviderConsentSheet) discloses "your position when you ask for
+    // directions" and the Get Me Back trail while it runs, which is what
+    // directions.routeTo / next_step and location.journey release.
     private var directionsRouteToEntry: FactEntry {
         .actionAsync(
             key: "directions.routeTo",
             description: """
             Compute a walking (or driving) route from the user's CURRENT position to a meaningful destination, using MapKit / MKDirections. Use this when the user says 'get me back to where I started' / 'where's the nearest parking' \
-            / 'walk me to the trailhead' / 'hospital nearest me' / 'lead me home'. The breadcrumb origin only exists when the user has engaged Get Me Back mode (see the Fitness tab's 'Get Me Back' card) — if the user hasn't, the 'origin' \
+            / 'walk me back to the trailhead' / 'hospital nearest me' / 'lead me home'. The breadcrumb origin only exists when the user has engaged Get Me Back mode (see the Fitness tab's 'Get Me Back' card) — if the user hasn't, the 'origin' \
             destination returns notRecorded; route to a typed address or a POI category instead. Returns destination label, lat/lon, total distance in meters, expected travel time in seconds, transport mode, and the first 1–3 turn-by-turn \
             step instructions ready to read aloud. Network-required: MKLocalSearch + MKDirections both call out, so this tool returns notRecorded when offline (the offline compass-arrow back to the breadcrumb origin lives in the Get \
             Me Back screen, not this tool).
@@ -347,7 +372,8 @@ extension WorkoutLiveCoachingNamespace {
                 ActionParam("destination", """
                 What to route to. One of: 'origin' (the breadcrumb origin where the user dropped the pin via Get Me Back mode), 'home' (the user's saved home address from Settings — returns notRecorded if unset, hint-the-user to add it), 'parking' \
                 (nearest parking lot), 'park' (nearest park), 'help' (nearest hospital, when the user asks to be routed to one), 'police' (nearest police station), 'fire' (nearest fire station), 'address' (forward-geocode \
-                the `address` argument). Pick 'origin' for 'lead me back', 'home' for 'lead me home', 'help' for 'nearest hospital', 'address' when the user names a specific place ('Lakeside Park trailhead'). This is not an emergency \
+                the `address` argument). 'start', 'where i started' and 'trailhead' also mean 'origin'. \
+                Pick 'origin' for 'lead me back' / 'back to the trailhead', 'home' for 'lead me home', 'help' for 'nearest hospital', 'address' when the user names a specific place ('Lakeside Park trailhead'). This is not an emergency \
                 service: a hospital result carries `safety_first`, which you say before anything else. If the user says they are hurt, injured or unwell, tell them to call their local emergency number first.
                 """),
                 ActionParam("address", "Required when destination=='address'. Free-text address — Apple's geocoder handles loose phrasings like 'corner of Elm Pkwy and Hill Rd, Springfield'. Ignored for the other destinations."),
@@ -521,17 +547,14 @@ extension WorkoutLiveCoachingNamespace {
     // semaphore bridge). Budgets:
     // 7 s outer ceiling around LocationFinder's own 5 s
     // fix timeout; failure or timeout falls into the
-    // same "couldn't get a fix" envelope.
+    // same "couldn't get a fix" envelope. Fix only: routing
+    // needs no address, so no reverse geocode is spent here.
     @MainActor private func coldGPSFix() async -> CLLocation? {
         await FactResolveTimeout.withTimeout(seconds: 7) {
             do {
-                let fix = try await LocationFinder.detachedCurrentDetailedFix(timeoutSec: 5)
-                return CLLocation(
-                    latitude: fix.coordinate.latitude,
-                    longitude: fix.coordinate.longitude
-                )
+                return try await LocationFinder.detachedFirstUsableLocation(timeoutSec: 5)
             } catch {
-                // Fall through with no fix — return below.
+                debugLog("[directions.routeTo] cold GPS fix failed: \(error.localizedDescription)")
                 return nil
             }
         }
@@ -541,19 +564,25 @@ extension WorkoutLiveCoachingNamespace {
     // watchdog, and enough for a typical walking-route compute plus
     // geocoding. A suspending timeout race, so the MainActor is never parked
     // while MapKit works. Nil means the budget ran out; a thrown error is
-    // kept so the caller can say what actually failed.
+    // kept so the caller can say what actually failed. The lookup runs in
+    // its own task, cancelled when the budget runs out, so a route the
+    // model was told timed out is not engaged later.
     @MainActor private func computeRoute(
         from userLoc: CLLocation,
         to destination: DirectionsService.Destination,
         mode: DirectionsService.Mode
     ) async -> Result<DirectionsService.RouteResult, Error>? {
-        await FactResolveTimeout.withTimeout(seconds: 4) {
+        let origin = userLoc.coordinate
+        let lookup = Task.detached { () -> Result<DirectionsService.RouteResult, Error> in
             do {
-                return .success(try await DirectionsService.resolveRoute(from: userLoc.coordinate, to: destination, mode: mode))
+                return .success(try await DirectionsService.resolveRoute(from: origin, to: destination, mode: mode))
             } catch {
                 return .failure(error)
             }
         }
+        let outcome = await FactResolveTimeout.withTimeout(seconds: 4) { await lookup.value }
+        if outcome == nil { lookup.cancel() }
+        return outcome
     }
 
     /// Only a missing breadcrumb origin asks the user to engage Get Me Back;
@@ -845,7 +874,7 @@ extension WorkoutLiveCoachingNamespace {
     private func resolveJourney() -> FactValue {
         let trail = MainActor.assumeIsolated { AppDependencies.current.location.breadcrumbStore.load() }
         guard let trail else {
-            return .missing(reason: .notRecorded, detail: "no active breadcrumb trail — engage Get Me Back mode or start a workout to enable journey intelligence")
+            return .missing(reason: .notRecorded, detail: "no active breadcrumb trail — journey intelligence runs on a Get Me Back trail; engage Get Me Back from the Fitness tab (a workout alone does not record one)")
         }
         guard let snap = JourneyIntelligenceService.snapshot(for: trail) else {
             return .missing(reason: .notYetComputed, detail: "trail too short to infer (need at least 3 fixes)")
@@ -894,12 +923,12 @@ extension WorkoutLiveCoachingNamespace {
     }
 
     private static let journeyDescription = """
-    [INTELLIGENCE] Where the user is heading, what shape the journey has, how long until they're done, AND whether this is a recurring route — derived from the active breadcrumb trail (Get Me Back mode OR an in-flight workout) \
+    [INTELLIGENCE] Where the user is heading, what shape the journey has, how long until they're done, AND whether this is a recurring route — derived from the active Get Me Back breadcrumb trail (a workout alone does not record one) \
     plus the breadcrumb archive. Returns: shape ('out_and_back_outbound' | 'out_and_back_returning' | 'loop' | 'point_to_point' | 'unknown'), direction ('toward_origin' | 'away_from_origin' | 'stationary' | 'unknown'), elapsed_seconds, \
     path_length_meters, crow_fly_to_origin_meters, max_distance_from_origin_meters, elapsed_at_farthest_seconds, projected_total_seconds (out-and-back only), projected_remaining_seconds (out-and-back only), origin_label, AND \
     when the route matches a historical pattern: recurrence { label (time of day and origin, e.g. 'morning route near Cedar Ln' — no weekday), prior_occurrences (count of matching trails in the archive), median_duration_seconds (typical duration), median_path_length_meters \
     (typical distance), average_match_offset_meters (how tightly the current shape matches the cluster — under 50m = strong match, 50-75m = loose). When recurrence is present the AI can say 'this is your usual morning \
-    loop, you typically finish in 47 min'. Use for any 'where am I going / how long / am I almost back / is this my normal route' question. Returns notRecorded when there's no active breadcrumb trail.
+    loop, you typically finish in 47 min'. Use for any 'where am I going / how long / am I almost back / is this my normal route' question. Returns notRecorded when Get Me Back is not engaged.
     """
 
 }

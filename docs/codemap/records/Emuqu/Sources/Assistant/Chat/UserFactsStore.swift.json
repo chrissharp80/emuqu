@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift",
- "hash": "2199b07efbc268d8",
+ "hash": "60d74e5588e65269",
  "role": "Persistent user facts ('memory') injected into every assistant system prompt; ≤25 deduped facts in Assistant/user_facts.json with complete protection, merge-on-unreadable and set-aside of undecodable files; plus the auto-extract toggle.",
  "types": [
   "UserFactsStore: final class (@Observable @MainActor) — fact memory",
@@ -15,6 +15,7 @@
   "file:user_facts.undecodable-<unix>.json",
   "mem:UserFactsStore.maxFacts = 25",
   "mem:UserFactsStore.unreadableOnDisk",
+  "mem:UserFactsStore.writePending (a write failed and must be retried)",
   "mem:UserFactsStore.queue ('com.chrissharp.flowrecovery.assistant.facts')"
  ],
  "toplevel": "",
@@ -218,7 +219,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.normalizedKey(_:)": "6113c94db777144b",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "b363e7a84b22b2ff",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "2b68d04bffbfc667",
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore.Fact(id:text:createdAt:)": "c354bbdd0cdc5a65",
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::var UserFactsStore.facts": "9f42a99bf34926ea"
    }
@@ -283,7 +284,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "b363e7a84b22b2ff",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "2b68d04bffbfc667",
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::var UserFactsStore.facts": "9f42a99bf34926ea"
    }
   },
@@ -303,7 +304,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "b363e7a84b22b2ff",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "2b68d04bffbfc667",
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::var UserFactsStore.facts": "9f42a99bf34926ea"
    }
   },
@@ -383,35 +384,27 @@
   },
   {
    "key": "func UserFactsStore.recoverAfterUnlock()",
-   "hash": "6add81e9b3101306",
-   "does": "If disk was unreadable, persists (which first reloads/merges).",
+   "hash": "9076ae7a78ed55e1",
+   "does": "If the disk was unreadable or the last write failed (writePending), persists (which first reloads/merges).",
    "entry": "AssistantViewModel.recoverAfterUnlock on protected-data/active notifications",
    "calls": [
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()"
    ],
-   "reads": [],
+   "reads": [
+    "mem:UserFactsStore.unreadableOnDisk",
+    "mem:UserFactsStore.writePending"
+   ],
    "writes": [],
    "branches": [
     {
      "at": "+1",
-     "cond": "unreadableOnDisk false",
+     "cond": "neither unreadableOnDisk nor writePending",
      "effect": "return"
     }
    ],
-   "flags": [
-    {
-     "kind": "data-loss",
-     "sev": "med",
-     "text": "Only retries when the file was unreadable at load; a write that fails later because the phone locked (persist logs 'fact update may be lost') sets no pending flag, so recoverAfterUnlock does nothing and the fact is lost if the app exits before another mutation.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift:227",
-      "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift:262"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "b363e7a84b22b2ff"
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "2b68d04bffbfc667"
    }
   },
   {
@@ -461,17 +454,20 @@
   },
   {
    "key": "func UserFactsStore.persist()",
-   "hash": "3b5e2a1f4f7bb92e",
-   "does": "Reloads if unreadable; if still unreadable logs and holds; else asynchronously encodes facts (pretty, ISO-8601) and writes atomically with complete protection.",
+   "hash": "1dc94366848ed1a1",
+   "does": "Reloads if unreadable; if still unreadable logs and holds (the unreadable flag drives the retry). Otherwise clears writePending, snapshots the facts and on the private queue writes them via write(_:to:); a failed write hops to the main actor to set writePending so recoverAfterUnlock retries it.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.reloadIfUnreadable()",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
-    "ext:Data.write(.atomic,.completeFileProtection)"
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.write(_:to:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
-   "reads": [],
+   "reads": [
+    "mem:UserFactsStore.unreadableOnDisk",
+    "mem:UserFactsStore.facts"
+   ],
    "writes": [
+    "mem:UserFactsStore.writePending",
     "file:Assistant/user_facts.json"
    ],
    "branches": [
@@ -481,37 +477,48 @@
      "effect": "log 'write held', return"
     },
     {
-     "at": "+11",
-     "cond": "encode fails",
-     "effect": "return (logged by attempt)"
-    },
-    {
-     "at": "+16",
-     "cond": "write throws",
-     "effect": "log error; update remains only in memory"
+     "at": "+9",
+     "cond": "write(_:to:) returns false",
+     "effect": "main-actor Task sets writePending = true; else done"
     }
    ],
-   "flags": [
-    {
-     "kind": "data-loss",
-     "sev": "med",
-     "text": "Delete All My Data sweeps away the App Group 'Assistant/' directory before calling UserFactsStore.clear(), and only init (line 62) creates the directory. The clear's write and every later add/remove write in that process fail with the parent missing and are only logged ('fact update may be lost'). Nothing retries them (no pending flag), so facts saved after a wipe disappear at relaunch.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift:62",
-      "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift:261",
-      "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift:263",
-      "Emuqu/Sources/Services/DataPurgeService.swift:561",
-      "Emuqu/Sources/Services/DataPurgeService.swift:196",
-      "Emuqu/Sources/Services/DataPurgeService.swift:420",
-      "Emuqu/Sources/Services/DataPurgeService.swift:451",
-      "Emuqu/Sources/Services/DataPurgeService.swift:453",
-      "EmuquTests/DataPurgeServiceTests.swift:362"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.reloadIfUnreadable()": "42571c27d87feb4e",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.write(_:to:)": "69a1ee028a230b01",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func UserFactsStore.write(_:to:)",
+   "hash": "958cfbd587ba0a73",
+   "does": "Nonisolated: encodes the facts (pretty, ISO-8601), creates the parent directory (Delete All My Data removes it under a running store; only init created it), writes atomically with complete file protection; true on success, false when encode (logged by attempt) or the directory/write fails (logged at error).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:FileManager.createDirectory",
+    "ext:Data.write(.atomic,.completeFileProtection)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:Assistant/user_facts.json"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "encode fails",
+     "effect": "return false"
+    },
+    {
+     "at": "+11",
+     "cond": "createDirectory or write throws",
+     "effect": "log error, return false; else true"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::var UserFactsStore.facts": "9f42a99bf34926ea",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
    }

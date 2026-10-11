@@ -1,10 +1,10 @@
 {
  "file": "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift",
- "hash": "257ac66a83f4aec0",
- "role": "Two lock-protected Sendable singletons bridging live recording state to the AI context: LiveWorkoutBroker (push snapshot per tick plus pull sample provider from WorkoutRecorder, 12 s staleness gate) and LiveHRVBroker (pull provider registered by RRCollector).",
+ "hash": "5fa09d9d4087363f",
+ "role": "Two lock-protected Sendable singletons bridging live recording state to the AI context: LiveWorkoutBroker (push snapshot per tick, at which point it also asks the recorder's samples provider for its buffer and keeps it, so readers on any thread get samples without touching main-actor state; 12 s staleness gate on the snapshot) and LiveHRVBroker (pull provider registered by RRCollector, which reads a lock-protected mirror).",
  "types": [
-  "LiveWorkoutBroker: class — holds latest LiveWorkoutSnapshot, its timestamp and the recorder's samples provider",
-  "LiveWorkoutBroker.State: struct — snapshot, lastUpdate, samplesProvider",
+  "LiveWorkoutBroker: class — holds latest LiveWorkoutSnapshot, its timestamp, the recorder's samples provider and the samples it returned at the last publish",
+  "LiveWorkoutBroker.State: struct — snapshot, lastUpdate, samplesProvider, samples",
   "LiveHRVBroker: class — holds the RRCollector-installed provider closure for LiveHRVSnapshot"
  ],
  "state": [
@@ -15,18 +15,7 @@
   "mem:LiveHRVBroker.provider (OSAllocatedUnfairLock<Provider?>)"
  ],
  "toplevel": "Static singletons and lock initializers only.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "LiveHRVBroker.Provider doc says the implementation hops to @MainActor as needed, but the installed provider reads a lock-protected mirror without any actor hop.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift:121",
-    "Emuqu/Sources/Collection/RRCollector+Bindings.swift:325"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "init LiveWorkoutBroker()",
@@ -42,15 +31,26 @@
   },
   {
    "key": "func LiveWorkoutBroker.publish(_:)",
-   "hash": "27c9a393cf0b53b7",
-   "does": "Under the lock, stores the latest live workout snapshot and stamps lastUpdate = now.",
+   "hash": "17e1516411f3e8e1",
+   "does": "Reads the samples provider under the lock, calls it outside the lock (publish runs on the recorder's main-actor tick, where the provider can read the buffer), then under the lock stores the snapshot, lastUpdate = now and the returned samples ([] with no provider).",
    "entry": null,
-   "calls": [],
-   "reads": [],
+   "calls": [
+    "closure:SamplesProvider installed by WorkoutRecorder.installLiveWorkoutSamplesProvider (WorkoutRecorder+Start.swift) returning recorder.samplesView on the main thread, [] elsewhere"
+   ],
+   "reads": [
+    "mem:LiveWorkoutBroker.state",
+    "mem:WorkoutRecorder.samplesView"
+   ],
    "writes": [
     "mem:LiveWorkoutBroker.state"
    ],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "provider?() ?? []",
+     "effect": "no provider registered: keep empty samples"
+    }
+   ],
    "flags": [],
    "deps": {}
   },
@@ -70,8 +70,8 @@
   },
   {
    "key": "func LiveWorkoutBroker.clear()",
-   "hash": "ff710a5fb4e661c1",
-   "does": "Under the lock, clears snapshot, lastUpdate and samples provider.",
+   "hash": "d956b87106840660",
+   "does": "Under the lock, clears snapshot, lastUpdate, samples provider and the kept samples. Called only from the recorder's stop path; an aborted start leaves the provider registered until the next start, with no samples kept since nothing publishes.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -79,18 +79,7 @@
     "mem:LiveWorkoutBroker.state"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Doc says clear() is called at stop and on error, but its only caller is WorkoutRecorder.tearDownLiveWorkoutServices (stop path); no error path calls it, so after an aborted start the samples provider stays registered and only the 12 s snapshot gate hides stale state.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift:74",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift:143"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -120,38 +109,16 @@
   },
   {
    "key": "func LiveWorkoutBroker.currentSamples()",
-   "hash": "61fbe3625cec1c27",
-   "does": "Reads the samples provider under the lock and calls it outside the lock, returning the recorder's sample buffer, or [] when no provider is registered.",
+   "hash": "fd2f981f948beb10",
+   "does": "Returns, under the lock, the samples the provider returned at the last publish (at most one tick old); [] when no workout is publishing. Safe from any thread.",
    "entry": null,
-   "calls": [
-    "closure:SamplesProvider installed by WorkoutRecorder.installLiveWorkoutSamplesProvider (WorkoutRecorder+Start.swift:349) returning recorder.samplesView via MainActor.assumeIsolated"
-   ],
+   "calls": [],
    "reads": [
-    "mem:LiveWorkoutBroker.state",
-    "mem:WorkoutRecorder.samplesView"
+    "mem:LiveWorkoutBroker.state"
    ],
    "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "provider?() ?? []",
-     "effect": "no provider registered: empty array"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "med",
-     "text": "The broker is Sendable and documented for any context, but the registered provider runs MainActor.assumeIsolated, which traps when currentSamples() is called off the main actor; ContextBuilder documents that context building usually runs off the main actor and AssistantContext.liveWorkoutHRHistoryLines calls currentSamples during rendering, so correctness depends on every caller happening to be on the main actor.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift:100",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:351",
-      "Emuqu/Sources/Assistant/Context/ContextBuilder.swift:113",
-      "Emuqu/Sources/Assistant/Context/AssistantContext.swift:265"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "branches": [],
+   "flags": [],
    "deps": {}
   },
   {

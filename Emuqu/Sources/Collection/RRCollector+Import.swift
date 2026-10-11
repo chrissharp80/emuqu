@@ -25,17 +25,22 @@ struct SessionImport {
     /// the archive already holds a copy of the same recording (same type,
     /// overlapping time), the rule batch import applies too. A recording of
     /// the same sleep within the merge gap is merged by the archive onto one
-    /// clock.
+    /// clock; the merged reading, under the id already there, is then what
+    /// iCloud (through the archive's re-upload request) and the baseline get.
     func save(_ session: HRVSession) async throws {
         guard session.state == .complete, session.analysisResult != nil else {
             throw RRCollector.CollectorError.importNotAnalyzed
         }
         guard !collector.archive.holdsCopy(of: session) else { throw RRCollector.CollectorError.duplicateImport }
-        try collector.archive.archive(session)
-        let cloudSync = collector.cloudSyncManager
-        Task { await cloudSync.uploadSession(session) }
-        collector.baselineTracker.update(with: session, sleepSchedule: collector.settingsManager.settings.sleepSchedule)
-        let deviation = collector.baselineTracker.deviation(for: session)
+        let entry = try collector.archive.archive(session, skipSameNightMerge: false, requestingReupload: true)
+        let merged = entry.sessionId != session.id
+        let saved = merged ? collector.archive.retrieveOrLog(entry.sessionId) ?? session : session
+        if !merged {
+            let cloudSync = collector.cloudSyncManager
+            Task { await cloudSync.uploadSession(saved) }
+        }
+        collector.baselineTracker.update(with: saved, sleepSchedule: collector.settingsManager.settings.sleepSchedule)
+        let deviation = collector.baselineTracker.deviation(for: saved)
         if let deviation { collector.baselineDeviation = deviation }
         collector.archiveSignal.notifyChanged()
     }

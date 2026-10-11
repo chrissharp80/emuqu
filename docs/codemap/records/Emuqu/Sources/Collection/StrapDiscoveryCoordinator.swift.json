@@ -34,7 +34,7 @@
    "deps": {
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.ensureApiReady()": "9cbc086a623b614c",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
-    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.beginSearch(api:)": "561ee3a9b9df3b14",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.beginSearch(api:)": "7d3cb9404cf82790",
     "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.readyToScan()": "1bf6241e2f9bb5be"
    }
   },
@@ -92,33 +92,22 @@
     "mem:PolarManager.searchTask"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "The comment says capturing a value that holds the manager strongly would keep it alive and a search task should not; but after the weak load the task calls owner?.discovery, which builds a StrapDiscoveryCoordinator holding the manager strongly for the whole search, so the manager is retained for the search's lifetime anyway.",
-     "evidence": [
-      "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift:49",
-      "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift:59",
-      "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift:60"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager+Discovery.swift::var PolarManager.discovery": "0161bd0814db91da",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
-    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.consumeDeviceSearch(api:)": "5fbee98c84858ed2",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.consumeDeviceSearch(api:)": "45b9c87e38ee92c6",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
    "key": "func StrapDiscoveryCoordinator.consumeDeviceSearch(api:)",
-   "hash": "6ce3365e73c0c936",
-   "does": "Forwards every device from the SDK search stream; on a stream error that is not a cancellation, logs and calls failSearch on the main actor.",
+   "hash": "289d0a8935965195",
+   "does": "Forwards every device from the SDK search stream. When the stream ends without an error and the task was not cancelled, logs 'Search ended' and calls endSearch on the main actor (leaves .scanning); on a stream error that is not a cancellation, logs and calls failSearch.",
    "entry": "Body of the searchTask created in beginSearch.",
    "calls": [
     "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.forwardDiscoveries(api:)",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.endSearch()",
     "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.failSearch(_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
@@ -127,29 +116,23 @@
    "branches": [
     {
      "at": "+3",
-     "cond": "forwardDiscoveries throws",
-     "effect": "catch: handled below; no throw: search ended, returns"
+     "cond": "stream ended without error and task not cancelled",
+     "effect": "logs and endSearch moves .scanning back to .disconnected; cancelled: returns silently"
     },
     {
-     "at": "+4",
+     "at": "+6",
+     "cond": "forwardDiscoveries throws",
+     "effect": "catch: handled below"
+    },
+    {
+     "at": "+7",
      "cond": "task was cancelled",
      "effect": "true: return silently (stopScanning/connect cancelled it); false: logs and failSearch sets lastError + .disconnected"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "If the SDK search stream finishes without an error, consumeDeviceSearch returns and connectionState stays .scanning; only failSearch or stopScanning moves it back. readyToScan then refuses every new scan ('already in state scanning') until stopScanning runs. Whether PolarBleSdk ever ends searchForDevice normally cannot be checked from this repo.",
-     "evidence": [
-      "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift:71",
-      "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift:37",
-      "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift:127"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.endSearch()": "c73023a1340039ee",
     "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.failSearch(_:)": "64a8715cce61ea0e",
     "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.forwardDiscoveries(api:)": "8a704c2fe38b989e",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
@@ -218,6 +201,30 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad"
+   }
+  },
+  {
+   "key": "func StrapDiscoveryCoordinator.endSearch()",
+   "hash": "1f2eae736777b9e2",
+   "does": "Moves connectionState from .scanning to .disconnected after a search stream ended normally, so the next scan is not refused as already running; leaves any other state (a connect begun from the results) alone.",
+   "entry": "Called on the main actor by consumeDeviceSearch when the SDK search stream finishes without an error.",
+   "calls": [],
+   "reads": [
+    "mem:PolarManager.connectionState"
+   ],
+   "writes": [
+    "mem:PolarManager.connectionState"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "connectionState == .scanning",
+     "effect": "true: set .disconnected; false: no-op"
+    }
+   ],
+   "flags": [],
+   "deps": {
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad"
    }
   },

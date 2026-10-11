@@ -109,13 +109,17 @@ final class SavedRouteStore {
 
     private let storeURL: URL
 
-    /// Set when the store file exists but could not be decoded (corrupt /
-    /// partially-written / newer-format). While true, `save()` refuses to
-    /// write so we never overwrite the good-but-unreadable file with an
-    /// empty (or lossy) library. A successful decode or an absent file
-    /// clears it. Mirrors `SettingsManager`'s file-absent-vs-unreadable
-    /// distinction.
+    /// Set when the store file exists but could not be read (iOS file
+    /// protection while locked). While true, `save()` first tries the read
+    /// again and refuses to write if it still fails, so we never overwrite
+    /// the good-but-unreadable file with an empty (or lossy) library. A
+    /// successful read, an absent file, or an undecodable file that has been
+    /// set aside clears it. Mirrors `SettingsManager`'s file-absent-vs-
+    /// unreadable distinction.
     private var loadFailed = false
+
+    /// Where `load()` sets aside a store file it read but could not decode.
+    private static let undecodableBackupName = "saved_routes.undecodable.json"
 
     /// Serial, newest-wins writer: saves land in the order they were made, so
     /// a rename followed by a delete cannot leave the deleted route on disk.
@@ -158,15 +162,23 @@ final class SavedRouteStore {
     /// Reload the library that was unreadable while locked, keep any route
     /// added in memory since (it could not be saved then), and save the merge.
     private func retryLoadAfterUnlock() {
-        guard loadFailed else { return }
+        guard recoverBlockedLoad() else { return }
+        save()
+    }
+
+    /// Reads the library again after a failed read, keeping the routes added
+    /// in memory since. True when the read now succeeds (the protected-data
+    /// observer is then removed); false when it still fails.
+    private func recoverBlockedLoad() -> Bool {
+        guard loadFailed else { return true }
         let addedWhileLocked = routes
         load()
-        guard !loadFailed else { return }
+        guard !loadFailed else { return false }
         let known = Set(routes.map(\.id))
         routes.append(contentsOf: addedWhileLocked.filter { !known.contains($0.id) })
-        if !addedWhileLocked.isEmpty { save() }
         if let protectedDataObserver { NotificationCenter.default.removeObserver(protectedDataObserver) }
         protectedDataObserver = nil
+        return true
     }
 
     /// On first run after the App Group move, copy the legacy Application
@@ -297,33 +309,52 @@ final class SavedRouteStore {
     }
 
     /// The on-disk library, or nothing when the file is absent. A file that is
-    /// present but unreadable (iOS file protection while locked) or
-    /// undecodable (corrupt / partially written / newer format) sets
+    /// present but unreadable (iOS file protection while locked) sets
     /// `loadFailed`, which blocks saves so we never clobber a recoverable
-    /// library with an empty one.
+    /// library with an empty one. A file that reads but does not decode
+    /// (corrupt / partially written / newer format) is set aside as
+    /// `undecodableBackupName` and the library starts empty, so new routes
+    /// are kept; if it cannot be set aside, saves stay blocked.
     private func load() {
         guard FileManager.default.fileExists(atPath: storeURL.path) else {
             loadFailed = false
             return
         }
-        guard let data = try? Data(contentsOf: storeURL) else {
+        let data: Data
+        do {
+            data = try Data(contentsOf: storeURL)
+        } catch {
             loadFailed = true
+            debugLog("[SavedRouteStore] saved_routes.json present but unreadable: \(error.localizedDescription) — blocking saves until it can be read", level: .warning)
             return
         }
-        guard let decoded = try? JSONDecoder().decode([SavedRoute].self, from: data) else {
-            loadFailed = true
-            debugLog("[SavedRouteStore] saved_routes.json present but failed to decode — keeping in-memory routes and blocking saves to avoid clobbering it")
-            return
+        do {
+            routes = try JSONDecoder().decode([SavedRoute].self, from: data)
+            loadFailed = false
+        } catch {
+            loadFailed = !Self.setAsideUndecodable(storeURL, reason: error)
         }
-        loadFailed = false
-        routes = decoded
+    }
+
+    /// Copies a store file that read but did not decode to
+    /// `undecodableBackupName` beside it, replacing an older copy. True when
+    /// the copy is in place.
+    private static func setAsideUndecodable(_ url: URL, reason: Error) -> Bool {
+        let backup = url.deletingLastPathComponent().appendingPathComponent(undecodableBackupName)
+        let copied = attempt("savedRoutes.setAside") {
+            if FileManager.default.fileExists(atPath: backup.path) { try FileManager.default.removeItem(at: backup) }
+            try FileManager.default.copyItem(at: url, to: backup)
+        } != nil
+        debugLog("[SavedRouteStore] saved_routes.json failed to decode (\(reason.localizedDescription)) — \(copied ? "set aside as \(undecodableBackupName); starting an empty library" : "could not set it aside; blocking saves")", level: .warning)
+        return copied
     }
 
     private func save() {
-        // Never overwrite a store file we couldn't decode — that would
-        // destroy a recoverable library.
-        guard !loadFailed else {
-            debugLog("[SavedRouteStore] skipping save — prior load failed; refusing to clobber the on-disk file")
+        // Never overwrite a store file we couldn't read — that would
+        // destroy a recoverable library. Try the read again first: the
+        // device may have been unlocked since without the notification.
+        guard recoverBlockedLoad() else {
+            debugLog("[SavedRouteStore] skipping save — the library file still cannot be read; refusing to clobber it", level: .warning)
             return
         }
         // Encoded and written off-main so a 50-route library doesn't stutter
@@ -360,15 +391,19 @@ final class LatestWinsFileWriter<Value: Encodable & Sendable>: Sendable {
         queue.async { [self] in drain() }
     }
 
-    /// Drop anything not yet written, wait out a write in progress, then
-    /// remove the file, so a purge that deleted it cannot have it written back.
+    /// Drop anything not yet written, then remove the file once any write in
+    /// progress has finished, so a purge that deleted it cannot have it
+    /// written back. The removal runs on the writer's serial queue, after any
+    /// write already running and before any queued later, so the caller (the
+    /// main actor) never waits on a write.
     func discard() {
         pending.withLock { $0 = nil }
-        queue.sync {}
-        let url = url
-        if FileManager.default.fileExists(atPath: url.path) {
-            attempt("\(label).discard") { try FileManager.default.removeItem(at: url) }
-        }
+        queue.async { [self] in removeFile() }
+    }
+
+    private func removeFile() {
+        guard FileManager.default.fileExists(atPath: url.path) else { return }
+        attempt("\(label).discard") { try FileManager.default.removeItem(at: url) }
     }
 
     private func drain() {

@@ -1,40 +1,18 @@
 {
  "file": "EmuquUITests/RecordTabUITests.swift",
  "hash": "809fe8255b6a28c8",
- "role": "XCUITest coverage of the Record tab: session-type selector visible, some pairing guidance with no strap, and scrolling without crash.",
+ "role": "XCUITest coverage of the Record tab: the session chooser's three cards (Daily, Extended, Nap), the no-strap connect panel's 'Scan for Devices' (or Bluetooth-denied banner), and scrolling the panel without a crash.",
  "types": [
   "RecordTabUITests: class — XCTestCase"
  ],
  "state": [],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Passes the bare '-UITests' launch argument, which no production code reads (only -UITests-FreshInstall at AppLaunchRecovery.swift:185 and -UITests-ForcePaywall/-UITests-SeedArchive at UITestLaunchArguments.swift:18,23 are checked); it is inert",
-   "evidence": [
-    "EmuquUITests/RecordTabUITests.swift:23",
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift:185",
-    "Emuqu/Sources/Services/UITestLaunchArguments.swift:18"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Class doc says the Lost Sessions / Data Recovery entry is asserted reachable; testRecordPanelScrollsWithoutCrashing only swipes and checks the tab bar",
-   "evidence": [
-    "EmuquUITests/RecordTabUITests.swift:14",
-    "EmuquUITests/RecordTabUITests.swift:104"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "func RecordTabUITests.setUp()",
-   "hash": "229f1dd034bc0273",
-   "does": "Sets continueAfterFailure=false, creates XCUIApplication, appends launch arguments -UITests, -UITests-FreshInstall and English locale (UITestLanguage.english), launches the app (the app wipes onboarding/disclaimer/paywall flags, settings files and the session archive via AppLaunchRecovery.resetUITestStateIfRequested) and walks every first-run gate with UITestLaunch.toMainUI, ignoring its Bool result; then navigates to the Record tab.",
+   "hash": "ef2d0262aaae6160",
+   "does": "Sets continueAfterFailure=false, creates XCUIApplication, appends launch arguments -UITests-FreshInstall and English locale (UITestLanguage.english), launches the app (the app wipes onboarding/disclaimer/paywall flags, settings files and the session archive via AppLaunchRecovery.resetUITestStateIfRequested) and walks every first-run gate with UITestLaunch.toMainUI, ignoring its Bool result; then navigates to the Record tab.",
    "entry": "XCTest runner: setUp before each test in the class",
    "calls": [
     "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)",
@@ -50,7 +28,7 @@
     "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "6ce77cca4f0ebae6",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0",
     "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "747ec38364b540cd",
-    "EmuquUITests/RecordTabUITests.swift::func RecordTabUITests.navigateToRecord()": "46ae31e9bc2c4a8e"
+    "EmuquUITests/RecordTabUITests.swift::func RecordTabUITests.navigateToRecord()": "3afa73d8b0d0024a"
    }
   },
   {
@@ -67,139 +45,99 @@
   },
   {
    "key": "func RecordTabUITests.navigateToRecord()",
-   "hash": "2e28238431253817",
-   "does": "Asserts the tab bar exists, finds a tab-bar button whose label contains 'Record', asserts it exists, plain-taps it, and waits up to 6s for a scroll view.",
+   "hash": "a55dab0d223bd30d",
+   "does": "Opens the Record tab through UITestNav.selectTab (tab.record identifier, 'Record' title fallback; polls hittability, taps, confirms the tab's content identifier appeared) and asserts it returned true, dumping the screen on failure.",
    "entry": null,
    "calls": [
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.selectTab(_:identifier:title:attempts:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Hand-rolled label-only tab tap duplicating UITestNav.selectTab without hittability polling or content confirmation",
-     "evidence": [
-      "EmuquUITests/RecordTabUITests.swift:33",
-      "EmuquUITests/EmuquUITests.swift:400"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.selectTab(_:identifier:title:attempts:)": "22e67274e9187b00"
    }
   },
   {
    "key": "func RecordTabUITests.testSessionTypeSelectorRenders()",
-   "hash": "c0cc77e9223fa96c",
-   "does": "Asserts any button or static text containing 'Extended' or 'Quick' appears.",
+   "hash": "f48e488b7472927d",
+   "does": "For each of 'Daily', 'Extended', 'Nap', asserts a button whose label begins with that word (the session card's 'X session — subheading' accessibility label) appears within UITestTiming.s(5). Pins the three cards under the chooser header that EmuquUITests.testRecordViewShowsSessionSelector covers.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)"
    ],
    "reads": [],
    "writes": [],
-   "branches": [],
-   "flags": [
+   "branches": [
     {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Covers the same selector as EmuquUITests.testRecordViewShowsSessionSelector",
-     "evidence": [
-      "EmuquUITests/RecordTabUITests.swift:50",
-      "EmuquUITests/EmuquUITests.swift:1037"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+1",
+     "cond": "for each of Daily, Extended, Nap",
+     "effect": "assert a button labelled with that type exists"
     }
    ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
     "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
    }
   },
   {
    "key": "func RecordTabUITests.testNoStrapStateSurfacesGuidance()",
-   "hash": "f78adcb820a6dc0b",
-   "does": "Checks six substrings (Pair, device, Polar, Strap, Connect, Add) against static texts and buttons and asserts at least one matches.",
+   "hash": "9b73eeeb5c103e32",
+   "does": "Asserts the connect panel's own no-strap affordance: a button labelled exactly 'Scan for Devices' within UITestTiming.s(8), or (Bluetooth access denied) the static text 'Bluetooth access is off'.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+10",
-     "cond": "for each predicate",
-     "effect": "check texts then buttons"
-    },
-    {
-     "at": "+11",
-     "cond": "a text or button matches",
-     "effect": "anyMatch=true, break"
+     "at": "+5",
+     "cond": "Scan for Devices button appears, else Bluetooth-off text exists",
+     "effect": "either passes; neither fails the assertion"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Substrings like 'Add', 'device' and 'Connect' match ordinary copy anywhere on the screen (or in the tab bar's neighbours), so the assertion does not establish that pairing guidance is shown",
-     "evidence": [
-      "EmuquUITests/RecordTabUITests.swift:78",
-      "EmuquUITests/RecordTabUITests.swift:82"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
     "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
    }
   },
   {
    "key": "func RecordTabUITests.testRecordPanelScrollsWithoutCrashing()",
-   "hash": "3744c1da41d0b97a",
-   "does": "If a scroll view appears within 6s, swipes it up 4 and down 4 times and asserts the tab bar exists; otherwise returns with no assertion.",
+   "hash": "8c71dded16c7e318",
+   "does": "Asserts a scroll view appears within UITestTiming.s(3), swipes it up 4 and down 4 times, then asserts the app is still runningForeground and the tab bar exists.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+2",
-     "cond": "no scroll view",
-     "effect": "return silently (test passes with zero assertions)"
-    },
-    {
-     "at": "+3",
+     "at": "+6",
      "cond": "4 iterations",
      "effect": "swipe up"
     },
     {
-     "at": "+4",
+     "at": "+7",
      "cond": "4 iterations",
      "effect": "swipe down"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "guard ... else { return } makes a missing Record scroll view a pass with no assertion",
-     "evidence": [
-      "EmuquUITests/RecordTabUITests.swift:106"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
     "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
    }
   }

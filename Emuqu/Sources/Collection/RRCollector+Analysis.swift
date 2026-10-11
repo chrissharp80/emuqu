@@ -11,6 +11,12 @@ extension MorningSessionPipeline {
     /// Returns both the score and the full breakdown so callers can freeze the
     /// breakdown alongside the score.
     ///
+    /// Scored the way acceptance scores (`SessionAcceptanceService.scoreBreakdown`):
+    /// the recording's HRV quality decides whether the baseline stands in, the
+    /// user's perceived readiness is blended in, and staleness is measured from
+    /// the night, not from now. A session recovered from backup used to freeze
+    /// a score computed without any of the three.
+    ///
     /// The snapshots are returned too so the caller can persist
     /// them onto the session. If this function fetched sleep + vitals,
     /// used them to score, and threw them away, SessionRecoveryService
@@ -22,19 +28,12 @@ extension MorningSessionPipeline {
     func computeRecoveryScore(for session: HRVSession, from analysisResult: HRVAnalysisResult?) async -> RecoveryScoreOutcome? {
         guard let result = analysisResult else { return nil }
         let sessionEnd = session.endDate ?? session.startDate
-        let snapshots = await recoverySnapshots(for: session, result: result, sessionEnd: sessionEnd)
+        // The morning path's own fetch: frozen snapshots when the session has
+        // them, else fresh sleep (with the previous day's nap credited, and a
+        // failed fetch logged) and vitals with the strap's nocturnal RHR.
+        let snapshots = await collector.morningProcessingService.scoringHealthData(for: session, result: result)
         let training = await scoringTrainingContext(result: result, sessionEnd: sessionEnd)
-        let breakdown = RecoveryScoreCalculator.calculateWithBreakdown(
-            RecoveryScoreCalculator.ScoreInputs(
-                hrvReadiness: result.ansMetrics?.readinessScore, rmssd: result.timeDomain.rmssd,
-                meanHR: result.timeDomain.meanHR, dfaAlpha1: result.nonlinear.dfaAlpha1,
-                baselineStats: collector.scoringBaselineStats(for: session), sleepData: snapshots.sleep,
-                vitals: snapshots.vitals, typicalSleepHours: collector.settingsManager.settings.typicalSleepHours
-            ),
-            trainingContext: training,
-            config: collector.currentScoringConfig,
-            ansBalance: Self.ansBalance(result)
-        )
+        let breakdown = scoreBreakdown(session: session, result: result, sleep: snapshots.sleep, vitals: snapshots.vitals, training: training)
         return RecoveryScoreOutcome(
             score: RecoveryScoreCalculator.toTenScale(breakdown.compositeScore),
             breakdown: breakdown,
@@ -42,43 +41,38 @@ extension MorningSessionPipeline {
         )
     }
 
-    /// The analysis result's own training context, else the load as of the
-    /// session's end — fetched for a past day rather than read from today's cache.
-    private func scoringTrainingContext(result: HRVAnalysisResult, sessionEnd: Date) async -> TrainingContext? {
-        if let frozen = result.trainingContext { return frozen }
-        return await collector.createTrainingContextEnsuringFresh(relativeTo: sessionEnd)
-    }
-
-    /// Use frozen morning snapshots when available so the recovery score stays
-    /// stable after acceptance (e.g. during reanalysis). Only fetch fresh
-    /// HealthKit data when no snapshots exist yet.
-    ///
-    /// Strap-RHR override: see
-    /// `RecoveryVitals.withStrapNocturnalRHR`. The analysis-window mean HR is
-    /// already nocturnal-strap-derived; swapping it for HealthKit's daytime RHR
-    /// makes the comparison against `meanHRBaseline` physiologically
-    /// self-consistent.
-    private func recoverySnapshots(
-        for session: HRVSession,
-        result: HRVAnalysisResult,
-        sessionEnd: Date
-    ) async -> (sleep: SleepData?, vitals: RecoveryVitals?) {
-        if let frozenSleep = session.sleepSnapshot {
-            return (frozenSleep, session.vitalsSnapshot)
-        }
-        let sleepData = try? await collector.healthKit.fetchSleepData(
-            for: session.startDate,
-            recordingEnd: sessionEnd,
-            rrPoints: session.rrSeries?.points
+    /// The composite breakdown with the acceptance path's inputs: baseline
+    /// stand-in from `classifyHRVQuality`, perceived readiness, ANS balance,
+    /// and the session's end as the reference date.
+    private func scoreBreakdown(
+        session: HRVSession, result: HRVAnalysisResult, sleep: SleepData?, vitals: RecoveryVitals?, training: TrainingContext?
+    ) -> RecoveryScoreCalculator.ScoreBreakdown {
+        let sessionEnd = session.endDate ?? session.startDate
+        let baselineStats = collector.scoringBaselineStats(for: session)
+        let quality = SessionAcceptanceService.classifyHRVQuality(
+            result: result, sleepData: sleep, baselineStats: baselineStats,
+            recordingStart: session.startDate, recordingEnd: sessionEnd
         )
-        let vitals = await collector.healthKit.fetchRecoveryVitals(relativeTo: sessionEnd)
-            .withStrapNocturnalRHR(result.timeDomain.meanHR)
-        return (sleepData, vitals)
+        return RecoveryScoreCalculator.calculateWithBreakdown(
+            RecoveryScoreCalculator.ScoreInputs(
+                hrvReadiness: result.ansMetrics?.readinessScore, rmssd: result.timeDomain.rmssd,
+                meanHR: result.timeDomain.meanHR, dfaAlpha1: result.nonlinear.dfaAlpha1,
+                baselineStats: baselineStats, sleepData: sleep,
+                vitals: vitals, typicalSleepHours: collector.settingsManager.settings.typicalSleepHours
+            ),
+            trainingContext: training, config: collector.currentScoringConfig,
+            useBaselineHRV: quality.useBaselineHRV, perceivedReadiness: session.perceivedReadiness,
+            ansBalance: ReanalysisService.ansBalance(of: result), referenceDate: sessionEnd
+        )
     }
 
-    private static func ansBalance(_ result: HRVAnalysisResult) -> Double? {
-        guard let pns = result.ansMetrics?.pnsIndex, let sns = result.ansMetrics?.snsIndex else { return nil }
-        return pns - sns
+    /// The analysis result's own training context, else the load as of the
+    /// session's end — fetched for a past day rather than read from today's
+    /// cache. The archival score and acceptance (RRCollector+Acceptance) both
+    /// use it.
+    func scoringTrainingContext(result: HRVAnalysisResult?, sessionEnd: Date) async -> TrainingContext? {
+        if let frozen = result?.trainingContext { return frozen }
+        return await collector.createTrainingContextEnsuringFresh(relativeTo: sessionEnd)
     }
 
     // MARK: - Analysis (delegates to HRVAnalysisPipeline)

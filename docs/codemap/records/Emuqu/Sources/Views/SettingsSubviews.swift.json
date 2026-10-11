@@ -1,15 +1,17 @@
 {
  "file": "Emuqu/Sources/Views/SettingsSubviews.swift",
- "hash": "fa2c83f54045dbef",
+ "hash": "2215610363a6f7dd",
  "role": "Settings sub-screens: DebugLogView (in-memory debug log list, clear, export), CrashLogView (previous crash report show/share/delete), ErrorCatalogView (warning/error catalogue with clear and text export), AddTagSheet (new custom tag name+colour form) and MetricExplanationsView/MetricExplanationRow (age-personalised HRV metric glossary).",
  "types": [
   "DebugLogView: struct (View) — lists DebugLogger.entries newest first; Clear + Export Diagnostic Log toolbar",
-  "CrashLogView: struct (View) — shows CrashLogManager.previousCrashLog, share/delete",
-  "ErrorCatalogView: struct (View, @MainActor) — DebugLogger.errorCatalog list, clear, export to temp .txt",
-  "AddTagSheet: struct (View) — name field, 12-colour picker, preview, Save/Cancel",
+  "CrashLogView: struct (View) — shows CrashLogManager.previousCrashLog, ShareLink share, delete",
+  "ErrorCatalogView: struct (View, @MainActor) — DebugLogger.errorCatalog list, clear, ShareLink export",
+  "AddTagSheet: struct (View) — name field, 12-colour picker, preview, Save/Cancel; Save refused for blank or existing names",
   "MetricExplanationsView: struct (View) — metric glossary with age-band RMSSD copy",
   "MetricExplanationsView.RMSSDAgeContext: struct — range/median/brief/athleteNote strings",
-  "MetricExplanationRow: private struct (View) — expandable metric row"
+  "MetricExplanationRow: private struct (View) — expandable metric row",
+  "CrashReportExport: struct (Transferable) — crash report written on demand for ShareLink",
+  "ErrorCatalogExport: struct (Transferable) — error catalog written on demand for ShareLink"
  ],
  "state": [
   "mem:DebugLogView.showingClearConfirm (@State)",
@@ -232,13 +234,13 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var DiagnosticLogExport.preview": "6ea2bf030b94a4fa",
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var DiagnosticLogExport.transferRepresentation": "90266408fff670a0"
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var DiagnosticLogExport.transferRepresentation": "2140446cd4be028c"
    }
   },
   {
    "key": "var CrashLogView.body",
-   "hash": "66fa9fbbee1d9f12",
-   "does": "List of crash details and actions; .task loads the previous crash log off-main; a sheet shows ShareSheet for exportURL; a 'Delete Crash Report?' alert hosts deleteCrashAlertActions.",
+   "hash": "ec8adfbe14af2aba",
+   "does": "List of crash details and actions; .task loads the previous crash log off-main; a 'Delete Crash Report?' alert hosts deleteCrashAlertActions.",
    "entry": "SwiftUI body (pushed from SettingsPages+Diagnostics.swift:442; snapshot test ScreenSnapshotTests.swift:73); .task on appear",
    "calls": [
     "Emuqu/Sources/Views/SettingsSubviews.swift::var CrashLogView.crashDetailsSection",
@@ -246,33 +248,12 @@
     "Emuqu/Sources/Views/SettingsSubviews.swift::func CrashLogView.loadCrashLog()",
     "Emuqu/Sources/Views/SettingsSubviews.swift::var CrashLogView.deleteCrashAlertActions",
     "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
-    "dyn:UIViewControllerRepresentable.makeUIViewController → Emuqu/Sources/Views/Utilities/ShareSheet.swift:9"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+10",
-     "cond": "exportURL is non-nil when the share sheet is presented",
-     "effect": "true: presents ShareSheet(activityItems:[url]); false: empty sheet content — not reachable in practice because shareCrashButton sets exportURL (line 163) before showingShareSheet (line 164) and nothing clears exportURL"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Crash report sharing presents ShareSheet (UIActivityViewController) inside a SwiftUI .sheet, the pattern the DiagnosticLogExport comment documents as cold-starting the share-extension scan for seconds to a minute; DebugLogView in the same file uses ShareLink instead.",
-     "evidence": [
-      "Emuqu/Sources/Views/SettingsSubviews.swift:109",
-      "Emuqu/Sources/Views/SettingsSubviews.swift:111",
-      "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift:400",
-      "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift:403",
-      "Emuqu/Sources/Views/SettingsSubviews.swift:82"
-     ],
-     "found": "second read"
-    }
-   ],
+   "branches": [],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/SettingsSubviews.swift::func CrashLogView.loadCrashLog()": "20cc8e87d3e1b99a",
@@ -353,59 +334,39 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/SettingsSubviews.swift::var CrashLogView.deleteCrashButton": "96256c107cadeaf7",
-    "Emuqu/Sources/Views/SettingsSubviews.swift::var CrashLogView.shareCrashButton": "f7bf53338af14ef8"
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var CrashLogView.shareCrashButton": "9eb44059c4c202df"
    }
   },
   {
    "key": "var CrashLogView.shareCrashButton",
-   "hash": "3946564d9d763351",
-   "does": "Button that calls crashLogManager.exportCrashLog() (writes a PHI-scrubbed Emuqu_Crash_<timestamp>.txt into the temp dir) and, on a URL, sets exportURL and opens the share sheet.",
+   "hash": "de3a920a5fa96c25",
+   "does": "ShareLink of CrashReportExport: the system share sheet opens at once and the PHI-scrubbed copy is written off the main thread only when a destination asks for it.",
    "entry": "SwiftUI button tap",
    "calls": [
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.exportCrashLog()",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var CrashReportExport.preview",
+    "ext:SwiftUI.ShareLink",
+    "dyn:Transferable.transferRepresentation → Emuqu/Sources/Views/SettingsSubviews.swift::var CrashReportExport.transferRepresentation",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
-   "reads": [
-    "file:previous_crash.txt"
-   ],
-   "writes": [
-    "file:tmp/Emuqu_Crash_<timestamp>.txt"
-   ],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "exportCrashLog() returned a URL",
-     "effect": "true: sets exportURL and showingShareSheet = true; false (no crash file or write failed): nothing happens, no message to the user"
-    }
-   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
    "flags": [
     {
      "kind": "silent-failure",
      "sev": "low",
-     "text": "When exportCrashLog() returns nil (write failure or file gone) the Share button does nothing and shows no error; the temp export file is also never deleted after sharing.",
+     "text": "The PHI-scrubbed Emuqu_Crash_<timestamp>.txt that exportCrashLog() writes to the temporary directory is never deleted after sharing; copies stay until iOS purges tmp. (A missing report or failed write now fails the transfer instead of doing nothing.)",
      "evidence": [
       "Emuqu/Sources/Views/SettingsSubviews.swift:162",
       "Emuqu/Sources/Utilities/CrashLogManager.swift:250"
      ],
      "found": "first read, upheld on second"
-    },
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "exportCrashLog() runs synchronously on the main actor in the button action: it re-reads previous_crash.txt, scrubs every line and writes a temp file, the same main-thread file read that loadCrashLog's comment says was moved off-main to avoid a 10-50 ms block.",
-     "evidence": [
-      "Emuqu/Sources/Views/SettingsSubviews.swift:162",
-      "Emuqu/Sources/Views/SettingsSubviews.swift:179",
-      "Emuqu/Sources/Views/SettingsSubviews.swift:185",
-      "Emuqu/Sources/Utilities/CrashLogManager.swift:231"
-     ],
-     "found": "second read"
     }
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.exportCrashLog()": "c5d8a6526e38956f"
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var CrashReportExport.preview": "13a82799cc14f01d"
    }
   },
   {
@@ -461,6 +422,50 @@
    }
   },
   {
+   "key": "var CrashReportExport.preview",
+   "hash": "e86ee009f761bcaf",
+   "does": "Share preview titled \"Share Crash Report\".",
+   "entry": "Read by ShareLink",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var CrashReportExport.transferRepresentation",
+   "hash": "78d4e144119a5953",
+   "does": "FileRepresentation (.plainText) that, when a share destination asks, calls CrashLogManager.exportCrashLog() off the main thread and returns the file; throws CocoaError(.fileWriteUnknown) when there is no report or the write failed.",
+   "entry": "Transferable protocol witness; invoked by the system share sheet when a ShareLink destination requests the file",
+   "calls": [
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.exportCrashLog()",
+    "ext:FileRepresentation",
+    "ext:SentTransferredFile"
+   ],
+   "reads": [
+    "file:previous_crash.txt"
+   ],
+   "writes": [
+    "file:tmp/Emuqu_Crash_<timestamp>.txt"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "exportCrashLog returned nil",
+     "effect": "throws; else SentTransferredFile(url)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.exportCrashLog()": "7794db7c2aa2d80e"
+   }
+  },
+  {
    "key": "var ErrorCatalogView.logger",
    "hash": "8d064f77ddab37ed",
    "does": "Returns dependencies.app.debugLogger.",
@@ -478,8 +483,8 @@
   },
   {
    "key": "var ErrorCatalogView.body",
-   "hash": "24590dbc9f32a011",
-   "does": "List of summary and error-list sections with an export toolbar item, a 'Clear All Errors?' alert (message quotes errorCatalog.count) and a ShareSheet sheet for exportURL.",
+   "hash": "f7097cc3a51924d0",
+   "does": "List of summary and error-list sections with an export toolbar item and a 'Clear All Errors?' alert (message quotes errorCatalog.count).",
    "entry": "SwiftUI body (pushed from SettingsPages+DiagnosticActions.swift:256; snapshot test ScreenSnapshotTests.swift:59)",
    "calls": [
     "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.errorSummarySection",
@@ -488,36 +493,17 @@
     "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.clearErrorsAlertActions",
     "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.logger",
     "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
-    "dyn:UIViewControllerRepresentable.makeUIViewController → Emuqu/Sources/Views/Utilities/ShareSheet.swift:9"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [
     "mem:DebugLogger.errorCatalog"
    ],
    "writes": [],
-   "branches": [
-    {
-     "at": "+15",
-     "cond": "exportURL is non-nil when the export sheet is shown",
-     "effect": "true: ShareSheet with the file URL; false: empty sheet content — not reachable in practice because finishErrorExport sets exportURL (line 363) before showingExport (line 364)"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Error catalog export presents ShareSheet (UIActivityViewController) inside a SwiftUI .sheet, the pattern DiagnosticLogExport's comment documents as cold-starting for seconds to a minute; the debug-log export uses ShareLink.",
-     "evidence": [
-      "Emuqu/Sources/Views/SettingsSubviews.swift:218",
-      "Emuqu/Sources/Views/SettingsSubviews.swift:220",
-      "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift:400"
-     ],
-     "found": "second read"
-    }
-   ],
+   "branches": [],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.clearErrorsAlertActions": "57cc749977803ba8",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.clearErrorsAlertActions": "f746ec775588ed7e",
     "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.errorListSection": "92728f48ca4e24f7",
     "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.errorSummarySection": "63873701791e4112",
     "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.exportErrorsToolbarItem": "8d29a9ac77de4f09",
@@ -527,8 +513,8 @@
   },
   {
    "key": "var ErrorCatalogView.clearErrorsAlertActions",
-   "hash": "007c4ef0004d22d6",
-   "does": "Alert actions: Cancel and destructive 'Clear N Errors', which records the count in errorCount, calls debugLogger.clearErrorCatalog() and logs the cleared count.",
+   "hash": "9768512acb471f4c",
+   "does": "Alert actions: Cancel and destructive 'Clear N Errors', which notes the count, calls debugLogger.clearErrorCatalog() and logs the cleared count.",
    "entry": "SwiftUI alert button tap",
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.clearErrorCatalog()",
@@ -543,19 +529,7 @@
     "mem:DebugLogger.errorCatalog"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "hack",
-     "sev": "low",
-     "text": "errorCount is a @State that is only written here to feed the debugLog message on the next line; it is never displayed.",
-     "evidence": [
-      "Emuqu/Sources/Views/SettingsSubviews.swift:201",
-      "Emuqu/Sources/Views/SettingsSubviews.swift:229",
-      "Emuqu/Sources/Views/SettingsSubviews.swift:231"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
@@ -706,18 +680,19 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.exportErrorsButton": "f045a9324e35acd7"
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.exportErrorsButton": "8e239020a62fec79"
    }
   },
   {
    "key": "var ErrorCatalogView.exportErrorsButton",
-   "hash": "dd372d9c50ce2908",
-   "does": "Export button calling exportErrorCatalog, disabled while exporting; hidden when the catalog is empty.",
+   "hash": "0cf7fd037a281cfe",
+   "does": "ShareLink of ErrorCatalogExport (share icon), hidden when the catalog is empty; the scrubbed catalog is built and written only when a destination asks.",
    "entry": "SwiftUI toolbar; button tap",
    "calls": [
-    "Emuqu/Sources/Views/SettingsSubviews.swift::func ErrorCatalogView.exportErrorCatalog()",
-    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.exportErrorsLabel",
-    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.logger"
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.logger",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogExport.preview",
+    "ext:SwiftUI.ShareLink",
+    "dyn:Transferable.transferRepresentation → Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogExport.transferRepresentation"
    ],
    "reads": [
     "mem:DebugLogger.errorCatalog"
@@ -725,133 +700,78 @@
    "writes": [],
    "branches": [
     {
-     "at": "+2",
-     "cond": "errorCatalog is not empty",
-     "effect": "true: shows the export button; false: no button"
+     "at": "+1",
+     "cond": "catalog non-empty",
+     "effect": "ShareLink shown; else nothing"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SettingsSubviews.swift::func ErrorCatalogView.exportErrorCatalog()": "7207ebdf417966a5",
-    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.exportErrorsLabel": "891bcd3a35635274",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogExport.preview": "2d1f68270d680750",
     "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.logger": "6a883fb81a53b82e"
    }
   },
   {
-   "key": "func ErrorCatalogView.exportErrorCatalog()",
-   "hash": "6ee3fecc735ef959",
-   "does": "Re-entrancy-guarded export: sets isExporting, builds the PHI-scrubbed catalog text on main, then a detached task writes it to tmp/hrv_error_catalog_<epoch>.txt and hops back to finishErrorExport with the URL or nil.",
-   "entry": "Button action from exportErrorsButton",
+   "key": "var ErrorCatalogExport.preview",
+   "hash": "e37c1b9abb337035",
+   "does": "Share preview titled \"Error Catalog\".",
+   "entry": "Read by ShareLink",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ErrorCatalogExport.transferRepresentation",
+   "hash": "1b20decb9c9e77a4",
+   "does": "FileRepresentation (.plainText) that, when a share destination asks, awaits DebugLogger.exportErrorCatalog() (PHI-scrubbed, on the main actor) and writes it with writeExport.",
+   "entry": "Transferable protocol witness; invoked by the system share sheet when a ShareLink destination requests the file",
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportErrorCatalog()",
-    "Emuqu/Sources/Views/SettingsSubviews.swift::func ErrorCatalogView.writeExport(_:to:)",
-    "Emuqu/Sources/Views/SettingsSubviews.swift::func ErrorCatalogView.finishErrorExport(_:)",
-    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.logger"
+    "Emuqu/Sources/Views/SettingsSubviews.swift::func ErrorCatalogExport.writeExport(_:)",
+    "ext:FileRepresentation",
+    "ext:SentTransferredFile"
    ],
    "reads": [
     "mem:DebugLogger.errorCatalog"
    ],
    "writes": [
-    "file:tmp/hrv_error_catalog_<epoch>.txt"
+    "file:tmp/Emuqu_Error_Catalog.txt"
    ],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "isExporting already true",
-     "effect": "true: returns immediately (no second export); false: starts export"
-    },
-    {
-     "at": "+8",
-     "cond": "writeExport returned true",
-     "effect": "true: passes tempURL to finishErrorExport (share sheet opens); false: passes nil (isExporting reset, no sheet, no user message)"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "privacy",
-     "sev": "low",
-     "text": "The exported catalog file is written to the temporary directory and never removed after sharing; it persists until iOS purges tmp (content is PHI-scrubbed by DebugLogger.exportErrorCatalog).",
-     "evidence": [
-      "Emuqu/Sources/Views/SettingsSubviews.swift:339",
-      "Emuqu/Sources/Views/SettingsSubviews.swift:351",
-      "Emuqu/Sources/Utilities/DebugLog.swift:570"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "branches": [],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportErrorCatalog()": "98bc750009df4097",
-    "Emuqu/Sources/Views/SettingsSubviews.swift::func ErrorCatalogView.finishErrorExport(_:)": "71910efced1439ef",
-    "Emuqu/Sources/Views/SettingsSubviews.swift::func ErrorCatalogView.writeExport(_:to:)": "bfd71b02783abec9",
-    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.logger": "6a883fb81a53b82e",
-    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportErrorCatalog()": "45a0273f16a6c198",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::func ErrorCatalogExport.writeExport(_:)": "d2eb66b329cb9a41"
    }
   },
   {
-   "key": "func ErrorCatalogView.writeExport(_:to:)",
-   "hash": "e0a4491c9e93b256",
-   "does": "Encodes content as UTF-8 and atomically writes it to url; returns false on encoding failure or write error (error logged via debugLog).",
+   "key": "func ErrorCatalogExport.writeExport(_:)",
+   "hash": "dd73a81aed82e67d",
+   "does": "Writes the text as UTF-8 over tmp/Emuqu_Error_Catalog.txt (one fixed file, replaced on every export so copies do not pile up) and returns its URL; throws when encoding or the write fails.",
    "entry": null,
-   "calls": [
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "ext:Data.write(to:options:.atomic)"
-   ],
+   "calls": [],
    "reads": [],
    "writes": [
-    "file:tmp/hrv_error_catalog_<epoch>.txt"
+    "file:tmp/Emuqu_Error_Catalog.txt"
    ],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "content.data(using: .utf8) returns nil",
-     "effect": "true: returns false without logging; false: continues to write"
-    },
-    {
-     "at": "+5",
-     "cond": "catch: data.write threw",
-     "effect": "error is logged with debugLog and false is returned; the user sees no message (no share sheet)"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
-   }
-  },
-  {
-   "key": "func ErrorCatalogView.finishErrorExport(_:)",
-   "hash": "29ff1dfbf97aac8f",
-   "does": "Resets isExporting and, when url is non-nil, stores it in exportURL and presents the share sheet.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+3",
-     "cond": "url is nil",
-     "effect": "true: returns after clearing isExporting (no sheet); false: sets exportURL and showingExport = true"
-    }
-   ],
-   "flags": [],
-   "deps": {}
-  },
-  {
-   "key": "var ErrorCatalogView.exportErrorsLabel",
-   "hash": "584d80a7dd3e2154",
-   "does": "Export toolbar label: a small ProgressView while exporting, otherwise the share icon.",
-   "entry": "SwiftUI view-builder evaluation of the parent view's body",
-   "calls": [],
-   "reads": [],
-   "writes": [],
    "branches": [
     {
      "at": "+2",
-     "cond": "isExporting",
-     "effect": "true: ProgressView scaled 0.8; false: square.and.arrow.up image"
+     "cond": "UTF-8 encoding failed",
+     "effect": "throws"
     }
    ],
    "flags": [],
-   "deps": {}
+   "deps": {
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+   }
   },
   {
    "key": "var AddTagSheet.body",
@@ -872,7 +792,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsSubviews.swift::var AddTagSheet.addTagToolbar": "7b20b100fe1a8f39",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var AddTagSheet.addTagToolbar": "ce636a01cef41a5f",
     "Emuqu/Sources/Views/SettingsSubviews.swift::var AddTagSheet.tagColorSection": "a93237913960baa8",
     "Emuqu/Sources/Views/SettingsSubviews.swift::var AddTagSheet.tagNameSection": "7450b2f7a46bbbb0",
     "Emuqu/Sources/Views/SettingsSubviews.swift::var AddTagSheet.tagPreviewSection": "e0f9e25163ed98e8",
@@ -1016,34 +936,42 @@
   },
   {
    "key": "var AddTagSheet.addTagToolbar",
-   "hash": "8f35d6f3d0c1b3ce",
-   "does": "Toolbar: Cancel dismisses; Save calls onSave() then dismisses, disabled while the trimmed name is empty.",
+   "hash": "767cebc65045996e",
+   "does": "Toolbar: Cancel dismisses; Save calls onSave() then dismisses, disabled unless canSave.",
    "entry": "SwiftUI toolbar; button taps",
    "calls": [
     "closure:onSave set by CustomTagsPage.addTagSheet → saveNewTag (SettingsPages+Data.swift:66), appends a ReadingTag to settings.customTags",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var AddTagSheet.canSave"
    ],
    "reads": [],
    "writes": [
     "file:user_settings.json (customTags, via onSave → SettingsManager.addCustomTag)"
    ],
    "branches": [],
-   "flags": [
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var AddTagSheet.canSave": "ddacdf7da700f3fe"
+   }
+  },
+  {
+   "key": "var AddTagSheet.canSave",
+   "hash": "e5cc032cd2cd1ce8",
+   "does": "True when the trimmed name is non-empty and no existingTagNames entry matches it trimmed and case-insensitively.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
     {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Save is enabled on the trimmed name, but onSave (saveNewTag) stores the untrimmed newTagName, so leading/trailing spaces are persisted in the tag name; there is also no duplicate-name check (addCustomTag dedups by id only).",
-     "evidence": [
-      "Emuqu/Sources/Views/SettingsSubviews.swift:490",
-      "Emuqu/Sources/Views/SettingsPages+Data.swift:67",
-      "Emuqu/Sources/Models/SettingsManager.swift:349"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+2",
+     "cond": "blank name",
+     "effect": "false"
     }
    ],
-   "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
-   }
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "var MetricExplanationsView.age",

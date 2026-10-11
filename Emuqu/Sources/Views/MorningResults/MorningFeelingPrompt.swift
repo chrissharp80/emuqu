@@ -1,7 +1,9 @@
 import SwiftUI
 
-/// Pre-score "How do you feel?" prompt — shown before the recovery score
-/// is revealed so the answer isn't anchored to the number.
+/// "How do you feel?" prompt, opened from the Dashboard's morning-feeling
+/// chip to give or change the morning's answer. It is not the pre-score
+/// prompt: the question asked before the score is revealed, so the answer
+/// isn't anchored to the number, is `PreScorePromptView`.
 ///
 /// Five-point emoji scale, one tap, skippable. The value is stored as a
 /// parallel signal (not blended into the composite score) and used for
@@ -60,6 +62,9 @@ struct MorningFeelingPrompt: View {
             if let existing { selected = existing }
             if !existingTags.isEmpty { selectedTags = Set(existingTags) }
         }
+        // Swiping the sheet away inside the auto-commit second dismisses the
+        // prompt; the tap must not then be saved behind the user's back.
+        .onDisappear { pendingCommit?.cancel() }
     }
 
     private var feelingScale: some View {
@@ -305,9 +310,9 @@ private struct FlowLayout: Layout {
 
 // MARK: - Feeling Emoji Lookup
 
-/// Single source of truth for feeling → emoji / label mapping.
-/// Used by badge, history rows, trends heatmap, and anywhere else feelings
-/// are rendered so they stay consistent.
+/// Feeling → emoji / label mapping for this prompt and the badge.
+/// `DashboardMorningFeelingChip` still keeps its own table (with "Felt
+/// good" for 4); it should read this one.
 enum MorningFeelingDisplay {
     static func emoji(for feeling: Int) -> String {
         switch feeling {
@@ -345,40 +350,18 @@ enum MorningFeelingDisplay {
 
 // MARK: - Feeling Badge (for dashboard / history)
 
-/// Compact emoji badge showing the user's morning feeling.
-/// Tappable — calls `onTap` to let the caller re-open the edit prompt.
+/// Compact emoji badge showing the user's morning feeling. Display only:
+/// the feeling is changed from the Dashboard's feeling chip.
 struct MorningFeelingBadge: View {
     let feeling: Int
-    var onTap: (() -> Void)?
 
     var body: some View {
-        Button {
-            onTap?()
-        } label: {
-            badgeLabel
-        }
-        .buttonStyle(.plain)
-        .disabled(onTap == nil)
-    }
-
-    private var badgeLabel: some View {
         HStack(spacing: 4) {
             Text(MorningFeelingDisplay.emoji(for: feeling))
                 .font(.caption)
             Text(String(localized: "Felt \(MorningFeelingDisplay.label(for: feeling).lowercased())", bundle: LanguageManager.appBundle))
                 .font(.caption2)
                 .foregroundColor(AppTheme.textSecondary)
-            editPencil
-        }
-        .contentShape(Rectangle())
-    }
-
-    @ViewBuilder
-    private var editPencil: some View {
-        if onTap != nil {
-            Image(systemName: "pencil")
-                .font(.caption2)
-                .foregroundColor(AppTheme.textTertiary)
         }
     }
 }

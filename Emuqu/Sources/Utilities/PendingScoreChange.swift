@@ -12,6 +12,11 @@ import Foundation
 /// Single-slot (latest wins) by design: if multiple rescores happen between
 /// foregrounds, the most recent delta is what's surfaced; intermediate ones
 /// would just be noise.
+///
+/// The notice explains a change the user is about to see, so it expires:
+/// `read` drops an entry older than `maxAge`, or one for a session other than
+/// the one the caller is showing, instead of carrying an old night's delta
+/// into later days.
 enum PendingScoreChange {
     struct Entry: Codable {
         let sessionId: UUID
@@ -23,20 +28,47 @@ enum PendingScoreChange {
 
     private static let key = "PendingScoreChange.v1"
 
+    /// How long a notice stays relevant. Rescores land within hours of the
+    /// morning they belong to; half a day keeps a notice through that morning
+    /// and drops it before the next night's report.
+    static let maxAge: TimeInterval = 12 * 60 * 60
+
+    /// Stores the entry and, only when it was stored, tells on-screen views,
+    /// so a live banner never shows a notice a later `read` cannot return.
     static func write(_ entry: Entry) {
-        if let data = attempt("pendingScoreChange.encode", { try JSONEncoder().encode(entry) }) {
-            UserDefaults.standard.set(data, forKey: key)
-        }
+        guard let data = attempt("pendingScoreChange.encode", { try JSONEncoder().encode(entry) }) else { return }
+        UserDefaults.standard.set(data, forKey: key)
         NotificationCenter.default.post(name: .pendingScoreChangeWritten, object: entry)
     }
 
+    /// The stored notice if it is no older than `maxAge`; an older one is
+    /// cleared and not returned. No session check — see
+    /// `read(currentSessionId:now:)`.
     static func read() -> Entry? {
+        read(currentSessionId: nil)
+    }
+
+    /// The stored notice if it is still current. An entry older than `maxAge`
+    /// at `now`, or for a session other than `currentSessionId` (when one is
+    /// given), is cleared and not returned.
+    static func read(currentSessionId: UUID?, now: Date = Date()) -> Entry? {
         guard let data = UserDefaults.standard.data(forKey: key) else { return nil }
-        return try? JSONDecoder().decode(Entry.self, from: data)
+        guard let entry = attempt("pendingScoreChange.decode", { try JSONDecoder().decode(Entry.self, from: data) }),
+              isCurrent(entry, currentSessionId: currentSessionId, now: now) else {
+            clear()
+            return nil
+        }
+        return entry
     }
 
     static func clear() {
         UserDefaults.standard.removeObject(forKey: key)
+    }
+
+    private static func isCurrent(_ entry: Entry, currentSessionId: UUID?, now: Date) -> Bool {
+        if let currentSessionId, currentSessionId != entry.sessionId { return false }
+        let age = now.timeIntervalSince(entry.timestamp)
+        return age >= 0 && age <= maxAge
     }
 }
 

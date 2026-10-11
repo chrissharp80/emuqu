@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift",
- "hash": "f2b3aafba8476101",
- "role": "Installs one window-level tap recognizer that resigns first responder on taps outside text fields/controls, prewarms the keyboard daemon after launch, and provides UIApplication.activeKeyWindow.",
+ "hash": "46256f9194ac438d",
+ "role": "Installs a window-level tap recognizer that resigns first responder on taps outside text fields/controls — on the key window at install and on every window that later becomes key — prewarms the keyboard daemon after launch, and provides UIApplication.activeKeyWindow.",
  "types": [
   "GlobalKeyboardDismissal: class (@MainActor, NSObject, UIGestureRecognizerDelegate) — global tap-to-dismiss",
   "UIApplication: extension — activeKeyWindow"
@@ -9,31 +9,23 @@
  "state": [
   "mem:GlobalKeyboardDismissal.shared",
   "installed flag",
-  "recognizer (stored, never read)"
+  "prewarmWindowRetries = 20 (static)",
+  "notif:UIWindow.didBecomeKeyNotification (observed after install)"
  ],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "Recognizer is attached only to the key window found at install time (600 ms after launch); a window created later (e.g. a new scene) gets no tap-to-dismiss.",
-   "evidence": [
-    "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift:53",
-    "Emuqu/EmuquApp.swift:694"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "func GlobalKeyboardDismissal.install()",
-   "hash": "6e78cf4539cca819",
-   "does": "Once per launch, adds a non-cancelling tap recognizer (delegate self) to the active key window; retries every 250 ms until a window exists.",
-   "entry": "EmuquApp.installGlobalKeyboardDismissal Task, 600 ms after launch (EmuquApp.swift:695)",
+   "hash": "7ebbc4c3eba34faf",
+   "does": "Once per launch: attaches the tap recognizer to the active key window and starts observing UIWindow.didBecomeKeyNotification so any window that becomes key later (a new scene's window) gets one too; retries every 250 ms until a window exists.",
+   "entry": "EmuquApp.installGlobalKeyboardDismissal Task, 600 ms after launch (EmuquApp.swift)",
    "calls": [
     "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::var UIApplication.activeKeyWindow",
-    "ext:UITapGestureRecognizer",
-    "ext:DispatchQueue.main.asyncAfter"
+    "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.attach(to:)",
+    "ext:NotificationCenter.addObserver",
+    "ext:DispatchQueue.main.asyncAfter",
+    "ext:NSLog"
    ],
    "reads": [],
    "writes": [
@@ -54,8 +46,55 @@
    "flags": [],
    "deps": {
     "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d",
-    "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.handleTap()": "4cedd06615286925",
+    "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.attach(to:)": "97c8cf454a830592",
+    "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.windowDidBecomeKey(_:)": "e7bfeada79a556e1",
     "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::var UIApplication.activeKeyWindow": "0641757d80699503"
+   }
+  },
+  {
+   "key": "func GlobalKeyboardDismissal.attach(to:)",
+   "hash": "522dc0b93aae90bf",
+   "does": "Adds a non-cancelling, non-delaying UITapGestureRecognizer (target handleTap, delegate self) to the window, unless the window already carries a recognizer whose delegate is this object.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.handleTap()",
+    "ext:UITapGestureRecognizer",
+    "ext:UIWindow.addGestureRecognizer"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "window already has a recognizer delegated to self",
+     "effect": "returns without adding a second one"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.handleTap()": "4cedd06615286925"
+   }
+  },
+  {
+   "key": "func GlobalKeyboardDismissal.windowDidBecomeKey(_:)",
+   "hash": "fded0bb660d7741d",
+   "does": "Attaches the tap recognizer to the window that just became key.",
+   "entry": "notif:UIWindow.didBecomeKeyNotification (observer added by install)",
+   "calls": [
+    "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.attach(to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "notification object is not a UIWindow",
+     "effect": "returns"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.attach(to:)": "97c8cf454a830592"
    }
   },
   {
@@ -74,34 +113,52 @@
   },
   {
    "key": "func GlobalKeyboardDismissal.prewarmKeyboard()",
-   "hash": "3993d6265e414555",
-   "does": "If no view in the key window is first responder, adds an off-screen UITextField, makes it first responder, then on the next main-queue turn resigns and removes it.",
-   "entry": "EmuquApp.installGlobalKeyboardDismissal (EmuquApp.swift:696)",
+   "hash": "b4b3afce73f83dab",
+   "does": "Starts the keyboard prewarm with prewarmWindowRetries (20) retries allowed while no window exists yet.",
+   "entry": "EmuquApp.installGlobalKeyboardDismissal (EmuquApp.swift), right after install()",
+   "calls": [
+    "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.prewarmKeyboard(retriesLeft:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.prewarmKeyboard(retriesLeft:)": "6a3c0768ecaf872f"
+   }
+  },
+  {
+   "key": "func GlobalKeyboardDismissal.prewarmKeyboard(retriesLeft:)",
+   "hash": "f2d75d821e6d1d22",
+   "does": "With no active key window, retries itself every 250 ms while retriesLeft > 0 (about 5 s in all). With a window and nothing in it first responder, adds an off-screen UITextField, makes it first responder, then on the next main-queue turn resigns and removes it.",
+   "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::var UIApplication.activeKeyWindow",
-    "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.containsFirstResponder(_:)"
+    "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.containsFirstResponder(_:)",
+    "ext:DispatchQueue.main.asyncAfter",
+    "ext:DispatchQueue.main.async",
+    "ext:UITextField.becomeFirstResponder"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+1",
-     "cond": "no key window, or something is already first responder",
-     "effect": "returns without prewarming (no retry)"
-    }
-   ],
-   "flags": [
+     "cond": "no active key window",
+     "effect": "schedules a retry in 250 ms with retriesLeft - 1 and returns"
+    },
     {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Runs immediately after install(); when install had to defer for lack of a window, prewarm returns without retrying, so the cold-start keyboard latency it targets is not addressed on that launch.",
-     "evidence": [
-      "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift:79",
-      "Emuqu/EmuquApp.swift:696"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+2",
+     "cond": "retriesLeft is 0",
+     "effect": "gives up without prewarming"
+    },
+    {
+     "at": "+8",
+     "cond": "something in the window is already first responder",
+     "effect": "returns without prewarming (would dismiss the user's keyboard)"
     }
    ],
+   "flags": [],
    "deps": {
     "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d",
     "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.containsFirstResponder(_:)": "0732b0978defcd5d",

@@ -53,45 +53,31 @@
   },
   {
    "key": "func StrapPPIFilter.rrPoints(from:)",
-   "hash": "8d012ddbc0bcc248",
-   "does": "Converts offline PPI samples to RRPoints, keeping only accepted intervals; t_ms accumulates only accepted beats, points carry no wallClockMs.",
+   "hash": "4e4c8a867c7af428",
+   "does": "Converts offline PPI samples to RRPoints, keeping only accepted intervals. t_ms accumulates only accepted beats; wallClockMs is the real time since the recording began, accumulated over every sample's interval (accepted or not, negatives as 0), so consumers reading wallClockMs ?? t_ms (window selection, sleep boundaries, the recording-break check, StrapRecording.endedAt) keep real time across rejected stretches.",
    "entry": "Called from PolarManager+VeritySense.swift:160 (convertOfflinePpiToRRPoints).",
    "calls": [
     "Emuqu/Sources/Collection/StrapPPIFilter.swift::func StrapPPIFilter.acceptedInterval(_:)",
-    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)"
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+3",
+     "at": "+4",
      "cond": "for each sample",
-     "effect": "processed in order"
+     "effect": "processed in order; the deferred step adds the sample's interval to the wall clock whether or not it is kept"
     },
     {
-     "at": "+4",
+     "at": "+6",
      "cond": "acceptedInterval returns nil",
-     "effect": "true: skipped with no elapsed time added; false: appended at cumulative time"
+     "effect": "true: skipped, no beat time added (wall clock still advances); false: appended at the beat time with the wall clock"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "The doc says the compressed t_ms is safe because 'the window selector translates through wallClockMs', but these points are built with RRPoint(t_ms:rr_ms:), which sets wallClockMs = nil, so the selector falls back to t_ms (closestIndex uses wallClockMs ?? t_ms). Every rejected optical interval shortens a Verity offline night's timeline, so sleep-boundary/window placement and StrapRecording.endedAt (start + sum of accepted beats) land earlier than real time by the total rejected duration.",
-     "evidence": [
-      "Emuqu/Sources/Collection/StrapPPIFilter.swift:64",
-      "Emuqu/Sources/Collection/StrapPPIFilter.swift:67",
-      "Emuqu/Sources/Models/RRModels.swift:36",
-      "Emuqu/Sources/Models/RRModels.swift:224",
-      "Emuqu/Sources/Collection/StrapRecording.swift:19"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/StrapPPIFilter.swift::func StrapPPIFilter.acceptedInterval(_:)": "f85125fdb05d246c",
-    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550"
    }
   }
  ],

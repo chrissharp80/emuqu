@@ -47,10 +47,20 @@ struct TagsAndNotesCard {
     /// the way the original three properties in `+DetailCards` did.
     private var chipRow: some View {
         HStack(spacing: 8) {
-            ForEach(ReadingTag.systemTags) { tag in
+            ForEach(stripTags) { tag in
                 chip(for: tag)
             }
         }
+    }
+
+    /// The system tags, then the user's custom tags, then any tag on the
+    /// session that is neither (a custom tag since deleted), so every tag can
+    /// be applied here and every selection shows as selected and can be removed.
+    private var stripTags: [ReadingTag] {
+        let listed = ReadingTag.systemTags + AppDependencies.current.app.settingsManager.settings.customTags
+        let listedIds = Set(listed.map(\.id))
+        let extra = selectedTags.filter { !listedIds.contains($0.id) }.sorted { $0.name < $1.name }
+        return listed + extra
     }
 
     private func chip(for tag: ReadingTag) -> some View {

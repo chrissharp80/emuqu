@@ -1,5 +1,4 @@
 import Foundation
-import UniformTypeIdentifiers
 
 /// Handles importing RR interval data from various file formats
 /// Supports: CSV, JSON, TXT (raw RR values), Kubios exports, EliteHRV, Emuqu multi-session formats
@@ -17,17 +16,6 @@ final class RRDataImporter: Sendable {
 
         var id: String {
             rawValue
-        }
-
-        var fileExtensions: [String] {
-            switch self {
-            case .csv: ["csv"]
-            case .json: ["json"]
-            case .txt: ["txt"]
-            case .kubios: ["hrv", "csv"]
-            case .eliteHRV: ["csv"]
-            case .flowHRVMultiSession: ["csv"]
-            }
         }
 
         /// The format's name in the app's language. `rawValue` is the stable
@@ -176,25 +164,34 @@ final class RRDataImporter: Sendable {
 
     // MARK: - Public API
 
-    /// Supported UTTypes for file picker
-    static var supportedTypes: [UTType] {
-        [.commaSeparatedText, .json, .plainText]
-    }
-
     /// Import RR data from a file URL
     func importFile(at url: URL) async throws -> ImportResult {
+        try importContent(try readFile(at: url), fileName: url.lastPathComponent)
+    }
+
+    /// The file's UTF-8 text, with its security scope held for the read. The
+    /// one reader for an import: a caller that needs the text to pick a
+    /// format reads it here and hands it to `importContent`, rather than
+    /// reading the file twice.
+    func readFile(at url: URL) throws -> String {
         guard url.startAccessingSecurityScopedResource() else {
             throw ImportError.fileNotFound
         }
         defer { url.stopAccessingSecurityScopedResource() }
-        let content = try readUTF8(at: url)
-        let format = detectFormat(content: content, extension: url.pathExtension.lowercased())
+        return try readUTF8(at: url)
+    }
+
+    /// Import RR data from a file's text, already read. `fileName` names the
+    /// source in the result and gives the extension format detection uses.
+    func importContent(_ content: String, fileName: String) throws -> ImportResult {
+        let ext = (fileName as NSString).pathExtension.lowercased()
+        let format = detectFormat(content: content, extension: ext)
         let parsed = try parse(content, as: format)
         try validate(parsed.rrIntervals)
         return ImportResult(
             rrIntervals: parsed.rrIntervals,
             sourceFormat: format,
-            originalFileName: url.lastPathComponent,
+            originalFileName: fileName,
             recordingDate: parsed.recordingDate,
             metadata: parsed.metadata
         )
@@ -233,10 +230,12 @@ final class RRDataImporter: Sendable {
         case .txt:
             return ParsedRRFile(rrIntervals: try parsePlainText(content), metadata: [:], recordingDate: nil)
         case .eliteHRV:
-            // Elite HRV summary files go through parseEliteHRVSummary instead
+            // Elite HRV summary files go through parseEliteHRVSummary instead;
+            // a caller that hands one here is told so.
             throw ImportError.invalidFormat(String(localized: "Elite HRV summary format detected. Use batch import for summary files.", bundle: LanguageManager.appBundle))
         case .flowHRVMultiSession:
-            // Emuqu multi-session files should use parseFlowHRVMultiSession instead
+            // Emuqu multi-session files go through parseFlowHRVMultiSession
+            // instead; a caller that hands one here is told so.
             throw ImportError.invalidFormat(String(localized: "Emuqu multi-session format detected. Use batch import for multi-session files.", bundle: LanguageManager.appBundle))
         }
     }
@@ -263,9 +262,18 @@ final class RRDataImporter: Sendable {
         guard spanMs <= Self.maximumRecordingSpanMs else { throw ImportError.recordingTooLong }
     }
 
-    /// Create an HRVSession from import result
+    /// Create an HRVSession from import result, dated by the file's own
+    /// recording date, or now when the file states none.
     func createSession(from result: ImportResult) -> HRVSession {
-        let startDate = result.recordingDate ?? Date()
+        createSession(from: result, startingAt: result.recordingDate ?? Date())
+    }
+
+    /// Create an HRVSession from an import result, starting at `startDate`.
+    /// For a file that states no recording date (`recordingDate` nil — every
+    /// CSV, Kubios and text file) the caller supplies the date the user
+    /// gives: dating it now would put an old recording on today and into
+    /// today's baseline.
+    func createSession(from result: ImportResult, startingAt startDate: Date) -> HRVSession {
         // Build RRPoints with cumulative timestamps
         var points: [RRPoint] = []
         var currentTime: Int64 = 0
@@ -274,7 +282,7 @@ final class RRDataImporter: Sendable {
             currentTime += Int64(rr)
         }
         var session = HRVSession(startDate: startDate)
-        session.rrSeries = RRSeries(points: points, sessionId: UUID(), startDate: startDate)
+        session.rrSeries = RRSeries(points: points, sessionId: session.id, startDate: startDate)
         session.endDate = startDate.addingTimeInterval(Double(currentTime) / 1000.0)
         session.notes = String(localized: "Imported from \(result.originalFileName)", bundle: LanguageManager.appBundle)
         return session
@@ -303,6 +311,9 @@ final class RRDataImporter: Sendable {
     private func detectDelimitedFormat(content: String) -> ImportFormat {
         if isEliteHRVSummary(content) {
             return .eliteHRV
+        }
+        if isFlowHRVMultiSession(content) {
+            return .flowHRVMultiSession
         }
         // Check for Kubios markers
         let lowered = content.lowercased()

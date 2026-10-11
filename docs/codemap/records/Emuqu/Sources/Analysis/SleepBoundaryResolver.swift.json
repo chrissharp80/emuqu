@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift",
- "hash": "267e396b0a7e39f6",
+ "hash": "56243c82d7050bd0",
  "role": "RRWindowSweep (O(n) two-pointer RR window slicer shared by the sleep classifier and WorkoutAlpha1Reanalyzer) and SleepBoundaryResolver, which turns HealthKit sleep (optionally cross-checked against an HR estimate) into ms-from-recording-start sleep/wake boundaries for morning auto-window selection, plus static clamp and HR-drop onset detection used elsewhere.",
  "types": [
   "RRWindowSweep: struct — forward-only cursor slicing of t_ms-sorted RR points",
@@ -10,7 +10,7 @@
  ],
  "state": [
   "mem:SleepBoundaryResolver.boundaryDisagreementThresholdMs = SleepConstants.boundaryDisagreementMinutes(15)*60000",
-  "mem:OnsetDetection.minimumBeats=300, windowSize=120, stepSize=30, minimumWindows=10, hrDropThreshold=8.0, sleepCeilingMidpointFraction=0.5"
+  "mem:OnsetDetection.minimumBeats=300, windowSize=120, stepSize=30, minimumWindows=16 (5 before + 10 after + the candidate), hrDropThreshold=8.0, sleepCeilingMidpointFraction=0.5"
  ],
  "toplevel": "Static constants only. Instance held by RRCollector (RRCollector.swift:179,714).",
  "flags": [
@@ -23,16 +23,6 @@
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift:113",
     "Emuqu/Sources/Collection/RRCollector+Analysis.swift:131",
     "EmuquTests/SleepBoundaryResolverTests.swift:163"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "OnsetDetection.minimumWindows (10) is never read; detectSleepOnset hard-codes 15 instead.",
-   "evidence": [
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift:202",
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift:222"
    ],
    "found": "first read, upheld on second"
   },
@@ -103,13 +93,12 @@
   },
   {
    "key": "func SleepBoundaryResolver.resolve(sessionStart:recordingEnd:rrPoints:useHREstimation:)",
-   "hash": "b78075dc2256d1a8",
-   "does": "Async: fetches HealthKit sleep for [sessionStart, recordingEnd]; if it yields any boundary returns it (cross-checked with HR when >=100 RR points given). Otherwise, if useHREstimation and RR given, uses an HR estimate (wake defaulting to recording end); else returns sleepStart 0 and wake = recording end.",
+   "hash": "f42f8e4c8caa70e2",
+   "does": "Async: fetches HealthKit sleep for [sessionStart, recordingEnd]; if it yields any boundary returns it (cross-checked with HR when >=100 RR points given). Otherwise, if useHREstimation and RR given, returns the HR estimate as is (an onset-only estimate keeps a nil wake); else returns nil/nil. Nothing unresolved is filled with a stand-in, so a caller can tell resolved boundaries from none (the window selector uses the recording's own start/end for nil).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolveFromHealthKit(sessionStart:recordingEnd:)",
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.validatedHealthKitBoundaries(_:rrPoints:sessionStart:)",
-    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)",
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolveFromHREstimation(rrPoints:sessionStart:)"
    ],
    "reads": [],
@@ -121,33 +110,16 @@
      "effect": "true: return validated HK boundaries; false: fall through"
     },
     {
-     "at": "+13",
+     "at": "+12",
      "cond": "useHREstimation && rrPoints && HR estimate non-nil",
-     "effect": "true: return HR boundaries; false: recording-bounds fallback"
-    },
-    {
-     "at": "+20",
-     "cond": "hrBoundaries.wakeTimeMs ?? recordingEndMs",
-     "effect": "onset-only HR estimate: wake = recording end"
+     "effect": "true: return the HR boundaries unchanged; false: nil/nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "On HealthKit failure/empty the fallback returns sleepStartMs 0 and wake = recording end, never nil as the doc says ('either value may be nil if unresolvable'); the caller cannot tell fabricated recording bounds from real HealthKit boundaries.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift:79",
-      "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift:103"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolveFromHREstimation(rrPoints:sessionStart:)": "7cb366e4742cfde1",
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolveFromHealthKit(sessionStart:recordingEnd:)": "b9a76092d1044337",
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.validatedHealthKitBoundaries(_:rrPoints:sessionStart:)": "3c36de82a3f24d7c",
-    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac"
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolveFromHealthKit(sessionStart:recordingEnd:)": "cae6ee3f770ce6c5",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.validatedHealthKitBoundaries(_:rrPoints:sessionStart:)": "3c36de82a3f24d7c"
    }
   },
   {
@@ -278,8 +250,8 @@
   },
   {
    "key": "func SleepBoundaryResolver.detectSleepOnset(in:)",
-   "hash": "a7c98a465dd9b6f3",
-   "does": "HR-drop onset detector: needs > 300 beats and > 15 two-minute HR windows; ceiling = midpoint of the night's HR range; returns first sustained drop (clamped to 20 min) or nil. Used by SleepResolver.inferStagesFromRR, RRCollector+DeviceRecording.swift:323 and resolveFromHREstimation.",
+   "hash": "2953680bd54666ae",
+   "does": "HR-drop onset detector: needs > 300 beats and >= 16 (OnsetDetection.minimumWindows) two-minute HR windows; ceiling = midpoint of the night's HR range; returns the first sustained drop (clamped to 20 min) or nil. The time is wall-clock ms from recording start (a beat's wallClockMs, or t_ms when it has none, as in H10 internal recordings). Used by SleepResolver.inferStagesFromRR, RRCollector+DeviceRecording and resolveFromHREstimation.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.onsetHRWindows(_:)",
@@ -296,7 +268,7 @@
     },
     {
      "at": "+3",
-     "cond": "hrWindows.count > 15",
+     "cond": "hrWindows.count >= minimumWindows (16)",
      "effect": "false: nil"
     },
     {
@@ -313,14 +285,14 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.firstSustainedDrop(in:ceiling:)": "4cce8f2e0ee52df1",
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.onsetHRWindows(_:)": "9de71dc46fb03569",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.onsetHRWindows(_:)": "c8e6d9cdb3103456",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
    "key": "func SleepBoundaryResolver.onsetHRWindows(_:)",
-   "hash": "00213be1e6b3e2b2",
-   "does": "Slides a 120-beat window in 30-beat steps, recording (mid-beat t_ms, mean HR) for windows with enough valid beats.",
+   "hash": "62633c7960ec5bc3",
+   "does": "Slides a 120-beat window in 30-beat steps, recording (middle beat's wallClockMs, or its t_ms when it has none; mean HR) for windows with enough valid beats.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.windowMeanHR(_:windowSize:)"
@@ -337,11 +309,17 @@
      "at": "+6",
      "cond": "windowMeanHR non-nil",
      "effect": "append; else skip"
+    },
+    {
+     "at": "+8",
+     "cond": "middle.wallClockMs ?? middle.t_ms",
+     "effect": "streamed beat: wall clock; internal-recording beat: t_ms"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.windowMeanHR(_:windowSize:)": "b87d947521f454f0"
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.windowMeanHR(_:windowSize:)": "b87d947521f454f0",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0"
    }
   },
   {
@@ -408,7 +386,7 @@
   {
    "key": "func SleepBoundaryResolver.resolveFromHealthKit(sessionStart:recordingEnd:)",
    "hash": "3940fd15fd01931e",
-   "does": "Async: calls healthKit.fetchSleepData(for:recordingEnd:) and converts sleepStart/sleepEnd to ms from sessionStart (can be negative when HK sleep starts before the recording); hasDetailedStages = deep > 0 or REM > 0. Nil when neither boundary exists or the fetch throws.",
+   "does": "Async: calls healthKit.fetchSleepData(for:recordingEnd:) and converts sleepStart/sleepEnd to ms from sessionStart (can be negative when HK sleep starts before the recording); hasDetailedStages = deep > 0 or REM > 0. Nil when neither boundary exists or the fetch throws. A core-only night counts as undetailed on purpose: it is what a source that does not stage sleep writes (as SleepResolver.stageTotals treats it), and validateBoundaries' doc now says so.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::func HealthKitServiceProtocol.fetchSleepData(for:recordingEnd:)",
@@ -436,21 +414,9 @@
      "effect": "error logged via debugLog, nil returned (caller falls back to recording bounds)"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "hasDetailedStages ignores core minutes although validateBoundaries' doc defines detailed stages as deep/core/REM; a core-only Watch night is treated as undetailed.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift:298",
-      "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift:154"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::func HealthKitServiceProtocol.fetchSleepData(for:recordingEnd:)": "fe0165a7fbe9ea39",
-    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
@@ -484,9 +450,8 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.detectSleepOnset(in:)": "d0309f14481839ab",
-    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:)": "c16e3d979adbaf49",
-    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344"
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.detectSleepOnset(in:)": "d5f25d3b38744676",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:)": "c16e3d979adbaf49"
    }
   }
  ],

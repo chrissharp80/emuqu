@@ -1,20 +1,21 @@
 {
  "file": "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift",
- "hash": "577a3651ed5b3c15",
- "role": "BM25-based tool retrieval: `retrieve` trims a tool list to the top-K plus essentials using a cached index keyed by catalog hash (fast-exits when ≤ targetK, which is always today), `ranked`/`fitting` order and budget-trim tools for Apple Intelligence's small window. Also declares the private BM25Index.",
+ "hash": "7f5e16992fd334aa",
+ "role": "BM25-based tool retrieval: `retrieve` trims a tool list to the top-K plus essentials using a cached index keyed by catalog hash and the tool list itself (fast-exits when ≤ targetK, which is always today), `ranked`/`fitting` order and budget-trim tools for Apple Intelligence's small window. Also declares the private BM25Index.",
  "types": [
   "ToolRetriever: enum (namespace) — retrieve, ranked, fitting, tokenizer, essentials",
   "BM25Index: private final class (Sendable) — per-tool term frequencies, document frequency, BM25 scoring",
   "BM25Index.ScoredTool: struct — tool + score"
  ],
  "state": [
-  "mem:ToolRetriever.indexCache (OSAllocatedUnfairLock<(index: BM25Index?, hash: String?)>)",
+  "mem:ToolRetriever.indexCache (OSAllocatedUnfairLock<(index: BM25Index?, hash: String?, tools: [ToolSpec])>)",
   "mem:ToolRetriever.essentialToolNames (9 compact tool names)",
   "mem:ToolRetriever.stopWords",
+  "mem:ToolRetriever.doubledFinals (b d g m n p t)",
   "mem:BM25Index.k1 = 1.5",
   "mem:BM25Index.b = 0.75"
  ],
- "toplevel": "Static lets: indexCache lock initialised to (nil, nil); essentialToolNames {get_today, get_session, get_workout_live, get_training_load, get_user, lookup_fact, location_situation, location_current, location_current_detailed}; stopWords (English stop words, question words, LLM boilerplate incl. 'user', 'data', 'show').",
+ "toplevel": "Static lets: indexCache lock initialised to (nil, nil, []); essentialToolNames {get_today, get_session, get_workout_live, get_training_load, get_user, lookup_fact, location_situation, location_current, location_current_detailed}; stopWords (English stop words, question words, LLM boilerplate incl. 'user', 'data', 'show'); doubledFinals.",
  "flags": [
   {
    "kind": "dead",
@@ -73,19 +74,6 @@
    ],
    "flags": [
     {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "BM25Index.score ignores its `tools` argument and returns ToolSpecs from whatever list built the cached index; the cache key is FactResolverRegistry.catalogHash(), which hashes registry.toolSchema() only, not the hard-coded compact read tools that are part of the list passed in. A change to those read tools without a catalog change would return stale ToolSpecs. Latent while the targetK fast-exit always holds.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift:112",
-      "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift:115",
-      "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift:240",
-      "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift:403",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:551"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
      "kind": "hack",
      "sev": "low",
      "text": "The only caller passes registry.catalogHash() as the catalogHash argument, and Swift evaluates it before retrieve's guard runs. That means every send JSON-encodes the whole fact schema and SHA-256-hashes it, and then the guard at line 111 discards the result because the compact schema is always ≤ targetK.",
@@ -100,7 +88,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func BM25Index.score(queryTokens:tools:)": "b2815588147c1962",
-    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.ensureIndex(for:hash:)": "2038de6e5de670f0",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.ensureIndex(for:hash:)": "c72f55dd2a50924c",
     "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.essentialsOnly(from:)": "dada2b4598504d60",
     "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.tokenize(_:)": "72cf331161918567",
     "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.topScoring(_:targetK:scoreFloor:)": "1baa106962ebeaa1",
@@ -250,8 +238,8 @@
   },
   {
    "key": "func ToolRetriever.ensureIndex(for:hash:)",
-   "hash": "21c461df99237c1d",
-   "does": "Under the lock, rebuilds BM25Index over `tools` unless the cached hash matches and an index exists.",
+   "hash": "3221b1deaeebf802",
+   "does": "Under the lock, rebuilds BM25Index over `tools` unless the cached hash AND the cached tool list match and an index exists; stores the index with the hash and the list, so a changed list under an unchanged hash rebuilds.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::init BM25Index(tools:)"
@@ -265,13 +253,14 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "cache.hash == hash && index != nil",
-     "effect": "true: keep cached index (even if `tools` differ); false: rebuild and store"
+     "cond": "cache.hash == hash && cache.tools == tools && index != nil",
+     "effect": "true: keep cached index; false: rebuild and store"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::init BM25Index(tools:)": "1ddd2faf1274de10",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+ToolForwarding.swift::var AssistantViewModel.tools": "e99be7c41ae4f3b8",
     "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.SearchResultRoute.hash(into:)": "c7d7a73258ef0964"
    }
   },
@@ -338,15 +327,17 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.stem(_:)": "82822940b1b3d18a"
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.stem(_:)": "c130171e74fc63e6"
    }
   },
   {
    "key": "func ToolRetriever.stem(_:)",
-   "hash": "1d0e089c9b1eeccc",
-   "does": "Light suffix stripping: tokens ≥4 chars lose the first matching suffix of ['ing','ed','s','ly','es'] when the result keeps > 2 chars.",
+   "hash": "57f031e9f8eeb6f4",
+   "does": "Light suffix stripping: tokens ≥4 chars lose the first matching suffix of ['ing','ed','s','ly'] when at least 3 chars remain; after 'ing'/'ed' a doubled final b/d/g/m/n/p/t is undone (running → run, stopped → stop; falling stays fall). 'es' is not stripped, so times/zones/rates stem like time/zone/rate.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.undoubled(_:)"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
@@ -356,29 +347,39 @@
      "effect": "returns token unchanged"
     },
     {
-     "at": "+3",
-     "cond": "for each suffix in order",
-     "effect": "tries ing, ed, s, ly, es"
+     "at": "+2",
+     "cond": "first of ing, ed, s, ly that is a suffix and leaves > 2 chars",
+     "effect": "strips it; 'ing'/'ed' bases go through undoubled; none: token unchanged"
     },
     {
      "at": "+4",
-     "cond": "hasSuffix and count > suffix+2",
-     "effect": "returns token minus suffix"
+     "cond": "suffix is ing or ed",
+     "effect": "undoubled(base); else base"
     }
    ],
-   "flags": [
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.undoubled(_:)": "63400e4eef603c1c"
+   }
+  },
+  {
+   "key": "func ToolRetriever.undoubled(_:)",
+   "hash": "53e2eadc42c892f0",
+   "does": "Returns base with its final letter dropped when the last two letters are the same and in doubledFinals (b d g m n p t); else base unchanged.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:ToolRetriever.doubledFinals"
+   ],
+   "writes": [],
+   "branches": [
     {
-     "kind": "broken",
-     "sev": "low",
-     "text": "The comment says 'running'/'runs' collide, but 'running' stems to 'runn' and 'runs' to 'run'. The 'es' suffix is never applied: any word ending in 'es' that passes the length check already matched 's' first.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift:298",
-      "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift:307",
-      "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift:309"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+1",
+     "cond": "last two letters equal and in doubledFinals",
+     "effect": "drops one; else base"
     }
    ],
+   "flags": [],
    "deps": {}
   },
   {

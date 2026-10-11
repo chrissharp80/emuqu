@@ -36,7 +36,11 @@ struct FactNumericArgument: Sendable {
     }
 
     /// The parsed whole number. `Int(exactly:)` cannot trap, and the range
-    /// check in `value(_:)` has already bounded the result.
+    /// check in `value(_:)` has already bounded the result. For a parameter
+    /// declared `integral` (every caller today) `value(_:)` has already
+    /// rejected fractions, so the guard only fires if this is called on a
+    /// non-integral parameter; it is the non-trapping unwrap of the optional
+    /// `Int(exactly:)` returns, not a reachable error path today.
     func integer(_ raw: some StringProtocol) throws(FactArgumentError) -> Int {
         let parsed = try value(raw)
         guard let whole = Int(exactly: parsed) else {

@@ -1,25 +1,23 @@
 {
  "file": "Emuqu/Sources/Views/RecordVerificationSection.swift",
- "hash": "757a907906a49ccf",
- "role": "'Data Quality' card shown after a reading from a Verification.Result and optional WindowSelector.RecoveryWindow: pass badge, analysis window duration/quality, artifact %, clean beats, errors and warnings. qualityBadge is static for reuse.",
+ "hash": "54095ea170429739",
+ "role": "'Data Quality' card shown after a reading from a Verification.Result, optional WindowSelector.RecoveryWindow and the verifier's limits (Verification.Config, default .default): pass badge, analysis window duration/quality, artifact %, clean beats, errors and warnings.",
  "types": [
   "RecordVerificationSection: struct — View; pure function of verification + recoveryWindow"
  ],
  "state": [],
- "toplevel": "Three file-private free functions (analysisWindowDurationRow, analysisWindowQualityRow, verificationNote) build rows.",
+ "toplevel": "Three file-private free functions (analysisWindowDurationRow, analysisWindowQualityRow, verificationNote) build rows. Stored input limits: Verification.Config = .default.",
  "flags": [
   {
    "kind": "hack",
    "sev": "low",
-   "text": "Quality row thresholds are hard-coded in the view (artifact < 10% green, clean beats >= 200 green) and do not match the verifier's own limits (warn above HRVConstants.Artifacts.warnPercentThreshold 5%, fail above 15%; minPoints HRVConstants.MinimumBeats.forAnalysis 300). A reading at 7% artifacts shows a green tick next to an orange 'Artifacts 7%' warning, and 200–299 clean beats shows green although below the analysis minimum.",
+   "text": "The row ticks follow the limits passed in (default Verification.Config.default: warn above 5% artifacts, 300 beats). Quick readings are verified with RRCollector.streamingVerification (warn 10%, 120 beats), whose config is private, and the call site passes the default, so a quick reading at 5-10% artifacts or 120-299 clean beats shows an orange tick with no matching warning. Needs Verification.Config.quickReading and the call site to pass it (handoff).",
    "evidence": [
-    "Emuqu/Sources/Views/RecordVerificationSection.swift:54",
-    "Emuqu/Sources/Views/RecordVerificationSection.swift:59",
-    "Emuqu/Sources/Utilities/Constants.swift:160",
-    "Emuqu/Sources/Utilities/Constants.swift:204",
-    "Emuqu/Sources/Analysis/Verification.swift:303"
+    "Emuqu/Sources/Views/RecordVerificationSection.swift:19",
+    "Emuqu/Sources/Collection/RRCollector.swift:252",
+    "Emuqu/Sources/Views/RecordView+Sections.swift:254"
    ],
-   "found": "first read, upheld on second"
+   "found": "fix batch b24"
   }
  ],
  "units": [
@@ -42,7 +40,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/RecordVerificationSection.swift::var RecordVerificationSection.header": "312853e3c1d89484",
-    "Emuqu/Sources/Views/RecordVerificationSection.swift::var RecordVerificationSection.metricRows": "d0d9017318906d30",
+    "Emuqu/Sources/Views/RecordVerificationSection.swift::var RecordVerificationSection.metricRows": "488b919a1425f1be",
     "Emuqu/Sources/Views/RecordVerificationSection.swift::var RecordVerificationSection.windowRows": "4f0552e6324be4fd"
    }
   },
@@ -61,7 +59,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecordVerificationSection.swift::func RecordVerificationSection.qualityBadge(_:)": "4a9622eaafb08a73"
+    "Emuqu/Sources/Views/RecordVerificationSection.swift::func RecordVerificationSection.qualityBadge(_:)": "8847e191cde68f7e"
    }
   },
   {
@@ -93,8 +91,8 @@
   },
   {
    "key": "var RecordVerificationSection.metricRows",
-   "hash": "c05b8ed5e8959daf",
-   "does": "Artifact % row (green when < 10), Clean Beats row (green when nnCount >= 200), then one red note per error and one orange note per warning.",
+   "hash": "cfe4edc5bfbb0649",
+   "does": "Artifact % row (green when artifactPercent <= limits.warnArtifactPercent), Clean Beats row (green when nnCount >= limits.minPoints), then one red note per error and one orange note per warning.",
    "entry": "SwiftUI subview",
    "calls": [
     "Emuqu/Sources/Views/RecordVerificationSection.swift::func RecordVerificationSection.qualityRow(_:value:isGood:)",
@@ -109,15 +107,13 @@
     {
      "kind": "hack",
      "sev": "low",
-     "text": "Quality row thresholds are hard-coded in the view (artifact < 10% green, clean beats >= 200 green) and do not match the verifier's own limits (warn above HRVConstants.Artifacts.warnPercentThreshold 5%, fail above 15%; minPoints HRVConstants.MinimumBeats.forAnalysis 300). A reading at 7% artifacts shows a green tick next to an orange 'Artifacts 7%' warning, and 200–299 clean beats shows green although below the analysis minimum.",
+     "text": "The row ticks follow the limits passed in (default Verification.Config.default: warn above 5% artifacts, 300 beats). Quick readings are verified with RRCollector.streamingVerification (warn 10%, 120 beats), whose config is private, and the call site passes the default, so a quick reading at 5-10% artifacts or 120-299 clean beats shows an orange tick with no matching warning. Needs Verification.Config.quickReading and the call site to pass it (handoff).",
      "evidence": [
-      "Emuqu/Sources/Views/RecordVerificationSection.swift:54",
-      "Emuqu/Sources/Views/RecordVerificationSection.swift:59",
-      "Emuqu/Sources/Utilities/Constants.swift:160",
-      "Emuqu/Sources/Utilities/Constants.swift:204",
-      "Emuqu/Sources/Analysis/Verification.swift:303"
+      "Emuqu/Sources/Views/RecordVerificationSection.swift:19",
+      "Emuqu/Sources/Collection/RRCollector.swift:252",
+      "Emuqu/Sources/Views/RecordView+Sections.swift:254"
      ],
-     "found": "first read, upheld on second"
+     "found": "fix batch b24"
     }
    ],
    "deps": {
@@ -130,8 +126,8 @@
   },
   {
    "key": "func RecordVerificationSection.qualityBadge(_:)",
-   "hash": "97cc7cc538609b1f",
-   "does": "Badge 'Good' (green) when passed, 'Issues Found' (orange) otherwise. Only used by this section; MorningResultsView has its own private qualityBadge.",
+   "hash": "770f5c62a5bb13da",
+   "does": "Private badge for the card header: 'Good' (green) when passed, 'Issues Found' (orange) otherwise.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
@@ -155,18 +151,7 @@
      "effect": "green vs orange foreground"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Comment says it is static 'so the morning-results screen can reuse the same badge', but MorningResultsView+DetailCards.swift declares its own private qualityBadge and never calls this one (grep RecordVerificationSection.qualityBadge finds no external use).",
-     "evidence": [
-      "Emuqu/Sources/Views/RecordVerificationSection.swift:70",
-      "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift:133"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }

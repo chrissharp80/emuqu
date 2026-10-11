@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/PeakCapacityCard.swift",
- "hash": "c9816abfe335afde",
+ "hash": "95440a29ab0b9464",
  "role": "Card showing a session's Autonomic Capacity (PeakCapacity: highest sustained RMSSD/SDNN window, optional window mean HR) plus an info popover explaining capacity vs readiness.",
  "types": [
   "PeakCapacityCard: struct — View rendering PeakCapacity",
@@ -9,7 +9,7 @@
  "state": [
   "mem:PeakCapacityCard.showingInfo (@State)"
  ],
- "toplevel": "Only production use: SessionHRVDetailView.swift:41 (showInfoButton: true) when result.peakCapacity is non-nil.",
+ "toplevel": "Only production use: SessionHRVDetailView.swift:41 (showInfoButton: true; describesSleep left at its default true) when result.peakCapacity is non-nil.",
  "flags": [
   {
    "kind": "spec-mismatch",
@@ -36,13 +36,14 @@
  "units": [
   {
    "key": "var PeakCapacityCard.body",
-   "hash": "e94ed8ced260b7b9",
-   "does": "Header, metrics row and a one-line explanation inside a zenCard.",
+   "hash": "a0df226802b185f1",
+   "does": "Header, metrics row and the sleep explanation (sleepExplanation) inside a zenCard.",
    "entry": "SwiftUI body",
    "calls": [
     "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.header",
     "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.metricsRowSection",
-    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()"
+    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()",
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.sleepExplanation"
    ],
    "reads": [],
    "writes": [],
@@ -51,7 +52,7 @@
     {
      "kind": "broken",
      "sev": "low",
-     "text": "Card copy says 'Highest sustained HRV during sleep', but peak capacity is computed for any recording (findPeakCapacity scans the whole series) including quick/nap strap recordings, and SessionHRVDetailView shows the card for every session type with peakCapacity, so a daytime quick reading is described as a sleep ceiling.",
+     "text": "Card copy says 'Highest sustained HRV during sleep', but peak capacity is computed for any recording, and SessionHRVDetailView shows the card for every session type. The card now hides that line when describesSleep is false, but the only caller does not pass it yet (handoff b23: pass session.sessionType == .overnight || .nap), so a daytime quick reading is still described as a sleep ceiling.",
      "evidence": [
       "Emuqu/Sources/Views/PeakCapacityCard.swift:18",
       "Emuqu/Sources/Views/SessionHRVDetailView.swift:40",
@@ -63,10 +64,32 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.header": "9fc3d8b0a09dcd93",
     "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.metricsRowSection": "3dc543194d764d1d",
-    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()": "d0ad0fd7fe9ef4fb",
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.sleepExplanation": "c3a9382c377928c9",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()": "d0ad0fd7fe9ef4fb"
+   }
+  },
+  {
+   "key": "var PeakCapacityCard.sleepExplanation",
+   "hash": "e602f3b90a7cf194",
+   "does": "'Highest sustained HRV during sleep — your physiological ceiling, separate from readiness.' caption when describesSleep; nothing otherwise.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "describesSleep",
+     "effect": "caption; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
    }
   },

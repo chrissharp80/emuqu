@@ -1,57 +1,23 @@
 {
  "file": "Emuqu/Sources/Analysis/TrainingAdviceGate.swift",
- "hash": "6f9e16d847fc363e",
+ "hash": "20fc99c5c946173f",
  "role": "TrainingAdviceGate: the single decision (clear / holdPush / easier) on how hard training advice may go, from ACWR, CTL, TSB and Foster monotony/strain; plus Load builders from live/frozen/metrics sources and the reason copy line.",
  "types": [
   "TrainingAdviceGate: enum — load assessment",
   "TrainingAdviceGate.Load: struct — acwr/ctl/tsb/monotony/strain inputs",
-  "TrainingAdviceGate.LoadLevel: enum Int Comparable — clear<holdPush<easier",
+  "TrainingAdviceGate.LoadLevel: enum Int — clear/holdPush/easier, compared for equality only",
   "TrainingAdviceGate.Reason: enum — sharpIncrease/heavyFatigue/aboveUsual/monotonous",
   "TrainingAdviceGate.Assessment: struct — level + reasons",
   "extension TrainingAdviceGate.Load — source initialisers",
   "extension TrainingAdviceGate.Assessment — reasonLine copy"
  ],
  "state": [
-  "mem:TrainingAdviceGate.heavyFatigueTSB (static let -15.0)",
+  "mem:TrainingAdviceGate.heavyFatigueTSB (static let = TrajectoryVerdict.deepFatigueOverreachTSB, -15)",
   "mem:TrainingAdviceGate.Assessment.clear (static let)"
  ],
- "toplevel": "Static constants heavyFatigueTSB = -15 and Assessment.clear; Load/Assessment synthesized Equatable.",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "Gate treats TSB ≤ −15 as heavy fatigue (easier) while TrajectoryVerdict uses TSB < −15 for highStrain; at exactly −15 the advice says 'easier' while the trajectory chip says Maintaining/Building.",
-   "evidence": [
-    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift:101",
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift:205"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "Static constants heavyFatigueTSB (the trajectory's deep-fatigue line, -15) and Assessment.clear; Load/Assessment synthesized Equatable.",
+ "flags": [],
  "units": [
-  {
-   "key": "func TrainingAdviceGate.LoadLevel.<(lhs:rhs:)",
-   "hash": "6a39a5d3da07498b",
-   "does": "Comparable witness ordering LoadLevel by rawValue (clear<holdPush<easier).",
-   "entry": "Comparable protocol witness (Swift operators < / > / max on LoadLevel)",
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "grep finds no ordered comparison (<, >=, max/min) of LoadLevel values anywhere in Emuqu or EmuquTests; all callers compare with ==.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/TrainingAdviceGate.swift:37",
-      "Emuqu/Sources/Analysis/TrainingAdviceGate.swift:45"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
-  },
   {
    "key": "func TrainingAdviceGate.assess(_:)",
    "hash": "48212ff05a5dd77c",
@@ -83,7 +49,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.fatigueReasons(_:)": "6e5e28c38fddc383",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.fatigueReasons(_:)": "bf6f23dc7ce2f7fe",
     "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c",
     "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.monotonyReasons(_:)": "65e6060d74298b65",
     "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.ratioReasons(_:)": "f4c51ff887c66484"
@@ -175,8 +141,8 @@
   },
   {
    "key": "func TrainingAdviceGate.fatigueReasons(_:)",
-   "hash": "2f07690fd66d1e90",
-   "does": "Heavy-fatigue reason when TSB finite and ≤ −15.",
+   "hash": "d8e9fda289ede8b6",
+   "does": "Heavy-fatigue reason when TSB is finite and below heavyFatigueTSB (−15, TrajectoryVerdict's high-strain line, so the advice and the trajectory chip change at the same value).",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -184,7 +150,7 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "tsb present, finite, ≤ −15",
+     "cond": "tsb present, finite, < −15",
      "effect": "false → []; true → [.heavyFatigue]"
     }
    ],
@@ -262,7 +228,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)": "afd78f8aece889c0"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)": "ccb3c6f568b7e996"
    }
   },
   {
@@ -291,8 +257,8 @@
   },
   {
    "key": "func TrainingAdviceGate.Assessment.reasonLine(bundle:)",
-   "hash": "36b167822ebf2231",
-   "does": "One localized sentence for the dominant reason: .easier → 'Recent load is above your usual range — a lighter session…'; else aboveUsual → 'above average'; else monotonous → similarity line; else nil.",
+   "hash": "6ca4280ded0c4fe7",
+   "does": "One localized sentence for the dominant reason: .easier with a sharp ratio increase → 'Recent load is above your usual range — a lighter session…'; .easier from heavy fatigue alone → 'Carrying significant fatigue — consider a lighter session'; else aboveUsual → 'above average'; else monotonous → similarity line; else nil.",
    "entry": null,
    "calls": [
     "ext:String(localized:bundle:)"
@@ -303,33 +269,20 @@
     {
      "at": "+1",
      "cond": "level == .easier",
-     "effect": "returns sharp-increase copy"
+     "effect": "sharpIncrease among reasons → load-above-usual copy; otherwise (heavy fatigue) → fatigue copy"
     },
     {
-     "at": "+4",
+     "at": "+6",
      "cond": "reasons contain aboveUsual",
      "effect": "returns above-average copy"
     },
     {
-     "at": "+7",
+     "at": "+9",
      "cond": "reasons contain monotonous",
      "effect": "returns monotony copy; else nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "When the level is .easier only because TSB ≤ −15 (heavyFatigue, ACWR normal or CTL below threshold), the line still says 'Recent load is above your usual range', which is false for that user; the heavyFatigue reason has no copy of its own.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/TrainingAdviceGate.swift:148",
-      "Emuqu/Sources/Analysis/TrainingAdviceGate.swift:149",
-      "Emuqu/Sources/Analysis/TrainingAdviceGate.swift:71",
-      "Emuqu/Sources/Analysis/TrainingAdviceGate.swift:101"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c"
    }

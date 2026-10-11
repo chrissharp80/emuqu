@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Storage/PendingEncryptionLedger.swift",
  "hash": "4c608671e8187f74",
- "role": "UserDefaults-backed list of session / raw-backup ids written without app-layer encryption (key unavailable), with an in-memory locked cache and writes deferred to a serial utility queue; consumed by Archive and RawRRBackup re-encryption passes.",
+ "role": "List of session / raw-backup ids written without app-layer encryption (key unavailable), kept in UserDefaults and in an unprotected JSON file (readable before first unlock; loaded as the union of both), with an in-memory locked cache and writes deferred to a serial utility queue; consumed by Archive and RawRRBackup re-encryption passes.",
  "types": [
   "PendingEncryptionLedger: enum — record/clear/pending/clearAll",
   "PendingEncryptionLedger.Store: enum — session/rawBackup with their UserDefaults keys"
@@ -9,6 +9,7 @@
  "state": [
   "ud:storage.pendingReencryption.sessionIDs",
   "ud:storage.pendingReencryption.rawBackupIDs",
+  "file:Application Support/PendingEncryption/<store key>.json (no file protection)",
   "mem:PendingEncryptionLedger.cache (OSAllocatedUnfairLock [Store: Set<UUID>])",
   "mem:PendingEncryptionLedger.persistQueue (serial DispatchQueue storage.pendingReencryption.persist)"
  ],
@@ -31,13 +32,13 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "c85629c52ed2861d"
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "bb41fa12d89ea28f"
    }
   },
   {
    "key": "func PendingEncryptionLedger.pending(in:)",
    "hash": "1799bba9c96f8ac4",
-   "does": "Returns the cached id set for a store (loading it from UserDefaults on first use) under the lock.",
+   "does": "Returns the cached id set for a store (loading it on first use from UserDefaults and the unprotected file copy) under the lock.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)"
@@ -45,6 +46,7 @@
    "reads": [
     "ud:storage.pendingReencryption.sessionIDs",
     "ud:storage.pendingReencryption.rawBackupIDs",
+    "file:Application Support/PendingEncryption/<store key>.json (no file protection)",
     "mem:PendingEncryptionLedger.cache"
    ],
    "writes": [
@@ -53,7 +55,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "0ff226626301e4bc"
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "5ade586d1d2cc157"
    }
   },
   {
@@ -72,7 +74,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "46e4c74baeb23ced"
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "fc2ac13ffc3aa3f6"
    }
   },
   {
@@ -91,13 +93,13 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "34c488564d5b9a6e"
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "164c97dd6c7ce201"
    }
   },
   {
    "key": "func PendingEncryptionLedger.record(_:in:)",
    "hash": "727eb898f4249443",
-   "does": "Inserts id into the store's cached set; when newly inserted schedules an async UserDefaults write and logs at .error with the pending count.",
+   "does": "Inserts id into the store's cached set; when newly inserted schedules an async write of the list (UserDefaults and file copy) and logs at .error with the pending count.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)",
@@ -110,7 +112,8 @@
    "writes": [
     "mem:PendingEncryptionLedger.cache",
     "ud:storage.pendingReencryption.sessionIDs",
-    "ud:storage.pendingReencryption.rawBackupIDs"
+    "ud:storage.pendingReencryption.rawBackupIDs",
+    "file:Application Support/PendingEncryption/<store key>.json (no file protection)"
    ],
    "branches": [
     {
@@ -131,8 +134,8 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "0ff226626301e4bc",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "a4dc8ab262237cce",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "5ade586d1d2cc157",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "fe581419a1e1c02e",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
@@ -151,7 +154,8 @@
    "writes": [
     "mem:PendingEncryptionLedger.cache",
     "ud:storage.pendingReencryption.sessionIDs",
-    "ud:storage.pendingReencryption.rawBackupIDs"
+    "ud:storage.pendingReencryption.rawBackupIDs",
+    "file:Application Support/PendingEncryption/<store key>.json (no file protection)"
    ],
    "branches": [
     {
@@ -167,14 +171,14 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "0ff226626301e4bc",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "a4dc8ab262237cce"
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "5ade586d1d2cc157",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "fe581419a1e1c02e"
    }
   },
   {
    "key": "func PendingEncryptionLedger.clearAll()",
    "hash": "0df1c6c8e15e5bc7",
-   "does": "Empties both stores in memory and schedules removal of both UserDefaults keys.",
+   "does": "Empties both stores in memory and schedules removal of both UserDefaults keys and both file copies.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)"
@@ -183,12 +187,13 @@
    "writes": [
     "mem:PendingEncryptionLedger.cache",
     "ud:storage.pendingReencryption.sessionIDs",
-    "ud:storage.pendingReencryption.rawBackupIDs"
+    "ud:storage.pendingReencryption.rawBackupIDs",
+    "file:Application Support/PendingEncryption/<store key>.json (no file protection)"
    ],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "a4dc8ab262237cce"
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "fe581419a1e1c02e"
    }
   },
   {
@@ -202,31 +207,22 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Only tests call it (PendingEncryptionLedgerTests.swift:111,125,149); no production caller.",
-     "evidence": [
-      "Emuqu/Sources/Storage/PendingEncryptionLedger.swift:115",
-      "EmuquTests/PendingEncryptionLedgerTests.swift:111"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
    "key": "func PendingEncryptionLedger.ids(_:in:)",
-   "hash": "074f6d154862977c",
-   "does": "Returns the cached set for store, loading it from UserDefaults (invalid UUID strings dropped) the first time and caching it.",
+   "hash": "173481a1872e3c6f",
+   "does": "Returns the cached set for store, loading it the first time as the union of the UserDefaults list and the unprotected file list (invalid UUID strings dropped) and caching it, so a pre-first-unlock launch where UserDefaults reads empty still sees the stored ids.",
    "entry": null,
    "calls": [
-    "ext:UserDefaults.stringArray"
+    "ext:UserDefaults.stringArray",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.fileIDs(_:)"
    ],
    "reads": [
     "ud:storage.pendingReencryption.sessionIDs",
     "ud:storage.pendingReencryption.rawBackupIDs",
+    "file:Application Support/PendingEncryption/<store key>.json (no file protection)",
     "mem:PendingEncryptionLedger.cache"
    ],
    "writes": [
@@ -240,41 +236,32 @@
     },
     {
      "at": "+2",
-     "cond": "UserDefaults key absent",
-     "effect": "?? [] → empty set"
+     "cond": "UserDefaults key absent/unreadable",
+     "effect": "?? [] → only the file copy contributes"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "med",
-     "text": "The list is read from UserDefaults once and cached; schedulePersist then writes the whole cached set over the key (line 135). If the first read returns nothing although ids are stored (UserDefaults unreadable, e.g. before first unlock, which is the trigger the type documents at lines 15-17), the next record/clear overwrites the stored list with only the new ids, and the earlier plaintext files are never re-encrypted.",
-     "evidence": [
-      "Emuqu/Sources/Storage/PendingEncryptionLedger.swift:123",
-      "Emuqu/Sources/Storage/PendingEncryptionLedger.swift:125",
-      "Emuqu/Sources/Storage/PendingEncryptionLedger.swift:135",
-      "Emuqu/Sources/Storage/PendingEncryptionLedger.swift:16"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {}
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.fileIDs(_:)": "816bb0a08f39f3d1"
+   }
   },
   {
    "key": "func PendingEncryptionLedger.schedulePersist(_:)",
-   "hash": "4dc700cacef46e5a",
-   "does": "Asynchronously on the persist queue writes the store's current set to UserDefaults (sorted UUID strings) or removes the key when empty.",
+   "hash": "b008b5a8b28f4377",
+   "does": "Asynchronously on the persist queue writes the store's current set (sorted UUID strings) to UserDefaults, or removes the key when empty, then writes or removes the unprotected file copy the same way.",
    "entry": null,
    "calls": [
     "ext:UserDefaults.set",
-    "ext:UserDefaults.removeObject"
+    "ext:UserDefaults.removeObject",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.persistFile(_:for:)"
    ],
    "reads": [
     "mem:PendingEncryptionLedger.cache"
    ],
    "writes": [
     "ud:storage.pendingReencryption.sessionIDs",
-    "ud:storage.pendingReencryption.rawBackupIDs"
+    "ud:storage.pendingReencryption.rawBackupIDs",
+    "file:Application Support/PendingEncryption/<store key>.json (no file protection)"
    ],
    "branches": [
     {
@@ -283,14 +270,107 @@
      "effect": "?? [] → treated empty"
     },
     {
-     "at": "+3",
-     "cond": "set empty",
+     "at": "+4",
+     "cond": "list empty",
      "effect": "removeObject; else set sorted array"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "0ff226626301e4bc"
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "5ade586d1d2cc157",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.persistFile(_:for:)": "4f1e5bc6ccb337f5"
+   }
+  },
+  {
+   "key": "func PendingEncryptionLedger.fileURL(_:)",
+   "hash": "b30d97c7e0b137b3",
+   "does": "Returns Application Support/PendingEncryption/<store.rawValue>.json, or nil when the Application Support URL cannot be resolved.",
+   "entry": null,
+   "calls": [
+    "ext:FileManager.urls(for:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no Application Support URL",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PendingEncryptionLedger.fileIDs(_:)",
+   "hash": "b0ffbefaacea36fa",
+   "does": "Reads the store's file copy (JSON array of UUID strings) and returns the valid UUIDs; empty when the file is absent; a read/decode failure is logged at .warning via attempt and yields empty.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.fileURL(_:)",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "ext:JSONDecoder.decode",
+    "ext:Data(contentsOf:)"
+   ],
+   "reads": [
+    "file:Application Support/PendingEncryption/<store key>.json (no file protection)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no URL or file missing",
+     "effect": "returns []"
+    },
+    {
+     "at": "+4",
+     "cond": "read/decode throws",
+     "effect": "logged, treated as []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.fileURL(_:)": "5d66b128c270a017",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func PendingEncryptionLedger.persistFile(_:for:)",
+   "hash": "7e4d61b5e7a47213",
+   "does": "Writes the list as JSON to the store's file atomically with .noFileProtection (creating the directory), or removes the file when the list is empty; failures are logged at .warning via attempt.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.fileURL(_:)",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "ext:FileManager.createDirectory",
+    "ext:FileManager.removeItem",
+    "ext:Data.write(to:options:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:Application Support/PendingEncryption/<store key>.json (no file protection)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no URL",
+     "effect": "returns"
+    },
+    {
+     "at": "+3",
+     "cond": "list empty",
+     "effect": "removes the file if present, returns"
+    },
+    {
+     "at": "+8",
+     "cond": "list non-empty",
+     "effect": "create dir + atomic unprotected write"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.fileURL(_:)": "5d66b128c270a017",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
    }
   }
  ],

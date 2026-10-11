@@ -67,9 +67,11 @@ extension RecordView {
 
     /// Reading-type tag picker — pre-session ("flag this as
     /// 'sick' / 'late caffeine' before I start") so the
-    /// selected tags persist onto the session at archive
-    /// time via the existing `updateTags` flow (see
-    /// `RecordView+Results.persistTagsAndNotes`). Same gating
+    /// selected tags persist onto the session when it is
+    /// saved: `persistTagsAndNotes` for a quick reading (at
+    /// stop) or one awaiting acceptance, `preSessionTagged`
+    /// for an overnight or nap (at auto-accept). They are
+    /// held in this view's state until then. Same gating
     /// as `RecordSelectedSessionHeader` above so tags only
     /// appear once the user has committed to a session
     /// type; hidden the moment recording starts so the
@@ -124,8 +126,6 @@ extension RecordView {
             // still sees the status UI.
             if !deviceStatus.isStreaming || streamingLifecycle.isOvernightStreaming || streamingLifecycle.isPaused {
                 retryFetchSection
-                strapRecoverySection
-                recoveredWorkoutReviewSection
                 continueRecoverySection
                 overnightRecordingSectionIfSelected
             }
@@ -160,6 +160,19 @@ extension RecordView {
         fetchFailed = false
         collector.resetSession()
         selectedSessionType = nil
+    }
+
+    /// The interrupted-workout cards, outside `activeSessionSection`: they
+    /// need neither a connected strap (the recovery card is what tells the
+    /// user to connect it) nor a session type. Hidden only while a quick
+    /// reading streams or the morning card runs, like the rest.
+    @ViewBuilder
+    var workoutRecoverySection: some View {
+        if morningCoordination.morningStatus == nil,
+           !deviceStatus.isStreaming || streamingLifecycle.isOvernightStreaming || streamingLifecycle.isPaused {
+            strapRecoverySection
+            recoveredWorkoutReviewSection
+        }
     }
 
     /// Interrupted-workout recovery from
@@ -295,6 +308,11 @@ extension RecordView {
         }
     }
 
+    /// Done on a finished quick reading, from the card or the report. The
+    /// reading was archived with its tags as it stopped and edits made in the
+    /// report are written as they happen, so Done saves nothing more; above
+    /// all it does not score it: a quick reading carries no recovery score or
+    /// sleep and vitals snapshots (see `analyzeStreamingData`).
     func clearFinishedQuickReading() {
         collector.resetSession()
         selectedTags.removeAll()
@@ -380,15 +398,22 @@ extension RecordView {
     }
 
     func finishMorningReading() {
-        saveMorningReading()
+        acceptSession()
         morningPresentation = nil
     }
 
     func quickCover(_ presentation: ResultsPresentation) -> some View {
         NavigationStack {
             quickResults(presentation)
-                .toolbar { quickDoneToolbar(presentation) }
+                .toolbar { quickDoneToolbar }
+                .alert(String(localized: "Couldn't delete this reading. Try again.", bundle: LanguageManager.appBundle), isPresented: $quickDiscardFailed) {
+                    quickDiscardFailedActions
+                }
         }
+    }
+
+    private var quickDiscardFailedActions: some View {
+        Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) {}
     }
 
     func quickResults(_ presentation: ResultsPresentation) -> some View {
@@ -402,42 +427,30 @@ extension RecordView {
         )
     }
 
+    /// A delete that fails keeps the report open over the reading, which is
+    /// still archived, and says so; the user can try again.
     func discardQuickReading(_ session: HRVSession) {
         do {
             try collector.archive.delete(session.id)
             Task { await AppDependencies.current.storage.cloudKitSyncManager.uploadDeletion(session.id) }
         } catch {
             debugLog("[RecordView] ⚠️ Failed to delete discarded session \(session.id.uuidString.prefix(8)): \(error)")
+            quickDiscardFailed = true
+            return
         }
         resetAfterQuickReading()
     }
 
     func resetAfterQuickReading() {
         quickPresentation = nil
-        collector.resetSession()
-        selectedSessionType = nil
+        clearFinishedQuickReading()
     }
 
-    func quickDoneToolbar(_ presentation: ResultsPresentation) -> some ToolbarContent {
+    /// The report's Done: the same as the card's (`clearFinishedQuickReading`).
+    var quickDoneToolbar: some ToolbarContent {
         ToolbarItem(placement: .confirmationAction) {
-            Button(String(localized: "Done", bundle: LanguageManager.appBundle)) {
-                finishQuickReading(presentation)
-            }
+            Button(String(localized: "Done", bundle: LanguageManager.appBundle), action: resetAfterQuickReading)
         }
-    }
-
-    /// Scores the archived copy, not the one captured when the report opened:
-    /// tags and notes saved after the reading stopped, and any sleep edit made
-    /// in the report, live only in the archive, and scoring writes the session
-    /// it is given back over the stored file.
-    func finishQuickReading(_ presentation: ResultsPresentation) {
-        let sessionId = presentation.session.id
-        let captured = presentation.session
-        Task {
-            let latest = await collector.retrieveFullSessionAsync(sessionId) ?? captured
-            await collector.updateCompositeRecoveryScore(for: latest, exportMetrics: true)
-        }
-        resetAfterQuickReading()
     }
 
     // MARK: - Extracted callbacks

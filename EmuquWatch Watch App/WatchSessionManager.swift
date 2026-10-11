@@ -88,6 +88,9 @@ final class WatchSessionManager: NSObject, ObservableObject {
     private var startWorkoutTimeoutTask: Task<Void, Never>?
     /// Send time of the newest recording state applied; see `applyRecording`.
     private var lastRecordingStateSentAt: Double = 0
+    /// True while a `requestCurrentState` round trip is outstanding; see
+    /// `requestCurrentStateFromPhone`.
+    private var currentStateRequestInFlight = false
     private var voiceChatTimeoutTask: Task<Void, Never>?
 
     // MARK: Connection state
@@ -139,14 +142,20 @@ final class WatchSessionManager: NSObject, ObservableObject {
     @Published var directStrapHeartRate: Int?
     @Published var directStrapHeartRateAt: Date?
 
+    /// How long a direct-strap reading stays current. After that the strap
+    /// is taken to be silent and the screen falls back to the phone's relay
+    /// (wrist HR or iPhone-side strap).
+    static let directStrapFreshness: TimeInterval = 4
+
+    /// Re-renders the screen when the newest direct-strap reading goes stale;
+    /// see `applyDirectStrapHR`.
+    private var directStrapExpiryTask: Task<Void, Never>?
+
     /// Which source `displayedHeartRate` currently reads.
     enum DisplayedHRSource { case directStrap, iPhoneRelay, none }
     var displayedHRSource: DisplayedHRSource {
-        // Prefer a direct-strap reading less than 4 seconds old.
-        // After that we assume the strap is silent and fall back to
-        // the phone's relay (wrist HR or iPhone-side strap).
         if let stamp = directStrapHeartRateAt,
-           Date().timeIntervalSince(stamp) < 4,
+           Date().timeIntervalSince(stamp) < Self.directStrapFreshness,
            directStrapHeartRate != nil {
             return .directStrap
         }
@@ -163,14 +172,35 @@ final class WatchSessionManager: NSObject, ObservableObject {
         }
     }
 
+    /// The iPhone's percent-of-max, only while the number on screen is the
+    /// iPhone's own heart rate. A fresh direct-strap reading is a different
+    /// source at a different moment, so the iPhone's percentage would colour
+    /// and label a number it was not computed from.
+    var displayedPercentOfMax: Int? {
+        displayedHRSource == .iPhoneRelay ? hrPercentOfMax : nil
+    }
+
     /// Pushed by `WatchStrapConnector` on every Heart Rate Measurement
     /// notification from a Watch-paired strap. Updates the displayed-HR
     /// source state — actual relay back to the iPhone happens in the
     /// connector itself (it has the WCSession and the RR list).
+    ///
+    /// Freshness is judged when the screen renders, and nothing else may
+    /// change when the strap goes quiet, so a re-render is scheduled for the
+    /// moment this reading stops being current; a newer reading reschedules it.
     @MainActor
     func applyDirectStrapHR(_ bpm: Int) {
         directStrapHeartRate = bpm
         directStrapHeartRateAt = Date()
+        directStrapExpiryTask?.cancel()
+        directStrapExpiryTask = Task { @MainActor [weak self] in
+            do {
+                try await Task.sleep(for: .seconds(Self.directStrapFreshness))
+            } catch {
+                return
+            }
+            self?.objectWillChange.send()
+        }
     }
 
     private let log = Logger(subsystem: "com.chrissharp.flowrecovery", category: "WatchSessionManager")
@@ -290,7 +320,8 @@ final class WatchSessionManager: NSObject, ObservableObject {
         }
         voiceChatStateLabel = stateLabel
         clearVoiceChatPending()
-        showControlStatus(String(localized: "Voice chat on iPhone: \(Self.voiceChatStateWord(stateLabel))"))
+        let word = Self.voiceChatStateWord(stateLabel) ?? String(localized: "Off")
+        showControlStatus(String(localized: "Voice chat on iPhone: \(word)"))
     }
 
     /// The status line for a refused voice-chat request, worded like every
@@ -304,21 +335,24 @@ final class WatchSessionManager: NSObject, ObservableObject {
 
     /// The iPhone sends its voice-chat state as a fixed English token
     /// (`VoiceConversationController.State.watchLabel`); this is its word.
-    static func voiceChatStateWord(_ token: String) -> String {
+    /// Nil for "idle" or a token this build does not know, where each caller
+    /// shows its own resting word ("Off" in a status line, "Talk to AI" on the
+    /// button). The one table for both, so a new iOS state is added once.
+    static func voiceChatStateWord(_ token: String) -> String? {
         switch token {
         case "starting": String(localized: "Connecting…")
         case "listening": String(localized: "Listening")
         case "thinking": String(localized: "Thinking…")
         case "speaking": String(localized: "Speaking")
         case "alert": String(localized: "Alert")
-        default: String(localized: "Off")
+        default: nil
         }
     }
 
     /// The iPhone has not shown its AI disclaimer yet, which only it can do.
     private func voiceChatNeedsDisclaimer() {
         clearVoiceChatPending()
-        showControlStatus(String(localized: "Open Flo on your iPhone once to turn on voice chat."))
+        showControlStatus(String(localized: "Open Emuqu on your iPhone once to turn on voice chat."))
     }
 
     private func failVoiceChatRequest(message: String) {
@@ -327,15 +361,26 @@ final class WatchSessionManager: NSObject, ObservableObject {
     }
 
     /// How long a queued control request stays actionable. A tap meant "now":
-    /// a pause, resume or end acted on hours later, when the iPhone next
+    /// a pause, resume or start acted on hours later, when the iPhone next
     /// wakes, is not what the user asked for.
     static let queuedRequestLifetime: TimeInterval = 60
+
+    /// How long a queued End stays actionable. Not "now" like the others: an
+    /// End tapped while the iPhone is unreachable has already ended the
+    /// Watch's own session (`WatchWorkoutManager.noteWristStop`), so an End
+    /// that expired would leave the iPhone recording a workout the user
+    /// ended. The iPhone refuses an End stamped before its current workout
+    /// began, so a late one cannot end the next workout.
+    static let queuedStopLifetime: TimeInterval = 12 * 60 * 60
 
     /// Adds `expiresAt` (seconds since 1970) for the iPhone to check before
     /// acting on a queued request.
     static func withQueueExpiry(_ payload: [String: Any]) -> [String: Any] {
+        let isStop = payload["type"] as? String == WatchMessageDecoding.stopIntentType
         var stamped = payload
-        stamped["expiresAt"] = Date().addingTimeInterval(queuedRequestLifetime).timeIntervalSince1970
+        stamped["expiresAt"] = Date()
+            .addingTimeInterval(isStop ? queuedStopLifetime : queuedRequestLifetime)
+            .timeIntervalSince1970
         return stamped
     }
 
@@ -418,7 +463,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
     @MainActor
     func requestStopWorkout() {
         sendControlMessage(
-            payload: ["type": "stopWorkoutFromWatch"],
+            payload: ["type": WatchMessageDecoding.stopIntentType],
             pendingStatus: String(localized: "Stopping on iPhone…"),
             successStatus: String(localized: "Workout stopped")
         )
@@ -487,10 +532,16 @@ final class WatchSessionManager: NSObject, ObservableObject {
     /// WCSession delegate runs again; past `expiresAt` it ignores it.
     ///
     /// The context holds one intent, so a queued End is never replaced by a
-    /// later Pause or Resume: losing the End would leave the workout running.
+    /// later Pause or Resume while the iPhone may still act on it: losing the
+    /// End would leave the workout running. Once the iPhone has reported the
+    /// workout stopped (`isRecording` false), the End no longer holds anything
+    /// back.
     @MainActor
     private func queueControlMessage(_ payload: [String: Any], on session: WCSession, pendingStatus: String) {
-        if Self.wouldDisplaceQueuedStop(payload, pending: session.applicationContext) {
+        if WatchMessageDecoding.wouldDisplaceQueuedStop(
+            payloadType: payload["type"] as? String, pending: session.applicationContext,
+            phoneRecording: isRecording, now: Date().timeIntervalSince1970
+        ) {
             let stopping = String(localized: "Stopping on iPhone…")
             return showControlStatus(String(localized: "\(stopping) (open iPhone)"))
         }
@@ -500,17 +551,6 @@ final class WatchSessionManager: NSObject, ObservableObject {
         } catch {
             showControlStatus(String(localized: "Couldn't reach iPhone: \(error.localizedDescription)"))
         }
-    }
-
-    private static let stopIntentType = "stopWorkoutFromWatch"
-
-    /// True when `pending` (the context this Watch last queued) is an End
-    /// that has not expired, and `payload` is anything other than another End.
-    private static func wouldDisplaceQueuedStop(_ payload: [String: Any], pending: [String: Any]) -> Bool {
-        guard pending["type"] as? String == stopIntentType,
-              payload["type"] as? String != stopIntentType,
-              let expiresAt = pending["expiresAt"] as? Double else { return false }
-        return expiresAt > Date().timeIntervalSince1970
     }
 
     /// `@Sendable` handlers: WatchConnectivity runs them on its own queue (see
@@ -553,28 +593,62 @@ final class WatchSessionManager: NSObject, ObservableObject {
     /// `receivedApplicationContext`: the iPhone's last tick can linger there
     /// after a stop sent over the live channel, and would show a finished
     /// workout as recording.
+    ///
+    /// One request at a time. A launch asks from three places at once
+    /// (activation, the root view appearing, the scene becoming active), and
+    /// each would otherwise be its own round trip whose reply is applied
+    /// again; a request already in flight answers them all.
     @MainActor
     func requestCurrentStateFromPhone() {
-        guard WCSession.isSupported() else { return }
+        guard WCSession.isSupported(), !currentStateRequestInFlight else { return }
         let session = WCSession.default
         guard session.activationState == .activated, session.isReachable else { return }
-        let payload: [String: Any] = [
-            "type": "requestCurrentState",
-            "ts": Date().timeIntervalSince1970
-        ]
+        currentStateRequestInFlight = true
+        sendCurrentStateRequest(on: session)
+    }
+
+    /// `@Sendable` handlers (see `sendLiveVoiceChatRequest`); either one ends
+    /// the in-flight request.
+    private func sendCurrentStateRequest(on session: WCSession) {
+        let payload: [String: Any] = ["type": "requestCurrentState", "ts": Date().timeIntervalSince1970]
         session.sendMessage(
             payload,
             replyHandler: { @Sendable [weak self] reply in
                 let decoded = InboundMessage(reply)
-                Task { @MainActor in self?.apply(decoded) }
+                Task { @MainActor in self?.finishCurrentStateRequest(decoded) }
             },
             errorHandler: { @Sendable [weak self] err in
                 let message = err.localizedDescription
                 Task { @MainActor in
+                    self?.currentStateRequestInFlight = false
                     self?.log.info("[WatchSession] requestCurrentState failed: \(message)")
                 }
             }
         )
+    }
+
+    private func finishCurrentStateRequest(_ reply: InboundMessage) {
+        currentStateRequestInFlight = false
+        apply(reply)
+    }
+
+    /// Ask the iPhone to push its strap state now (`requestStrapState`). iOS
+    /// pushes it on its own only when its WCSession activates and when the
+    /// strap changes, so a Watch that relaunched, or was out of reach for a
+    /// change, would otherwise show "no strap" until the next change.
+    /// No reply: iOS answers with an ordinary `strapState` push, applied in
+    /// `apply`. No-op when the phone isn't reachable; reachability coming back
+    /// asks again.
+    @MainActor
+    func requestStrapStateFromPhone() {
+        guard WCSession.isSupported() else { return }
+        let session = WCSession.default
+        guard session.activationState == .activated, session.isReachable else { return }
+        let payload: [String: Any] = ["type": "requestStrapState", "ts": Date().timeIntervalSince1970]
+        session.sendMessage(payload, replyHandler: nil) { @Sendable [weak self] err in
+            let message = err.localizedDescription
+            Task { @MainActor in self?.log.info("[WatchSession] requestStrapState failed: \(message)") }
+        }
     }
 
     // MARK: - Incoming message handling
@@ -600,6 +674,8 @@ final class WatchSessionManager: NSObject, ObservableObject {
         }
     }
 
+    /// "Connected to iPhone" only while the phone is reachable: a queued
+    /// context or user-info delivery also lands here when it is not.
     private func apply(_ message: InboundMessage) {
         messagesReceived += 1
         logReceipt(message)
@@ -614,7 +690,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
         applyDisplayFields(message.update)
         applyRecording(message.update)
         applyVoiceChatState(message.update)
-        if Date() >= statusHeldUntil {
+        if isReachable, Date() >= statusHeldUntil {
             statusLine = String(localized: "Connected to iPhone")
         }
 
@@ -720,16 +796,21 @@ final class WatchSessionManager: NSObject, ObservableObject {
         justCompleted = WatchMessageDecoding.justCompleted(
             current: justCompleted, wasRecording: wasRecording, update: update
         )
-        if rec { clearStartWorkoutRequest() }
+        if WatchMessageDecoding.clearsStartWorkoutRequest(update: update) { clearStartWorkoutRequest() }
         isRecording = rec
         driveKeepAliveSession(wasRecording: wasRecording, update: update)
     }
 
-    /// True unless the update was sent before the newest one applied; notes
-    /// its send time when it is newer.
+    /// True unless the update was sent before the newest one applied
+    /// (`WatchMessageDecoding.isCurrent`, which also lets go of a newest send
+    /// time left ahead by an iPhone clock that stepped back); records its send
+    /// time when it is applied.
     private func isCurrent(_ update: WatchMessageDecoding.StateUpdate) -> Bool {
         guard let sentAt = update.sentAt else { return true }
-        guard sentAt >= lastRecordingStateSentAt else { return false }
+        let now = Date().timeIntervalSince1970
+        guard WatchMessageDecoding.isCurrent(sentAt: sentAt, newestApplied: lastRecordingStateSentAt, now: now) else {
+            return false
+        }
         lastRecordingStateSentAt = sentAt
         return true
     }
@@ -786,10 +867,11 @@ final class WatchSessionManager: NSObject, ObservableObject {
         }
     }
 
-    /// Display-only mode does NOT start an HKWorkoutSession on the Watch. iOS
-    /// gates the message too, but a stale build or a downstream bug could still
-    /// deliver it — and starting one here would trigger Apple Health's "Record
-    /// a workout" offer for a workout the phone is already recording.
+    /// The `startWorkout` command starts the keep-alive session only in legacy
+    /// mode. In display-only mode iOS does not send it, and the session follows
+    /// `isRecording` alone (`driveKeepAliveSession`, which starts it for every
+    /// recording workout in both modes); a stray command there is refused so it
+    /// cannot start a session while the iPhone is not recording.
     private func startWorkoutIfAllowed(_ command: WatchMessageDecoding.Command) {
         guard WatchMessageDecoding.shouldStartWorkout(for: command, displayOnlyMode: displayOnlyMode) else {
             return
@@ -843,8 +925,10 @@ extension WatchSessionManager {
         return Self.measurement(distanceMeters / 1000, UnitLength.kilometers, fractionDigits: 2)
     }
 
+    /// "—" until there is a climb to show, as distance shows "—" until there
+    /// is distance; the phone sends 0 before any climb.
     var elevationDisplay: String {
-        guard elevationGainMeters >= 0 else { return "—" }
+        guard elevationGainMeters > 0 else { return "—" }
         if unitsPreference == "imperial" {
             return Self.measurement((elevationGainMeters * 3.28084).rounded(), UnitLength.feet, fractionDigits: 0)
         }
@@ -885,8 +969,9 @@ extension WatchSessionManager: WCSessionDelegate {
 
     /// Activated and reachable pulls the current state at once, so a relaunch
     /// mid-workout restores the live session instead of offering to start a new
-    /// one. No strap-state refresh: the Watch owns its own BLE link through
-    /// `WatchStrapConnector`, so iOS has nothing to mirror here.
+    /// one, and asks for the iPhone's strap state: `phoneStrapConnected` starts
+    /// false each launch, and in display-only mode it is the Watch's only strap
+    /// signal (`applyStrapState`), which iOS otherwise pushes only on a change.
     @MainActor
     private func applyActivation(activated: Bool, reachable: Bool) {
         guard activated else {
@@ -898,26 +983,29 @@ extension WatchSessionManager: WCSessionDelegate {
             return
         }
         requestCurrentStateFromPhone()
+        requestStrapStateFromPhone()
     }
 
     nonisolated func sessionReachabilityDidChange(_ session: WCSession) {
         let reachable = session.isReachable
-        Task { @MainActor in
-            self.log.info("[WatchSession] reachability changed → \(reachable)")
-            self.isReachable = reachable
-            if !reachable, self.messagesReceived == 0 {
-                self.statusLine = String(localized: "iPhone not reachable")
-            }
-            if reachable {
-                // Connection just came back (phone woke, app
-                // foregrounded, IDS re-established). Re-pull current state so
-                // a mid-workout reconnect restores the live session.
-                self.requestCurrentStateFromPhone()
-            }
-            // No strap-state refresh on reachability
-            // flips. The Watch owns its BLE link directly; iOS isn't
-            // a source of truth for strap state on the Watch.
+        Task { @MainActor in self.applyReachability(reachable) }
+    }
+
+    /// Unreachable replaces a "Connected to iPhone" line, unless the answer
+    /// to a tap still holds the line. Reachable again (phone woke, app
+    /// foregrounded, IDS re-established) re-pulls the current state, so a
+    /// mid-workout reconnect restores the live session, and the strap state,
+    /// which may have changed while the phone was out of reach.
+    @MainActor
+    private func applyReachability(_ reachable: Bool) {
+        log.info("[WatchSession] reachability changed → \(reachable)")
+        isReachable = reachable
+        guard reachable else {
+            if Date() >= statusHeldUntil { statusLine = Self.phoneUnreachableStatus }
+            return
         }
+        requestCurrentStateFromPhone()
+        requestStrapStateFromPhone()
     }
 
     nonisolated func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {

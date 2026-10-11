@@ -17,7 +17,7 @@ extension TroubleshootingPage {
             // MARK: Actions
 
             exportActionsSection
-            problemsSection
+            persistentLoggingSection
 
             // MARK: Reanalyze Sessions
 
@@ -82,17 +82,21 @@ extension TroubleshootingPage {
                 AppDependencies.current.app.debugLogger.exportLogs()
             }.value
             await MainActor.run {
-                // The debug log carries HRV values,
-                // sleep timings and session ids. Local-only, expiring.
+                // The export scrubs health values (`DebugLogger.scrubPHI`),
+                // but still carries session ids and what was said to the
+                // assistant, so the copy is local-only and expiring.
                 PasteboardWriter.copy(text)
                 logCopiedConfirmation = true
             }
         }
     }
 
+    /// Only while the problems are listed (Advanced Diagnostics on): with it
+    /// off the page says "No Problems Found", and a Clear button beside that
+    /// would contradict it.
     @ViewBuilder
     private var clearProblemsButton: some View {
-        if !logger.errorCatalog.isEmpty {
+        if debugModeEnabled, !logger.errorCatalog.isEmpty {
             Button(role: .destructive) {
                 dependencies.app.debugLogger.clearErrorCatalog()
             } label: {
@@ -104,18 +108,22 @@ extension TroubleshootingPage {
         }
     }
 
+    /// Deleting the report file changes nothing SwiftUI observes, so the
+    /// page also records the clear, which hides this button and the Crash
+    /// Report section at once.
     @ViewBuilder
     private var clearCrashReportButton: some View {
-        if dependencies.app.crashLogManager.hasPreviousCrash {
+        if hasCrashReport {
             Button(role: .destructive) {
                 dependencies.app.crashLogManager.clearPreviousCrash()
+                crashReportCleared = true
             } label: {
                 Label(String(localized: "Clear Crash Report", bundle: LanguageManager.appBundle), systemImage: "xmark.circle")
             }
         }
     }
 
-    private var problemsSection: some View {
+    private var persistentLoggingSection: some View {
         Section {
             Toggle(String(localized: "Persistent Logging", bundle: LanguageManager.appBundle), isOn: Bindable(logger).persistentLoggingEnabled)
         } header: {
@@ -243,7 +251,6 @@ extension TroubleshootingPage {
     private var debugToolsListSection: some View {
         Section {
             debugLogLink
-            debugCrashButton
             debugResetButton
         } header: {
             Text(String(localized: "Diagnostic Tools", bundle: LanguageManager.appBundle))
@@ -276,12 +283,6 @@ extension TroubleshootingPage {
         }
     }
 
-    private var debugCrashButton: some View {
-        ShareLink(item: DiagnosticLogExport(), preview: DiagnosticLogExport.preview) {
-            Label(String(localized: "Export Full Logs", bundle: LanguageManager.appBundle), systemImage: "square.and.arrow.up")
-        }
-    }
-
     private var debugResetButton: some View {
         Button(role: .destructive) {
             dependencies.app.debugLogger.clear()
@@ -300,32 +301,42 @@ extension TroubleshootingPage {
         }
     }
 
-    @ViewBuilder
+    /// Archive repair lives on this screen only, behind its confirmation and
+    /// with the recovered count and the archive refresh it does afterwards.
     private var archiveDiagnosticsLink: some View {
         NavigationLink {
             ArchiveDiagnosticsView()
         } label: {
             Label(String(localized: "Archive Diagnostics", bundle: LanguageManager.appBundle), systemImage: "externaldrive.badge.questionmark")
         }
+    }
 
-        Button { repairArchive() } label: {
-            Label(String(localized: "Repair Archive", bundle: LanguageManager.appBundle), systemImage: "wrench.and.screwdriver")
+    /// One row that is always present, showing the button or the progress,
+    /// and carrying the repair's confirmation and result: they belong to this
+    /// action, not to whichever control happens to sit beside it.
+    private var repairTrainingHistoryGroup: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if isRepairingTraining {
+                trainingRepairProgressPanel
+            } else {
+                repairTrainingHistoryButton
+            }
         }
-        .alert(String(localized: "Archive Repaired", bundle: LanguageManager.appBundle), isPresented: $showingRepairAlert) {
+        .confirmationDialog(
+            String(localized: "Rewrite training history?", bundle: LanguageManager.appBundle),
+            isPresented: $showingTrainingRepairConfirm,
+            titleVisibility: .visible
+        ) { trainingRepairDialogActions } message: { trainingRepairDialogMessage }
+        .alert(String(localized: "Training Snapshots Repaired", bundle: LanguageManager.appBundle), isPresented: $showingTrainingRepairAlert) {
             Button(String(localized: "OK", bundle: LanguageManager.appBundle)) {}
         } message: {
-            Text(repairMessage)
+            Text(trainingRepairMessage)
         }
     }
 
-    @ViewBuilder
-    private var repairTrainingHistoryGroup: some View {
-        if isRepairingTraining {
-            trainingRepairProgressPanel
-        } else {
-            Button { showingTrainingRepairConfirm = true } label: {
-                Label(String(localized: "Repair Training History\u{2026}", bundle: LanguageManager.appBundle), systemImage: "arrow.triangle.2.circlepath")
-            }
+    private var repairTrainingHistoryButton: some View {
+        Button { showingTrainingRepairConfirm = true } label: {
+            Label(String(localized: "Repair Training History\u{2026}", bundle: LanguageManager.appBundle), systemImage: "arrow.triangle.2.circlepath")
         }
     }
 
@@ -364,16 +375,6 @@ extension TroubleshootingPage {
             )
         }
         .disabled(isRebuildingLoad)
-        .confirmationDialog(
-            String(localized: "Rewrite training history?", bundle: LanguageManager.appBundle),
-            isPresented: $showingTrainingRepairConfirm,
-            titleVisibility: .visible
-        ) { trainingRepairDialogActions } message: { trainingRepairDialogMessage }
-        .alert(String(localized: "Training Snapshots Repaired", bundle: LanguageManager.appBundle), isPresented: $showingTrainingRepairAlert) {
-            Button(String(localized: "OK", bundle: LanguageManager.appBundle)) {}
-        } message: {
-            Text(trainingRepairMessage)
-        }
     }
 
     private func rebuildTrainingLoad() {

@@ -73,8 +73,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PedometerHistoryImporter.swift::func PedometerHistoryImporter.queryPedometerData(pedometer:from:to:)": "f63a00596abb8f91",
-    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+    "Emuqu/Sources/Collection/PedometerHistoryImporter.swift::func PedometerHistoryImporter.queryPedometerData(pedometer:from:to:)": "7005074b121f7b3c"
    }
   },
   {
@@ -125,30 +124,43 @@
   },
   {
    "key": "func PedometerHistoryImporter.queryPedometerData(pedometer:from:to:)",
-   "hash": "5fe109a72d451a5b",
-   "does": "Bridges CMPedometer.queryPedometerData to async, reducing data inside the @Sendable handler.",
+   "hash": "4c23c0bd43aba70b",
+   "does": "Bridges CMPedometer.queryPedometerData to async, reducing data inside the @Sendable handler; a query error is logged via logFailure (the day is then left out, as reduced(nil) is nil).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/PedometerHistoryImporter.swift::func PedometerHistoryImporter.reduced(_:dayStart:)",
-    "ext:CMPedometer.queryPedometerData"
+    "ext:CMPedometer.queryPedometerData",
+    "Emuqu/Sources/Collection/PedometerHistoryImporter.swift::func PedometerHistoryImporter.logFailure(_:dayStart:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PedometerHistoryImporter.swift::func PedometerHistoryImporter.logFailure(_:dayStart:)": "598ea41df3716c91",
+    "Emuqu/Sources/Collection/PedometerHistoryImporter.swift::func PedometerHistoryImporter.reduced(_:dayStart:)": "12d74668b4f030d3"
+   }
+  },
+  {
+   "key": "func PedometerHistoryImporter.logFailure(_:dayStart:)",
+   "hash": "ffd9b82bd08b7c61",
+   "does": "Logs a pedometer query error for the day; nothing when there was none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
     {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "The query's error argument is discarded (`data, _ in`); an error yields nil and the day silently disappears from the list with nothing logged.",
-     "evidence": [
-      "Emuqu/Sources/Collection/PedometerHistoryImporter.swift:83",
-      "Emuqu/Sources/Collection/PedometerHistoryImporter.swift:84"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+1",
+     "cond": "no error",
+     "effect": "return"
     }
    ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PedometerHistoryImporter.swift::func PedometerHistoryImporter.reduced(_:dayStart:)": "12d74668b4f030d3"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   }
  ],

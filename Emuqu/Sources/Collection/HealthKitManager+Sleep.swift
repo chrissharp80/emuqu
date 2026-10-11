@@ -100,6 +100,13 @@ extension SleepHealthQueries {
     /// Uses Apple's sleep data as the authoritative source - no truncation
     /// The recording times are used only to identify which sleep session is relevant
     /// When rrPoints are provided, HR analysis validates HealthKit boundaries and computes RMSSD quality metrics
+    ///
+    /// Always resolved through the recording's own pipeline (settings-based
+    /// merging config, recording-anchored search window). A cache-first read
+    /// used to return the observer's schedule-window night instead, so the
+    /// same recording resolved to different sleep depending on whether the
+    /// observer had run first. A sample read that times out throws
+    /// `queryTimedOut` rather than resolving the night without the Watch.
     func fetchSleepData(
         for recordingStart: Date,
         recordingEnd: Date,
@@ -107,9 +114,6 @@ extension SleepHealthQueries {
         autoSleepExtension: SleepResolver.AutoSleepExtension? = nil
     ) async throws -> SleepData {
         guard manager.isHealthKitAvailable else { throw HealthKitManager.HealthKitError.notAvailable }
-        if let cached = cachedSleepData(recordingStart: recordingStart, recordingEnd: recordingEnd, rrPoints: rrPoints, autoSleepExtension: autoSleepExtension) {
-            return cached
-        }
         // When an AutoSleep extension is present, pull samples through the
         // extension's end so post-session stages are available to the resolver.
         let queryEnd = autoSleepExtension.map { max(recordingEnd, $0.bounds.end) } ?? recordingEnd
@@ -170,7 +174,10 @@ extension SleepHealthQueries {
         return sleepSamples
     }
 
-    /// Run one sleep-sample query and return its category samples (empty on none).
+    /// Run one sleep-sample query and return its category samples (empty on
+    /// none). A query HealthKit has not answered within
+    /// `sleepQueryTimeoutSec` throws `queryTimedOut`: an empty result would
+    /// read as "the Watch logged no sleep" and resolve the night without it.
     private func executeSleepQuery(
         sleepType: HKCategoryType,
         predicate: NSPredicate,
@@ -188,7 +195,7 @@ extension SleepHealthQueries {
                     resolve(HealthKitManager.categoryResult(results, error))
                 }
             },
-            onTimeout: { .success([]) }
+            onTimeout: { .failure(HealthKitManager.HealthKitError.queryTimedOut("sleep samples")) }
         )
     }
 
@@ -308,46 +315,7 @@ extension SleepHealthQueries {
     private func logSleepDiag(_ tag: String, _ samples: [HKCategorySample], window: (Date, Date)) {
         let names = Set(samples.map { $0.sourceRevision.source.name }).sorted().joined(separator: ", ")
         let valueHistogram = Dictionary(grouping: samples, by: { $0.value }).mapValues(\.count)
-        debugLog("[SLEEP-DIAG] querySleepSamples(\(tag)) window=\(window.0)…\(window.1) returned=\(samples.count) sources=[\(names)] values=\(valueHistogram)", level: .warning)
-    }
-
-    /// Check whether HealthKit contains additional sleep samples after a given date,
-    /// up to a cutoff. Returns the `(start, end)` of the earliest and latest sleep
-    /// samples found, or `nil` if no additional sleep exists. Callers gate on
-    /// both values: the gap from the anchor to `start` bounds whether the
-    /// samples are a continuation or a separate nap, and `end` sets the
-    /// re-fetch window for the merged snapshot.
-    ///
-    /// Drops `.strictStartDate`. A continuation stage
-    /// that started before `anchor` but extends past it is exactly what this
-    /// "is there more sleep after X?" probe needs to see; the strict option
-    /// would hide it and under-report the additional range.
-    func findAdditionalSleepRange(after anchor: Date, before cutoff: Date) async -> (start: Date, end: Date)? {
-        guard manager.isHealthKitAvailable, cutoff > anchor else { return nil }
-        guard let sleepType = HKTypes.category(.sleepAnalysis) else { return nil }
-        let datePredicate = HKQuery.predicateForSamples(withStart: anchor, end: cutoff, options: [])
-        let predicate = sleepReadExcludingOwnWrites(dateRange: datePredicate)
-        let sort = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
-        return await manager.runBoundedQuery(timeout: HealthKitManager.sleepQueryTimeoutSec) { resolve in
-            HKSampleQuery(
-                sampleType: sleepType,
-                predicate: predicate,
-                limit: HKObjectQueryNoLimit,
-                sortDescriptors: [sort]
-            ) { _, results, _ in
-                resolve(Self.sleepSampleBounds(results))
-            }
-        }
-    }
-
-    /// Earliest start and latest end across actual sleep (not inBed) samples.
-    nonisolated private static func sleepSampleBounds(_ results: [HKSample]?) -> (start: Date, end: Date)? {
-        guard let samples = results as? [HKCategorySample] else { return nil }
-        let sleepSamples = samples.filter { HKCategoryValueSleepAnalysis(rawValue: $0.value) != .inBed }
-        guard let earliestStart = sleepSamples.map(\.startDate).min(),
-              let latestEnd = sleepSamples.map(\.endDate).max()
-        else { return nil }
-        return (earliestStart, latestEnd)
+        debugLog("[SLEEP-DIAG] querySleepSamples(\(tag)) window=\(window.0)…\(window.1) returned=\(samples.count) sources=[\(names)] values=\(valueHistogram)")
     }
 
     // MARK: - HR-Based Sleep Estimation
@@ -429,27 +397,6 @@ extension SleepHealthQueries {
 // type and calls nothing inside it, so none needs to be a member.
 // `private` at file scope is fileprivate, so every call site in this
 // file resolves the same way.
-
-/// Cache-first read: the sleep observer keeps SleepDataCache warm as Apple
-/// Watch syncs samples through the night. By morning, the value the wake-up
-/// flow needs is already sitting in UserDefaults.
-///
-/// Bypassed when rrPoints are supplied — those callers want HR validation
-/// against the freshest HK samples — and when an AutoSleep extension is
-/// requested (post-recording stage extension outside the cached window).
-private func cachedSleepData(
-    recordingStart: Date,
-    recordingEnd: Date,
-    rrPoints: [RRPoint]?,
-    autoSleepExtension: SleepResolver.AutoSleepExtension?
-) -> HealthKitManager.SleepData? {
-    guard rrPoints == nil, autoSleepExtension == nil,
-          let cached = SleepDataCache.read(coveringRecordingStart: recordingStart),
-          cached.nightSleepMinutes > 0,
-          cached.plausiblyBelongsToRecording(start: recordingStart, end: recordingEnd)
-    else { return nil }
-    return cached
-}
 
 /// CHOKE POINT for the "HealthKit grafts a foreign night's
 /// sleep onto a short recording" bug. HealthKit returns whole sleep blocks

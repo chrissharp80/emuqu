@@ -1,35 +1,32 @@
 import XCTest
 
-/// Widget integration coverage from the iOS app side.
+/// A background → foreground round trip.
 ///
-/// XCUITest cannot drive the home-screen widget directly (the widget
-/// runs in its own extension process and SpringBoard owns the home
-/// screen). What we CAN test from the iOS app side is whether the
-/// publisher path runs without crashing, since
-/// `WidgetDataPublisher.publishToday(...)` calls
-/// `WidgetCenter.shared.reloadAllTimelines()` which invokes the
-/// extension. If the App Group identifier is wrong or
-/// the extension panics on read, the publisher call itself doesn't
-/// crash — but downstream events do.
+/// The app has no widget: this file once tested a widget publisher that no
+/// longer exists, and what remained was this round trip, which is worth
+/// keeping on its own. Going to the background runs the app's scene-phase
+/// work (auto-archiving a pending session, stopping ambient location), and
+/// coming back runs the rest (resuming sync, rescheduling the morning
+/// notification, re-checking the entitlement). None of it may crash the app
+/// or leave the UI unresponsive.
 ///
 /// This suite asserts:
 ///
-///   • Adding the widget doesn't crash the iOS app process. We can't
-///     add the widget programmatically, but we can verify the iOS
-///     app survives a backgrounding round-trip — which is when iOS
-///     evaluates whether to ask the widget extension to re-render.
-///
-/// The structural tests (suite-name pin, round-trip read/write) live
-/// in the unit-test target's `WidgetDataPublisherTests.swift`.
+///   • After a Home press and re-activation the app is in the foreground
+///     with the screen it was on — the Record tab, selected before
+///     backgrounding — still showing. A crash and relaunch would not leave
+///     it there: a relaunch under `-UITests-FreshInstall` starts again at the
+///     first-run gates.
+///   • The tab bar still takes a tap afterwards.
 @MainActor
-final class WidgetIntegrationUITests: XCTestCase {
+final class BackgroundForegroundUITests: XCTestCase {
 
     private var app: XCUIApplication!
 
     override func setUp() async throws {
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments += ["-UITests", "-UITests-FreshInstall"] + UITestLanguage.english
+        app.launchArguments += ["-UITests-FreshInstall"] + UITestLanguage.english
         app.launch()
         UITestLaunch.toMainUI(app)
     }
@@ -38,25 +35,22 @@ final class WidgetIntegrationUITests: XCTestCase {
         app = nil
     }
 
-    /// Backgrounding + foregrounding is the most common path that
-    /// triggers a WidgetCenter timeline reload. A round-trip should
-    /// not crash the iOS app process or kick it out of the test
-    /// session.
-    func testBackgroundForegroundCycleSurvives() throws {
-        let tabBar = app.tabBars.firstMatch
-        XCTAssertTrue(tabBar.waitForExistence(timeout: UITestTiming.s(8)))
-        // Send to background.
-        XCUIDevice.shared.press(.home)
-        // Brief wait — let the system process the backgrounding.
-        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
-        XCTAssertTrue(springboard.waitForExistence(timeout: UITestTiming.s(5)),
-                      "Home screen must appear after backgrounding")
-        // Re-activate.
-        app.activate()
+    func testBackgroundForegroundCycleSurvives() {
         XCTAssertTrue(
-            tabBar.waitForExistence(timeout: UITestTiming.s(8)),
-            "App must rehydrate the tab bar after a foreground cycle " +
-            "(WidgetCenter.reloadAllTimelines fires here on real devices)"
+            UITestNav.selectTab(app, identifier: UITestID.tabRecord, title: UITestID.tabRecordTitle),
+            "The Record tab must open before backgrounding — \(UITestFind.onScreen(app))"
+        )
+        UITestLaunch.backgroundToPersist(app)
+
+        XCTAssertEqual(app.state, .runningForeground, "The app must come back to the foreground")
+        let recordContent = UITestFind.anyElement(in: app, identifier: UITestID.tabRecord)
+        XCTAssertTrue(
+            recordContent.waitForExistence(timeout: UITestTiming.s(8)),
+            "The app must return to the Record tab it left, not relaunch — \(UITestFind.onScreen(app))"
+        )
+        XCTAssertTrue(
+            UITestNav.selectTab(app, identifier: UITestID.tabDashboard, title: UITestID.tabDashboardTitle),
+            "The tab bar must still respond after a foreground cycle — \(UITestFind.onScreen(app))"
         )
     }
 }

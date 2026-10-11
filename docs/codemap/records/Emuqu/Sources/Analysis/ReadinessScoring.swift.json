@@ -46,48 +46,58 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)": "af43b21bcbbeaaaa",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)": "12e1e28a922bed8a",
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)": "e88756532c3a791e",
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)": "09f5a5e0dc237a38",
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)": "c6894f9bcbb37dd6",
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)": "510a4cb6f29ffc87"
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)": "5ec62fd236a645bb",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)": "7c25b38c4a4edb18",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.rawAcuteFatigue(todayTrimp:recentWorkoutLoads:)": "c683041167634eaa"
    }
   },
   {
    "key": "func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)",
-   "hash": "784f49592f201e0a",
-   "does": "Acute fatigue: with recent loads, raw = Σ trimp*exp(-h/24) and scaled = raw*0.30; otherwise scaled = todayTrimp*0.35 and raw = todayTrimp.",
+   "hash": "36ccc1bdd6301289",
+   "does": "Acute fatigue: raw = rawAcuteFatigue(todayTrimp, loads) (Σ trimp*exp(-h/24) with recent loads, else todayTrimp); scaled = raw*0.30 with loads, raw*0.35 without.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.rawAcuteFatigue(todayTrimp:recentWorkoutLoads:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "recentWorkoutLoads non-nil and non-empty",
+     "effect": "scale the decayed sum by 0.30; else flat todayTrimp fallback (0.35 coefficient)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.rawAcuteFatigue(todayTrimp:recentWorkoutLoads:)": "c683041167634eaa"
+   }
+  },
+  {
+   "key": "func ReadinessScoring.rawAcuteFatigue(todayTrimp:recentWorkoutLoads:)",
+   "hash": "9dba526226362b18",
+   "does": "Unscaled acute-fatigue load: Σ trimp*exp(-hoursAgo/24) over recentWorkoutLoads (tau RecoveryScoreConstants.Readiness.acuteFatigueTauHours), or todayTrimp undecayed when loads are nil or empty. Shared by computeAcuteFatigue and LiveReadiness's panel value.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+4",
-     "cond": "recentWorkoutLoads non-nil and non-empty",
-     "effect": "exponential decay sum; else flat todayTrimp fallback (0.35 coefficient)"
+     "at": "+1",
+     "cond": "recentWorkoutLoads nil or empty",
+     "effect": "return todayTrimp (undecayed)"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "The doc says the exponential decay 'replaces the previous flat same-day penalty (todayTrimp × 0.35) which created a cliff at midnight'. But the flat 0.35 path still runs whenever recentWorkoutLoads is nil. TrainingReadinessCard never passes loads, so it always uses it, and LiveReadiness passes nil whenever todayTrimp == 0.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/ReadinessScoring.swift:49",
-      "Emuqu/Sources/Analysis/ReadinessScoring.swift:163",
-      "Emuqu/Sources/Views/MorningResults/TrainingReadinessCard.swift:35",
-      "Emuqu/Sources/Analysis/LiveReadiness.swift:81"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
    "key": "func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)",
-   "hash": "bfee7955c858ede3",
-   "does": "Base readiness: if CTL >= 3.2 maps (ATL+scaled acute fatigue)/CTL through the piecewise table; else novel-load model max(10, 100 - (ATL + raw acute fatigue)*0.5).",
+   "hash": "9701abd366f85a39",
+   "does": "Base readiness: if CTL >= 3.2 maps (ATL+scaled acute fatigue)/CTL through the piecewise table, passing a NaN ratio through as NaN (so calculateReadiness's finite guard returns 50 rather than the map reading it as 100); else novel-load model max(10, 100 - (ATL + raw acute fatigue)*0.5).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)"
@@ -99,11 +109,17 @@
      "at": "+5",
      "cond": "ctl < 3.2",
      "effect": "novel-load strain model using the UNSCALED raw acute fatigue; else capacity-ratio model with scaled fatigue"
+    },
+    {
+     "at": "+16",
+     "cond": "capacity ratio NaN",
+     "effect": "return NaN; else mapCapacityRatioToReadiness"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)": "75d9c9855af3f587"
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)": "036f5b31ceda8304",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.rawAcuteFatigue(todayTrimp:recentWorkoutLoads:)": "c683041167634eaa"
    }
   },
   {
@@ -117,7 +133,7 @@
    "branches": [
     {
      "at": "+10",
-     "cond": "capacityRatio <= 0 (or NaN)",
+     "cond": "capacityRatio <= 0 (NaN would also land here, but computeBaseReadiness never passes one)",
      "effect": "return 100"
     },
     {
@@ -126,18 +142,7 @@
      "effect": "interpolate between previous and this breakpoint; none matched → 10"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "A NaN capacity ratio (effectiveLoad NaN) fails `capacityRatio > 0` and returns 100 (fully ready) rather than propagating NaN; the final isFinite guard in calculateReadiness only catches NaN that survives to the end.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/ReadinessScoring.swift:194",
-      "Emuqu/Sources/Analysis/ReadinessScoring.swift:145"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "EmuquTests/EvalUtterances.swift::func RouterEvalTests.ratio(_:)": "080b99961f098c17"
    }
@@ -159,22 +164,7 @@
      "effect": "no change; else apply dampened penalty"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "The worked tester example in the doc says that at CTL 16, ACWR 1.63 and recovery 73 'autonomic cap engages, effective penalty shrinks to ~0.07'. The code gives (0.05 + 0.33*0.50) * 16/50 = 0.0688, which is already below the 0.10 rescue cap, so the cap does not engage in that example; only the confidence ramp acts.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/ReadinessScoring.swift:251",
-      "Emuqu/Sources/Analysis/ReadinessScoring.swift:255",
-      "Emuqu/Sources/Analysis/ReadinessScoring.swift:283",
-      "Emuqu/Sources/Analysis/ReadinessScoring.swift:288",
-      "Emuqu/Sources/Analysis/ReadinessScoring.swift:291",
-      "Emuqu/Sources/Utilities/Constants+RecoveryScore.swift:175"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.dampenedACWRPenalty(acr:ctl:recoveryScore:)": "31f46ca54792db88"
    }
@@ -295,35 +285,6 @@
    }
   },
   {
-   "key": "func ReadinessScoring.displayReadinessLabel(for:)",
-   "hash": "5ddbfe3a12dffd69",
-   "does": "Localized readinessLabel(for:) without load.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.displayLabel(_:)",
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Only caller is the RecoveryScoreCalculator.displayReadinessLabel forwarder, which itself has no callers.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/ReadinessScoring.swift:354",
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift:46"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.displayLabel(_:)": "3fceb87f201cead0",
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:)": "855c8b68d2abcbc7"
-   }
-  },
-  {
    "key": "func ReadinessScoring.displayReadinessLabel(for:load:)",
    "hash": "28e66076fce67ab5",
    "does": "Localized readinessLabel(for:load:). Called by TrainingReadinessCard.swift:26.",
@@ -397,33 +358,6 @@
    ],
    "flags": [],
    "deps": {}
-  },
-  {
-   "key": "func ReadinessScoring.readinessMessage(for:acuteChronicRatio:)",
-   "hash": "8c0eca48ca59a2ba",
-   "does": "Wraps a bare ACWR into TrainingAdviceGate.Load(acwr:) and delegates to readinessMessage(for:load:).",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessMessage(for:load:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Only caller is the RecoveryScoreCalculator.readinessMessage forwarder, which has no callers in app or tests.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/ReadinessScoring.swift:388",
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift:54"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessMessage(for:load:)": "11a51846fa10aee7"
-   }
   },
   {
    "key": "func ReadinessScoring.readinessMessage(for:load:)",

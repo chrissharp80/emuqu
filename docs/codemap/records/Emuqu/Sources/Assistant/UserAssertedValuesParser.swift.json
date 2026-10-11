@@ -1,13 +1,13 @@
 {
  "file": "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift",
- "hash": "ab717b5f6bb460a5",
+ "hash": "4fb3d7d2e9e9e6cf",
  "role": "Heuristic detector of user corrections in recent user messages (asserted metric values, dashboard contradictions, explicit overrides) and renderer of the authoritative \"User-stated values\" system-prompt block.",
  "types": [
   "UserCorrectionDetector: enum — detector/renderer",
   "UserCorrectionDetector.Signals: struct — assertedValues, dashboardContradicted, explicitOverrideRequested"
  ],
  "state": [
-  "knownMetrics / metricAliases / connectorRequiredMetrics / metricsLongestFirst / dashboardContradictionPhrases / correctionReplyOpeners / correctionReplyWords / explicitOverridePhrases (static lets, UserAssertedValuesParser.swift:97-294)"
+  "knownMetrics / metricAliases / connectorRequiredMetrics / metricsLongestFirst / unitLikeMetrics / dashboardContradictionPhrases / correctionReplyOpeners / correctionReplyWords / explicitOverridePhrases (static lets, UserAssertedValuesParser.swift:97-330); unitLikeMetrics = hr/bpm/watts/calories (names that are also units); explicitOverridePhrases names the tool-call forms of \"don't call\"/\"do not call\" (\"the tool\", \"tools\", \"any tool\") rather than the bare verb."
  ],
  "toplevel": "Static phrase and metric tables; file name UserAssertedValuesParser.swift does not match the type it declares (UserCorrectionDetector).",
  "flags": [],
@@ -69,9 +69,9 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)": "88aa0ccb2eb01c5a",
-    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)": "3712b0669320fc7a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)": "650bcadebe84ab1c",
     "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)": "6da1c9a7298e890a",
-    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)": "a9cbaa5e37be8b15"
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)": "80795c7c57b50465"
    }
   },
   {
@@ -112,22 +112,9 @@
      "effect": "stores it under the canonical key."
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "The bare metric \"hr\" matches the hours abbreviation: \"slept 7 hr 30 min\" or \"ran 1 hr 20\" yields hr=30/20, which renderAssertedBlock injects into the system prompt as an authoritative user-stated heart rate.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift:103",
-      "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift:176",
-      "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift:178",
-      "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift:317"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)": "b49fa68e7da650d3",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)": "1fcea54b6b252401",
     "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)": "976ef15dee034179"
    }
   },
@@ -158,51 +145,106 @@
   },
   {
    "key": "func UserCorrectionDetector.extractValue(for:in:connectorRequired:)",
-   "hash": "ce97a1527d4abb5d",
-   "does": "Regex \"metric [connector] number\" (number not a clock time); returns the value of the last match and the text with all matches blanked; connector mandatory when connectorRequired.",
+   "hash": "e5637971aaea8c25",
+   "does": "Compiles the valuePattern regex for the metric (\"metric [connector] number\", number not a clock time, unit-like names not preceded by a number, pace also as min:sec); returns the parseValue of the last match and the text with all matches blanked; connector mandatory when connectorRequired.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.valuePattern(for:connectorRequired:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.parseValue(_:)",
     "ext:NSRegularExpression"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+5",
-     "cond": "connectorRequired",
-     "effect": "connector group mandatory; otherwise optional."
-    },
-    {
-     "at": "+7",
+     "at": "+4",
      "cond": "regex compiles",
      "effect": "continues; otherwise nil (swallowed)."
     },
     {
-     "at": "+12",
-     "cond": "at least one match with a parsable number",
+     "at": "+9",
+     "cond": "at least one match whose captured number parses",
      "effect": "returns (value, remainder); otherwise nil."
     }
    ],
-   "flags": [
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.parseValue(_:)": "f784315551819c39",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.valuePattern(for:connectorRequired:)": "0fe9d1cfa4071de0"
+   }
+  },
+  {
+   "key": "func UserCorrectionDetector.valuePattern(for:connectorRequired:)",
+   "hash": "7bd7321b38dce2cc",
+   "does": "Builds the case-insensitive regex source for one metric: the escaped name as a whole word, an optional (or, with connectorRequired, mandatory) connector is/of/=/:/was/being, and a captured number that is not followed by more digits, by \":<digit>\" or by am/pm/o'clock. For a unitLikeMetrics name (hr, bpm, watts, calories) a lookbehind rejects the name when a number precedes it by up to two spaces (\"7 hr 30 min\" is hours, not heart rate). For pace the number may also be m:ss (\"5:30\").",
+   "entry": null,
+   "calls": [
+    "ext:NSRegularExpression.escapedPattern(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
     {
-     "kind": "broken",
-     "sev": "low",
-     "text": "The number pattern rejects any digit followed by \":<digit>\" (clock-time guard), so a pace stated as min:sec (\"my pace was 5:30\") is never captured although \"pace\" is a known metric.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift:109",
-      "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift:176"
-     ],
-     "found": "second read"
+     "at": "+2",
+     "cond": "metric is unit-like",
+     "effect": "adds the not-after-a-number lookbehinds; otherwise none."
+    },
+    {
+     "at": "+3",
+     "cond": "metric == \"pace\"",
+     "effect": "number alternative m:ss or decimal; otherwise decimal only."
+    },
+    {
+     "at": "+5",
+     "cond": "connectorRequired",
+     "effect": "connector group mandatory; otherwise optional."
     }
    ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func UserCorrectionDetector.parseValue(_:)",
+   "hash": "8b68e9823bc961bf",
+   "does": "Converts a captured number to Double: \"m:ss\" becomes minutes plus seconds/60 (5:30 → 5.5); anything else is Double(raw).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "not exactly one ':'",
+     "effect": "returns Double(raw) (nil if unparsable)."
+    },
+    {
+     "at": "+3",
+     "cond": "either side not numeric",
+     "effect": "returns nil."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func UserCorrectionDetector.foldedLowercase(_:)",
+   "hash": "29288a02b38646b2",
+   "does": "Lowercases the text and folds the typographic apostrophe U+2019 to ASCII \"'\" so smart-punctuation input matches the phrase lists.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
    "deps": {}
   },
   {
    "key": "func UserCorrectionDetector.isDashboardContradiction(text:)",
-   "hash": "7e0b9838d607643b",
+   "hash": "36190e0f868aa166",
    "does": "True when the lowercased text (curly apostrophes normalised) contains a contradiction phrase or a sentence opens as a correction reply.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.foldedLowercase(_:)",
     "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.startsWithCorrectionReply(_:)"
    ],
    "reads": [],
@@ -210,6 +252,7 @@
    "branches": [],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.foldedLowercase(_:)": "4836fc924263a4b8",
     "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.startsWithCorrectionReply(_:)": "a71e358417173882"
    }
   },
@@ -265,41 +308,19 @@
   },
   {
    "key": "func UserCorrectionDetector.isExplicitOverride(text:)",
-   "hash": "29f7d7a070650dc5",
-   "does": "True when the lowercased text contains any explicit-override phrase (substring match).",
+   "hash": "f306b355214a8eff",
+   "does": "True when the foldedLowercase text (U+2019 apostrophes folded) contains any explicit-override phrase (substring match); \"don't call\"/\"do not call\" count only in their tool forms (\"the tool\", \"tools\", \"any tool\").",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.foldedLowercase(_:)"
+   ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "hack",
-     "sev": "low",
-     "text": "Plain substring matching on short phrases such as \"don't call\", \"do not call\" and \"stop saying\" fires on unrelated sentences (\"don't call it a rest day\"), setting explicitOverrideRequested which removes the dashboard training-load block from the prompt; \"stop saying that\" is redundant with \"stop saying\".",
-     "evidence": [
-      "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift:268",
-      "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift:289",
-      "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift:298",
-      "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift:335"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "isExplicitOverride lowercases but does not fold the typographic apostrophe U+2019 the way isDashboardContradiction does, so iOS smart-punctuation input such as \"don’t fetch\", \"don’t call\" or \"I don’t care what the dashboard says\" never sets explicitOverrideRequested and the dashboard training-load block is not suppressed.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift:297",
-      "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift:222",
-      "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift:267",
-      "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift:275",
-      "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift:335"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {}
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.foldedLowercase(_:)": "4836fc924263a4b8"
+   }
   },
   {
    "key": "func UserCorrectionDetector.renderAssertedBlock(_:)",
@@ -328,18 +349,7 @@
      "effect": "adds the values header and lines."
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "The type doc says the composer injects a \"# User-asserted values (use these)\" block, but the rendered heading is \"# User-stated values (authoritative — fresher than any cache)\" (docs/whitepapers/03-grounded-health-assistant.md:307 matches the code, the comment is stale).",
-     "evidence": [
-      "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift:40",
-      "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift:309"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.assertedValueLines(_:)": "532e50b7438162c4",
     "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::var UserCorrectionDetector.Signals.hasAnyCorrection": "955b5e2396ec412d"
@@ -379,13 +389,13 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.formatValue(key:value:)": "f3993432b569cf9a"
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.formatValue(key:value:)": "c2cd58e1186c3763"
    }
   },
   {
    "key": "func UserCorrectionDetector.formatValue(key:value:)",
-   "hash": "35a5c413c69716e2",
-   "does": "Formats values: tsb signed one decimal, acwr two decimals, atl/ctl/rmssd/sdnn/hr/bpm/rhr one decimal, others %g.",
+   "hash": "8003aa129275ca32",
+   "does": "Formats values: tsb signed one decimal, acwr two decimals, atl/ctl/rmssd/sdnn/hr/bpm/rhr one decimal, a non-negative pace as m:ss (minutes rounded to the second), others %g.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -408,7 +418,12 @@
     },
     {
      "at": "+6",
-     "cond": "default",
+     "cond": "key pace and value >= 0",
+     "effect": "\"m:ss\"."
+    },
+    {
+     "at": "+9",
+     "cond": "default (including a negative pace)",
      "effect": "\"%g\"."
     }
    ],

@@ -11,11 +11,11 @@
  "units": [
   {
    "key": "func CoachReportGenerator.formatDistance(_:units:)",
-   "hash": "84f2a1f128a607e4",
-   "does": "Formats metres as '%.2f mi' (imperial) or '%.2f km' in the app locale; '—' when nil or ≤0.",
+   "hash": "7eeb89000bb9f3e1",
+   "does": "'—' when metres are nil or ≤0; otherwise UnitsPreference.formatDistance(meters:) for the given preference (.auto resolved against the locale; number and unit in the app language, 2 decimals).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)"
    ],
    "reads": [],
    "writes": [],
@@ -24,27 +24,11 @@
      "at": "+1",
      "cond": "meters nil or <= 0",
      "effect": "returns '—'"
-    },
-    {
-     "at": "+2",
-     "cond": "units == .imperial",
-     "effect": "miles; else km (.auto is treated as metric — callers pass a resolved preference)"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "UnitsPreference.formatDistance(meters:) already formats metres as mi/km for a preference (resolving .auto and using locale-aware Measurement formatting); this re-implements it with a fixed '%.2f km'/'%.2f mi' and treats .auto as metric.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/CoachReportGenerator+Sections.swift:9",
-      "Emuqu/Sources/Models/UnitsPreference.swift:36"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "a36dafa82ad91f58"
    }
   },
   {

@@ -30,9 +30,9 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.isGoodReading(rmssd:stress:lfhf:dfa:)": "f75be3d3da4a805f",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.isGoodReading(rmssd:)": "a553c84c2cc0efa5",
     "Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift::func PositiveCauseDetector.detectSleepPositives(in:)": "ac3b61c612c9115d",
-    "Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift::func PositiveCauseDetector.detectTagPositives(in:)": "0b34585c3e8d49bf",
+    "Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift::func PositiveCauseDetector.detectTagPositives(in:)": "98ac645b3730572f",
     "Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift::func PositiveCauseDetector.detectTrendPositives(in:)": "17dc9a8f0d9f8571"
    }
   },
@@ -140,10 +140,11 @@
   },
   {
    "key": "func PositiveCauseDetector.detectTagPositives(in:)",
-   "hash": "8ffe4a8803e1a3d6",
-   "does": "'Recovery Day' (moderateHigh, 0.7) when the recovery tag is selected.",
+   "hash": "813c50a9bec90ee6",
+   "does": "'Recovery Day' (moderateHigh, 0.7) when the system recovery tag is selected (Set.containsSystemTag).",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func Set.containsSystemTag(_:)",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
     "ext:String(localized:bundle:)"
    ],
@@ -158,6 +159,7 @@
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func Set.containsSystemTag(_:)": "162913d7968f4344",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
    }
   },

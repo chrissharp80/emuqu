@@ -73,7 +73,7 @@
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.fetchAllRemoteRecords()": "c2dd86060c1ae574",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.handleMissingZone(_:)": "5b80e9ac68975317",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.handlePullFailure(_:)": "b4329032801f4056",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.processRemoteRecords(_:)": "923bdfdd7e6916ce",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.processRemoteRecords(_:)": "d60a1bdb8e234e5d",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.reuploadSessionsMissingFromCloud(_:)": "c5af88ad8dc75790",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.runPostPullBackfills(_:)": "895c11fa9a7f85aa",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.savePendingQueueAsync()": "705d909e0a0aa689",
@@ -158,22 +158,24 @@
    "deps": {
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "129adb95a00b9a83",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.wasIntentionallyDeleted(_:)": "cde34837e7969801",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markRemoved(_:)": "b25b3f650720f2b1",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markRemoved(_:)": "ebf11c4da93767ab",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
    "key": "func CloudPullCoordinator.processRemoteRecords(_:)",
-   "hash": "07c764e002c2e248",
-   "does": "Iterates results in order; skips failures; processes each successful record, noting progress and accumulating new/deleted/refreshed counts and backfill ids; stops on cancellation.",
+   "hash": "5974f112c73c2754",
+   "does": "Iterates results in order; a record the listing could not return is logged and recorded as the pull's error (noteListingFailure), so the sync ends as an error; processes each successful record, noting progress and accumulating new/deleted/refreshed counts and backfill ids; stops on cancellation.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.noteListingFailure(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.processRemoteRecord(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.noteSyncProgress()"
    ],
    "reads": [],
    "writes": [
-    "mem:CloudKitSyncManager.lastSyncProgressAt"
+    "mem:CloudKitSyncManager.lastSyncProgressAt",
+    "mem:CloudKitSyncManager.lastPullErrorMessage"
    ],
    "branches": [
     {
@@ -187,31 +189,40 @@
      "effect": "break"
     },
     {
-     "at": "+6",
+     "at": "+10",
      "cond": "result is a failure",
-     "effect": "skipped silently (continue)"
+     "effect": "noteListingFailure, continue"
     },
     {
-     "at": "+12",
+     "at": "+19",
      "cond": "outcome has backfillId",
      "effect": "appended"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "Per-record query failures are skipped without setting lastPullErrorMessage, so a record that always fails in the listing is never imported while the sync reports success (only the re-queue step notices the partial listing).",
-     "evidence": [
-      "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift:110",
-      "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift:88"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.noteListingFailure(_:)": "2f02a3651eb7d875",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.processRemoteRecord(_:)": "762c9d4b0e20a68b",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.noteSyncProgress()": "0d538f934e3bb295"
+   }
+  },
+  {
+   "key": "func CloudPullCoordinator.noteListingFailure(_:)",
+   "hash": "e929903cdfd38add",
+   "does": "Logs a per-record listing failure at warning and sets manager.lastPullErrorMessage to the localized 'A session from iCloud couldn't be imported: …' message.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:CloudKitSyncManager.lastPullErrorMessage"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
@@ -279,7 +290,7 @@
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.recreateZoneAfterNotFound()": "74172d1b0c2f1bdc",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markRemoved(_:)": "b25b3f650720f2b1",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markRemoved(_:)": "ebf11c4da93767ab",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.savePendingQueueAsync()": "705d909e0a0aa689",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()": "cc75df03f19d3ff4",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
@@ -363,7 +374,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudPullCoordinator.refreshIfRemoteIsNewer(_:sessionId:)": "c1aed08bd8d6f907",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudPullCoordinator.refreshIfRemoteIsNewer(_:sessionId:)": "626fcb186a786feb",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.assetURL(for:)": "ed497841e27ddf56",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.handleDeletedRecord(sessionId:sessionIdString:)": "85b88c3036c3ea51",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.importPulledSession(from:sessionId:sessionIdString:)": "abe38fdf61ffc885",
@@ -469,7 +480,7 @@
    "deps": {
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "129adb95a00b9a83",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.wasIntentionallyDeleted(_:)": "cde34837e7969801",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)": "a31119e0ec464463"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)": "f7f8c1ad85cef5dc"
    }
   },
   {
@@ -505,7 +516,7 @@
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.assetURL(for:)": "ed497841e27ddf56",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.decodeSessionAsset(at:)": "8706cc7b863388cb",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.importFailure(_:sessionIdString:)": "d68a5f48b5e3ea2d",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)": "a31119e0ec464463"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)": "f7f8c1ad85cef5dc"
    }
   },
   {
@@ -627,7 +638,7 @@
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "cefef470ab858af7",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.discardTrashed(_:)": "e29a7846681f7347",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "129adb95a00b9a83",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markDeleted(_:)": "5423f0d392aeff36",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markDeleted(_:)": "6392ca5f0e9c18b2",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   }

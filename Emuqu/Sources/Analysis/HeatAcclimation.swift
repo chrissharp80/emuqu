@@ -90,7 +90,9 @@ enum HeatAcclimation {
         let tempC: Double
         /// Relative humidity (0–100 %).
         let relativeHumidity: Double
-        /// Active duration in minutes.
+        /// Active duration in minutes: moving time, paused stretches
+        /// excluded (`HeatAcclimationCache.activeMinutes` for in-app workouts,
+        /// `HKWorkout.duration` for Apple Health ones).
         let durationMinutes: Double
     }
 

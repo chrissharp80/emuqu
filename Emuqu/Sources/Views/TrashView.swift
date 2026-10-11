@@ -73,6 +73,7 @@ struct TrashView: View {
             } label: {
                 bodyLabel
             }
+            .disabled(isRestoring)
         }
     }
 
@@ -116,6 +117,8 @@ struct TrashView: View {
 
     // MARK: - Deleted Session Row
 
+    /// While a restore runs, every row's buttons are disabled, not only the
+    /// restoring row's, so a second restore or delete cannot start over it.
     private func deletedSessionRow(_ session: (id: UUID, date: Date, beatCount: Int)) -> some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
@@ -132,6 +135,7 @@ struct TrashView: View {
                     .scaleEffect(0.8)
             } else {
                 trashRowActions(session.id)
+                    .disabled(isRestoring)
             }
         }
         .padding(.vertical, 4)
@@ -182,25 +186,31 @@ struct TrashView: View {
         }
     }
 
+    /// The list is reloaded either way: a failed restore can still have
+    /// changed what the trash holds, and a stale row would offer actions on
+    /// an entry that is no longer there.
     @MainActor
     private func finishRestore(succeeded: Bool) {
         isRestoring = false
         restoringId = nil
+        loadDeletedSessions()
         if succeeded {
-            statusMessage = String(localized: "Session restored successfully", bundle: LanguageManager.appBundle)
-            loadDeletedSessions()
-            clearStatusMessageAfterDelay()
+            showTransientStatus(String(localized: "Session restored successfully", bundle: LanguageManager.appBundle))
         } else {
             statusMessage = String(localized: "Failed to restore session", bundle: LanguageManager.appBundle)
         }
     }
 
-    /// The success banner is transient — three seconds, then it clears itself.
-    /// The failure message stays until the next action so the user can read it.
-    private func clearStatusMessageAfterDelay() {
+    /// A success banner is transient — three seconds, then it clears itself,
+    /// unless another message replaced it meanwhile: a failure message stays
+    /// until the next action so the user can read it.
+    private func showTransientStatus(_ message: String) {
+        statusMessage = message
         Task {
-            await sleepQuietly(3_000_000_000, context: "clearStatusMessageAfterDelay")
-            await MainActor.run { statusMessage = nil }
+            await sleepQuietly(3_000_000_000, context: "showTransientStatus")
+            await MainActor.run {
+                if statusMessage == message { statusMessage = nil }
+            }
         }
     }
 
@@ -214,14 +224,7 @@ struct TrashView: View {
             collector.permanentlyDelete(session.id)
         }
         loadDeletedSessions()
-        statusMessage = String(localized: "All deleted sessions permanently removed", bundle: LanguageManager.appBundle)
-
-        Task {
-            await sleepQuietly(3_000_000_000, context: "permanentlyDeleteAll")
-            await MainActor.run {
-                statusMessage = nil
-            }
-        }
+        showTransientStatus(String(localized: "All deleted sessions permanently removed", bundle: LanguageManager.appBundle))
     }
 
     // MARK: - Helpers

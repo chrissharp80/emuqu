@@ -14,6 +14,12 @@ import Foundation
 // "origin"` — the AI can chain "where am I → look up the active trail
 // origin → route walking from current position back to it." This
 // namespace is the lookup half.
+//
+// Privacy: these facts are not behind the workout-only gate of the
+// location.* actions. The cloud consent sheet (ProviderConsentSheet)
+// discloses exactly what they release: the Get Me Back trail while it
+// runs (active / current_fix / recent_track) and the start points of
+// recent trails and GPS workouts (recent).
 struct BreadcrumbNamespace: FactNamespaceResolver {
     let namespace = "breadcrumb"
 
@@ -182,16 +188,22 @@ struct BreadcrumbNamespace: FactNamespaceResolver {
         guard let last = trail?.fixes.last else {
             return .missing(reason: .notRecorded, detail: "no active breadcrumb trail")
         }
-        var out: [String: FactValue] = [
-            "latitude": .double(last.latitude),
-            "longitude": .double(last.longitude),
-            "accuracy_m": .double(last.horizontalAccuracyMeters),
-            "captured_at": .date(last.timestamp)
+        return Self.fixRecord(last)
+    }
+
+    /// One committed fix as the record shared by `breadcrumb.current_fix`
+    /// and each entry of `breadcrumb.recent_track`.
+    private static func fixRecord(_ fix: BreadcrumbFix) -> FactValue {
+        var rec: [String: FactValue] = [
+            "latitude": .double(fix.latitude),
+            "longitude": .double(fix.longitude),
+            "accuracy_m": .double(fix.horizontalAccuracyMeters),
+            "captured_at": .date(fix.timestamp)
         ]
-        if let alt = last.altitudeMeters { out["altitude_m"] = .double(alt) }
-        if let course = last.courseDegrees { out["course_deg"] = .double(course) }
-        if let speed = last.speedMS { out["speed_ms"] = .double(speed) }
-        return .record(out)
+        if let alt = fix.altitudeMeters { rec["altitude_m"] = .double(alt) }
+        if let course = fix.courseDegrees { rec["course_deg"] = .double(course) }
+        if let speed = fix.speedMS { rec["speed_ms"] = .double(speed) }
+        return .record(rec)
     }
 
     private var breadcrumbRecentTrackEntry: FactEntry {
@@ -211,19 +223,7 @@ struct BreadcrumbNamespace: FactNamespaceResolver {
         guard fixes.count >= 2 else {
             return .missing(reason: .notRecorded, detail: "fewer than 2 breadcrumb fixes — start moving or engage Get Me Back")
         }
-        let items: [FactValue] = fixes.map { fix in
-            var rec: [String: FactValue] = [
-                "latitude": .double(fix.latitude),
-                "longitude": .double(fix.longitude),
-                "accuracy_m": .double(fix.horizontalAccuracyMeters),
-                "captured_at": .date(fix.timestamp)
-            ]
-            if let alt = fix.altitudeMeters { rec["altitude_m"] = .double(alt) }
-            if let course = fix.courseDegrees { rec["course_deg"] = .double(course) }
-            if let speed = fix.speedMS { rec["speed_ms"] = .double(speed) }
-            return .record(rec)
-        }
-        return .list(items)
+        return .list(fixes.map { Self.fixRecord($0) })
     }
 
     private var breadcrumbDerivedGradePercentEntry: FactEntry {

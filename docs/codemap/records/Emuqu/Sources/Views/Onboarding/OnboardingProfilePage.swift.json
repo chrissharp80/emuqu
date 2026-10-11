@@ -68,7 +68,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.incompleteProfileHint": "8eedf46d5a522fd6",
-    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.profileNavigationButtons": "57689f28d33d40ce",
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.profileNavigationButtons": "8588071403ea9314",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
    }
   },
@@ -291,13 +291,13 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.isImperial": "468c92b5e00a09fd",
     "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.keyboardDoneButton": "26f1d1f85afdb9b9",
-    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.weightBinding": "fbc55b28190fcebc"
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.weightBinding": "0c56514e6f22a63f"
    }
   },
   {
    "key": "var OnboardingProfilePage.profileNavigationButtons",
-   "hash": "7dc2b5996d1630da",
-   "does": "Skip (identifier onboarding.skip) and Next (identifier onboarding.advance, disabled until isProfileComplete) both call advance; neither writes anything (values are already saved through the bindings).",
+   "hash": "14657df9e5a8b813",
+   "does": "Skip (identifier onboarding.skip) and Next (identifier onboarding.advance, disabled until isProfileComplete, hint 'Continue to the next step') both call advance; neither writes anything (values are already saved through the bindings).",
    "entry": "SwiftUI Button actions.",
    "calls": [
     "closure:advance — OnboardingView.advanceToNext",
@@ -307,25 +307,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Next's accessibility hint says \"Save profile and continue\" but Next performs no save; edits were already persisted by the bindings on each change, and Skip leaves any already-entered values saved too.",
-     "evidence": [
-      "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift:199",
-      "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift:204",
-      "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift:237",
-      "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift:244",
-      "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift:260-263"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.isProfileComplete": "cc6eeb6b78b8369c",
-    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "be0e101d5d8a0f4b"
+    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "90992ed75b9feffe"
    }
   },
   {
@@ -438,8 +424,8 @@
   },
   {
    "key": "var OnboardingProfilePage.weightBinding",
-   "hash": "7fc6ff50314e3b10",
-   "does": "Binding in display units: get = bodyWeightKg × (2.20462 if imperial else 1); set: nil or ≤0 clears bodyWeightKg, otherwise stores min(value/factor, 250) kg.",
+   "hash": "8ec62a4a771d8e36",
+   "does": "Binding in display units: get = bodyWeightKg × (2.20462 if imperial else 1); set: nil or ≤0 clears bodyWeightKg, otherwise stores min(value/factor, BiometricsSettingsPage.maximumBodyWeightKg = 250) kg.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.isImperial",
@@ -455,19 +441,19 @@
     {
      "at": "+1",
      "cond": "isImperial ? 2.20462 : 1.0",
-     "effect": "imperial: lb conversion factor. metric: 1."
+     "effect": "imperial: lb conversion factor; metric: 1"
     },
     {
      "at": "+5",
      "cond": "let value = newValue, value > 0 (guard)",
-     "effect": "fails (empty or ≤0): bodyWeightKg = nil and return. passes: bodyWeightKg = min(value/factor, 250.0) (silently clamps anything heavier to 250 kg)."
+     "effect": "fails: bodyWeightKg = nil; passes: min(value/factor, the shared 250 kg ceiling)"
     }
    ],
    "flags": [
     {
      "kind": "duplicate",
      "sev": "low",
-     "text": "Same kg-canonical display-unit weight binding as BiometricsSettingsPage.bodyWeightDisplayBinding (factor 2.20462, min(..., 250.0) ceiling), and the two copies already diverge: onboarding clears bodyWeightKg for values <= 0 (line 259), Biometrics stores any non-nil value including 0 or negatives (BiometricsSettingsPage.swift:226-235).",
+     "text": "Same kg-canonical display-unit weight binding as BiometricsSettingsPage.bodyWeightDisplayBinding (factor 2.20462, min(..., 250.0) ceiling), and the two copies already diverge: onboarding clears bodyWeightKg for values <= 0 (line 259), Biometrics stores any non-nil value including 0 or negatives (BiometricsSettingsPage.swift:226-235). (The 250 kg ceiling is now the shared BiometricsSettingsPage.maximumBodyWeightKg; handoff b23 to share the whole binding.)",
      "evidence": [
       "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift:254-266",
       "Emuqu/Sources/Views/BiometricsSettingsPage.swift:219-238"
@@ -476,7 +462,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "832c4ee32f6110e2",
     "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.isImperial": "468c92b5e00a09fd"
    }

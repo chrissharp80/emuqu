@@ -66,7 +66,7 @@ struct SleepTimelineState: Equatable {
             guard a.start == b.start, a.end == b.end,
                   a.intervals.count == b.intervals.count else { return false }
             for (ia, ib) in zip(a.intervals, b.intervals)
-            where ia.stage != ib.stage || ia.start != ib.start || ia.end != ib.end {
+            where ia.stage != ib.stage || ia.start != ib.start || ia.end != ib.end || ia.provenance != ib.provenance {
                 return false
             }
         }
@@ -127,9 +127,28 @@ extension SleepTimelineState {
 
     /// Fall back to a single segment from the sleepStart/sleepEnd envelope when
     /// no intervals are available (strap-only night, or HealthKit empty).
+    /// The envelope is held as one unstaged sleep interval rather than none:
+    /// carving awake, merging or moving a boundary then works on real
+    /// minutes, where an empty segment would lose the whole envelope as soon
+    /// as any interval was added to it.
     private static func envelopeSegment(from sleepData: SleepData) -> Segment? {
         guard let start = sleepData.sleepStart, let end = sleepData.sleepEnd, end > start else { return nil }
-        return Segment(id: UUID(), start: start, end: end, intervals: [])
+        let envelope = HealthKitManager.SleepStageInterval(
+            stage: .unspecified, start: start, end: end,
+            provenance: envelopeProvenance(sleepData.boundarySource)
+        )
+        return Segment(id: UUID(), start: start, end: end, intervals: [envelope])
+    }
+
+    /// Where an envelope's sleep came from: the Watch for HealthKit-sourced
+    /// boundaries, the strap's beat series for HR-estimated or recording ones.
+    private static func envelopeProvenance(
+        _ source: HealthKitManager.SleepBoundarySource
+    ) -> HealthKitManager.SleepStageProvenance {
+        switch source {
+        case .healthKit, .hrValidated, .healthKitHREstimated: .watch
+        case .hrEstimated, .recordingBounds: .hrvDerived
+        }
     }
 }
 
@@ -142,41 +161,69 @@ extension SleepTimelineState {
     func applying(_ edit: SleepTimelineEdit) -> SleepTimelineState {
         switch edit {
         case let .adjustBoundary(id, side, newTime):
-            applyingAdjustBoundary(id: id, side: side, newTime: snap(newTime))
+            applyingAdjustBoundary(id: id, side: side, newTime: Self.snap(newTime))
         case let .addSegment(start, end):
-            applyingAddSegment(start: snap(start), end: snap(end))
+            applyingAddSegment(start: Self.snap(start), end: Self.snap(end))
         case let .removeSegment(id):
             applyingRemoveSegment(id: id)
         case let .split(id, at):
-            applyingSplit(id: id, at: snap(at))
+            applyingSplit(id: id, at: Self.snap(at))
         case let .merge(left, right):
             applyingMerge(leftId: left, rightId: right)
         case let .carveAwake(start, end):
-            applyingCarveAwake(start: snap(start), end: snap(end))
+            applyingCarveAwake(start: Self.snap(start), end: Self.snap(end))
         }
     }
 
-    private func snap(_ date: Date) -> Date {
+    /// Whether a split at `at` (snapped to the minute, as `applying` does)
+    /// leaves more than a minute on each side of the cut. The split sheet
+    /// enables its button on this, so a cut the transform would refuse is
+    /// never offered.
+    static func canSplit(segmentStart: Date, segmentEnd: Date, at: Date) -> Bool {
+        let cut = snap(at)
+        return cut > segmentStart.addingTimeInterval(60) && cut < segmentEnd.addingTimeInterval(-60)
+    }
+
+    private static func snap(_ date: Date) -> Date {
         let t = date.timeIntervalSinceReferenceDate
         let snapped = (t / SleepTimelineState.snapSeconds).rounded() * SleepTimelineState.snapSeconds
         return Date(timeIntervalSinceReferenceDate: snapped)
     }
 
+    /// A move the clamp leaves where it was records nothing. The summary
+    /// names the boundary actually applied, not the one asked for.
     private func applyingAdjustBoundary(id: UUID, side: SleepTimelineEdit.Side, newTime: Date) -> SleepTimelineState {
-        var state = self
-        guard let idx = state.segments.firstIndex(where: { $0.id == id }) else { return self }
-        var seg = clampedBoundary(state.segments[idx], side: side, newTime: newTime)
-        guard seg.end > seg.start else { return self }
+        guard let idx = segments.firstIndex(where: { $0.id == id }) else { return self }
+        let old = segments[idx]
+        var seg = clampedBoundary(old, side: side, newTime: newTime)
+        guard seg.end > seg.start, seg.start != old.start || seg.end != old.end else { return self }
         // Clip intervals to the new segment window. `clipIntervals` preserves
         // provenance, so Watch-origin intervals whose timestamps weren't
         // actually trimmed keep their original source.
-        seg.intervals = SleepMergingPipeline.clipIntervals(seg.intervals, to: seg.start, end: seg.end)
+        let kept = SleepMergingPipeline.clipIntervals(seg.intervals, to: seg.start, end: seg.end)
+        seg.intervals = (kept + Self.extensionFill(from: old, to: seg)).sorted { $0.start < $1.start }
+        var state = self
         state.segments[idx] = seg
+        let applied = side == .start ? seg.start : seg.end
         state.edits.append(SleepEditRecord(
             kind: .adjustBoundary,
-            summary: "\(side == .start ? "Start" : "End") moved to \(Self.formatTime(newTime))"
+            summary: "\(side == .start ? "Start" : "End") moved to \(Self.formatTime(applied))"
         ))
         return state.normalized()
+    }
+
+    /// The time a boundary move newly brings into a segment, as unstaged
+    /// sleep the user declared: pulling wake time later says you were still
+    /// asleep, so the extension counts toward sleep and time in bed.
+    private static func extensionFill(from old: Segment, to new: Segment) -> [HealthKitManager.SleepStageInterval] {
+        var fill: [HealthKitManager.SleepStageInterval] = []
+        if new.start < old.start {
+            fill.append(.init(stage: .unspecified, start: new.start, end: old.start, provenance: .userAdjusted))
+        }
+        if new.end > old.end {
+            fill.append(.init(stage: .unspecified, start: old.end, end: new.end, provenance: .userAdjusted))
+        }
+        return fill
     }
 
     /// Only the parts of `[start, end]` not already covered by a segment are
@@ -187,9 +234,10 @@ extension SleepTimelineState {
         guard !pieces.isEmpty else { return self }
         var state = self
         state.segments.append(contentsOf: pieces.map { Self.userSegment(start: $0.start, end: $0.end) })
+        let added = pieces.reduce(0) { $0 + $1.end.timeIntervalSince($1.start) }
         state.edits.append(SleepEditRecord(
             kind: .addSegment,
-            summary: "Added \(Self.formatDuration(end.timeIntervalSince(start))) at \(Self.formatTime(start))"
+            summary: "Added \(Self.formatDuration(added)) at \(Self.formatTime(pieces[0].start))"
         ))
         return state.normalized()
     }
@@ -208,7 +256,7 @@ extension SleepTimelineState {
     private func applyingSplit(id: UUID, at: Date) -> SleepTimelineState {
         guard let idx = segments.firstIndex(where: { $0.id == id }) else { return self }
         let seg = segments[idx]
-        guard at > seg.start.addingTimeInterval(60), at < seg.end.addingTimeInterval(-60) else { return self }
+        guard Self.canSplit(segmentStart: seg.start, segmentEnd: seg.end, at: at) else { return self }
 
         let leftIntervals = SleepMergingPipeline.clipIntervals(seg.intervals, to: seg.start, end: at)
         let rightIntervals = SleepMergingPipeline.clipIntervals(seg.intervals, to: at, end: seg.end)
@@ -237,7 +285,7 @@ extension SleepTimelineState {
             id: UUID(),
             start: a.start,
             end: b.end,
-            intervals: (a.intervals + b.intervals).sorted { $0.start < $1.start }
+            intervals: (a.intervals + Self.mergeGapFill(between: a, and: b) + b.intervals).sorted { $0.start < $1.start }
         )
         var state = self
         // Remove the higher index first so the lower one stays valid.
@@ -259,6 +307,14 @@ extension SleepTimelineState {
             summary: "Carved \(Self.formatDuration(end.timeIntervalSince(start))) awake at \(Self.formatTime(start))"
         ))
         return state.normalized()
+    }
+
+    /// The wake that separated two merged segments, as awake time inside the
+    /// merged one: it now lies between its sleep start and end, so it counts
+    /// toward time in bed, not toward sleep. Empty when they touch.
+    private static func mergeGapFill(between a: Segment, and b: Segment) -> [HealthKitManager.SleepStageInterval] {
+        guard b.start > a.end else { return [] }
+        return [.init(stage: .awake, start: a.end, end: b.start, provenance: .userAdjusted)]
     }
 
     /// The segments with the window marked awake, each clipped to its own

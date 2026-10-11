@@ -10,67 +10,29 @@
   "mem:HRVAnalysisPipeline.nadirWindowMs = 30_000"
  ],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "broken",
-   "sev": "med",
-   "text": "nocturnalMedianHR (and from it nocturnalHRDip) is computed from the clean RR of the analysis window passed in, which on the main overnight path is the selected recovery window (the calmest slice) or a peak-capacity slice, not the whole night; the stored 'nocturnal HR dip' compares daytime resting HR with that slice's median and is larger than the whole-night dip it is named after.",
-   "evidence": [
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift:88",
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift:94",
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift:101",
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift:64",
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift:136"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "func HRVAnalysisPipeline.nocturnalMedianHR(from:)",
-   "hash": "423d438cde42e0f8",
-   "does": "Median HR (60000/RR) of positive RR values; nil when input or valid values are empty.",
+   "hash": "d7840513ece28133",
+   "does": "Median HR (60000/RR) of the positive RR values via RecurrenceClassifier.median; nil when there is none.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.median(_:)"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+1",
-     "cond": "cleanRRs non-empty",
-     "effect": "false: nil"
-    },
-    {
-     "at": "+2",
      "cond": "rr > 0 ?:",
-     "effect": "non-positive RR dropped"
-    },
-    {
-     "at": "+4",
-     "cond": "any valid HR",
-     "effect": "false: nil"
-    },
-    {
-     "at": "+5",
-     "cond": "even count",
-     "effect": "true: mean of middle two; false: middle value"
+     "effect": "non-positive RR dropped; empty → nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Hand-rolled median. The same median-of-sorted logic also exists as RecurrenceClassifier.median, BeatConsistency.median, HealthKitManager+HeartRate median, AppFactResolver+WorkoutDetail median and ArtifactDetector.medianOf.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift:20",
-      "Emuqu/Sources/Services/RecurrenceClassifier.swift:322",
-      "Emuqu/Sources/Analysis/BeatConsistency.swift:536",
-      "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift:233"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {}
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.median(_:)": "90b90f779a840a26"
+   }
   },
   {
    "key": "func HRVAnalysisPipeline.nocturnalHRDip(daytimeHR:nocturnalMedian:)",
@@ -139,7 +101,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFrequencyDomain(_:flags:windowStart:windowEnd:)": "036ebb2ea5297c4c"
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFrequencyDomain(_:flags:windowStart:windowEnd:)": "06cef575141d8463"
    }
   },
   {
@@ -192,8 +154,8 @@
   },
   {
    "key": "func HRVAnalysisPipeline.computeANSMetrics(series:flags:windowStart:windowEnd:timeDomain:nonlinear:daytimeRestingHR:config:)",
-   "hash": "b6ffaf4a0b856314",
-   "does": "Assembles ANSMetrics from the window's clean RR: Baevsky stress index, PNS index, SNS index (only when stress index exists), readiness score, respiration rate, nocturnal median HR and dip.",
+   "hash": "ad291f5d16d1a6cf",
+   "does": "Assembles ANSMetrics: from the window's clean RR the Baevsky stress index, PNS index, SNS index (only when stress index exists), readiness score (config optional: none means no baseline) and respiration rate; from every clean beat of the series (as attachOvernightHRStats) the nocturnal median HR and the dip against daytime resting HR.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.extractCleanRRs(series:flags:windowStart:windowEnd:)",
@@ -212,28 +174,34 @@
    "deps": {
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.extractCleanRRs(series:flags:windowStart:windowEnd:)": "52f14825fad851f7",
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalDip(daytimeRestingHR:nocturnalMedian:)": "ca85a19034299ab3",
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalMedianHR(from:)": "77131ad0c4ed2e97",
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.readinessScore(timeDomain:nonlinear:pnsIndex:snsIndex:config:)": "d059fbbf3d28f7d3",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalMedianHR(from:)": "f6c9619a31b926ae",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.readinessScore(timeDomain:nonlinear:pnsIndex:snsIndex:config:)": "7219e5e06dd95935",
     "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "e69392b38c207528",
     "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computePNSIndex(meanRR:rmssd:sd1:)": "5884d2ca78926361",
     "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeSNSIndex(meanHR:stressIndex:sd2:)": "e8298f96faf8b9fa",
-    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeStressIndex(_:)": "adf90ec69698848d"
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeStressIndex(_:)": "114358ad4d451629"
    }
   },
   {
    "key": "func HRVAnalysisPipeline.readinessScore(timeDomain:nonlinear:pnsIndex:snsIndex:config:)",
-   "hash": "e365aaf20ac4ee9b",
-   "does": "Delegates readiness to StressAnalyzer.computeReadinessScore with RMSSD, config baseline RMSSD, DFA alpha1, PNS/SNS, training load adjustment and VO2max.",
+   "hash": "317312164c8315af",
+   "does": "Delegates readiness to StressAnalyzer.computeReadinessScore with RMSSD, DFA alpha1, PNS/SNS and, from the optional config, baseline RMSSD, training load adjustment (0 without config) and VO2max; without a config the score uses the absolute RMSSD bands instead of a baseline.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeReadinessScore(rmssd:baselineRMSSD:alpha1:pnsIndex:snsIndex:trainingLoadAdjustment:vo2Max:)"
    ],
    "reads": [],
    "writes": [],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+15",
+     "cond": "config nil",
+     "effect": "no baseline / VO2max, load adjustment 0"
+    }
+   ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeReadinessScore(rmssd:baselineRMSSD:alpha1:pnsIndex:snsIndex:trainingLoadAdjustment:vo2Max:)": "98cf8ae21289221d"
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeReadinessScore(rmssd:baselineRMSSD:alpha1:pnsIndex:snsIndex:trainingLoadAdjustment:vo2Max:)": "a3386b11d7b81c53"
    }
   },
   {

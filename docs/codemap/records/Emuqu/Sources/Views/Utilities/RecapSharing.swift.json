@@ -1,48 +1,39 @@
 {
  "file": "Emuqu/Sources/Views/Utilities/RecapSharing.swift",
- "hash": "32db3974b91ddb72",
+ "hash": "b6783d92fd1e8e3c",
  "role": "Free functions for sharing the recap card: write a named PNG to tmp, find the topmost presenter, present a UIActivityViewController with an iPad popover anchor.",
  "types": [],
- "state": [],
+ "state": [
+  "mem:recapShareDirectory (private global let: tmp/RecapShare/)"
+ ],
  "toplevel": "Global free functions only; callers DashboardV2View+Chips.swift:391-392, RecoveryScoreDetailView+Panels.swift:378-379, PDFPreviewView.Coordinator.shareAction.",
  "flags": [],
  "units": [
   {
    "key": "func recapActivityItem(image:score:date:)",
-   "hash": "37750ea888a6641e",
-   "does": "Writes the image PNG to tmp/emuqu-<yyyy-MM-dd>-score-<score>.png (POSIX Gregorian date) and returns that URL; if pngData is nil or the write throws (logged by attempt), returns the UIImage itself.",
+   "hash": "c44fc3b74494f42b",
+   "does": "Creates tmp/RecapShare/ and writes the image PNG there as emuqu-<yyyy-MM-dd>-score-<score>.png (POSIX Gregorian date), returning that URL (presentShareSheet deletes it when the sheet closes); if pngData is nil, or the directory create or write throws (logged by attempt), returns the UIImage itself.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
     "ext:UIImage.pngData",
-    "ext:Data.write(to:)"
+    "ext:Data.write(to:)",
+    "ext:FileManager.createDirectory"
    ],
    "reads": [],
    "writes": [
-    "file:tmp/emuqu-<date>-score-<score>.png"
+    "file:tmp/RecapShare/emuqu-<date>-score-<score>.png"
    ],
    "branches": [
     {
-     "at": "+9",
-     "cond": "pngData non-nil and write succeeded",
-     "effect": "return file URL; else return raw image (generic attachment name)"
+     "at": "+10",
+     "cond": "pngData nil or createDirectory/write fails",
+     "effect": "return the UIImage"
     }
    ],
-   "flags": [
-    {
-     "kind": "privacy",
-     "sev": "low",
-     "text": "The PNG containing the user's recovery score (also in the filename) is written to the temporary directory and never deleted after sharing; it persists until iOS purges tmp.",
-     "evidence": [
-      "Emuqu/Sources/Views/Utilities/RecapSharing.swift:25",
-      "Emuqu/Sources/Views/Utilities/RecapSharing.swift:26"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5",
-    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
    }
   },
   {
@@ -76,25 +67,74 @@
    "deps": {}
   },
   {
-   "key": "func presentShareSheet(activityItem:from:)",
-   "hash": "1d4a66222078f6b7",
-   "does": "Creates a UIActivityViewController for one item, anchors its popover to the presenter's view centre (no arrow) when one exists (iPad), and presents it.",
+   "key": "func recapShareFile(_:)",
+   "hash": "6ac2abd067e10312",
+   "does": "The item as a file URL when it is a URL directly inside recapShareDirectory (a recap PNG); nil otherwise (e.g. a PDF the preview still shows).",
    "entry": null,
-   "calls": [
-    "ext:UIActivityViewController",
-    "ext:UIViewController.present"
-   ],
+   "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+4",
-     "cond": "popoverPresentationController non-nil (iPad)",
-     "effect": "set source view/rect, no arrows; iPhone skips"
+     "at": "+1",
+     "cond": "not a file URL",
+     "effect": "nil"
+    },
+    {
+     "at": "+3",
+     "cond": "folder != recapShareDirectory",
+     "effect": "nil"
     }
    ],
    "flags": [],
    "deps": {}
+  },
+  {
+   "key": "func removeAfterSharing(_:)",
+   "hash": "a3d6cc225f592bd3",
+   "does": "Returns a UIActivityViewController completion handler that deletes the given file (failure logged by attempt).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [],
+   "writes": [
+    "file:tmp/RecapShare/<file> (deleted)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func presentShareSheet(activityItem:from:)",
+   "hash": "0f195386439d10eb",
+   "does": "Creates a UIActivityViewController for one item; when the item is a recap PNG (recapShareFile) sets a completion that deletes it once the sheet closes (shared or cancelled); anchors its popover to the presenter's view centre (no arrow) when one exists (iPad), and presents it.",
+   "entry": null,
+   "calls": [
+    "ext:UIActivityViewController",
+    "ext:UIViewController.present",
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func recapShareFile(_:)",
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func removeAfterSharing(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:tmp/RecapShare/<file> (deleted on completion)"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "popoverPresentationController present (iPad)",
+     "effect": "anchor to presenter view centre"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func recapShareFile(_:)": "8fd29c9b1d6d4f0c",
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func removeAfterSharing(_:)": "a8b4a17862f32112"
+   }
   }
  ],
  "deps": {}

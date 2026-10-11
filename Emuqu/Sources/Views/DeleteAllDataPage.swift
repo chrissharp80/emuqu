@@ -212,6 +212,10 @@ struct DeleteAllDataPage: View {
             )
             report = result
             isPurging = false
+            // A rerun (the retry for a failed iCloud deletion) needs the
+            // phrase typed again, like the first run, so a stray second
+            // confirmation cannot start another full purge.
+            typedConfirmation = ""
         }
     }
 }

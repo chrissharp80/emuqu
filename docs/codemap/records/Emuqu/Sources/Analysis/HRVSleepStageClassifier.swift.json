@@ -1,15 +1,15 @@
 {
  "file": "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift",
- "hash": "8bdd8d2bc90cfcd3",
+ "hash": "61abbd4976877e05",
  "role": "RR-interval based sleep-stage classifier: slices the sleep span into 5-min windows, computes HR/RMSSD/SDNN/CV/DFA-a1/LF-HF/HF features, rank-normalises them within the night, scores deep/REM/awake with weighted linear combos plus temporal priors, and returns stage intervals and per-stage minutes. Used standalone (HRSleepEstimator, SleepResolver row 2) and for Watch augmentation (+Watch extension).",
  "types": [
   "HRVSleepStageClassifier: enum (namespace) — classifier",
   "ClassificationResult: struct — intervals + deep/rem/core/awake minutes",
-  "WindowScores: struct — per-window deep/rem/awake scores, classified stage, hasFreqDomain",
+  "WindowScores: struct — per-window deep/rem/awake scores, classified stage, hasFreqDomain (this window had LF/HF), remEvidence (REM score before the first-hour suppression)",
   "AugmentationResult: struct — augmented intervals, minutes, augmentation list",
   "Augmentation: struct — one overridden epoch",
   "FeatureWindow: struct — one 5-min window's features",
-  "FeatureRanks: private struct — per-feature rank arrays"
+  "FeatureRanks: private struct — per-feature rank arrays plus which windows had their own LF/HF"
  ],
  "state": [
   "mem:HRVSleepStageClassifier.windowSizeMs = 300000",
@@ -147,79 +147,37 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.buildIntervals(windows:stages:)": "fa274e37415edfb5",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.buildIntervals(windows:stages:)": "9449fc1c4099c41a",
     "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.smoothStages(_:)": "5ad21ea661efbb1a",
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.buildFeatureWindows(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "e5152bee7dc8280c",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.buildFeatureWindows(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "21b30303ee6cdb18",
     "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classifyWindows(_:sleepStartMs:)": "3fc39795d549208e",
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.summarise(_:)": "7c556beb3436cd00",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.summarise(_:)": "f5f77369fdafa2ed",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
    "key": "func HRVSleepStageClassifier.summarise(_:)",
-   "hash": "c4ca6cd6d6fb8639",
-   "does": "Sums interval durationMinutes into deep/rem/core/awake; .unspecified counted as core. Returns ClassificationResult.",
+   "hash": "dbe23c0a0de21b58",
+   "does": "Packs the intervals and their per-stage minutes from accumulateStageMinutes (.unspecified counted as core) into a ClassificationResult.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.accumulateStageMinutes(_:)"
    ],
    "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "for each interval",
-     "effect": "accumulate minutes"
-    },
-    {
-     "at": "+5",
-     "cond": "stage .deep",
-     "effect": "deep += minutes"
-    },
-    {
-     "at": "+6",
-     "cond": "stage .rem",
-     "effect": "rem += minutes"
-    },
-    {
-     "at": "+7",
-     "cond": "stage .core",
-     "effect": "core += minutes"
-    },
-    {
-     "at": "+8",
-     "cond": "stage .awake",
-     "effect": "awake += minutes"
-    },
-    {
-     "at": "+9",
-     "cond": "stage .unspecified",
-     "effect": "core += minutes (classifier never emits .unspecified, so unreachable from classify)"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same per-stage minute accumulation as HRVSleepStageClassifier.accumulateStageMinutes (identical switch incl. unspecified→core) and near-copy of SleepMergingPipeline.accumulateStageMinutes (which keeps unspecified separate).",
-     "evidence": [
-      "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift:144",
-      "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift:257",
-      "Emuqu/Sources/Collection/SleepMergingPipeline.swift:82"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "branches": [],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes": "6f9bf915550a68c5"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.accumulateStageMinutes(_:)": "c0f3f537f7c24778"
    }
   },
   {
    "key": "func HRVSleepStageClassifier.buildFeatureWindows(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)",
-   "hash": "71fc85ce13199f23",
-   "does": "Walks the sleep span in 5-min steps; for each window takes the RR points with t_ms in [start,end) via an RRWindowSweep and appends a FeatureWindow when featureWindow() returns one. Requires rrPoints sorted by t_ms (sweep contract).",
+   "hash": "4412041bf5977954",
+   "does": "Walks [sleepStartMs, sleepEndMs) (wall-clock ms from recordingStart) in 5-min steps over the beats re-timed on the wall clock (wallClockTimed: exportTimeMs, sorted when not already in order); for each window takes the beats in [start,end) via an RRWindowSweep and appends a FeatureWindow when featureWindow() returns one. Window membership, bounds and dates are all on the wall clock.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.wallClockTimed(_:)",
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::init RRWindowSweep(_:)",
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)",
     "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.featureWindow(points:windowStart:windowEnd:recordingStart:)"
@@ -238,28 +196,43 @@
      "effect": "true: append; false: window skipped (leaves a gap)"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Correct window membership depends on rrPoints being t_ms-monotonic; RRWindowSweep never rewinds, so an unsorted merged series silently yields wrong windows.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift:176",
-      "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift:12"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.featureWindow(points:windowStart:windowEnd:recordingStart:)": "ead6a2a14e255090",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.featureWindow(points:windowStart:windowEnd:recordingStart:)": "c2ed24ab0fd97f21",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.wallClockTimed(_:)": "a6af4add81b57a2f",
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "1f1571698d506b97",
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::init RRWindowSweep(_:)": "7c6e5b3edcc32f9f"
    }
   },
   {
+   "key": "func HRVSleepStageClassifier.wallClockTimed(_:)",
+   "hash": "3cd623921dc6a26b",
+   "does": "The beats with t_ms replaced by exportTimeMs (wall clock when streamed, else t_ms); kept in their order when already time-ordered (beats of one BLE packet share a stamp), sorted by time otherwise so the window sweep never skips beats.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::var RRPoint.exportTimeMs",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "already non-decreasing",
+     "effect": "as is; else sorted by time"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::var RRPoint.exportTimeMs": "64723cc7502a0ba5",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550"
+   }
+  },
+  {
    "key": "func HRVSleepStageClassifier.featureWindow(points:windowStart:windowEnd:recordingStart:)",
    "hash": "4b0fb40966103924",
-   "does": "Computes one window's features: requires >=10 points and >=8 physiologically valid RRs, then HR = 60000/meanRR, RMSSD/SDNN/CV, DFA a1 (>=64 beats) and LF/HF + HF power from the valid points; dates are recordingStart + ms offsets. midpointMs is always windowStart + 2.5 min even for a truncated last window.",
+   "does": "Computes one window's features: requires >=10 points and >=8 physiologically valid RRs, then HR = 60000/meanRR, RMSSD/SDNN/CV, DFA a1 (>=64 beats) and LF/HF + HF power from the valid points; dates are recordingStart + the window's wall-clock ms offsets (buildFeatureWindows windows on the wall clock). midpointMs is always windowStart + 2.5 min even for a truncated last window.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/Constants.swift::func HRVConstants.RRInterval.isValid(_:)",
@@ -281,27 +254,10 @@
      "effect": "false: return nil (artifact-ridden window dropped)"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "Window dates are recordingStart + t_ms, and t_ms is the beat-sum clock that falls behind the wall clock after BLE drops (RRModels.swift:9-13; exportTimeMs = wallClockMs ?? t_ms). Callers pass wall-clock envelope offsets as sleepStartMs/sleepEndMs, so on a streamed night with packet loss every classified/augmented epoch after the first drop is dated earlier than when it happened: row-2 stage intervals (shown and exported to HealthKit) shift early, and row-1 augmentation repaints Watch intervals at the wrong times. HRSleepEstimator corrects only onset/wake with wallClockMs(forBeatSumMs:), not these intervals.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift:206",
-      "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift:207",
-      "Emuqu/Sources/Models/RRModels.swift:9",
-      "Emuqu/Sources/Collection/HealthExportIdentity.swift:82",
-      "Emuqu/Sources/Collection/HRSleepEstimator.swift:74",
-      "Emuqu/Sources/Collection/HRSleepEstimator.swift:89",
-      "Emuqu/Sources/Analysis/SleepResolver.swift:602",
-      "Emuqu/Sources/Analysis/SleepResolver.swift:625"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowAlpha1(_:)": "e229f626fb9eadc2",
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowFrequencyMetrics(_:)": "9dd9570dd88e91c4",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowFrequencyMetrics(_:)": "f561cc45b59bae7a",
     "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:)": "d8d3dfc21574a285",
     "Emuqu/Sources/Utilities/Constants.swift::func HRVConstants.RRInterval.isValid(_:)": "330523605d6eeba2"
    }
@@ -357,33 +313,42 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "93a8b95af9c5a354"
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "3401262883b38a4b"
    }
   },
   {
    "key": "func HRVSleepStageClassifier.windowFrequencyMetrics(_:)",
-   "hash": "3dad22fdffbcd9b7",
-   "does": "Filters valid RR points and runs FrequencyDomainAnalyzer.computeFromCleanPairs on (midpoint seconds, rr ms) pairs; nil when the analyzer cannot compute.",
+   "hash": "9ea45202dd0fe97d",
+   "does": "Runs FrequencyDomainAnalyzer.computeFromCleanPairs on (time, rr) pairs of the window's valid RR points, each time the beat's midpoint on the beat-sum clock within the window (sum of the intervals before it, invalid ones included) — not the wall-clock stamps, which repeat within a BLE packet; nil when the analyzer cannot compute.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/Constants.swift::func HRVConstants.RRInterval.isValid(_:)",
-    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.midpointMs",
     "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFromCleanPairs(times:rrValues:)"
    ],
    "reads": [],
    "writes": [],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "each point",
+     "effect": "advances the beat-sum clock"
+    },
+    {
+     "at": "+5",
+     "cond": "valid RR",
+     "effect": "appends (midpoint time, rr); else skipped"
+    }
+   ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFromCleanPairs(times:rrValues:)": "c1608ecf0b3e784d",
-    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.midpointMs": "f0542bc9ef0a60d7",
     "Emuqu/Sources/Utilities/Constants.swift::func HRVConstants.RRInterval.isValid(_:)": "330523605d6eeba2"
    }
   },
   {
    "key": "func HRVSleepStageClassifier.computeWindowScores(_:sleepStartMs:)",
    "hash": "1d2ebf3e1a9af1ff",
-   "does": "Ranks features across the night, decides night-level hasFreqDomain/hasDFA (any window has the feature), and computes per-window WindowScores using elapsed fraction of the night.",
+   "does": "Ranks features across the night, decides night-level hasFreqDomain/hasDFA (any window has the feature) for the scoring weights, and computes per-window WindowScores using elapsed fraction of the night; each window's own hasFreqDomain flag is true only when it had its own LF/HF.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.computeFeatureRanks(_:)",
@@ -398,29 +363,16 @@
      "effect": "no windows: night duration = max(1, 0) = 1 ms; otherwise last midpoint − start"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "hasFreqDomain is a whole-night flag: windows whose own LF/HF was nil get the filler 2.0 ranked against real values but are still scored with the frequency-domain weights and pass the REM-augmentation LF/HF gate.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift:296",
-      "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift:353",
-      "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift:250"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.computeFeatureRanks(_:)": "df6fbe2188846900",
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowScores(ranks:index:elapsedMs:nightDurationMs:hasFreqDomain:hasDFA:)": "e9758e0244a6c472",
-    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.midpointMs": "f0542bc9ef0a60d7"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.computeFeatureRanks(_:)": "187a7d06ec98e6c0",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowScores(ranks:index:elapsedMs:nightDurationMs:hasFreqDomain:hasDFA:)": "ed52ed671a4c445d"
    }
   },
   {
    "key": "func HRVSleepStageClassifier.windowScores(ranks:index:elapsedMs:nightDurationMs:hasFreqDomain:hasDFA:)",
-   "hash": "ee56fa037e04b377",
-   "does": "Scores one window: deep and REM scores from ranks + temporal prior, REM forced to 0 within the first 60 min after sleepStartMs, awake score, then classifyStage.",
+   "hash": "4bb55ef58d613dc8",
+   "does": "Scores one window: deep and REM scores from ranks + temporal prior, REM forced to 0 within the first 60 min after sleepStartMs (the unforced score kept as remEvidence for augmentation), awake score, classifyStage; hasFreqDomain is the night flag AND this window's own LF/HF.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.computeDeepScore(ranks:index:nightFraction:hasFreqDomain:hasDFA:)",
@@ -437,18 +389,7 @@
      "effect": "true: remScore = 0; false: keep computed REM score"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "med",
-     "text": "Forcing remScore to 0 in the first hour is also fed to Watch augmentation, where the REM→Deep cross-stage rule requires the Watch stage's own score < 0.40 as 'strong opposing evidence'; the forced 0 satisfies that automatically, so any Watch REM epoch in the first hour with deepScore > 0.72 is repainted deep without the intended REM-score check.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift:327",
-      "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift:235"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classifyStage(deepScore:remScore:awakeScore:)": "b6953085aa1e77c6",
     "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.computeAwakeScore(ranks:index:hasFreqDomain:)": "6f65cca9ff157299",
@@ -458,8 +399,8 @@
   },
   {
    "key": "func HRVSleepStageClassifier.computeFeatureRanks(_:)",
-   "hash": "4802f9bb993c9474",
-   "does": "Builds rank arrays per feature; missing HF → 0, LF/HF → 2.0, DFA → night's upper-median a1 (or fallbackMedianDFA 0.85 when the night has none).",
+   "hash": "8ee7147470f1353f",
+   "does": "Builds rank arrays per feature; missing HF → 0, LF/HF → 2.0, DFA → night's upper-median a1 (or fallbackMedianDFA 0.85 when the night has none). Also records which windows had their own LF/HF (lfHfPresent).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.computeRanks(_:)"
@@ -666,7 +607,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.computeWindowScores(_:sleepStartMs:)": "ca56192b37a63184"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.computeWindowScores(_:sleepStartMs:)": "ce4e4c3f550a3ea6"
    }
   },
   {

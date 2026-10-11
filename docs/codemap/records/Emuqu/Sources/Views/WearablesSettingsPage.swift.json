@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/WearablesSettingsPage.swift",
- "hash": "10bbc4937921e017",
+ "hash": "0e19118cb6a9ca1f",
  "role": "Settings > Wearables page: BLE foot-pod scan/pair/reconnect/forget, Apple Health access re-request + help sheet, BLE broadcaster (Zwift) toggle with first-enable disclosure, Apple Health export toggles, and a user-triggered delete of all app-written sleep samples in Apple Health.",
  "types": [
   "WearablesSettingsPage: struct (View) — the Wearables settings page, pushed from SettingsView.swift:211 and SettingsSearchIndex.swift:113",
@@ -12,65 +12,8 @@
   "@State view-local: isCleaningSleepWrites, showingSleepCleanupConfirm, showingSleepCleanupResult, sleepCleanupMessage, isReprompting, showingHKHelpSheet, showingHealthAlreadyDecided, showingBroadcastExplainer"
  ],
  "toplevel": "Environment reads: dependencies, accessibilityReduceTransparency, SettingsManager, RRCollector, LanguageManager (languageManager is declared at line 22 but never used in the file). @State flags default false/''; @AppStorage broadcastAcknowledged defaults false. Extension at 595 declares static fastestAnsweredPrompt = 1.5.",
- "flags": [
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "@Environment(LanguageManager.self) languageManager is declared but never referenced in the file (all strings use LanguageManager.appBundle statically); it only forces callers to inject LanguageManager.",
-   "evidence": [
-    "Emuqu/Sources/Views/WearablesSettingsPage.swift:22"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Three different paths are given for changing Health permissions: the section footer says 'change them in the Health app', the help sheet and alert say 'Settings → Privacy & Security → Health → Emuqu', and PermissionsSettingsPage footer says 'iOS Settings → Health → Data Access & Devices → Emuqu'.",
-   "evidence": [
-    "Emuqu/Sources/Views/WearablesSettingsPage.swift:302",
-    "Emuqu/Sources/Views/WearablesSettingsPage.swift:217",
-    "Emuqu/Sources/Views/WearablesSettingsPage.swift:604",
-    "Emuqu/Sources/Views/SettingsView.swift:569"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
-  {
-   "key": "var WearablesSettingsPage.settingsBinding",
-   "hash": "c89d93d6bf40f369",
-   "does": "Builds a Binding<UserSettings> whose getter returns settingsManager.settings and setter assigns the whole struct back (triggering SettingsManager's didSet save + .flowRecoverySettingsChanged post).",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings"
-   ],
-   "reads": [
-    "mem:SettingsManager.settings"
-   ],
-   "writes": [
-    "mem:SettingsManager.settings"
-   ],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Identical settingsBinding helper is copy-pasted across settings pages.",
-     "evidence": [
-      "Emuqu/Sources/Views/BiometricsSettingsPage.swift:19",
-      "Emuqu/Sources/Views/TrainingSettingsPage.swift:14",
-      "Emuqu/Sources/Views/SettingsView+Pages.swift:9",
-      "Emuqu/Sources/Views/SettingsView+Pages.swift:431",
-      "Emuqu/Sources/Views/SettingsPages+Data.swift:93",
-      "Emuqu/Sources/Views/Onboarding/OnboardingBackupPage.swift:10"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841"
-   }
-  },
   {
    "key": "var WearablesSettingsPage.footPod",
    "hash": "75bf6eca6e04a1f2",
@@ -240,11 +183,11 @@
   },
   {
    "key": "var WearablesSettingsPage.appleHealthExportSection",
-   "hash": "980b47036591b5f1",
+   "hash": "093b1bcea7d64734",
    "does": "Apple Health Export section: master Toggle bound to settings.enableHealthKitExport plus per-metric toggles; footer claims HRV/HR written after each recording and sleep only fill-in when Health has none.",
    "entry": "SwiftUI view building",
    "calls": [
-    "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.settingsBinding",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
     "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.healthKitExportToggles",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
@@ -257,18 +200,18 @@
    "branches": [],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.healthKitExportToggles": "cacc7832cd0b66a8",
-    "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.settingsBinding": "503dc68886623ffb"
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.healthKitExportToggles": "db7a083e7d638a7b"
    }
   },
   {
    "key": "var WearablesSettingsPage.healthKitExportToggles",
-   "hash": "fb44fa213236e5d5",
-   "does": "When export is enabled, shows toggles for exportSDNN, exportHeartRate, exportRestingHeartRate, exportSleepData bound into settings.",
+   "hash": "8ddbbdb188669372",
+   "does": "When export is enabled, shows toggles for exportSDNN, exportHeartRate, exportRestingHeartRate, exportSleepData bound through Bindable(settingsManager).settings.",
    "entry": "SwiftUI view building",
    "calls": [
-    "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.settingsBinding",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [
@@ -286,8 +229,9 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.settingsBinding": "503dc68886623ffb"
+    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.exportSDNN(value:at:sessionId:)": "00a9060158c34297",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },
   {
@@ -365,16 +309,17 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.healthKitHelpActions": "c515faeb9f73ff1b",
-    "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.healthKitHelpBody": "7ab4021c6d0992c0"
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.healthKitHelpBody": "254228325146ea02"
    }
   },
   {
    "key": "var WearablesSettingsPage.healthKitHelpBody",
-   "hash": "7285a64b969417c1",
-   "does": "Scrollable explanatory text: denied access cannot be re-prompted, step list, and why no deep link exists (button opens app's Settings page).",
+   "hash": "e77f3e5c84c7e217",
+   "does": "Scrollable explanatory text: denied access cannot be re-prompted, step list, why no deep link exists, then healthKitHelpPaths.",
    "entry": "SwiftUI view building",
    "calls": [
     "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.healthKitHelpSteps",
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.healthKitHelpPaths",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
@@ -383,7 +328,24 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.healthKitHelpPaths": "beaf2918e0fe99ba",
     "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.healthKitHelpSteps": "e08ecb44e793ecc8"
+   }
+  },
+  {
+   "key": "var WearablesSettingsPage.healthKitHelpPaths",
+   "hash": "8f6ec94f8ba3bc29",
+   "does": "Two paragraphs: the Settings → Privacy & Security → Health → Emuqu path the button leads to, and the Health-app path (picture → Privacy → Apps and Services → Emuqu) the section footer names, noting both reach the same switches.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },
   {
@@ -421,42 +383,25 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/Utilities/AdaptiveMaterial.swift::func AdaptiveMaterial.ultraThin(_:)": "c4738b7db48b800b",
-    "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.openSettingsButton": "56ff0d121271ac1d"
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.openSettingsButton": "6a0afb2c969d4262"
    }
   },
   {
    "key": "var WearablesSettingsPage.openSettingsButton",
-   "hash": "aa7abdedfc0a93ba",
-   "does": "Button that opens UIApplication.openSettingsURLString and closes the help sheet.",
+   "hash": "95bb6166839c5534",
+   "does": "Button that calls the shared openAppSettings() and closes the help sheet.",
    "entry": "SwiftUI button tap",
    "calls": [
-    "ext:UIApplication.shared.open",
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::func openAppSettings()",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "URL(string: openSettingsURLString) non-nil",
-     "effect": "true: open the app's Settings page; false: skip opening silently; sheet closes either way"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same open-app-Settings logic as openAppSettings in the same file and openSettingsButton in other views.",
-     "evidence": [
-      "Emuqu/Sources/Views/WearablesSettingsPage.swift:621",
-      "Emuqu/Sources/Views/SettingsView.swift:673",
-      "Emuqu/Sources/Views/DashboardV2View+Cards.swift:155"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "branches": [],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::func openAppSettings()": "2bc87244a367c4be"
    }
   },
   {
@@ -524,7 +469,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/WearablesSettingsPage.swift::func WearablesSettingsPage.repromptHealthKit()": "85012b76b8a69cbf",
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::func WearablesSettingsPage.repromptHealthKit()": "8bc6d4647e6b34a6",
     "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.repromptHealthKitLabel": "fc00296ed949988a"
    }
   },
@@ -552,46 +497,29 @@
   },
   {
    "key": "func WearablesSettingsPage.repromptHealthKit()",
-   "hash": "2fd38af023741564",
-   "does": "Sets isReprompting, calls collector.healthKit.requestAuthorization(), logs any error, and if the call returned in under 1.5 s sets showingHealthAlreadyDecided=true (assumes no permission window was shown).",
+   "hash": "9d1522eafe4373ea",
+   "does": "Sets isReprompting, awaits collector.healthKit.forceReauthorize() (clears the asked-this-process flag so HealthKit is asked again; logs its own failure), and if that returned in under 1.5 s sets showingHealthAlreadyDecided; clears isReprompting on the main actor.",
    "entry": "Re-request button tap",
    "calls": [
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.requestAuthorization()",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.forceReauthorize()"
    ],
    "reads": [
     "mem:HealthKitManager.authorizationRequested"
    ],
    "writes": [
-    "ud:UserDefaultsKeys.healthAccessSkipped (removed by requestAuthorization, HealthKitManager.swift:131)",
-    "mem:HealthKitManager.authorizationRequested (set true by performAuthorization HealthKitManager.swift:546, only when it was false)"
+    "mem:WearablesSettingsPage.isReprompting",
+    "mem:WearablesSettingsPage.showingHealthAlreadyDecided",
+    "mem:HealthKitManager.authorizationRequested",
+    "ud:UserDefaultsKeys.healthAccessSkipped (removed)"
    ],
    "branches": [
     {
      "at": "+6",
-     "cond": "requestAuthorization throws",
-     "effect": "error logged at warning via debugLog and swallowed; flow continues to the timing check, so a failure (e.g. HealthKit unavailable) shows the 'already set' alert instead of an error"
-    },
-    {
-     "at": "+9",
      "cond": "elapsed time since tap < fastestAnsweredPrompt (1.5 s)",
-     "effect": "true: showingHealthAlreadyDecided=true (alert at 596); false: alert not shown. isReprompting cleared either way"
+     "effect": "showingHealthAlreadyDecided=true (also for a failed request, which forceReauthorize only logs)"
     }
    ],
    "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "HealthKitManager.requestAuthorization returns immediately when authorizationRequested is already true in this process (set after any earlier prompt, e.g. at launch), so this button never re-runs HKHealthStore.requestAuthorization after the first request; types never asked about are not prompted, and the 1.5 s heuristic always shows 'already set'. PermissionsSettingsPage uses forceReauthorize(), which clears the flag first, for the same job.",
-     "evidence": [
-      "Emuqu/Sources/Collection/HealthKitManager.swift:135",
-      "Emuqu/Sources/Views/WearablesSettingsPage.swift:332",
-      "Emuqu/Sources/Collection/HealthKitManager.swift:257",
-      "Emuqu/Sources/Views/SettingsView.swift:576",
-      "Emuqu/Sources/Views/WearablesSettingsPage.swift:30"
-     ],
-     "found": "first read, upheld on second"
-    },
     {
      "kind": "fragile",
      "sev": "low",
@@ -602,34 +530,10 @@
       "Emuqu/Sources/Views/WearablesSettingsPage.swift:334"
      ],
      "found": "first read, upheld on second"
-    },
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "The doc comment on the state says requestAuthorization 'will either prompt for any types the user hasn't seen yet, or no-op silently', but HealthKitManager.requestAuthorization returns without calling HealthKit whenever authorizationRequested is already true in the process, so no new types are prompted from this button after launch auth ran.",
-     "evidence": [
-      "Emuqu/Sources/Views/WearablesSettingsPage.swift:30",
-      "Emuqu/Sources/Views/WearablesSettingsPage.swift:33",
-      "Emuqu/Sources/Collection/HealthKitManager.swift:135",
-      "Emuqu/Sources/Services/AppLaunchTasks.swift:736"
-     ],
-     "found": "second read"
-    },
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Two different 'Re-request Apple Health' buttons exist with different implementations: this one (requestAuthorization, no-op after first request) and PermissionsSettingsPage's reRequestHealthAccessButton (forceReauthorize, which actually re-prompts).",
-     "evidence": [
-      "Emuqu/Sources/Views/WearablesSettingsPage.swift:332",
-      "Emuqu/Sources/Views/SettingsView.swift:573",
-      "Emuqu/Sources/Collection/HealthKitManager.swift:257"
-     ],
-     "found": "second read"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.requestAuthorization()": "0554c5246dd39562",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.forceReauthorize()": "3f4950f4d5e04529",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "f61a7a679f5280dd"
    }
   },
@@ -648,32 +552,25 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.broadcastToggle": "227e8d8307f2ca4c"
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.broadcastToggle": "a205aea148e44b33"
    }
   },
   {
    "key": "var WearablesSettingsPage.broadcastToggle",
-   "hash": "f5383d6eecf81dd5",
-   "does": "Toggle bound to settings.enableZwiftBroadcast; turning on before acknowledgement opens the disclosure sheet instead of setting the value; other changes write directly.",
+   "hash": "fd662590a72472fa",
+   "does": "Toggle shown on only when settings.enableZwiftBroadcast AND this device's broadcastAcknowledged (a value restored from iCloud reads off until the disclosure is accepted here); changes go to setBroadcast.",
    "entry": "SwiftUI Toggle binding set",
    "calls": [
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::func WearablesSettingsPage.setBroadcast(_:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [
-    "mem:SettingsManager.settings",
+    "mem:SettingsManager.settings.enableZwiftBroadcast",
     "ud:settings.broadcaster.acknowledged"
    ],
-   "writes": [
-    "mem:SettingsManager.settings"
-   ],
-   "branches": [
-    {
-     "at": "+6",
-     "cond": "newValue && !broadcastAcknowledged",
-     "effect": "true: showingBroadcastExplainer=true, setting unchanged until onAccept; false: settings.enableZwiftBroadcast = newValue (turning off always applies)"
-    }
-   ],
+   "writes": [],
+   "branches": [],
    "flags": [
     {
      "kind": "privacy",
@@ -701,8 +598,47 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::func WearablesSettingsPage.setBroadcast(_:)": "3797152f7bc77e54"
+   }
+  },
+  {
+   "key": "func WearablesSettingsPage.setBroadcast(_:)",
+   "hash": "e8c44e3bcdb5031e",
+   "does": "Turning on without this device's acknowledgement opens the disclosure sheet and leaves the setting; otherwise writes settings.enableZwiftBroadcast, and turning off also stops a running BLE advertisement (zwiftPeripheralBroadcaster.stopBroadcasting).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.stopBroadcasting()",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.zwiftPeripheralBroadcaster"
+   ],
+   "reads": [
+    "ud:settings.broadcaster.acknowledged"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings.enableZwiftBroadcast",
+    "mem:WearablesSettingsPage.showingBroadcastExplainer",
+    "ble:Zwift peripheral advertising (stopped)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "on && !broadcastAcknowledged",
+     "effect": "show disclosure, return"
+    },
+    {
+     "at": "+6",
+     "cond": "!on",
+     "effect": "stopBroadcasting()"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.stopBroadcasting()": "7feff75b4bba15c7",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.zwiftPeripheralBroadcaster": "5bb60ec77d755563"
    }
   },
   {
@@ -792,19 +728,20 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/WearablesSettingsPage.swift::func WearablesSettingsPage.knownFootPodRow(_:)": "049db0e9759939cb",
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::func WearablesSettingsPage.knownFootPodRow(_:)": "c37d15050ddbe4cf",
     "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.footPod": "daa7367400cb053a"
    }
   },
   {
    "key": "func WearablesSettingsPage.knownFootPodRow(_:)",
-   "hash": "f05154a76058381a",
-   "does": "Row button calling footPod.connect(deviceId:) with trailing swipe 'Forget' that calls removeKnownDevice(id:).",
+   "hash": "23273b1c12c8afa2",
+   "does": "Row button calling footPod.connect(deviceId:), disabled while footPodBusy (a pod connected or connecting), with trailing swipe 'Forget' that calls removeKnownDevice(id:).",
    "entry": "SwiftUI button tap / swipe action",
    "calls": [
     "Emuqu/Sources/Collection/FootPodManager.swift::func BLEPeripheralConnecting.connect(deviceId:)",
     "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.removeKnownDevice(id:)",
     "Emuqu/Sources/Views/WearablesSettingsPage.swift::func WearablesSettingsPage.knownFootPodLabel(_:)",
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.footPodBusy",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
@@ -813,58 +750,76 @@
     "ble:foot pod connect"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "Known-pod rows stay tappable while another pod is connected. connect(deviceId:) → attach(peripheral:) replaces activePeripheral and connects the new pod without cancelling the old connection; the old peripheral keeps self as delegate and didUpdateValueFor parses every packet regardless of which peripheral sent it, so speed/cadence/power from two pods interleave in instantaneousSpeedMS/instantaneousPowerWatts; a later disconnect of the old pod runs cleanupAfterDisconnect and marks the manager .disconnected while the new pod is connected.",
-     "evidence": [
-      "Emuqu/Sources/Views/WearablesSettingsPage.swift:419",
-      "Emuqu/Sources/Views/WearablesSettingsPage.swift:426",
-      "Emuqu/Sources/Collection/FootPodManager.swift:66",
-      "Emuqu/Sources/Collection/FootPodManager.swift:77",
-      "Emuqu/Sources/Collection/FootPodManager.swift:284",
-      "Emuqu/Sources/Collection/FootPodManager.swift:518",
-      "Emuqu/Sources/Collection/FootPodManager.swift:439"
-     ],
-     "found": "second read"
-    },
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "When Bluetooth is not yet powered on, connect(deviceId:) only parks pendingReconnectId and returns; lastStatusLine and connectionState are unchanged, so the tap shows no feedback.",
-     "evidence": [
-      "Emuqu/Sources/Collection/FootPodManager.swift:70",
-      "Emuqu/Sources/Collection/FootPodManager.swift:72"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func BLEPeripheralConnecting.connect(deviceId:)": "3235b50b8ba74c15",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func BLEPeripheralConnecting.connect(deviceId:)": "698a62ba3a0c388c",
     "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.removeKnownDevice(id:)": "17ef1f2a2d779957",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/WearablesSettingsPage.swift::func WearablesSettingsPage.knownFootPodLabel(_:)": "103e2319dfac2658",
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::func WearablesSettingsPage.knownFootPodLabel(_:)": "14f9de2d57d57e20",
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.footPod": "daa7367400cb053a",
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.footPodBusy": "ba550f959defcc44"
+   }
+  },
+  {
+   "key": "var WearablesSettingsPage.footPodBusy",
+   "hash": "bf4266d366eafbbb",
+   "does": "True while the foot-pod manager is .connected or .connecting.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:FootPodManager.connectionState"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
     "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.footPod": "daa7367400cb053a"
    }
   },
   {
    "key": "func WearablesSettingsPage.knownFootPodLabel(_:)",
-   "hash": "c3dad9e4c2cc088e",
-   "does": "HStack of capability text and 'Reconnect' label.",
+   "hash": "7e005114db5e2685",
+   "does": "HStack of capability text and knownFootPodAction's label.",
    "entry": "SwiftUI view building",
    "calls": [
     "Emuqu/Sources/Views/WearablesSettingsPage.swift::func WearablesSettingsPage.footPodCapabilities(_:)",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::func WearablesSettingsPage.knownFootPodAction(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryText": "7931f81dc398e9f4",
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::func WearablesSettingsPage.footPodCapabilities(_:)": "c1f2afdb1634f157",
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::func WearablesSettingsPage.knownFootPodAction(_:)": "7ef7a3725b01e3c1"
+   }
+  },
+  {
+   "key": "func WearablesSettingsPage.knownFootPodAction(_:)",
+   "hash": "df399450ace3d0a4",
+   "does": "'Waiting for Bluetooth…' when this pod's id is the manager's pendingReconnectId and the central is not powered on (a tap parked it); otherwise 'Reconnect'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:FootPodManager.pendingReconnectId",
+    "ble:CBCentralManager.state"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "pending for this pod and radio not on",
+     "effect": "'Waiting for Bluetooth…'"
+    }
+   ],
+   "flags": [],
+   "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryText": "5fe81441a0858ebb",
-    "Emuqu/Sources/Views/WearablesSettingsPage.swift::func WearablesSettingsPage.footPodCapabilities(_:)": "c1f2afdb1634f157"
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.footPod": "daa7367400cb053a"
    }
   },
   {
@@ -1244,16 +1199,16 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.healthAlreadyDecidedActions": "a44e35638a9b9351"
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.healthAlreadyDecidedActions": "124b92a265e1dc93"
    }
   },
   {
    "key": "var WearablesSettingsPage.healthAlreadyDecidedActions",
    "hash": "887d30aa88c7161e",
-   "does": "Alert actions: 'Open Settings' (openAppSettings) and OK cancel.",
+   "does": "Alert actions: 'Open Settings' (shared openAppSettings) and OK cancel.",
    "entry": "SwiftUI alert actions",
    "calls": [
-    "Emuqu/Sources/Views/WearablesSettingsPage.swift::func WearablesSettingsPage.openAppSettings()",
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::func openAppSettings()",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
@@ -1262,38 +1217,8 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/WearablesSettingsPage.swift::func WearablesSettingsPage.openAppSettings()": "40deec8e1c0cf7a3"
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::func openAppSettings()": "2bc87244a367c4be"
    }
-  },
-  {
-   "key": "func WearablesSettingsPage.openAppSettings()",
-   "hash": "30c070b9b56e6a16",
-   "does": "Opens the app's iOS Settings page via UIApplication.openSettingsURLString.",
-   "entry": null,
-   "calls": [
-    "ext:UIApplication.shared.open"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "URL(string:) is nil",
-     "effect": "return silently; else open URL"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same logic as openSettingsButton's action in this file.",
-     "evidence": [
-      "Emuqu/Sources/Views/WearablesSettingsPage.swift:254"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
   }
  ],
  "deps": {}

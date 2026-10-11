@@ -75,16 +75,32 @@ extension SessionReanalysisCoordinator {
     /// path has no timeout race (DashboardV2View.refreshDashboard is
     /// local work with no sleep-vs-result race), so this
     /// guard just prevents wasteful double-work.
+    ///
+    /// A duplicate is not dropped, though: it may carry newer inputs (sleep
+    /// that landed after the running pass read HealthKit), so the running
+    /// call makes one trailing pass over the freshly written session, as
+    /// `autoRefreshTodaysSleepIfImproved` does.
     func reanalyzeSession(_ session: HRVSession, method: WindowSelectionMethod = .consolidatedRecovery) async -> HRVSession? {
         if collector.inFlightReanalyses.contains(session.id) {
+            collector.pendingReanalyses.insert(session.id)
             return await coalescedInFlightSession(session)
         }
         collector.inFlightReanalyses.insert(session.id)
         defer { collector.inFlightReanalyses.remove(session.id) }
+        var result = await reanalyzeOnce(session, method: method)
+        while collector.pendingReanalyses.remove(session.id) != nil {
+            debugLog("[Reanalyze] trailing pass for \(session.id.uuidString.prefix(8)) — requested while in flight")
+            result = await reanalyzeOnce(session, method: method) ?? result
+        }
+        return result
+    }
+
+    /// One pass over the session as it is on disk now.
+    private func reanalyzeOnce(_ session: HRVSession, method: WindowSelectionMethod) async -> HRVSession? {
         let fullSession = await fullSessionFromDisk(session)
         let sessionDate = fullSession.endDate ?? fullSession.startDate
         let pastDay = await loadPastDayTrainingLoad(asOf: sessionDate)
-        defer { if let pastDay { collector.pastDayTrainingLoads[pastDay] = nil } }
+        defer { if let pastDay { releasePastDayTrainingLoad(pastDay) } }
         await warmTrainingMetricsCacheIfCold()
         return await reanalysisService.reanalyzeSession(fullSession, method: method)
     }
@@ -92,14 +108,28 @@ extension SessionReanalysisCoordinator {
     /// The analysis reads the load as of the session's date. A past day's load
     /// goes into the per-day store, never the shared current-load cache, so
     /// a live read made meanwhile cannot pick up a past day's numbers. Returns
-    /// the day key to clear afterwards; nil for today, whose load is the cache.
+    /// the day key to release afterwards; nil for today, whose load is the cache.
+    /// Each reanalysis of that day holds the load until it releases it, so two
+    /// sessions of one day (a nap and the night) do not clear it for each other.
     private func loadPastDayTrainingLoad(asOf sessionDate: Date) async -> Date? {
         let calendar = Calendar.current
         guard collector.settingsManager.settings.enableTrainingLoadIntegration,
               !calendar.isDateInToday(sessionDate) else { return nil }
         let day = calendar.startOfDay(for: sessionDate)
+        collector.pastDayTrainingLoadHolders[day, default: 0] += 1
         collector.pastDayTrainingLoads[day] = await collector.healthKit.calculateTrainingLoad(relativeTo: sessionDate)
         return day
+    }
+
+    /// The last reanalysis of a day to finish drops its load.
+    private func releasePastDayTrainingLoad(_ day: Date) {
+        let holders = (collector.pastDayTrainingLoadHolders[day] ?? 1) - 1
+        guard holders <= 0 else {
+            collector.pastDayTrainingLoadHolders[day] = holders
+            return
+        }
+        collector.pastDayTrainingLoadHolders[day] = nil
+        collector.pastDayTrainingLoads[day] = nil
     }
 
     /// Return the CURRENT session, not nil. At the call site a
@@ -317,7 +347,7 @@ extension SessionReanalysisCoordinator {
     /// Re-analyze all sessions with current algorithms.
     /// Returns (updated, skipped) where skipped counts sessions with manual window overrides.
     func reanalyzeAllSessions(from: Date? = nil, to: Date? = nil, progress: @escaping (Int, Int) -> Void = { _, _ in }) async -> (updated: Int, skipped: Int) {
-        await reanalysisService.reanalyzeAllSessions(sessions: collector.archivedSessions, from: from, to: to, progress: progress)
+        await reanalysisService.reanalyzeAllSessions(sessions: collector.archivedSessionsOffMain(), from: from, to: to, progress: progress)
     }
 
     // MARK: - Sleep Retro-Apply
@@ -330,7 +360,7 @@ extension SessionReanalysisCoordinator {
     ///   3. Recalculates the recovery score with the updated sleep data
     /// It never writes sleep to Apple Health.
     func retroApplySleepSettings(progress: @escaping (Int, Int) -> Void = { _, _ in }) async -> Int {
-        await reanalysisService.retroApplySleepSettings(sessions: collector.archivedSessions, progress: progress)
+        await reanalysisService.retroApplySleepSettings(sessions: collector.archivedSessionsOffMain(), progress: progress)
     }
 
     // MARK: - Manual Window Reanalysis
@@ -417,7 +447,7 @@ extension SessionReanalysisCoordinator {
     /// window is better, update the snapshot + boundaries and (if the scoring
     /// window actually moved) ask for a rescore.
     private func performAutoRefreshTodaysSleepIfImproved() async {
-        guard var session = await loadTodaysOvernightSession(),
+        guard let session = await loadTodaysOvernightSession(),
               session.analysisResult != nil,
               // Only act on already-scored sessions. Pre-acceptance morning
               // processing handles its own sleep wait.
@@ -427,12 +457,11 @@ extension SessionReanalysisCoordinator {
         let sessionEnd = session.endDate ?? session.startDate
         guard let fresh = await freshPlausibleSleep(for: session, sessionEnd: sessionEnd) else { return }
         let verdict = SleepRefreshPolicy.sleepRefreshVerdict(session: session, fresh: fresh)
-        guard verdict.shouldUpdate else { return }
-        SleepRefreshPolicy.applyAutoRefresh(fresh, to: &session)
-        guard await persistRefreshedSleep(session) else { return }
+        guard verdict.shouldUpdate,
+              let refreshed = await persistRefreshedSleep(fresh, sessionId: session.id) else { return }
         debugLog("[AutoRescore.sleep] snapshot updated for \(session.id.uuidString.prefix(8)) prior=\(verdict.priorMinutes)m → new=\(verdict.newMinutes)m endMovedLater=\(verdict.endMovedLater) firstSnapshot=\(verdict.firstSnapshot)")
-        republishRefreshedSession(session)
-        guard verdict.needsRescore, session.sleepUserAdjusted != true else {
+        republishRefreshedSession(refreshed)
+        guard verdict.needsRescore, refreshed.sleepUserAdjusted != true else {
             debugLog("[AutoRescore.sleep] delta \(verdict.delta)m below rescore threshold, or user-adjusted boundaries kept — keeping existing score")
             return
         }
@@ -464,18 +493,25 @@ extension SessionReanalysisCoordinator {
     }
 
     /// Encode+encrypt+write off the main actor (otherwise it blocks
-    /// the UI on every morning foreground).
-    private func persistRefreshedSleep(_ session: HRVSession) async -> Bool {
+    /// the UI on every morning foreground). The refresh is applied to the
+    /// archived copy as it is now, not to the one read before the HealthKit
+    /// fetch, so an edit saved meanwhile (a feeling, tags, a reanalysis) is
+    /// kept. Returns the session as written; nil when the write failed.
+    private func persistRefreshedSleep(_ fresh: SleepData, sessionId: UUID) async -> HRVSession? {
         let archiveRef = collector.archive
-        return await Task.detached {
-            do {
-                _ = try archiveRef.archive(session)
-                return true
-            } catch {
-                debugLog("[AutoRescore.sleep] archive write failed: \(error.localizedDescription)", level: .warning)
-                return false
-            }
-        }.value
+        return await Task.detached { Self.applyRefreshedSleep(fresh, sessionId: sessionId, in: archiveRef) }.value
+    }
+
+    nonisolated private static func applyRefreshedSleep(
+        _ fresh: SleepData, sessionId: UUID, in archive: SessionArchive
+    ) -> HRVSession? {
+        do {
+            try archive.update(sessionId, requestingReupload: false) { SleepRefreshPolicy.applyAutoRefresh(fresh, to: &$0) }
+            return archive.retrieveOrLog(sessionId, caller: "AutoRescore.sleep")
+        } catch {
+            debugLog("[AutoRescore.sleep] archive write failed: \(error.localizedDescription)", level: .warning)
+            return nil
+        }
     }
 
     /// Refresh the LIVE UI even when the change is below the
@@ -650,12 +686,7 @@ extension SessionReanalysisCoordinator {
     /// archived sessions.  Fixes sessions whose ATL/CTL/TSB drifted because
     /// a background device refinement overwrote the frozen morning values.
     func repairTrainingSnapshots(progress: @escaping (Int, Int) -> Void = { _, _ in }) async -> ReanalysisService.TrainingRepairResult {
-        await reanalysisService.repairTrainingSnapshots(sessions: collector.archivedSessions, progress: progress)
-    }
-
-    /// Update the current session's analysis result (for manual reanalysis)
-    func updateCurrentSessionResult(_ result: HRVAnalysisResult) {
-        collector.currentSession?.analysisResult = result
+        await reanalysisService.repairTrainingSnapshots(sessions: collector.archivedSessionsOffMain(), progress: progress)
     }
 }
 

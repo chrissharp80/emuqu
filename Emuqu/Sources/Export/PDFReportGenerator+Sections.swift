@@ -31,7 +31,10 @@ extension PDFReportGenerator {
         // Rounded (not floored) so page 1 and "What This Means" agree on efficiency.
         let efficiencyStr = sleep.sleepEfficiency.map { "\(Int($0.rounded()))%" }
             ?? String(localized: "Not measured", bundle: LanguageManager.appBundle)
-        let awakeStr = sleep.awakeMinutes > 0 ? reportHoursMinutes(sleep.awakeMinutes) : reportMissingValue
+        // A night whose wake was measured (efficiency known) prints its awake
+        // time, "0m" included; only an unmeasured one reads as missing.
+        let awakeMeasured = sleep.sleepEfficiency != nil || sleep.awakeMinutes > 0
+        let awakeStr = awakeMeasured ? reportHoursMinutes(sleep.awakeMinutes) : reportMissingValue
         let inBedStr = reportHoursMinutes(sleep.inBedMinutes)
         let row1: [(String, String, UIColor)] = [
             (String(localized: "Total Sleep", bundle: LanguageManager.appBundle), sleep.totalSleepFormatted, config.primaryColor),
@@ -48,17 +51,10 @@ extension PDFReportGenerator {
         return efficiency >= 85 ? UIColor(red: 0.3, green: 0.6, blue: 0.4, alpha: 1) : UIColor(red: 0.8, green: 0.5, blue: 0.3, alpha: 1)
     }
 
-    /// One row of evenly-spaced compact stat boxes. Empty titles are spacers.
+    /// One row of evenly-spaced 36 pt compact stat boxes (the shared
+    /// `ReportSectionRenderer.drawStatBoxRow`). Empty titles are spacers.
     private func drawStatBoxRow(_ items: [(String, String, UIColor)], y: CGFloat, boxWidth: CGFloat) {
-        for (i, stat) in items.enumerated() where !stat.0.isEmpty {
-            let boxX = config.margins.left + CGFloat(i) * boxWidth
-            drawCompactStatBox(
-                title: stat.0,
-                value: stat.1,
-                color: stat.2,
-                rect: CGRect(x: boxX + 4, y: y, width: boxWidth - 8, height: 36)
-            )
-        }
+        sections.drawStatBoxRow(items, y: y, boxWidth: boxWidth, boxHeight: 36)
     }
 
     // MARK: - Training Load Section
@@ -104,15 +100,15 @@ extension PDFReportGenerator {
         let contentWidth = pageRect.width - config.margins.left - config.margins.right
         let y = drawSectionHeading(String(localized: "Recovery Vitals", bundle: LanguageManager.appBundle), yPosition: yPosition, pageRect: pageRect)
 
+        // The caller draws this only when vitals.hasAnyData, and every one of
+        // those readings makes a box, so there is at least one.
         let items = vitalsBoxes(vitals)
-        guard !items.isEmpty else { return y }
-
         let cardHeight: CGFloat = 56
         let cardRect = CGRect(x: config.margins.left, y: y, width: contentWidth, height: cardHeight)
         UIColor(white: 0.97, alpha: 1.0).setFill()
         UIBezierPath(roundedRect: cardRect, cornerRadius: 8).fill()
 
-        drawStatBoxRow(items, y: y + 8, boxWidth: contentWidth / CGFloat(items.count))
+        drawStatBoxRow(items, y: y + 8, boxWidth: contentWidth / CGFloat(max(1, items.count)))
         return y + cardHeight + 10
     }
 
@@ -192,9 +188,11 @@ private func stageShare(_ stageMinutes: Int?, of totalMinutes: Int) -> String {
 /// `unspecified` bucket, so Deep+REM+Light would sum to ~90% of total (the
 /// ~35 min unspecified vanishes). `total - deep - rem` matches the
 /// on-screen SleepDetailV2View, so the three bars sum to 100%.
+/// Both deep and REM must be measured: a missing stage counted as 0 would
+/// read as light sleep (as in the deep-dive's light-sleep row).
 private func lightSleepFormatted(_ sleep: PDFReportGenerator.SleepData) -> String {
-    guard sleep.totalSleepMinutes > 0 else { return reportMissingValue }
-    let core = sleep.totalSleepMinutes - (sleep.deepSleepMinutes ?? 0) - (sleep.remSleepMinutes ?? 0)
+    guard sleep.totalSleepMinutes > 0, let deep = sleep.deepSleepMinutes, let rem = sleep.remSleepMinutes else { return reportMissingValue }
+    let core = sleep.totalSleepMinutes - deep - rem
     guard core > 0 else { return reportMissingValue }
     return reportHoursMinutes(core)
 }

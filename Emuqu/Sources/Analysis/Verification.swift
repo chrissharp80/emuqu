@@ -1,10 +1,14 @@
 import Foundation
 
 /// Data verification per design spec v8.1
-/// Validates session data quality with pass/fail and detailed reporting
+/// Reports a session's data quality with pass/fail and detailed reasons.
 ///
-/// This is your "credibility moat" - explicit rejection states ensure data quality
-/// and make it clear WHY a session was rejected (for user understanding and debugging)
+/// A report, not a gate: nothing downstream refuses a session that fails.
+/// Window selection and analysis run either way (they have their own artifact
+/// and clean-beat gates); the result is kept on the session state for the
+/// recording view's verification badge, which names each explicit rejection
+/// reason so the user can see WHY the data is questionable, and its one-line
+/// `summary` goes to the diagnostic log.
 struct Verification {
     // MARK: - Types
 
@@ -20,10 +24,6 @@ struct Verification {
         case excessiveDrift = "excessive_drift" // RR intervals drifting unrealistically
         case signalLoss = "signal_loss" // Gaps in data suggesting sensor issues
         case outOfBoundsIntervals = "out_of_bounds" // Too many physiologically impossible values
-
-        // Technical failures
-        case corruptedData = "corrupted_data" // Data integrity issues
-        case unknownDevice = "unknown_device" // Unrecognized source device
     }
 
     struct Result: Codable {
@@ -117,11 +117,13 @@ struct Verification {
             rrDrift: computeRRDrift(points: points)
         )
         let checks = runChecks(points: points, stats: stats)
-        return Result(
+        let result = Result(
             passed: checks.reasons.isEmpty, rejectionReasons: checks.reasons,
             errors: checks.errors, warnings: checks.warnings,
             metrics: metrics(points: points, flags: flags, stats: stats)
         )
+        debugLog("[Verification] \(result.summary)")
+        return result
     }
 
     /// Steps 2 and 4-8: duration, signal quality (gaps + drift), then the
@@ -170,7 +172,7 @@ struct Verification {
         flags: [ArtifactFlags],
         stats: SeriesStats
     ) -> Metrics {
-        let artifactCount = flags.filter(\.isArtifact).count
+        let artifactCount = flags.prefix(points.count).filter(\.isArtifact).count
         return Metrics(
             pointCount: points.count, nnCount: points.count - artifactCount,
             durationHours: stats.durationHours, artifactPercent: stats.artifacts.artifactPercent,
@@ -206,9 +208,11 @@ struct Verification {
         value.formatted(.number.precision(.fractionLength(digits)))
     }
 
+    /// From the first beat's start to the last beat's end, so a series whose
+    /// timeline does not start at 0 is not measured as longer than it is.
     private func computeDurationHours(points: [RRPoint]) -> Double {
-        let durationMs = points.last.map { $0.t_ms + Int64($0.rr_ms) } ?? 0
-        return Double(durationMs) / 3_600_000.0
+        guard let first = points.first, let last = points.last else { return 0 }
+        return Double(last.endMs - first.t_ms) / 3_600_000.0
     }
 
     private func checkDuration(
@@ -224,10 +228,13 @@ struct Verification {
     }
 
     /// Bound by BOTH arrays: a length mismatch would otherwise trap on
-    /// flags[i]. min() makes the invariant safe.
+    /// flags[i]. min() makes the invariant safe, and the artifact share counts
+    /// only the flags that belong to a beat, so a flags array longer than the
+    /// points cannot inflate it.
     private func classifyArtifacts(points: [RRPoint], flags: [ArtifactFlags]) -> ArtifactBreakdown {
-        var ectopyCount = 0, oobLowCount = 0, oobHighCount = 0
+        var artifactCount = 0, ectopyCount = 0, oobLowCount = 0, oobHighCount = 0
         for i in 0 ..< min(points.count, flags.count) where flags[i].isArtifact {
+            artifactCount += 1
             switch flags[i].type {
             case .some(.ectopic), .some(.extra), .some(.missed):
                 ectopyCount += 1
@@ -238,7 +245,7 @@ struct Verification {
             }
         }
         return ArtifactBreakdown(
-            artifactPercent: Double(flags.filter(\.isArtifact).count) / Double(points.count) * 100,
+            artifactPercent: Double(artifactCount) / Double(points.count) * 100,
             ectopyCount: ectopyCount,
             oobLowCount: oobLowCount,
             oobHighCount: oobHighCount

@@ -14,6 +14,9 @@ struct RecordVerificationSection: View {
     /// The window the analyser settled on, when one was selected. Nil for a
     /// reading short enough that the whole recording was the window.
     let recoveryWindow: WindowSelector.RecoveryWindow?
+    /// The limits the verifier that produced `verification` applied, so a
+    /// row's tick agrees with the errors and warnings listed under it.
+    var limits: Verification.Config = .default
 
     var body: some View {
         VStack(spacing: 12) {
@@ -51,12 +54,12 @@ struct RecordVerificationSection: View {
             Self.qualityRow(
                 String(localized: "Artifact %", bundle: LanguageManager.appBundle),
                 value: String(format: "%.1f%%", locale: LanguageManager.appLocale, verification.metrics.artifactPercent),
-                isGood: verification.metrics.artifactPercent < 10
+                isGood: verification.metrics.artifactPercent <= limits.warnArtifactPercent
             )
             Self.qualityRow(
                 String(localized: "Clean Beats", bundle: LanguageManager.appBundle),
                 value: "\(verification.metrics.nnCount)",
-                isGood: verification.metrics.nnCount >= 200
+                isGood: verification.metrics.nnCount >= limits.minPoints
             )
             ForEach(verification.errors, id: \.self) { error in
                 verificationNote(error, icon: "xmark.circle.fill", tint: .red)
@@ -67,9 +70,8 @@ struct RecordVerificationSection: View {
         }
     }
 
-    /// Static so the morning-results screen can reuse the same badge without
-    /// instantiating a whole section.
-    static func qualityBadge(_ passed: Bool) -> some View {
+    /// Pass/fail badge for the card header.
+    private static func qualityBadge(_ passed: Bool) -> some View {
         Text(passed
             ? String(localized: "Good", bundle: LanguageManager.appBundle)
             : String(localized: "Issues Found", bundle: LanguageManager.appBundle))

@@ -77,18 +77,26 @@ if [[ ! -d "$SCAN_DIR" ]]; then
     exit 2
 fi
 
+# Runs inside `$( )`, so its `exit 2` ends only the subshell: every call site
+# carries `|| exit $?`, or a missing budget file would read as an empty budget
+# that `over` compares as 0.
 read_budget() {
-    local file=".ci/$1"
+    local file=".ci/$1" value
     if [[ ! -f "$file" ]]; then
         echo "check_refactor_spec_conformance: missing budget file: $file" >&2
         exit 2
     fi
-    tr -d '[:space:]' < "$file"
+    value="$(tr -d '[:space:]' < "$file")"
+    if [[ ! "$value" =~ ^[0-9]+$ ]]; then
+        echo "check_refactor_spec_conformance: budget file is not an integer: $file" >&2
+        exit 2
+    fi
+    printf '%s' "$value"
 }
 
-LONG_BUDGET="$(read_budget spec_long_functions_budget.txt)"
-NEST_BUDGET="$(read_budget spec_deep_nesting_budget.txt)"
-COMMENT_BUDGET="$(read_budget spec_commented_code_budget.txt)"
+LONG_BUDGET="$(read_budget spec_long_functions_budget.txt)" || exit $?
+NEST_BUDGET="$(read_budget spec_deep_nesting_budget.txt)" || exit $?
+COMMENT_BUDGET="$(read_budget spec_commented_code_budget.txt)" || exit $?
 
 measure_spec() {
 python3 - "$1" <<'PY'
@@ -458,10 +466,10 @@ fi
 
 read -r LONG NEST COMMENTED EMPTY_CATCHES JUST_LONG JUST_NEST BAD_WAIVERS LONG_PROPS NEST_PROPS <<<"$(printf '%s\n' "$MEASURED" | head -n1)"
 
-JUST_LONG_BUDGET="$(read_budget spec_justified_long_budget.txt)"
-JUST_NEST_BUDGET="$(read_budget spec_justified_nesting_budget.txt)"
-LONG_PROPS_BUDGET="$(read_budget spec_long_properties_budget.txt)"
-NEST_PROPS_BUDGET="$(read_budget spec_deep_nesting_properties_budget.txt)"
+JUST_LONG_BUDGET="$(read_budget spec_justified_long_budget.txt)" || exit $?
+JUST_NEST_BUDGET="$(read_budget spec_justified_nesting_budget.txt)" || exit $?
+LONG_PROPS_BUDGET="$(read_budget spec_long_properties_budget.txt)" || exit $?
+NEST_PROPS_BUDGET="$(read_budget spec_deep_nesting_properties_budget.txt)" || exit $?
 
 echo "Refactor-spec conformance (docs/REFACTOR_SPEC.md):"
 printf -- "- Functions > %s lines: %s (budget: %s; ratchet toward 0)\n" 20 "$LONG" "$LONG_BUDGET"

@@ -11,9 +11,18 @@ extension SessionMerger {
     /// `session` re-counted from `clockStart`, which is no later than its own
     /// start. Its id, its beats' order and every field not measured from its
     /// start are kept.
+    ///
+    /// Each field moves by the offset of its own origin: the beats and the
+    /// analysis windows (beat times) from the series start, the sleep bounds
+    /// and segments from the session start. The two are usually the same
+    /// moment; a series that starts elsewhere is still re-based when the
+    /// session itself already starts at `clockStart`.
     static func onClock(_ session: HRVSession, startingAt clockStart: Date) -> HRVSession {
+        guard !isOnClock(session, clockStart) else { return session }
         let offsetMs = MillisecondOffset.between(session.startDate, and: clockStart, fallback: 0)
-        guard offsetMs != 0 || session.startDate != clockStart else { return session }
+        let beatOffsetMs = session.rrSeries.map {
+            MillisecondOffset.between($0.startDate, and: clockStart, fallback: 0)
+        } ?? offsetMs
         var moved = copy(of: session, startDate: clockStart)
         moved.rrSeries = session.rrSeries.map { series in
             RRSeries(
@@ -26,9 +35,15 @@ extension SessionMerger {
         moved.sleepSegments = session.sleepSegments?.map {
             HRVSession.SleepSegmentMs(startMs: $0.startMs + offsetMs, endMs: $0.endMs + offsetMs)
         }
-        moved.analysisResult = session.analysisResult.map { shifted($0, by: offsetMs) }
-        moved.autoWindowResult = session.autoWindowResult.map { shifted($0, by: offsetMs) }
+        moved.analysisResult = session.analysisResult.map { shifted($0, by: beatOffsetMs) }
+        moved.autoWindowResult = session.autoWindowResult.map { shifted($0, by: beatOffsetMs) }
         return moved
+    }
+
+    /// Already counted from `clockStart`: the session and its series both
+    /// start there.
+    private static func isOnClock(_ session: HRVSession, _ clockStart: Date) -> Bool {
+        session.startDate == clockStart && (session.rrSeries?.startDate ?? clockStart) == clockStart
     }
 
     /// `result` with every time it holds moved `offsetMs` later. Its beat
@@ -71,6 +86,27 @@ extension SessionMerger {
         while low < high {
             let mid = (low + high) / 2
             if merged[mid].t_ms < target { low = mid + 1 } else { high = mid }
+        }
+        return low
+    }
+
+    /// `result`'s window re-pointed by time at `points`, a different series on
+    /// the same clock: the first beat at or after `windowStartMs` and the
+    /// first at or after `windowEndMs`. Unchanged when the result carries no
+    /// window times or `points` is empty.
+    static func repointed(_ result: HRVAnalysisResult, onto points: [RRPoint]) -> HRVAnalysisResult {
+        guard !points.isEmpty, let startMs = result.windowStartMs, let endMs = result.windowEndMs else { return result }
+        return withWindow(result, start: firstIndex(atOrAfter: startMs, in: points), end: firstIndex(atOrAfter: endMs, in: points))
+    }
+
+    /// Binary search: the first index whose beat starts at or after `timeMs`,
+    /// or `points.count` when none does.
+    private static func firstIndex(atOrAfter timeMs: Int64, in points: [RRPoint]) -> Int {
+        var low = 0
+        var high = points.count
+        while low < high {
+            let mid = (low + high) / 2
+            if points[mid].t_ms < timeMs { low = mid + 1 } else { high = mid }
         }
         return low
     }

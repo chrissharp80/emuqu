@@ -200,14 +200,15 @@ final class WorkoutRecorder {
     /// heart rate out. Cleared when the ticker starts and once finalize reads it.
     @ObservationIgnored var wristHROffsets: [Int] = []
 
-    /// Cursors for the per-tick track-backup snapshot.
-    /// Without them every tick `.map`s the full `location.track` array
-    /// into a `[PersistedFix]` snapshot before the detached backup task
-    /// can short-circuit; on a 90-minute walk that's ~5,400 ×
-    /// per-tick copies of a growing array (~24 MB cumulative allocation).
-    /// We compare counts and skip the snapshot entirely on ticks
-    /// where nothing new has arrived.
+    /// Cursors for the per-tick track-backup snapshot. Compared each tick
+    /// to skip the snapshot entirely when nothing new has arrived; while
+    /// recording a sample row lands every unpaused second, so that skip
+    /// mostly applies while paused, and `trackBackupRows` keeps the rest
+    /// from re-mapping the whole track each tick.
     var trackBackupWatermark = TrackBackupWatermark()
+    /// The crash backup's track and barometer rows, extended each snapshot
+    /// by what arrived since the last one.
+    @ObservationIgnored var trackBackupRows = TrackBackupRows()
     /// Cached at workout start for fast per-tick lookup in
     /// `buildContext`. Computed off the main thread; nil/empty until
     /// the background task lands. See `WorkoutHistoryBaselines`.
@@ -249,18 +250,17 @@ final class WorkoutRecorder {
     /// start (key: distance in meters → predicted total seconds).
     /// Empty when no comparable history exists.
     var cachedRacePredictionsByDistance: [Double: Double] = [:]
-    /// Watch direct-strap fallback. When the user has paired
-    /// the chest strap to the Watch (not the iPhone) and the iPhone
-    /// runs the workout (e.g. phone in backpack), the Watch routes RR
-    /// + HR samples over WCSession via `WatchStrapConnector`. The
-    /// recorder consumes them HERE so:
-    ///   • currentHR shows real strap HR (not wrist HR — different sensor)
-    ///   • α1 / RMSSD / SDNN have real RR data to chew on
-    ///   • finalizeSession's RR series includes Watch-routed beats
-    /// `lastWatchStrapAt` is a date stamp on `WatchConnectivityBridge`;
-    /// we dedupe by remembering the last one we've consumed so a slow
-    /// tick doesn't re-ingest the same payload.
-    var lastConsumedWatchStrapAt: Date?
+    // Watch direct-strap fallback. When the user has paired
+    // the chest strap to the Watch (not the iPhone) and the iPhone
+    // runs the workout (e.g. phone in backpack), the Watch routes RR
+    // + HR samples over WCSession via `WatchStrapConnector`. The
+    // recorder consumes them HERE so:
+    //   • currentHR shows real strap HR (not wrist HR — different sensor)
+    //   • α1 / RMSSD / SDNN have real RR data to chew on
+    //   • finalizeSession's RR series includes Watch-routed beats
+    // Each tick drains the bridge's queue of Watch-routed beats
+    // (`drainPendingWatchStrapRR`), so a slow tick never re-ingests a
+    // payload it already consumed.
     /// When we last produced beats via the Watch-routed
     /// strap path. Lives separately from `lastStrapHRAt` (which is the
     /// iPhone-paired Polar's freshness gate) so the wrist-HR fallback
@@ -291,19 +291,19 @@ final class WorkoutRecorder {
     var currentPaceSecPerKm: Double? { livePace.paceSecPerKm }
     /// The speed behind `currentPaceSecPerKm`, in m/s.
     var currentSpeedMS: Double? { livePace.speedMS }
-    /// This workout's foot-pod distance, kept across pod resets.
+    /// This workout's foot-pod distance, kept across pod resets. The pod
+    /// reports cumulative distance from power-on (not from workout start),
+    /// so its first reading is the baseline subtracted to get
+    /// session-relative distance. Replaced with a fresh odometer at workout
+    /// start, which also drops any distance banked across a pod reset.
     var footPodOdometer = FootPodOdometer()
-    /// Foot-pod session-start distance. The pod reports cumulative distance
-    /// from power-on (not from workout start), so its first reading is the
-    /// baseline subtracted to get session-relative distance. Setting nil (at
-    /// workout start) clears the whole odometer, including any distance
-    /// banked across a pod reset.
-    var footPodStartDistanceMeters: Double? {
-        get { footPodOdometer.baselineMeters }
-        set { footPodOdometer = FootPodOdometer(baselineMeters: newValue) }
-    }
     /// When the strap's own recording actually started for this workout.
     var deviceBackupArmedAt: Date?
+    /// `PolarManager.streamingStartTime` of the stream this recorder's last
+    /// strap workout started. RRCollector's overnight and quick sessions
+    /// buffer on the same manager, so a stream still live while no workout
+    /// records is this recorder's to stop only when its start matches.
+    @ObservationIgnored var ownedStrapStreamStart: Date?
     /// The live broker's last snapshot, taken at stop before the broker is
     /// cleared, for finalize to store as the session's `aiContext`.
     var liveSnapshotAtStop: AssistantContext.LiveWorkoutSnapshot?
@@ -318,6 +318,10 @@ final class WorkoutRecorder {
         guard let reported = footPod.podReportedDistanceMeters else { return footPodOdometer.distanceMeters }
         return footPodOdometer.record(reported)
     }
+    /// The pedometer step count as of the last tick that saw it change, and
+    /// when. Lets the indoor auto-pause tell a stopped treadmill from the
+    /// last walking cadence the pedometer leaves standing.
+    @ObservationIgnored var lastPedometerStepAdvance: (count: Int, at: Date?) = (0, nil)
     /// Running tally of power samples for average-power computation.
     var powerSampleSum: Int = 0
     var powerSampleCount: Int = 0
@@ -356,11 +360,13 @@ final class WorkoutRecorder {
     /// the app understood the directional swap.
     var plannedRouteDirection: RouteLibrary.Direction = .forward
 
-    /// Whether we've already attempted route auto-detection this session.
-    /// One-shot — fires once after `RouteLibrary.detectionTriggerMeters`
-    /// of movement and never re-runs (a route that doesn't match the
-    /// first 500 m never will). Reset in `start()`.
-    var routeDetectionAttempted: Bool = false
+    /// Track length at which route auto-detection next runs: it first runs
+    /// at `RouteLibrary.detectionTriggerMeters` of movement, and while
+    /// nothing matches, again after each further stretch of that length
+    /// (a warm-up leg before joining a saved loop must not rule the loop
+    /// out for the rest of the workout). 0 = not tried yet. Reset in
+    /// `start()`.
+    var nextRouteDetectionAtMeters: Double = 0
 
     /// Per-threshold breach duration in seconds. Counts up while breached,
     /// resets to 0 the moment the metric comes back inside the band. The

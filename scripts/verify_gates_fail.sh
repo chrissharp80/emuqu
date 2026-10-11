@@ -35,8 +35,11 @@ FILTER="${1:-}"
 PASS=0; FAIL=0; SKIP=0
 source "$(dirname "$0")/lib/preflight.sh"
 gate_acquire_tree_lock "verify_gates_fail.sh"
+# The trap goes in before anything else can fail, so a failed temp-dir
+# creation does not leave the lock behind.
+BACKUP_DIR=""
+trap 'restore_all; [[ -n "$BACKUP_DIR" ]] && rm -rf "$BACKUP_DIR"; gate_release_tree_lock' EXIT INT TERM HUP
 BACKUP_DIR="$(gate_mktemp_dir verify-gates)" || exit $?
-trap 'restore_all; rm -rf "$BACKUP_DIR"; gate_release_tree_lock' EXIT INT TERM HUP
 
 TOUCHED=()
 
@@ -608,3 +611,14 @@ fi
 rm -f Emuqu/Sources/Utilities/PlantedOrphan.swift
 
 (( FAIL == 0 )) || exit 1
+
+# A skipped case proved nothing: its gate was already red, or the plant's
+# anchor text has changed. Counting it as success let a permanently red gate
+# or a stale plant drop out of verification silently — the "reports clean
+# while measuring nothing" shape this file exists to catch. Same rule as
+# verify_tests_fail.sh.
+if (( SKIP > 0 )); then
+    echo "ERROR: ${SKIP} case(s) skipped; a skipped case is not a verified gate." >&2
+    echo "Make the gate green, or re-anchor its plant, and run again." >&2
+    exit 1
+fi

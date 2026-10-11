@@ -39,15 +39,8 @@ enum BeatConsistency {
         /// computed from these.
         let fracHigh: Features
 
-        /// Diagnostic counters useful for the Pass 1 calibration
-        /// check and for the Pass 3 detail screen.
+        /// Diagnostic counter useful for the Pass 1 calibration check.
         let scoringWindowCount: Int
-        let displayWindowCount: Int
-
-        /// 50%-overlap windows. Emitted so Pass 3 can draw the
-        /// Poincaré plot point cloud without re-walking the RR
-        /// series. Never feeds the score.
-        let displayWindows: [Window]
     }
 
     /// Per-feature container. Used three different ways:
@@ -85,9 +78,8 @@ enum BeatConsistency {
         case insufficientData(validWindowCount: Int)
     }
 
-    /// One enumerated 30-second window. The analyzer emits these
-    /// publicly so callers (Pass 3 Poincaré plot, tests) can inspect
-    /// the per-window feature values without re-running the math.
+    /// One enumerated 30-second scoring window (non-overlapping; stride ==
+    /// length == 30 s).
     struct Window: Equatable, Sendable {
         /// Session-relative milliseconds the window spans.
         let startMs: Int64
@@ -96,31 +88,22 @@ enum BeatConsistency {
         /// artifact filtering. Length == `nValid`.
         let rrIntervals: [Int]
         /// Per-feature values computed over `rrIntervals`. `nil` if
-        /// the window is invalid (e.g. fewer than 20 valid RR intervals,
-        /// or span outside 28–32 s — see `WindowKind.scoring` rules).
+        /// the window is invalid (fewer than 20 valid RR intervals, or a
+        /// span under 28 s — see `validateWindow`).
         let features: Features?
-        /// True only when this window passed every validity check for
-        /// its kind. Invalid windows are emitted with `features = nil`
-        /// so the caller can still see them on the Poincaré plot but
-        /// the score path ignores them.
+        /// True only when this window passed every validity check.
+        /// Invalid windows carry `features = nil` and the score path
+        /// ignores them.
         let isValid: Bool
-    }
-
-    enum WindowKind: Equatable, Sendable {
-        /// Non-overlapping; feeds the score. Stride == length == 30 s.
-        case scoring
-        /// 50% overlap; for the Poincaré plot only. Stride 15 s,
-        /// length 30 s. Never feeds the score.
-        case display
     }
 
     /// Tunables. All values pinned by the Pass 1 spec; do NOT change
     /// without re-running the calibration check.
     struct Config: Equatable, Sendable {
         var windowLengthMs: Int64 = 30_000
-        var displayStrideMs: Int64 = 15_000
-        /// ± 2 s tolerance around window length, guards
-        /// against a window straddling a long artifact gap.
+        /// A window's beats must span at least the window length less this
+        /// tolerance (2 s), which guards against a window straddling a long
+        /// artifact gap.
         var windowSpanToleranceMs: Int64 = 2_000
         var minValidRRPerWindow: Int = 20
         var minScoringWindowsPerNight: Int = 20
@@ -169,9 +152,10 @@ enum BeatConsistency {
     struct Baseline: Equatable, Sendable {
         let center: Features
         let scale: Features
-        /// Count of accepted nights used to compute `center` (trailing
-        /// 28). Drives the `State.normal` vs `lowConfidence` gate AND
-        /// the `k` schedule.
+        /// Count of every accepted prior night supplied to
+        /// `buildBaseline` (the center itself uses only the trailing 28).
+        /// Drives the `State.normal` vs `lowConfidence` gate AND the `k`
+        /// schedule.
         let acceptedNightCount: Int
 
         /// Per-feature `(center, scale)` lookup helper. Encapsulates
@@ -192,8 +176,9 @@ enum BeatConsistency {
     ///   - flags: parallel artifact-detection flags, one per `rr`
     ///     entry. Pass `[]` to treat every interval as clean.
     ///   - sleepStartMs / sleepEndMs: the session's resolved sleep
-    ///     window in session-relative ms. Windows are only enumerated
-    ///     INSIDE this range. Pass `(0, lastT)` if no sleep boundaries
+    ///     window in session-relative ms. Windows start inside this range
+    ///     and only beats before `sleepEndMs` are scored, so the last
+    ///     window takes no post-sleep beats. Pass `(0, lastT)` if no sleep boundaries
     ///     are available (the night-level data floor still
     ///     catches short / artifact-heavy sessions).
     ///   - baseline: prior accepted-nights baseline. `nil` ⇒ calibrating.
@@ -215,14 +200,10 @@ enum BeatConsistency {
         let cleanMask = flags.isEmpty ? Array(repeating: true, count: rr.count) : flags.map { !$0.isArtifact }
         let scoringWindows = enumerateWindows(
             rr: rr, cleanMask: cleanMask, sleepStartMs: sleepStartMs,
-            sleepEndMs: sleepEndMs, kind: .scoring, config: config
+            sleepEndMs: sleepEndMs, config: config
         ).filter { $0.isValid }
-        let displayWindows = enumerateWindows(
-            rr: rr, cleanMask: cleanMask, sleepStartMs: sleepStartMs,
-            sleepEndMs: sleepEndMs, kind: .display, config: config
-        )
         let medians = medianFeatures(of: scoringWindows.compactMap(\.features))
-        let counts = WindowCounts(scoring: scoringWindows, display: displayWindows, medians: medians)
+        let counts = WindowCounts(scoring: scoringWindows, medians: medians)
         // Whole-night data floor. Independent of calibration state. A
         // night with too little usable sleep RR produces no score AND is not
         // eligible to feed the baseline.
@@ -236,7 +217,6 @@ enum BeatConsistency {
     /// can't each assemble them slightly differently.
     private struct WindowCounts {
         let scoring: [Window]
-        let display: [Window]
         let medians: Features
 
         func calibrating(nightsCollected: Int, config: Config) -> NightlyResult {
@@ -259,9 +239,7 @@ enum BeatConsistency {
                 score: score, band: band, state: state,
                 nightlyFeatureMedians: medians,
                 fracHigh: fracHigh,
-                scoringWindowCount: scoring.count,
-                displayWindowCount: display.count,
-                displayWindows: display
+                scoringWindowCount: scoring.count
             )
         }
     }
@@ -270,15 +248,10 @@ enum BeatConsistency {
     /// contradiction — resolved purely on prior-night count, since this night's
     /// own usability was already checked by the caller.
     private static func scored(counts: WindowCounts, baseline: Baseline?, config: Config) -> NightlyResult {
-        let acceptedNights = baseline?.acceptedNightCount ?? 0
-        guard acceptedNights >= config.minNightsForLowConfidence else {
-            return counts.calibrating(nightsCollected: acceptedNights, config: config)
+        guard let bl = baseline, bl.acceptedNightCount >= config.minNightsForLowConfidence else {
+            return counts.calibrating(nightsCollected: baseline?.acceptedNightCount ?? 0, config: config)
         }
-        // `baseline` is guaranteed non-nil here: `acceptedNights >= 14` can
-        // only come from a baseline that exists. Defensive guard (not
-        // `baseline!`) — if state drifts out of sync, fall back rather than
-        // trap.
-        guard let bl = baseline else { return counts.insufficientData() }
+        let acceptedNights = bl.acceptedNightCount
         let state: State = acceptedNights < config.minNightsForNormal
             ? .lowConfidence(nightsCollected: acceptedNights)
             : .normal
@@ -353,10 +326,10 @@ enum BeatConsistency {
 
     // MARK: - Window enumeration
 
-    /// Walk forward from sleep start. A window's "official" end is `start +
-    /// length` and it can extend up to `sleepEndMs` — the last window's NOMINAL
-    /// end is not truncated, but the span-tolerance check rejects anything that
-    /// doesn't actually contain enough data inside `[start, end)`.
+    /// Walk forward from sleep start, one non-overlapping 30 s window at a
+    /// time. A window's nominal end is `start + length`; the last one's is not
+    /// truncated, but only beats before `sleepEndMs` go into it, and the
+    /// span-tolerance check rejects it if what is left is too short.
     ///
     /// The loop condition must NOT be `startMs + windowLengthMs <=
     /// sleepEndMs`: that contradicts the above by dropping the final window
@@ -373,28 +346,29 @@ enum BeatConsistency {
         cleanMask: [Bool],
         sleepStartMs: Int64,
         sleepEndMs: Int64,
-        kind: WindowKind,
         config: Config
     ) -> [Window] {
         guard !rr.isEmpty, sleepEndMs > sleepStartMs else { return [] }
-        let stride: Int64 = (kind == .scoring) ? config.windowLengthMs : config.displayStrideMs
         var windows: [Window] = []
         var startMs = sleepStartMs
         while startMs < sleepEndMs {
-            windows.append(window(rr: rr, cleanMask: cleanMask, startMs: startMs, config: config))
-            startMs += stride
+            windows.append(window(rr: rr, cleanMask: cleanMask, startMs: startMs, sleepEndMs: sleepEndMs, config: config))
+            startMs += config.windowLengthMs
         }
         return windows
     }
 
+    /// One window from `startMs`, taking only beats before both its nominal
+    /// end and `sleepEndMs`.
     private static func window(
         rr: [RRPoint],
         cleanMask: [Bool],
         startMs: Int64,
+        sleepEndMs: Int64,
         config: Config
     ) -> Window {
         let endMs = startMs + config.windowLengthMs
-        let windowRR = inWindow(rr: rr, cleanMask: cleanMask, startMs: startMs, endMs: endMs)
+        let windowRR = inWindow(rr: rr, cleanMask: cleanMask, startMs: startMs, endMs: min(endMs, sleepEndMs))
         let isValid = validateWindow(
             rrInWindow: windowRR,
             expectedLengthMs: config.windowLengthMs,
@@ -456,10 +430,9 @@ enum BeatConsistency {
         // last-first gap should be close to the window length. A
         // window that straddles a long artifact dropout will have a
         // tiny span (most data fell on one side) and gets rejected.
-        let span = rrInWindow.span
-        let lowerBound = expectedLengthMs - toleranceMs
-        let upperBound = expectedLengthMs + toleranceMs
-        return span >= lowerBound && span <= upperBound
+        // Only a lower bound: every beat lies in [start, start + length),
+        // so the span is always below the window length.
+        return rrInWindow.span >= expectedLengthMs - toleranceMs
     }
 
     // MARK: - Per-window features

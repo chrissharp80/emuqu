@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift",
  "hash": "437ba9d073ada49e",
- "role": "HealthKitManager extension forwarding training/workout/VO2max queries and two pure workout-merging statics to TrainingHealthQueries.",
+ "role": "HealthKitManager extension forwarding the training/workout queries that have callers (workout route, passive distance, extended workouts, heart-rate anchors, training metrics and load) and two pure workout-merging statics to TrainingHealthQueries. Queries only TrainingHealthQueries itself uses are not forwarded.",
  "types": [
   "HealthKitManager: extension — training forwarders"
  ],
@@ -54,69 +54,6 @@
    }
   },
   {
-   "key": "func HealthKitManager.fetchVO2MaxTrend(days:)",
-   "hash": "0f41c0dfc0ecf8d7",
-   "does": "Forwards fetchVO2MaxTrend(days:) to TrainingHealthQueries; protocol witness for HealthKitServiceProtocol.fetchVO2MaxTrend.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::var HealthKitManager.training",
-    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchVO2MaxTrend(days:)"
-   ],
-   "reads": [
-    "hk:vo2Max"
-   ],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No caller reaches the manager-level fetchVO2MaxTrend: the only call sites are inside TrainingHealthQueries (TrainingHealthQueries+Queries.swift:589,643) which call their own method; it survives only as a protocol witness.",
-     "evidence": [
-      "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift:39",
-      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:589",
-      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:643"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::var HealthKitManager.training": "bf8be88388003629",
-    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchVO2MaxTrend(days:)": "cb2dbca7be07ec77"
-   }
-  },
-  {
-   "key": "func HealthKitManager.fetchRecentWorkouts(days:relativeTo:)",
-   "hash": "8ddb59c4be0f9226",
-   "does": "Forwards fetchRecentWorkouts(days:relativeTo:) to TrainingHealthQueries.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::var HealthKitManager.training",
-    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchRecentWorkouts(days:relativeTo:)"
-   ],
-   "reads": [
-    "hk:workoutType"
-   ],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No caller of HealthKitManager.fetchRecentWorkouts; the only call (TrainingHealthQueries+Queries.swift:567) is TrainingHealthQueries calling itself.",
-     "evidence": [
-      "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift:43",
-      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:567"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::var HealthKitManager.training": "bf8be88388003629",
-    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchRecentWorkouts(days:relativeTo:)": "4ec1cb18a9753201"
-   }
-  },
-  {
    "key": "func HealthKitManager.fetchWorkoutRoute(from:to:)",
    "hash": "fea5587737394990",
    "does": "Forwards fetchWorkoutRoute(from:to:) to TrainingHealthQueries; called by RRCollector+BackupRecovery:235 to recover a GPS track from the Watch's route.",
@@ -157,38 +94,6 @@
    }
   },
   {
-   "key": "func HealthKitManager.hasWorkoutInRange(from:to:)",
-   "hash": "7699dd8fca8d424d",
-   "does": "Forwards hasWorkoutInRange(from:to:) to TrainingHealthQueries; protocol witness.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::var HealthKitManager.training",
-    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.hasWorkoutInRange(from:to:)"
-   ],
-   "reads": [
-    "hk:workoutType"
-   ],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Nothing calls hasWorkoutInRange (grep finds only the protocol requirement, this forwarder, TrainingHealthQueries and the mock); the protocol doc says it rejects false sleep detections, which no code does any more.",
-     "evidence": [
-      "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift:57",
-      "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift:101",
-      "EmuquTests/Mocks/MockHealthKitService.swift:149"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::var HealthKitManager.training": "bf8be88388003629",
-    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.hasWorkoutInRange(from:to:)": "99d853475712ad52"
-   }
-  },
-  {
    "key": "func HealthKitManager.fetchWorkoutsExtended(days:relativeTo:)",
    "hash": "7dc07674afd92f9f",
    "does": "Forwards fetchWorkoutsExtended(days:relativeTo:) to TrainingHealthQueries; called by TrainingMetricsCache.swift:373.",
@@ -206,68 +111,6 @@
    "deps": {
     "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::var HealthKitManager.training": "bf8be88388003629",
     "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchWorkoutsExtended(days:relativeTo:)": "e4d6f625296bd29e"
-   }
-  },
-  {
-   "key": "func HealthKitManager.fetchAppleRestingHR()",
-   "hash": "3a47468a6bc13f6e",
-   "does": "Forwards fetchAppleRestingHR() to TrainingHealthQueries.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::var HealthKitManager.training",
-    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchAppleRestingHR()"
-   ],
-   "reads": [
-    "hk:restingHeartRate"
-   ],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No caller of HealthKitManager.fetchAppleRestingHR; the only call (TrainingHealthQueries+Queries.swift:489) is internal to TrainingHealthQueries.",
-     "evidence": [
-      "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift:67",
-      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:489"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::var HealthKitManager.training": "bf8be88388003629",
-    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchAppleRestingHR()": "b06f3bc87a1fe324"
-   }
-  },
-  {
-   "key": "func HealthKitManager.fetchVO2Max()",
-   "hash": "9700e7466b2f05f4",
-   "does": "Forwards fetchVO2Max() to TrainingHealthQueries; protocol witness.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::var HealthKitManager.training",
-    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchVO2Max()"
-   ],
-   "reads": [
-    "hk:vo2Max"
-   ],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No caller reaches the manager-level fetchVO2Max (only TrainingHealthQueries+Queries.swift:588,642 calling their own method); kept as a protocol witness only.",
-     "evidence": [
-      "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift:71",
-      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:588"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::var HealthKitManager.training": "bf8be88388003629",
-    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchVO2Max()": "05078d437dff4243"
    }
   },
   {

@@ -28,37 +28,30 @@
   },
   {
    "key": "func StrapBatteryUsageTracker.loadState(for:)",
-   "hash": "6e95ada78e0bf2ba",
-   "does": "Reads value/changedAt/hours for deviceId from UserDefaults.standard and copies them onto manager.batteryLastReportedValue, batteryLastChangedAt and hoursRecordedSinceBatteryChanged (hours clamped to >= 0; missing hours read as 0).",
+   "hash": "db3ad1c15f99384e",
+   "does": "Reads value/changedAt/hours for deviceId from UserDefaults.standard and copies them onto manager.batteryLastReportedValue, batteryLastChangedAt and hoursRecordedSinceBatteryChanged (hours clamped to >= 0; missing hours read as 0), then recomputes isBatteryReadingStale from the restored counter (false while no battery level is known), so a previous strap's flag never shows against this one.",
    "entry": "Called via PolarManager.loadBatteryUsageStateIfNeeded (PolarManager.swift:213) from StrapLinkCoordinator.adoptConnectedDevice on every SDK connected event.",
    "calls": [
-    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.usageKey(_:deviceId:)"
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.usageKey(_:deviceId:)",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.recomputeStaleness()"
    ],
    "reads": [
     "ud:polar.batteryUsage.value.<id>",
     "ud:polar.batteryUsage.changedAt.<id>",
-    "ud:polar.batteryUsage.hours.<id>"
+    "ud:polar.batteryUsage.hours.<id>",
+    "mem:PolarManager.batteryLevel",
+    "mem:PolarManager.connectedDeviceType"
    ],
    "writes": [
     "mem:PolarManager.batteryLastReportedValue",
     "mem:PolarManager.batteryLastChangedAt",
-    "mem:PolarManager.hoursRecordedSinceBatteryChanged"
+    "mem:PolarManager.hoursRecordedSinceBatteryChanged",
+    "mem:PolarManager.isBatteryReadingStale"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "loadState restores the counters but does not recompute isBatteryReadingStale, and clearLinkReadings clears batteryLevel without clearing the flag, so after switching straps the previous strap's stale flag is shown for the new one until its first battery callback arrives.",
-     "evidence": [
-      "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift:56",
-      "Emuqu/Sources/Collection/StrapLinkCoordinator.swift:143",
-      "Emuqu/Sources/Collection/StrapLinkCoordinator.swift:226"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.recomputeStaleness()": "72ab2cdd18ded3f8",
     "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.usageKey(_:deviceId:)": "f57e81ee54306a11"
    }
   },
@@ -99,15 +92,18 @@
   },
   {
    "key": "func StrapBatteryUsageTracker.recordRecordingHours(_:)",
-   "hash": "db8ea6556a7c489e",
-   "does": "Adds `hours` to manager.hoursRecordedSinceBatteryChanged for the connected device, persists, and recomputes the stale flag.",
+   "hash": "f391603d402ab191",
+   "does": "Adds `hours` to manager.hoursRecordedSinceBatteryChanged, persists it under the connected strap or, after a drop or disconnect, the strap last connected (lastConnectedDeviceId — the one whose counter is in memory), and recomputes the stale flag. With no strap known at all the hours are dropped with a log line.",
    "entry": "Via PolarManager.recordRecordingHours (PolarManager.swift:214) from RRCollector+Streaming.swift:177, RRCollector+OvernightGather.swift:100, WorkoutRecorder+Stop.swift:200 at session end.",
    "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.lastConnectedDeviceId",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.persist(for:)",
     "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.recomputeStaleness()"
    ],
    "reads": [
     "mem:PolarManager.connectedDeviceId",
+    "mem:PolarManager.knownDevices",
     "mem:PolarManager.hoursRecordedSinceBatteryChanged"
    ],
    "writes": [
@@ -123,31 +119,21 @@
     },
     {
      "at": "+3",
-     "cond": "manager.connectedDeviceId non-nil",
-     "effect": "false: returns silently, the session's hours are never counted; true: increments and persists"
+     "cond": "connectedDeviceId ?? lastConnectedDeviceId non-nil",
+     "effect": "false: logs that the hours were not charged (no strap known) and returns; true: increments, persists under that id, recomputes staleness"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "Hours are attributed only when connectedDeviceId is still set at session end; after a user disconnect (StrapDiscoveryCoordinator.disconnect clears the id) or a drop outside a session the session's strap hours are dropped without a log, so the battery-stale warning comes later than it should.",
-     "evidence": [
-      "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift:84",
-      "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift:175",
-      "Emuqu/Sources/Collection/StrapLinkCoordinator.swift:222"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.lastConnectedDeviceId": "75415a0e1618e364",
     "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.persist(for:)": "63a62a2b59e4d3ad",
-    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.recomputeStaleness()": "3c2c607e76ead82c"
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.recomputeStaleness()": "72ab2cdd18ded3f8",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
    "key": "func StrapBatteryUsageTracker.recomputeStaleness()",
-   "hash": "fdd9799271ec6966",
+   "hash": "20060cca5ae2fd50",
    "does": "Sets manager.isBatteryReadingStale = hoursRecordedSinceBatteryChanged > 0.7 × device spec hours (H10 400 h, Verity 30 h); false when no battery level or no device type.",
    "entry": "Also via PolarManager.checkBatteryStaleness (PolarManager.swift:215) from RRCollector+OvernightStreaming.swift:169.",
    "calls": [
@@ -165,26 +151,10 @@
     {
      "at": "+2",
      "cond": "batteryLevel non-nil and connectedDeviceType non-nil",
-     "effect": "false: stale flag cleared to false and return; true: continue"
-    },
-    {
-     "at": "+7",
-     "cond": "spec > 0",
-     "effect": "false: returns leaving the previous stale flag untouched (unreachable: specRecordingHours is 400 or 30); true: computes flag"
+     "effect": "false: stale flag cleared to false and return; true: flag = hours > 0.7 × spec"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "guard spec > 0 can never fail: PolarDeviceType.specRecordingHours returns only 400.0 or 30.0.",
-     "evidence": [
-      "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift:100",
-      "Emuqu/Sources/Collection/PolarManager.swift:63"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.specRecordingHours": "813c1b348abb10af",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "ddfd0bc6b3d69f3b",
@@ -260,7 +230,7 @@
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.isActiveDeviceInfoSource(_:)": "b98cbde735b0fd4f",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "ddfd0bc6b3d69f3b",
     "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.persist(for:)": "63a62a2b59e4d3ad",
-    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.recomputeStaleness()": "3c2c607e76ead82c",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.recomputeStaleness()": "72ab2cdd18ded3f8",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   }

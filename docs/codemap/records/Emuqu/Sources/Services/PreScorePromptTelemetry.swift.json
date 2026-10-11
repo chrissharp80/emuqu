@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Services/PreScorePromptTelemetry.swift",
- "hash": "9aabd20640f11d76",
- "role": "Local-only UserDefaults counters (shown/completed/skipped, first-seen) for the pre-score subjective prompt, surfaced as a one-line summary in Diagnostics.",
+ "hash": "8937e454fe3990d3",
+ "role": "Local-only UserDefaults counters (shown/completed/skipped) for the pre-score subjective prompt, surfaced as a one-line summary in Diagnostics; each record call counts on from the stored value.",
  "types": [
   "PreScorePromptTelemetry: final class (@Observable, @MainActor) — counters for the pre-score prompt"
  ],
@@ -10,34 +10,22 @@
   "ud:preScorePrompt.telemetry.shownCount",
   "ud:preScorePrompt.telemetry.completedCount",
   "ud:preScorePrompt.telemetry.skippedCount",
-  "ud:preScorePrompt.telemetry.firstSeen",
-  "mem:PreScorePromptTelemetry.shownCount/completedCount/skippedCount/firstSeen"
+  "ud:preScorePrompt.telemetry.firstSeen (legacy, written by earlier builds; only removed by reset)",
+  "mem:PreScorePromptTelemetry.shownCount/completedCount/skippedCount"
  ],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "firstSeen is written to UserDefaults and kept in memory but nothing in the repo reads it (grep finds no reader outside this file), so the stored value is write-only.",
-   "evidence": [
-    "Emuqu/Sources/Services/PreScorePromptTelemetry.swift:25",
-    "Emuqu/Sources/Services/PreScorePromptTelemetry.swift:42"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "init PreScorePromptTelemetry(defaults:)",
-   "hash": "77ba3a2bc5649377",
-   "does": "Loads the three counters and firstSeen from the given UserDefaults (standard by default).",
+   "hash": "39dd1ac34956722e",
+   "does": "Loads the three counters from the given UserDefaults (standard by default).",
    "entry": null,
    "calls": [],
    "reads": [
     "ud:preScorePrompt.telemetry.shownCount",
     "ud:preScorePrompt.telemetry.completedCount",
-    "ud:preScorePrompt.telemetry.skippedCount",
-    "ud:preScorePrompt.telemetry.firstSeen"
+    "ud:preScorePrompt.telemetry.skippedCount"
    ],
    "writes": [],
    "branches": [],
@@ -46,30 +34,23 @@
   },
   {
    "key": "func PreScorePromptTelemetry.recordShown()",
-   "hash": "2ef8f0d2c1e5a326",
-   "does": "Increments and persists shownCount; stamps firstSeen the first time. Called from PreScorePromptView .task.",
+   "hash": "567c9d88c829b38e",
+   "does": "Sets shownCount to the stored shownCount + 1 and persists it, so a sweep of the key is not undone by a stale in-memory total. Called from PreScorePromptView .task.",
    "entry": null,
    "calls": [],
-   "reads": [],
+   "reads": [
+    "ud:preScorePrompt.telemetry.shownCount"
+   ],
    "writes": [
-    "ud:preScorePrompt.telemetry.shownCount",
-    "ud:preScorePrompt.telemetry.firstSeen"
+    "ud:preScorePrompt.telemetry.shownCount"
    ],
-   "branches": [
-    {
-     "at": "+3",
-     "cond": "firstSeen is nil",
-     "effect": "sets firstSeen to now in memory and defaults; otherwise unchanged"
-    }
-   ],
+   "branches": [],
    "flags": [
     {
      "kind": "fragile",
      "sev": "low",
-     "text": "The counters live in the shared singleton's memory as well as UserDefaults. Delete All My Data sweeps the preScorePrompt.telemetry.* keys (not on the keep list) but never calls reset(), so Diagnostics keeps showing the old counts and the next recordShown/recordCompleted/recordSkipped writes the stale in-memory total back to disk.",
+     "text": "Delete All My Data sweeps the preScorePrompt.telemetry.* keys but never calls reset(), so Diagnostics keeps showing the old in-memory counts until the next record call (which now counts on from the swept, zero value). DataPurgeService should call reset() (handed off).",
      "evidence": [
-      "Emuqu/Sources/Services/PreScorePromptTelemetry.swift:37",
-      "Emuqu/Sources/Services/PreScorePromptTelemetry.swift:38",
       "Emuqu/Sources/Services/DataPurgeService.swift:328",
       "Emuqu/Sources/Services/DataPurgeService.swift:696"
      ],
@@ -80,11 +61,13 @@
   },
   {
    "key": "func PreScorePromptTelemetry.recordCompleted()",
-   "hash": "4c2cc7111f77a5a2",
-   "does": "Increments and persists completedCount (Show my score with ≥1 answer).",
+   "hash": "0c09e4f783e38c1b",
+   "does": "Sets completedCount to the stored completedCount + 1 and persists it (Show my score with ≥1 answer).",
    "entry": null,
    "calls": [],
-   "reads": [],
+   "reads": [
+    "ud:preScorePrompt.telemetry.completedCount"
+   ],
    "writes": [
     "ud:preScorePrompt.telemetry.completedCount"
    ],
@@ -94,11 +77,13 @@
   },
   {
    "key": "func PreScorePromptTelemetry.recordSkipped()",
-   "hash": "024d99a592b31eab",
-   "does": "Increments and persists skippedCount (Skip / dismiss with no answers).",
+   "hash": "457a72a5d384cc41",
+   "does": "Sets skippedCount to the stored skippedCount + 1 and persists it (Skip / dismiss with no answers).",
    "entry": null,
    "calls": [],
-   "reads": [],
+   "reads": [
+    "ud:preScorePrompt.telemetry.skippedCount"
+   ],
    "writes": [
     "ud:preScorePrompt.telemetry.skippedCount"
    ],
@@ -167,8 +152,8 @@
   },
   {
    "key": "func PreScorePromptTelemetry.reset()",
-   "hash": "0c91e41b8cc488c0",
-   "does": "Zeroes all counters, clears firstSeen and removes the four keys. Wired to Diagnostics reset button.",
+   "hash": "f02f4e4f830e51fd",
+   "does": "Zeroes the three counters and removes their keys plus the legacy firstSeen key. Wired to Diagnostics reset button.",
    "entry": null,
    "calls": [],
    "reads": [],

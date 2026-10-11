@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Assistant/Chat/AssistantInbox.swift",
- "hash": "7db8ca9a31823fdc",
+ "hash": "72c2ae09e03e93e5",
  "role": "Main-actor observable channel from other screens into the Assistant tab: pre-filled draft text, an open-tab request token and a transient banner notice.",
  "types": [
   "AssistantInbox: final class (@Observable @MainActor)"
@@ -10,7 +10,8 @@
   "mem:AssistantInbox.pendingDraft",
   "mem:AssistantInbox.openRequestToken",
   "mem:AssistantInbox.transientNotice",
-  "mem:AssistantInbox.transientNoticeAutoClearSeconds = 4.0"
+  "mem:AssistantInbox.transientNoticeAutoClearSeconds = 4.0",
+  "mem:AssistantInbox.noticeGeneration (@ObservationIgnored flash counter)"
  ],
  "toplevel": "",
  "flags": [],
@@ -31,34 +32,27 @@
   },
   {
    "key": "func AssistantInbox.flashTransientNotice(_:)",
-   "hash": "67725e14a4102c07",
-   "does": "Sets transientNotice to message and, after 4 s (sleepQuietly), clears it only if it still equals message.",
+   "hash": "7099f0006cb46754",
+   "does": "Sets transientNotice to message, bumps noticeGeneration and, after 4 s (sleepQuietly), clears the notice only if no later flash happened (generation unchanged) — a repeat of the same text restarts the 4 s.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)"
    ],
-   "reads": [],
+   "reads": [
+    "mem:AssistantInbox.noticeGeneration"
+   ],
    "writes": [
-    "mem:AssistantInbox.transientNotice"
+    "mem:AssistantInbox.transientNotice",
+    "mem:AssistantInbox.noticeGeneration"
    ],
    "branches": [
     {
-     "at": "+5",
-     "cond": "transientNotice still equals message after 4 s",
-     "effect": "clear it; else leave newer notice"
+     "at": "+7",
+     "cond": "noticeGeneration still equals this flash's generation after 4 s",
+     "effect": "clear it; else leave the newer notice"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Equality is by string: flashing the same message twice within 4 s lets the first timer clear the second notice early.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Chat/AssistantInbox.swift:49"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851"
    }

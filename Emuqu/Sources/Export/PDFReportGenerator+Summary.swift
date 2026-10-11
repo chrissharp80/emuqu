@@ -13,7 +13,8 @@ extension PDFReportGenerator {
     // MARK: - Analysis Summary Section (Uses Shared Generator)
 
     /// Draws the analysis summary section using the shared AnalysisSummaryGenerator
-    /// This ensures the PDF contains 100% of the same content as MorningResultsView
+    /// with MorningResultsView's inputs (see `analysisSummary`), so the PDF says
+    /// what the screen says
     ///
     /// Every block is measured before it is drawn and moves to a new page
     /// when it does not fit, so long or translated text neither overlaps the
@@ -26,11 +27,7 @@ extension PDFReportGenerator {
         pageRect: CGRect
     ) -> CGFloat {
         let contentWidth = pageRect.width - config.margins.left - config.margins.right
-        let summary = analysisSummary(
-            result: inputs.result, session: inputs.session,
-            sleepData: inputs.sleepData, sleepTrend: inputs.sleepTrend, recentSessions: inputs.recentSessions,
-            trainingContext: inputs.trainingContext, baselineStats: inputs.baselineStats
-        )
+        let summary = analysisSummary(inputs)
         var pager = SummaryPager(pageNumber: pageNumber, context: context, pageRect: pageRect)
         defer { pageNumber = pager.pageNumber }
         var y = drawSummaryTitle(y: yPosition)
@@ -38,7 +35,10 @@ extension PDFReportGenerator {
         y = drawSummaryProbableCauses(summary, y: y, contentWidth: contentWidth, pager: &pager)
         y = drawSummaryKeyFindings(summary, y: y, contentWidth: contentWidth, pager: &pager)
         y = drawSummaryActionableSteps(summary, y: y, contentWidth: contentWidth, pager: &pager)
-        return drawSummaryDisclaimer(y: pager.ensureSpace(40, y: y, generator: self), contentWidth: contentWidth)
+        let disclaimer = summaryDisclaimerText()
+        let disclaimerHeight = wrappedHeight(disclaimer, width: contentWidth)
+        let disclaimerTop = pager.ensureSpace(disclaimerHeight + 25, y: y, generator: self)
+        return drawSummaryDisclaimer(disclaimer, height: disclaimerHeight, y: disclaimerTop, contentWidth: contentWidth)
     }
 
     /// The page state the summary's blocks share while they paginate.
@@ -60,38 +60,28 @@ extension PDFReportGenerator {
         ).height)
     }
 
-    /// Runs the same generator MorningResultsView does, with the report's
-    /// training context, so the two describe the same night the same way.
-    /// There is no live-load snapshot here, so the cumulative-load gate reads
-    /// the training context alone.
-    private func analysisSummary(
-        result: HRVAnalysisResult,
-        session: HRVSession,
-        sleepData: SleepData?,
-        sleepTrend: SleepTrendData?,
-        recentSessions: [HRVSession],
-        trainingContext: TrainingContext?,
-        baselineStats: BaselineTracker.RecoveryBaselineStats?
-    ) -> AnalysisSummaryGenerator.AnalysisSummary {
-        let sleepInput = summarySleepInput(sleepData: sleepData)
-        let sleepTrendInput = summarySleepTrendInput(sleepTrend)
-        // Use the shared generator - same code that powers MorningResultsView
+    /// Runs the same generator MorningResultsViewModel does with its inputs:
+    /// the session's frozen load, today's live load snapshot when the caller
+    /// captured one for today's session, and the canonical baseline. The
+    /// report has no live readiness yet, so the readiness-driven
+    /// post-workout steps are not reproduced.
+    private func analysisSummary(_ inputs: ReportInputs) -> AnalysisSummaryGenerator.AnalysisSummary {
         let settings = settingsProvider()
         let generator = AnalysisSummaryGenerator(
-            result: result,
-            session: session,
-            recentSessions: recentSessions,
-            selectedTags: Set(session.tags),
-            sleep: sleepInput,
-            sleepTrend: sleepTrendInput,
-            trainingContext: trainingContext,
+            result: inputs.result,
+            session: inputs.session,
+            recentSessions: inputs.recentSessions,
+            selectedTags: Set(inputs.session.tags),
+            sleep: summarySleepInput(sleepData: inputs.sleepData),
+            sleepTrend: summarySleepTrendInput(inputs.sleepTrend),
+            trainingContext: inputs.frozenTrainingContext,
             userAge: settings.age,
             biologicalSex: settings.biologicalSex,
-            canonicalBaselineRMSSD: baselineStats.map { exp($0.lnRmssdMean) },
-            canonicalBaselineHR: baselineStats.map(\.meanHRBaseline)
+            liveLoadSnapshot: inputs.adviceLiveLoad,
+            canonicalBaselineRMSSD: inputs.baselineStats.map { exp($0.lnRmssdMean) },
+            canonicalBaselineHR: inputs.baselineStats.map(\.meanHRBaseline)
         )
-        let summary = generator.generate()
-        return summary
+        return generator.generate()
     }
 
     private func summarySleepInput(sleepData: SleepData?) -> AnalysisSleepInput {
@@ -204,6 +194,7 @@ extension PDFReportGenerator {
     private func drawSummaryKeyFindings(
         _ summary: AnalysisSummaryGenerator.AnalysisSummary, y: CGFloat, contentWidth: CGFloat, pager: inout SummaryPager
     ) -> CGFloat {
+        guard !summary.keyFindings.isEmpty else { return y }
         var y = pager.ensureSpace(60, y: y, generator: self)
         y = drawSectionHeading(String(localized: "Key Findings", bundle: LanguageManager.appBundle), yPosition: y, pageRect: pager.pageRect)
         for finding in summary.keyFindings {
@@ -247,18 +238,24 @@ extension PDFReportGenerator {
         step.pdfDraw(in: CGRect(x: config.margins.left + 22, y: y, width: contentWidth - 32, height: height))
     }
 
-    private func drawSummaryDisclaimer(y: CGFloat, contentWidth: CGFloat) -> CGFloat {
-        var y = y
-        // Disclaimer at bottom
-        y += 15
-        let disclaimerAttr: [NSAttributedString.Key: Any] = [
-            .font: UIFont.systemFont(ofSize: 8),
-            .foregroundColor: UIColor.gray
-        ]
+    /// The not-medical-advice note, wrapped at 8 pt.
+    private func summaryDisclaimerText() -> NSAttributedString {
+        let paragraphStyle = PDFReadingDirection.paragraphStyle()
+        paragraphStyle.lineBreakMode = .byWordWrapping
         let disclaimer = String(localized: "Note: This analysis is for informational purposes only and should not be used as a substitute for professional medical advice.", bundle: LanguageManager.appBundle)
-        let disclaimerRect = CGRect(x: config.margins.left, y: y, width: contentWidth, height: 20)
-        disclaimer.pdfDraw(in: disclaimerRect, withAttributes: disclaimerAttr)
-        return y + 25
+        return NSAttributedString(string: disclaimer, attributes: [
+            .font: UIFont.systemFont(ofSize: 8),
+            .foregroundColor: UIColor.gray,
+            .paragraphStyle: paragraphStyle
+        ])
+    }
+
+    /// Draws the disclaimer 15 pt below `y` at its full wrapped height, so a
+    /// longer translation is not cut.
+    private func drawSummaryDisclaimer(_ disclaimer: NSAttributedString, height: CGFloat, y: CGFloat, contentWidth: CGFloat) -> CGFloat {
+        let top = y + 15
+        disclaimer.pdfDraw(in: CGRect(x: config.margins.left, y: top, width: contentWidth, height: height))
+        return top + height + 10
     }
 
     /// The card grows with its explanation: the title and confidence take the
@@ -281,24 +278,19 @@ extension PDFReportGenerator {
         let cardHeight = Self.causeCardHeight(explanationHeight: explanationHeight)
         UIColor(white: 0.97, alpha: 1.0).setFill()
         UIBezierPath(roundedRect: CGRect(x: config.margins.left, y: y, width: contentWidth, height: cardHeight), cornerRadius: 8).fill()
-        drawCauseRankAndTitle(rank: rank, cause: cause, confidence: confidence, y: y)
+        drawCauseRankAndTitle(rank: rank, cause: cause, confidence: confidence, y: y, contentWidth: contentWidth)
         explanation.pdfDraw(in: CGRect(x: config.margins.left + 10, y: y + 34, width: contentWidth - 20, height: explanationHeight))
         return y + cardHeight + 8
     }
 
-    private func drawCauseRankAndTitle(rank: Int, cause: String, confidence: String, y: CGFloat) {
+    private func drawCauseRankAndTitle(rank: Int, cause: String, confidence: String, y: CGFloat, contentWidth: CGFloat) {
         // Rank number
         let rankAttr: [NSAttributedString.Key: Any] = [
             .font: UIFont.systemFont(ofSize: 14, weight: .bold),
             .foregroundColor: config.primaryColor
         ]
         "\(rank).".pdfDraw(at: CGPoint(x: config.margins.left + 10, y: y + 8), withAttributes: rankAttr)
-        // Cause title
-        let causeAttr: [NSAttributedString.Key: Any] = [
-            .font: UIFont.systemFont(ofSize: 12, weight: .semibold),
-            .foregroundColor: UIColor.black
-        ]
-        cause.pdfDraw(at: CGPoint(x: config.margins.left + 30, y: y + 6), withAttributes: causeAttr)
+        drawCauseTitle(cause, y: y, contentWidth: contentWidth)
 
         // Confidence badge
         let confidenceAttr: [NSAttributedString.Key: Any] = [
@@ -306,6 +298,19 @@ extension PDFReportGenerator {
             .foregroundColor: UIColor.gray
         ]
         confidence.pdfDraw(at: CGPoint(x: config.margins.left + 30, y: y + 22), withAttributes: confidenceAttr)
+    }
+
+    /// The cause title, held to the card's width (ending in an ellipsis if it
+    /// would run past it) so a long or translated cause stays on the card.
+    private func drawCauseTitle(_ cause: String, y: CGFloat, contentWidth: CGFloat) {
+        let titleStyle = PDFReadingDirection.paragraphStyle()
+        titleStyle.lineBreakMode = .byTruncatingTail
+        let causeAttr: [NSAttributedString.Key: Any] = [
+            .font: UIFont.systemFont(ofSize: 12, weight: .semibold),
+            .foregroundColor: UIColor.black,
+            .paragraphStyle: titleStyle
+        ]
+        cause.pdfDraw(in: CGRect(x: config.margins.left + 30, y: y + 6, width: contentWidth - 40, height: 16), withAttributes: causeAttr)
     }
 
 }
@@ -322,18 +327,9 @@ extension PDFReportGenerator {
 // its parts across every file, so code that does not need the type inflates
 // that number without making the type do more.
 
+/// The report's trend is already the generator's input type; a trend over no
+/// nights is passed as none.
 private func summarySleepTrendInput(_ sleepTrend: PDFReportGenerator.SleepTrendData?) -> AnalysisSleepTrendInput? {
-    // Convert sleep trend to SleepTrendInput
-    let sleepTrendInput: AnalysisSleepTrendInput? = if let st = sleepTrend, st.nightsAnalyzed > 0 {
-        AnalysisSleepTrendInput(
-            averageSleepMinutes: st.averageSleepMinutes,
-            averageDeepSleepMinutes: st.averageDeepSleepMinutes,
-            averageEfficiency: st.averageEfficiency,
-            trend: st.trend,
-            nightsAnalyzed: st.nightsAnalyzed
-        )
-    } else {
-        nil
-    }
-    return sleepTrendInput
+    guard let sleepTrend, sleepTrend.nightsAnalyzed > 0 else { return nil }
+    return sleepTrend
 }

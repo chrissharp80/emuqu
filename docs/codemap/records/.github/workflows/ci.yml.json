@@ -8,7 +8,7 @@
   "permissions contents: read",
   "env RESULT_BUNDLE=build/TestResults.xcresult"
  ],
- "toplevel": "Triggers: workflow_dispatch only (no push/PR/schedule) and workflow_call. Top-level permissions contents:read; concurrency cancels an in-flight run on the same workflow+ref (when called from testflight.yml, github.workflow is the caller's name). Scope gates runs lint-and-budgets + strict-concurrency only; unit adds TSan and the unit test target (coverage not gated); full adds the UI target and the coverage floors. scripts/simulate_ci.sh (make ci-local) parses this file to replay it locally, and scripts/check_gates_wired.sh requires every check_/enforce_ script name to appear in it. Since nothing triggers it automatically, every gate that exists only here runs only when someone dispatches it or deploys to TestFlight.",
+ "toplevel": "Triggers: workflow_dispatch only (no push/PR/schedule) and workflow_call. Top-level permissions contents:read; concurrency cancels an in-flight run on the same workflow+ref (when called from testflight.yml, github.workflow is the caller's name). Scope gates runs lint-and-budgets + strict-concurrency only; unit adds TSan and the unit test target (overall/logic coverage floors not gated, Views floor gated); full adds the UI target and the coverage floors. scripts/simulate_ci.sh (make ci-local) parses this file to replay it locally, and scripts/check_gates_wired.sh requires every check_/enforce_ script name to appear in it. Since nothing triggers it automatically, every gate that exists only here runs only when someone dispatches it or deploys to TestFlight. lint-and-budgets installs SwiftLint pinned by version and checksum.",
  "flags": [
   {
    "kind": "coupling",
@@ -220,27 +220,37 @@
   },
   {
    "key": "step lint-and-budgets/Install tools",
-   "hash": "c0fe84779bd2463c",
-   "does": "`brew install swiftlint ripgrep` with set -euo pipefail; versions are whatever Homebrew serves that day (unpinned).",
+   "hash": "f3a201ef4d9cd31e",
+   "does": "`brew install ripgrep`, then downloads SwiftLint's portable_swiftlint.zip for the pinned SWIFTLINT_VERSION (0.65.1) from the realm/SwiftLint GitHub release with curl (fail on HTTP error, 3 retries) into $RUNNER_TEMP, verifies it against the pinned SWIFTLINT_SHA256 with `shasum -a 256 -c` (mismatch fails the step), unzips it, checks that `swiftlint version` prints exactly the pinned version (else exit 1), and prepends its directory to $GITHUB_PATH so later steps run that binary. The header comment ties the pin to the exact-count .ci/swiftlint_warning_budget.txt: bump version and checksum together and re-measure the budget.",
    "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
    "calls": [
-    "ext:brew install"
+    "ext:brew install",
+    "ext:curl",
+    "ext:shasum",
+    "ext:unzip",
+    "ext:swiftlint version"
    ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
+   "reads": [
+    "net:github.com/realm/SwiftLint/releases (portable_swiftlint.zip)"
+   ],
+   "writes": [
+    "file:$RUNNER_TEMP/swiftlint.zip",
+    "file:$RUNNER_TEMP/swiftlint/",
+    "file:$GITHUB_PATH"
+   ],
+   "branches": [
     {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Unpinned SwiftLint version while .ci/swiftlint_warning_budget.txt is an exact warning count; a SwiftLint release with new/changed rules changes the count with no code change.",
-     "evidence": [
-      ".github/workflows/ci.yml:89",
-      ".ci/swiftlint_warning_budget.txt:1"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+17",
+     "cond": "downloaded archive's SHA-256 differs from SWIFTLINT_SHA256",
+     "effect": "shasum -c fails; set -e fails the step and the job"
+    },
+    {
+     "at": "+20",
+     "cond": "`swiftlint version` differs from SWIFTLINT_VERSION",
+     "effect": "prints the mismatch to stderr and exits 1"
     }
    ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -292,7 +302,7 @@
   {
    "key": "step lint-and-budgets/Resolve the budget baseline",
    "hash": "891684ba8b612fa3",
-   "does": "Computes the budget baseline: inputs.baseline-ref if given, else HEAD~1 if it exists, else HEAD if .ci has uncommitted changes, else emits empty value/require and exits 0. Verifies the ref resolves to a commit (else exit 1), then writes value=<sha> and require=1 to $GITHUB_OUTPUT.",
+   "does": "Computes the budget baseline: inputs.baseline-ref if given, else HEAD~1 if it exists, else HEAD if .ci has uncommitted changes, else emits empty value/require and exits 0. Verifies the ref resolves to a commit (else exit 1), then writes value=<sha> and require=1 to $GITHUB_OUTPUT. A comment notes that a manual run compares one commit and that gates.yml, run on every push to main against the tip before the push, is what keeps every commit reaching main inside some compared range.",
    "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
    "calls": [
     "ext:git rev-parse",
@@ -324,59 +334,39 @@
      "effect": "print refusal and exit 1 (job fails); else output value and require=1"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "med",
-     "text": "The budget ratchet compares only against the parent commit (HEAD~1). gates.yml runs once per push, so in a push of several commits a budget raised in any commit but the last is never compared; ci.yml is manual-only, so raises in commits between manual runs are never compared either. The `budget-raise-ok` trailer scan (git log BASE..HEAD) has the same one-commit window.",
-     "evidence": [
-      ".github/workflows/gates.yml:81-82",
-      ".github/workflows/ci.yml:124-126",
-      "scripts/check_budget_monotonicity.sh:113"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
    "key": "step lint-and-budgets/Debt budgets ratchet down only",
    "hash": "a666f15ece8549f9",
-   "does": "Runs scripts/check_budget_monotonicity.sh with BUDGET_BASE_REF/BUDGET_REQUIRE_BASELINE from the baseline step: fails on a raised ceiling or lowered min_* floor not acknowledged by a budget-raise-ok trailer; with require=1 an unresolvable baseline fails instead of skipping.",
+   "does": "Runs scripts/check_budget_monotonicity.sh with BUDGET_BASE_REF/BUDGET_REQUIRE_BASELINE from the baseline step: compares every numeric .ci/*.txt (whole or decimal, including min_coverage_views.txt) present in the tree or at the baseline, and fails on a raised ceiling, a lowered min_* floor, or a deleted or non-numeric budget not acknowledged by a budget-raise-ok trailer in BASE..HEAD; with require=1 an unresolvable baseline fails instead of skipping.",
    "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
    "calls": [
     "ext:script scripts/check_budget_monotonicity.sh",
     "scripts/check_budget_monotonicity.sh::fn no_baseline",
     "scripts/check_budget_monotonicity.sh::fn is_allowed",
     "scripts/check_budget_monotonicity.sh::fn is_floor",
-    "scripts/check_budget_monotonicity.sh::fn read_int"
+    "scripts/check_budget_monotonicity.sh::fn read_number",
+    "scripts/check_budget_monotonicity.sh::fn loosens",
+    "scripts/check_budget_monotonicity.sh::fn report_loosened",
+    "scripts/check_budget_monotonicity.sh::fn budget_files"
    ],
    "reads": [
     "file:.ci/*.txt"
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "med",
-     "text": ".ci/min_coverage_views.txt holds 43.5, a non-integer; check_budget_monotonicity.sh read_int() rejects anything not ^[0-9]+$ and the loop `continue`s, so the views coverage floor is never compared and can be lowered with no budget-raise-ok trailer while the ratchet prints clean. Its header lists only three floors (min_coverage, min_coverage_logic, min_localization_coverage).",
-     "evidence": [
-      ".ci/min_coverage_views.txt:1",
-      "scripts/check_budget_monotonicity.sh:24-25",
-      "scripts/check_budget_monotonicity.sh:129-135",
-      "scripts/check_budget_monotonicity.sh:143",
-      "scripts/check_coverage.sh:43"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "scripts/check_budget_monotonicity.sh::": "23f1134fee90b433",
+    "scripts/check_budget_monotonicity.sh::": "f78d5c3c8b01662a",
+    "scripts/check_budget_monotonicity.sh::fn budget_files": "c70ca1ffaca60b15",
     "scripts/check_budget_monotonicity.sh::fn is_allowed": "a002d0e35987ee73",
     "scripts/check_budget_monotonicity.sh::fn is_floor": "313191d94c7788a1",
+    "scripts/check_budget_monotonicity.sh::fn loosens": "9da7cc84bf21dbde",
     "scripts/check_budget_monotonicity.sh::fn no_baseline": "4d98f6bae9009dcc",
-    "scripts/check_budget_monotonicity.sh::fn read_int": "f177c3dac57c9863"
+    "scripts/check_budget_monotonicity.sh::fn read_number": "d8d0aa6b0f8126bc",
+    "scripts/check_budget_monotonicity.sh::fn report_loosened": "005070da3ab1465d"
    }
   },
   {
@@ -1210,7 +1200,7 @@
   {
    "key": "job tests",
    "hash": "67952978c1de2fe0",
-   "does": "macOS-26 job 'Tests + coverage' (timeout 110). Sets TEST_SCOPE=full when scope is full, otherwise unit, plus SCHEME/PROJECT/RESULT_BUNDLE. Steps: checkout, Xcode 26.6, resolve simulator, make release-build, run_tests_with_coverage.sh, upload xcresult. Skipped for gates scope. In unit scope the overall and logic floors are reported but not gated (SKIP_OVERALL_COVERAGE/SKIP_LOGIC_COVERAGE); the Views floor (.ci/min_coverage_views.txt) is gated in both scopes (check_coverage.sh:134-139).",
+   "does": "macOS-26 job 'Tests + coverage' (timeout 110). Sets TEST_SCOPE=full when scope is full, otherwise unit, plus SCHEME/PROJECT/RESULT_BUNDLE. Steps: checkout, Xcode 26.6, resolve simulator, make release-build, run_tests_with_coverage.sh, upload xcresult. Skipped for gates scope. In unit scope the overall and logic floors are reported but not gated (SKIP_OVERALL_COVERAGE/SKIP_LOGIC_COVERAGE); the Views floor (.ci/min_coverage_views.txt) is gated in both scopes, which the job's comment now states.",
    "entry": "GitHub Actions job in ci.yml, conditional on inputs.scope",
    "calls": [
     ".github/workflows/ci.yml::step tests/Checkout",
@@ -1231,7 +1221,7 @@
     {
      "at": "+15",
      "cond": "inputs.scope == 'full'",
-     "effect": "TEST_SCOPE=full (UI + unit, floors gated); otherwise unit (EmuquTests only, coverage reported but not gated)"
+     "effect": "TEST_SCOPE=full (UI + unit, all floors gated); otherwise unit (EmuquTests only, overall and logic floors reported but not gated, Views floor gated)"
     }
    ],
    "flags": [

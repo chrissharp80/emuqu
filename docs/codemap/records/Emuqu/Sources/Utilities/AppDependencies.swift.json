@@ -1,28 +1,27 @@
 {
  "file": "Emuqu/Sources/Utilities/AppDependencies.swift",
- "hash": "bfe33940b5b3bbda",
+ "hash": "dd3c79022ccf061f",
  "role": "Composition root: the only file (with EmuquApp/WatchApp) allowed to read `Type.shared`. AppDependencies exposes eight lazily-built service groups whose accessors return a test substitute from a lock-guarded Overrides box or the live singleton; also defines the SwiftUI `\\.dependencies` environment key and the shared Overpass client.",
  "types": [
   "AppDependencies: struct — container: overrides box + 8 group accessors + static `current`",
-  "AppDependencies.Overrides: final class — OSAllocatedUnfairLock<Values> holding 68 optional substitutes",
+  "AppDependencies.Overrides: final class — OSAllocatedUnfairLock<Values> holding 67 optional substitutes",
   "UtilityServices / AnalysisServices / AssistantServices / CollectionServices / LocationServices / ProviderServices / AppServices / StorageServices: struct — per-layer accessors (substitute ?? .shared)",
   "OverpassServices: private enum — one OverpassClient shared by RoadGraphService and TrailDiscoveryService",
-  "DependenciesKey: private struct EnvironmentKey — defaultValue = AppDependencies.current",
+  "DependenciesKey: private struct EnvironmentKey — computed defaultValue returning AppDependencies.current at each read",
   "EnvironmentValues: extension — `dependencies` accessor"
  ],
  "state": [
-  "mem:AppDependencies.storage (private static OSAllocatedUnfairLock<AppDependencies>, line 50)",
-  "mem:AppDependencies.overrides (let, per container, line 26)",
+  "mem:AppDependencies.storage (private static OSAllocatedUnfairLock<AppDependencies>, line 51)",
+  "mem:AppDependencies.overrides (let, per container, line 27)",
   "mem:AppDependencies.Overrides.values (OSAllocatedUnfairLock<Values>, line 127)",
-  "mem:OverpassServices.client / roadGraph / trailDiscovery (static lets, lines 634-636)",
-  "mem:DependenciesKey.defaultValue (static let snapshot of AppDependencies.current, line 779)"
+  "mem:OverpassServices.client / roadGraph / trailDiscovery (static lets, lines 625-627)"
  ],
- "toplevel": "Stored-property initializers: `let overrides = Overrides()` (26); static storage lock seeded with AppDependencies() (50); Overrides.values lock seeded with an all-nil Values (127); OverpassServices builds OverpassClient() and the two Overpass services lazily on first static access (634-636); DependenciesKey.defaultValue captures AppDependencies.current once (779).",
+ "toplevel": "Stored-property initializers: `let overrides = Overrides()` (27); static storage lock seeded with AppDependencies() (51); Overrides.values lock seeded with an all-nil Values (127); OverpassServices builds OverpassClient() and the two Overpass services lazily on first static access (625-627).",
  "flags": [
   {
    "kind": "dead",
    "sev": "low",
-   "text": "The whole Overrides substitution layer (68 lock-guarded slots, the `current` setter and reset()) is never exercised: no code in Emuqu, EmuquTests or EmuquUITests assigns any `overrides.<name>`, sets `AppDependencies.current`, or calls `reset()`. Every group accessor's `if let substitute` branch is therefore never taken and the container is only an indirection over `.shared`.",
+   "text": "The whole Overrides substitution layer (67 lock-guarded slots, the `current` setter and reset()) is never exercised: no code in Emuqu, EmuquTests or EmuquUITests assigns any `overrides.<name>`, sets `AppDependencies.current`, or calls `reset()`. Every group accessor's `if let substitute` branch is therefore never taken and the container is only an indirection over `.shared`.",
    "evidence": [
     "Emuqu/Sources/Utilities/AppDependencies.swift:55",
     "Emuqu/Sources/Utilities/AppDependencies.swift:127",
@@ -332,7 +331,7 @@
   {
    "key": "var AppDependencies.Overrides.globalKeyboardDismissal",
    "hash": "804e932bb4827748",
-   "does": "Lock-guarded get/set of the optional GlobalKeyboardDismissal test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "does": "Lock-guarded get/set of the optional GlobalKeyboardDismissal test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor (itself read by EmuquApp); the setter has no caller anywhere in the repo, so the value is always nil.",
    "entry": null,
    "calls": [],
    "reads": [
@@ -342,17 +341,7 @@
     "mem:AppDependencies.Overrides.values.globalKeyboardDismissal"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Neither the override nor the globalKeyboardDismissal group accessor has any caller: EmuquApp reads GlobalKeyboardDismissal.shared directly (Emuqu/EmuquApp.swift:695-696), which the root-file allowlist permits.",
-     "evidence": [
-      "Emuqu/Sources/Utilities/AppDependencies.swift:149"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -833,32 +822,6 @@
    ],
    "branches": [],
    "flags": [],
-   "deps": {}
-  },
-  {
-   "key": "var AppDependencies.Overrides.locationFinder",
-   "hash": "614272c261242c1f",
-   "does": "Lock-guarded get/set of the optional LocationFinder test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
-   "entry": null,
-   "calls": [],
-   "reads": [
-    "mem:AppDependencies.Overrides.values.locationFinder"
-   ],
-   "writes": [
-    "mem:AppDependencies.Overrides.values.locationFinder"
-   ],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Neither the override nor the locationFinder group accessor has any caller: LocationFinder is only used through its static helpers (Emuqu/Sources/Services/AppLaunchTasks.swift:353, Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift:528).",
-     "evidence": [
-      "Emuqu/Sources/Utilities/AppDependencies.swift:273"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   },
   {
@@ -1466,7 +1429,7 @@
    "key": "var UtilityServices.globalKeyboardDismissal",
    "hash": "49b8d2af30e04aac",
    "does": "Returns the GlobalKeyboardDismissal the app uses: the test substitute from overrides.globalKeyboardDismissal if one is set, otherwise the GlobalKeyboardDismissal.shared singleton (constructing it on first access). Main-actor isolated.",
-   "entry": null,
+   "entry": "Read by EmuquApp (AppDependencies.current.app.globalKeyboardDismissal) to install the global keyboard-dismissal handling.",
    "calls": [],
    "reads": [
     "mem:GlobalKeyboardDismissal.shared",
@@ -1480,17 +1443,7 @@
      "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return GlobalKeyboardDismissal.shared."
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "UtilityServices.globalKeyboardDismissal has no caller anywhere in the repo (grep '\\.globalKeyboardDismissal\\b' over all Swift, tests included, finds only this file): EmuquApp reads GlobalKeyboardDismissal.shared directly (Emuqu/EmuquApp.swift:695-696), which the root-file allowlist permits.",
-     "evidence": [
-      "Emuqu/Sources/Utilities/AppDependencies.swift:430"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -2121,48 +2074,6 @@
     }
    ],
    "flags": [],
-   "deps": {}
-  },
-  {
-   "key": "var LocationServices.locationFinder",
-   "hash": "6250f06d217c90bd",
-   "does": "Returns the LocationFinder the app uses: the test substitute from overrides.locationFinder if one is set, otherwise the LocationFinder.shared singleton (constructing it on first access). Main-actor isolated.",
-   "entry": null,
-   "calls": [],
-   "reads": [
-    "mem:LocationFinder.shared",
-    "mem:AppDependencies.Overrides.values.locationFinder"
-   ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "overrides.locationFinder is non-nil",
-     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return LocationFinder.shared."
-    }
-   ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "LocationServices.locationFinder has no caller anywhere in the repo (grep '\\.locationFinder\\b' over all Swift, tests included, finds only this file): LocationFinder is only used through its static helpers (Emuqu/Sources/Services/AppLaunchTasks.swift:353, Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift:528).",
-     "evidence": [
-      "Emuqu/Sources/Utilities/AppDependencies.swift:595"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Because this accessor is the only reader of LocationFinder.shared, the LocationFinder singleton instance itself is never constructed in practice; all real use goes through its nonisolated static helpers.",
-     "evidence": [
-      "Emuqu/Sources/Services/LocationFinder.swift:23",
-      "Emuqu/Sources/Services/LocationFinder.swift:58",
-      "Emuqu/Sources/Services/AppLaunchTasks.swift:353"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {}
   },
   {
@@ -2829,10 +2740,10 @@
    "deps": {}
   },
   {
-   "key": "var EnvironmentValues.dependencies",
-   "hash": "16a0ecca667c0d17",
-   "does": "SwiftUI EnvironmentValues accessor for the container: get returns self[DependenciesKey] (defaulting to DependenciesKey.defaultValue, a static snapshot of AppDependencies.current taken on first use), set stores an override for a subtree.",
-   "entry": "Read by @Environment(\\.dependencies) in views (e.g. Emuqu/Sources/Views/SettingsView.swift:12); the setter is only used if a view applies .environment(\\.dependencies, ...), which no code in the repo does.",
+   "key": "var DependenciesKey.defaultValue",
+   "hash": "34e253b4524d953a",
+   "does": "EnvironmentKey default for \\.dependencies: a computed static that returns AppDependencies.current at each read (not a one-time snapshot), so a container swapped into `current` reaches views that have no injected value.",
+   "entry": "SwiftUI reads it whenever a view's environment has no \\.dependencies value (always, since nothing injects one).",
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current"
    ],
@@ -2841,21 +2752,29 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Doc says 'the root injects .current' (line 15) and previews/tests override via .environment(\\.dependencies, ...) (line 784), but no file applies .environment(\\.dependencies, ...); views receive DependenciesKey.defaultValue, a `static let` snapshot of AppDependencies.current taken once. A test that swaps `current` after the first environment read (or calls reset(), which makes a new Overrides box) would not reach views.",
-     "evidence": [
-      "Emuqu/Sources/Utilities/AppDependencies.swift:15",
-      "Emuqu/Sources/Utilities/AppDependencies.swift:779",
-      "Emuqu/Sources/Utilities/AppDependencies.swift:784"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+   }
+  },
+  {
+   "key": "var EnvironmentValues.dependencies",
+   "hash": "16a0ecca667c0d17",
+   "does": "SwiftUI EnvironmentValues accessor for the container: get returns self[DependenciesKey] (defaulting to DependenciesKey.defaultValue, i.e. AppDependencies.current at the time of the read), set stores an override for a subtree.",
+   "entry": "Read by @Environment(\\.dependencies) in views (e.g. Emuqu/Sources/Views/SettingsView.swift:12); the setter is only used if a view applies .environment(\\.dependencies, ...), which no code in the repo does.",
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var DependenciesKey.defaultValue",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current"
+   ],
+   "reads": [
+    "mem:AppDependencies.storage"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var DependenciesKey.defaultValue": "4531a5a92f46eee3"
    }
   }
  ],

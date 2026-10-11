@@ -1,11 +1,12 @@
 {
  "file": "Emuqu/Sources/Views/HRVDetailV2View.swift",
- "hash": "5f0d9d56b76cd21d",
- "role": "Main-file of the HRV detail screen pushed from the Dashboard HRV chip: hero RMSSD with z-score verdict, HR strip, autonomic capacity card, 30-day trend rows, plus the async loaders for the full RR series and the Beat Consistency priors baseline. Charts/engine-room/Beat Consistency card live in HRVDetailV2View+Charts.swift.",
+ "hash": "12f332051861971a",
+ "role": "Main-file of the HRV detail screen pushed from the Dashboard HRV chip: hero RMSSD with z-score verdict, HR strip, autonomic capacity card, trend rows (RMSSD vs the recovery baseline, the rest vs the 30-day reliable-overnight archive average), plus the async loaders for the full RR series, the trend averages and the Beat Consistency priors baseline. Charts/engine-room/Beat Consistency card live in HRVDetailV2View+Charts.swift.",
  "types": [
   "HRVDetailV2View: struct (View) — HRV detail screen",
   "HRVDetailV2View.EngineTab: enum — engine-room tab ids (Time/Frequency/Nonlinear/ANS/Quality)",
-  "HRVDetailV2View.HRVVerdict: enum — Excellent/Good/Fair/Low verdict for today's RMSSD"
+  "HRVDetailV2View.HRVVerdict: enum — Excellent/Good/Fair/Low verdict for today's RMSSD",
+  "HRVDetailV2View.TrendAverages: struct (Sendable) — 30-day means of RMSSD, SDNN, mean HR and stress index"
  ],
  "state": [
   "mem:HRVDetailV2View.dt11..dt56 (@ScaledMetric font sizes)",
@@ -15,27 +16,22 @@
   "mem:HRVDetailV2View.fullRRSeries (@State private RRSeries?)",
   "mem:HRVDetailV2View.rrLoadCompleted (@State Bool)",
   "mem:HRVDetailV2View.rrPlotPoints (@State [RRPlotPoint])",
-  "mem:HRVDetailV2View.priorBaselineFeatures (@State private [BeatConsistency.Features])",
   "mem:HRVDetailV2View.baselineLoadCompleted (@State Bool)",
+  "mem:HRVDetailV2View.trendAverages (@State TrendAverages?, nil while loading)",
   "mem:HRVDetailV2View.beatConsistencyComputed (@State NightlyResult?)",
   "let session/result/recentSessions/baselineStats (inputs from DashboardV2View.swift:427)",
   "@Environment(\\.dependencies), @Environment(RRCollector.self) collector"
  ],
- "toplevel": "Stored-property initializers only: @ScaledMetric sizes bound to text styles (11..56pt), @State defaults (engineRoomTab=.timeDomain, flags false, arrays empty, optionals nil). EngineTab raw values are English strings 'Time','Frequency','Nonlinear','ANS','Quality'. Header doc (lines 4-22) claims a <256-beat Frequency-tab explanation and a >10% artifact caution banner; the banner is implemented at line 220, the frequency-tab copy lives in HRVDetailV2View+Charts.swift.",
+ "toplevel": "Stored-property initializers only: @ScaledMetric sizes bound to text styles (11..56pt), @State defaults (engineRoomTab=.timeDomain, flags false, arrays empty, optionals nil). EngineTab raw values are English strings 'Time','Frequency','Nonlinear','ANS','Quality'. Header doc (lines 4-23) describes the trend rows' two comparisons, the Frequency tab's short-reading explanation (under ~60 clean beats) and the >10% artifact caution banner. A file-scope trendMean helper follows the type.",
  "flags": [
   {
-   "kind": "spec-mismatch",
-   "sev": "med",
-   "text": "Trend rows are labelled 'vs 30-day avg' (line 732) and the doc says 'mean of the last 30 days of overnight readings' (644), but the input `recentSessions` is the dashboard's 35-most-recent sessions of ANY type (MainTabView.swift:710, DashboardV2View.swift:430). For a user with workouts/quick readings, the average covers far fewer than 30 days of overnight nights — the same truncation the file itself fixed for Beat Consistency priors (lines 332-335) but not here.",
+   "kind": "dead",
+   "sev": "low",
+   "text": "`recentSessions` is no longer read by the view (the trend rows load their averages from the archive); callers in DashboardV2View/MainTabView and the snapshot tests still pass it.",
    "evidence": [
-    "Emuqu/Sources/Views/HRVDetailV2View.swift:652",
-    "Emuqu/Sources/Views/HRVDetailV2View.swift:732",
-    "Emuqu/Sources/Views/HRVDetailV2View.swift:644",
-    "Emuqu/Sources/Views/MainTabView.swift:710",
-    "Emuqu/Sources/Views/DashboardV2View.swift:430",
-    "Emuqu/Sources/Views/HRVDetailV2View.swift:332"
+    "Emuqu/Sources/Views/HRVDetailV2View.swift:51"
    ],
-   "found": "first read, upheld on second"
+   "found": "fix batch b21"
   }
  ],
  "units": [
@@ -308,7 +304,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.loadDetail()": "48adaffe8780a540",
+    "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.loadDetail()": "42ad1f9ae7762362",
     "Emuqu/Sources/Views/HRVDetailV2View.swift::var HRVDetailV2View.compareSheetBinding": "86c336167008301a",
     "Emuqu/Sources/Views/HRVDetailV2View.swift::var HRVDetailV2View.detailStack": "de9c2ae19d7a307d",
     "Emuqu/Sources/Views/HRVDetailV2View.swift::var HRVDetailV2View.infoSheetBinding": "bdfa2a5fe8c5be0e",
@@ -338,7 +334,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift::var HRVDetailV2View.engineRoomSection": "075fcfebf91c4964",
+    "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift::var HRVDetailV2View.engineRoomSection": "e30e8ba175537ae5",
     "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift::var HRVDetailV2View.hrvWaveformChart": "b44343abded56378",
     "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift::var HRVDetailV2View.poincareChart": "980ffe04e4186d6b",
     "Emuqu/Sources/Views/HRVDetailV2View.swift::var HRVDetailV2View.artifactBannerIfNeeded": "4ab52fbdb9f8f92c",
@@ -489,37 +485,46 @@
   },
   {
    "key": "func HRVDetailV2View.loadDetail()",
-   "hash": "4c95297ab7cd4885",
-   "does": "Resets load flags/state, loads the full RR series, then (unless the task was cancelled) loads the Beat Consistency priors baseline.",
+   "hash": "bc764a5d1d06e5cf",
+   "does": "Resets every per-session piece of state (load flags, Beat Consistency result, fullRRSeries, rrPlotPoints, trendAverages), loads the full RR series, then the 30-day trend averages, then the Beat Consistency priors baseline, returning early if the task was cancelled between steps.",
    "entry": "Called from .task(id: session.id) in body",
    "calls": [
     "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.loadRRSeries()",
+    "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.loadTrendAverages()",
     "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.loadBeatConsistencyBaseline()"
    ],
    "reads": [],
    "writes": [
     "mem:HRVDetailV2View.rrLoadCompleted",
     "mem:HRVDetailV2View.baselineLoadCompleted",
-    "mem:HRVDetailV2View.priorBaselineFeatures",
-    "mem:HRVDetailV2View.beatConsistencyComputed"
+    "mem:HRVDetailV2View.beatConsistencyComputed",
+    "mem:HRVDetailV2View.fullRRSeries",
+    "mem:HRVDetailV2View.rrPlotPoints",
+    "mem:HRVDetailV2View.trendAverages"
    ],
    "branches": [
     {
-     "at": "+8",
+     "at": "+10",
      "cond": "Task.isCancelled after RR load",
-     "effect": "true: returns, baseline never loads (baselineLoadCompleted stays false); false: continues to loadBeatConsistencyBaseline"
+     "effect": "true: returns, nothing more loads; false: loads trend averages"
+    },
+    {
+     "at": "+11",
+     "cond": "Task.isCancelled after trend load (next line)",
+     "effect": "true: returns before the priors walk; false: loads the Beat Consistency baseline"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.loadBeatConsistencyBaseline()": "decc7dafe09f513d",
-    "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.loadRRSeries()": "a627eff2ef0df95e"
+    "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.loadBeatConsistencyBaseline()": "236e4094a78e5c03",
+    "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.loadRRSeries()": "8a52f4bc29cad613",
+    "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.loadTrendAverages()": "250fd5155ea81f7a"
    }
   },
   {
    "key": "func HRVDetailV2View.loadRRSeries()",
-   "hash": "0fa36819d8092909",
-   "does": "Retrieves the full session off-main via RRCollector; if it has a non-empty rrSeries stores it in fullRRSeries; then builds sampled plot points from effectiveRRSeries and sets rrLoadCompleted.",
+   "hash": "2adf17f87c9a3062",
+   "does": "Retrieves the full session off-main via RRCollector; returns without writing anything if the task was cancelled meanwhile (a newer session's load superseded it); otherwise stores a non-empty rrSeries in fullRRSeries (left nil by loadDetail's reset when there is none), builds sampled plot points from effectiveRRSeries and sets rrLoadCompleted.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.retrieveFullSessionAsync(_:)",
@@ -536,30 +541,17 @@
    ],
    "branches": [
     {
-     "at": "+1",
-     "cond": "full session found AND rrSeries non-nil AND points non-empty",
-     "effect": "true: fullRRSeries = series; false: fullRRSeries is NOT touched and is NOT reset by loadDetail (HRVDetailV2View.swift:265-269 resets only the flags/priors/result), so on an in-place session change it still holds the PREVIOUS session's series and effectiveRRSeries (line 103) returns it; retrieve failure is swallowed (retrieveOrLog logs and returns nil)"
-    }
-   ],
-   "flags": [
+     "at": "+2",
+     "cond": "task cancelled after the retrieve",
+     "effect": "returns: no state written, so a superseded load cannot land under the new session"
+    },
     {
-     "kind": "race",
-     "sev": "med",
-     "text": "fullRRSeries is never reset when session.id changes (loadDetail resets every other piece of state at 266-269 but not fullRRSeries), and loadRRSeries has no cancellation check after its await. When the dashboard's hrvDestination swaps in a newer latestOvernightComplete under the same view identity, (a) a failed/empty full retrieve for the new session leaves the old night's RR series in place, and (b) the cancelled old task's retrieve can finish after the new one and overwrite fullRRSeries with the old night. The waveform, Poincaré plot and the Beat Consistency score (scoreNight reads effectiveRRSeries at 381) then show the previous night's beats under the new night's header.",
-     "evidence": [
-      "Emuqu/Sources/Views/HRVDetailV2View.swift:68",
-      "Emuqu/Sources/Views/HRVDetailV2View.swift:103",
-      "Emuqu/Sources/Views/HRVDetailV2View.swift:196",
-      "Emuqu/Sources/Views/HRVDetailV2View.swift:265",
-      "Emuqu/Sources/Views/HRVDetailV2View.swift:269",
-      "Emuqu/Sources/Views/HRVDetailV2View.swift:301",
-      "Emuqu/Sources/Views/HRVDetailV2View.swift:303",
-      "Emuqu/Sources/Views/HRVDetailV2View.swift:381",
-      "Emuqu/Sources/Views/DashboardV2View.swift:426"
-     ],
-     "found": "second read"
+     "at": "+3",
+     "cond": "full session found AND rrSeries non-empty",
+     "effect": "true: fullRRSeries = series; false: fullRRSeries stays nil (reset by loadDetail), effectiveRRSeries falls back to session.rrSeries; retrieve failure is logged by retrieveOrLog"
     }
    ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.retrieveFullSessionAsync(_:)": "0f232a98a915f52c",
     "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift::func HRVDetailV2View.sampledRRPoints(_:)": "7b7fba5afb5864a0",
@@ -568,8 +560,8 @@
   },
   {
    "key": "func HRVDetailV2View.loadBeatConsistencyBaseline()",
-   "hash": "bea3a55db125b653",
-   "does": "Collects up to 28 prior overnight session ids, asks the shared BeatConsistencyPriorsCache to warm them, polls for cached features, then (if not cancelled) stores priors, scores tonight off-main, and sets baselineLoadCompleted.",
+   "hash": "7fcf05600779c608",
+   "does": "Collects up to 28 prior overnight session ids, asks the shared BeatConsistencyPriorsCache to warm them (ids are queued onto a walk already in flight), polls for cached features, then (if not cancelled) scores tonight off-main against them and sets baselineLoadCompleted.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.overnightPriorIds(archive:)",
@@ -584,7 +576,7 @@
    ],
    "writes": [
     "mem:BeatConsistencyPriorsCache.walkTask",
-    "mem:HRVDetailV2View.priorBaselineFeatures",
+    "mem:BeatConsistencyPriorsCache.queuedIds",
     "mem:HRVDetailV2View.beatConsistencyComputed",
     "mem:HRVDetailV2View.baselineLoadCompleted"
    ],
@@ -595,33 +587,9 @@
      "effect": "true: returns without storing (view gone); false: stores results"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "startWarm returns immediately when a walk is already running (BeatConsistencyPriorsCache.swift:255), so ids for THIS session are not queued if another walk is in flight; waitForPriors then waits on the unrelated walk and the card resolves to 'Calibrating' until a later open re-warms.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift:255",
-      "Emuqu/Sources/Views/HRVDetailV2View.swift:324",
-      "Emuqu/Sources/Views/HRVDetailV2View.swift:364"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "priorBaselineFeatures is write-only: it is assigned at 268 and 327 and never read anywhere in the repo (the card reads beatConsistencyComputed); the @State and its doc comment (79-87) describe a role it no longer has.",
-     "evidence": [
-      "Emuqu/Sources/Views/HRVDetailV2View.swift:88",
-      "Emuqu/Sources/Views/HRVDetailV2View.swift:268",
-      "Emuqu/Sources/Views/HRVDetailV2View.swift:327",
-      "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift:276"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.startWarm(_:archive:)": "230ba6b66bede11a",
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.startWarm(_:archive:)": "559531aa05c16729",
     "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.overnightPriorIds(archive:)": "0d125420ada641ee",
     "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.scoreNight(priors:)": "665c4d77ff2235f0",
     "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.waitForPriors(_:cache:)": "e5a8644bdec392df",
@@ -957,7 +925,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift::func HRVDetailV2View.sectionHeading(_:)": "b9c238ea6521f966",
+    "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift::func HRVDetailV2View.sectionHeading(_:)": "c7cbb7b5fd2208dc",
     "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.capacityStatRow(_:)": "a2f7f4171eb86b7e",
     "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.windowHRRow(_:)": "a888bbe8514a0196",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
@@ -1067,7 +1035,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift::func HRVDetailV2View.sectionHeading(_:)": "b9c238ea6521f966",
+    "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift::func HRVDetailV2View.sectionHeading(_:)": "c7cbb7b5fd2208dc",
     "Emuqu/Sources/Views/HRVDetailV2View.swift::var HRVDetailV2View.trendAnalysisRows": "7e1a17191d355584"
    }
   },
@@ -1085,64 +1053,67 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HRVDetailV2View.swift::var HRVDetailV2View.coreTrendRows": "7149f32194b91634",
-    "Emuqu/Sources/Views/HRVDetailV2View.swift::var HRVDetailV2View.stressTrendRow": "f94caf2e215b8d35"
+    "Emuqu/Sources/Views/HRVDetailV2View.swift::var HRVDetailV2View.coreTrendRows": "55902e21334b6096",
+    "Emuqu/Sources/Views/HRVDetailV2View.swift::var HRVDetailV2View.stressTrendRow": "01fc3e7ffe061590"
    }
   },
   {
    "key": "var HRVDetailV2View.coreTrendRows",
-   "hash": "db4ffea5b9552836",
-   "does": "RMSSD and SDNN rows plus Mean HR row (lower is better) vs the overnight trend average.",
+   "hash": "84244948b65e4b9a",
+   "does": "RMSSD and SDNN rows plus Mean HR row (lower is better) vs the 30-day reliable-overnight average (trendAverages.meanHR; no delta while loading).",
    "entry": "SwiftUI view-tree evaluation (re-evaluated on every body recompute of HRVDetailV2View)",
    "calls": [
     "Emuqu/Sources/Views/HRVDetailV2View.swift::var HRVDetailV2View.variabilityTrendRows",
-    "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.trendRow(metric:today:avg:unit:higherIsBetter:)",
-    "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.trendAverage(for:)"
+    "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.trendRow(metric:today:avg:unit:higherIsBetter:againstBaseline:)"
    ],
-   "reads": [],
+   "reads": [
+    "mem:HRVDetailV2View.trendAverages"
+   ],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.trendAverage(for:)": "118b5694f9fa03bc",
-    "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.trendRow(metric:today:avg:unit:higherIsBetter:)": "8879dc7a13938706",
-    "Emuqu/Sources/Views/HRVDetailV2View.swift::var HRVDetailV2View.variabilityTrendRows": "641c643ea8d198b4"
+    "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.trendRow(metric:today:avg:unit:higherIsBetter:againstBaseline:)": "41623a585f3b8b4d",
+    "Emuqu/Sources/Views/HRVDetailV2View.swift::var HRVDetailV2View.variabilityTrendRows": "77032a615979132d"
    }
   },
   {
    "key": "var HRVDetailV2View.variabilityTrendRows",
-   "hash": "2ecadd9659c8ddd7",
-   "does": "RMSSD and SDNN trend rows (higher is better) vs trend average.",
+   "hash": "0d21f075d7fccc2a",
+   "does": "RMSSD row against rmssdComparison (the recovery baseline when present, labelled 'vs baseline') and SDNN row against trendAverages.sdnn; both higher-is-better.",
    "entry": "SwiftUI view-tree evaluation (re-evaluated on every body recompute of HRVDetailV2View)",
    "calls": [
-    "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.trendRow(metric:today:avg:unit:higherIsBetter:)",
-    "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.trendAverage(for:)"
+    "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.trendRow(metric:today:avg:unit:higherIsBetter:againstBaseline:)",
+    "Emuqu/Sources/Views/HRVDetailV2View.swift::var HRVDetailV2View.rmssdComparison"
    ],
-   "reads": [],
+   "reads": [
+    "mem:HRVDetailV2View.trendAverages"
+   ],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.trendAverage(for:)": "118b5694f9fa03bc",
-    "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.trendRow(metric:today:avg:unit:higherIsBetter:)": "8879dc7a13938706"
+    "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.trendRow(metric:today:avg:unit:higherIsBetter:againstBaseline:)": "41623a585f3b8b4d",
+    "Emuqu/Sources/Views/HRVDetailV2View.swift::var HRVDetailV2View.rmssdComparison": "cf357c9980790e8d"
    }
   },
   {
    "key": "var HRVDetailV2View.stressTrendRow",
-   "hash": "6f2f36233b5ff973",
-   "does": "Stress index trend row (lower is better), only when the result has ansMetrics.stressIndex.",
+   "hash": "1f456b73750788ce",
+   "does": "Stress index trend row (lower is better) vs trendAverages.stress, only when the result has ansMetrics.stressIndex.",
    "entry": "SwiftUI view-tree evaluation (re-evaluated on every body recompute of HRVDetailV2View)",
    "calls": [
-    "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.trendRow(metric:today:avg:unit:higherIsBetter:)",
-    "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.trendAverageOptional(for:)"
+    "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.trendRow(metric:today:avg:unit:higherIsBetter:againstBaseline:)"
    ],
-   "reads": [],
+   "reads": [
+    "mem:HRVDetailV2View.trendAverages"
+   ],
    "writes": [],
    "branches": [
     {
-     "at": "+2",
+     "at": "+1",
      "cond": "result.ansMetrics?.stressIndex non-nil",
      "effect": "true: row rendered; false: omitted"
     }
@@ -1152,193 +1123,153 @@
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.trendAverageOptional(for:)": "527988bf0f540398",
-    "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.trendRow(metric:today:avg:unit:higherIsBetter:)": "8879dc7a13938706"
+    "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.trendRow(metric:today:avg:unit:higherIsBetter:againstBaseline:)": "41623a585f3b8b4d"
    }
   },
   {
-   "key": "func HRVDetailV2View.trendAverage(for:)",
-   "hash": "e3298af868067193",
-   "does": "Mean of the KeyPath<HRVAnalysisResult,Double> value over recentSessions that are overnight, not the current session, started within 30 days, and carry an analysisResult; nil when no values.",
+   "key": "var HRVDetailV2View.rmssdComparison",
+   "hash": "026c1cf021f78496",
+   "does": "What the RMSSD row compares against: exp(baselineStats.lnRmssdMean) — the geometric recovery baseline the hero subtitle uses — flagged againstBaseline; else the 30-day overnight average from trendAverages (nil while loading).",
    "entry": null,
    "calls": [],
    "reads": [
-    "mem:DashboardV2View.sessions (35-most-recent slice passed as recentSessions)"
+    "mem:HRVDetailV2View.trendAverages"
    ],
    "writes": [],
    "branches": [
     {
      "at": "+1",
-     "cond": "Calendar date 30 days ago computable",
-     "effect": "?? fallback Date() (now) if Calendar returns nil, which would exclude every session"
-    },
-    {
-     "at": "+10",
-     "cond": "session is overnight, not this session, within cutoff, has analysisResult",
-     "effect": "false: session skipped (nil); true: contributes value"
-    },
-    {
-     "at": "+16",
-     "cond": "values empty",
-     "effect": "true: returns nil (row shows no delta line); false: arithmetic mean"
+     "cond": "baseline mean present and > 0",
+     "effect": "true: (exp(mean), true); false: (trendAverages?.rmssd, false)"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "trendAverageOptional is a copy of trendAverage differing only in the KeyPath value type (Double? vs Double), including the duplicated comment block.",
-     "evidence": [
-      "Emuqu/Sources/Views/HRVDetailV2View.swift:652",
-      "Emuqu/Sources/Views/HRVDetailV2View.swift:672"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "Average does not filter isReliableForHRVAggregates, while the Compare-to-history sheet for the same metrics does (MetricInfoSheets.swift:476); unreliable overnight nights (high artifact) widen the trend baseline here but not there.",
-     "evidence": [
-      "Emuqu/Sources/Views/HRVDetailV2View.swift:662",
-      "Emuqu/Sources/Views/MetricInfoSheets.swift:476"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "The same screen gives two different 'vs your usual' figures for RMSSD: the hero subtitle compares against the tracker's geometric baseline exp(lnRmssdMean) over up to 60 nights (445-447), while the RMSSD trend row compares against the arithmetic mean of overnight sessions in the dashboard's 35-session slice (652-669, label 732). The Morning Results trend card was changed specifically to use the tracker baseline so these resolve to one number (TrendComparisonCard.swift:186-201); this screen was not.",
-     "evidence": [
-      "Emuqu/Sources/Views/HRVDetailV2View.swift:445",
-      "Emuqu/Sources/Views/HRVDetailV2View.swift:446",
-      "Emuqu/Sources/Views/HRVDetailV2View.swift:652",
-      "Emuqu/Sources/Views/HRVDetailV2View.swift:669",
-      "Emuqu/Sources/Views/HRVDetailV2View.swift:732",
-      "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift:186",
-      "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift:199"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef"
-   }
+   "flags": [],
+   "deps": {}
   },
   {
-   "key": "func HRVDetailV2View.trendAverageOptional(for:)",
-   "hash": "419e24c3b97a08c3",
-   "does": "Mean of the KeyPath<HRVAnalysisResult,Double?> value over recentSessions that are overnight, not the current session, started within 30 days, and carry an analysisResult with a non-nil value; nil when no values.",
+   "key": "func HRVDetailV2View.loadTrendAverages()",
+   "hash": "b056fef9828328d3",
+   "does": "Computes averagesForTrend(archive:excluding:since:) for the last 30 days on a detached userInitiated task and stores it in trendAverages unless the task was cancelled meanwhile.",
    "entry": null,
-   "calls": [],
-   "reads": [
-    "mem:DashboardV2View.sessions (35-most-recent slice passed as recentSessions)"
-   ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "Calendar date 30 days ago computable",
-     "effect": "?? fallback Date() (now) if Calendar returns nil, which would exclude every session"
-    },
-    {
-     "at": "+10",
-     "cond": "session is overnight, not this session, within cutoff, has analysisResult",
-     "effect": "false: session skipped (nil); true: contributes value (nil values dropped by compactMap)"
-    },
-    {
-     "at": "+16",
-     "cond": "values empty",
-     "effect": "true: returns nil (row shows no delta line); false: arithmetic mean"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "trendAverageOptional is a copy of trendAverage differing only in the KeyPath value type (Double? vs Double), including the duplicated comment block.",
-     "evidence": [
-      "Emuqu/Sources/Views/HRVDetailV2View.swift:652",
-      "Emuqu/Sources/Views/HRVDetailV2View.swift:672"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef"
-   }
-  },
-  {
-   "key": "func HRVDetailV2View.trendRow(metric:today:avg:unit:higherIsBetter:)",
-   "hash": "b06df1aa065536b7",
-   "does": "Trend row: metric label left, today's value and delta right, on a card.",
-   "entry": "SwiftUI view-tree evaluation (re-evaluated on every body recompute of HRVDetailV2View)",
    "calls": [
-    "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.trendRowValues(today:avg:unit:higherIsBetter:)"
+    "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.averagesForTrend(archive:excluding:since:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.entries",
+    "archive:SessionArchive.retrieveLightweight (SDNN per night)"
+   ],
+   "writes": [
+    "mem:HRVDetailV2View.trendAverages"
+   ],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "task cancelled after the walk",
+     "effect": "returns without storing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.averagesForTrend(archive:excluding:since:)": "99a2ac13739cb772"
+   }
+  },
+  {
+   "key": "func HRVDetailV2View.averagesForTrend(archive:excluding:since:)",
+   "hash": "b72d12d6308e91fe",
+   "does": "Means over the archive index's reliable overnight entries (isReliableForHRVAggregates) dated on/after the cutoff, excluding this session: RMSSD, mean HR and stress index from the index entry, SDNN from each night's lightweight read (analysisResult.timeDomain.sdnn). Nil per metric when no night carries it.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)",
+    "Emuqu/Sources/Views/HRVDetailV2View.swift::func trendMean(_:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.entries",
+    "archive:SessionArchive.retrieveLightweight"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6",
+    "Emuqu/Sources/Views/HRVDetailV2View.swift::func trendMean(_:)": "9184e20369ef1f38"
+   }
+  },
+  {
+   "key": "func HRVDetailV2View.trendRow(metric:today:avg:unit:higherIsBetter:againstBaseline:)",
+   "hash": "0d52bfca179dc333",
+   "does": "One trend row: metric name left, today's value and (when avg is present) the coloured delta line right, in a card.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.trendRowValues(today:avg:unit:higherIsBetter:againstBaseline:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.trendRowValues(today:avg:unit:higherIsBetter:)": "054f152b945f4511",
+    "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.trendRowValues(today:avg:unit:higherIsBetter:againstBaseline:)": "6233a9417aac489f",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
     "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
    }
   },
   {
-   "key": "func HRVDetailV2View.trendRowValues(today:avg:unit:higherIsBetter:)",
-   "hash": "469782ee1c6a4b6e",
-   "does": "Today's formatted value + unit, and a delta line when an average exists.",
-   "entry": "SwiftUI view-tree evaluation (re-evaluated on every body recompute of HRVDetailV2View)",
+   "key": "func HRVDetailV2View.trendRowValues(today:avg:unit:higherIsBetter:againstBaseline:)",
+   "hash": "db1280d1403fb153",
+   "does": "Today's value with unit, and below it the delta line when an average is available.",
+   "entry": null,
    "calls": [
     "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.formatValue(_:)",
-    "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.trendDeltaText(today:avg:higherIsBetter:)"
+    "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.trendDeltaText(today:avg:higherIsBetter:againstBaseline:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+6",
-     "cond": "avg non-nil",
-     "effect": "true: delta line rendered; false: value only"
+     "at": "+5",
+     "cond": "avg present",
+     "effect": "true: delta line shown; false: value only (e.g. while the averages load)"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.formatValue(_:)": "56b91a96d2e1c4b5",
-    "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.trendDeltaText(today:avg:higherIsBetter:)": "da7c8633a54b010e",
+    "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.trendDeltaText(today:avg:higherIsBetter:againstBaseline:)": "1b09aff49c801d36",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
    }
   },
   {
-   "key": "func HRVDetailV2View.trendDeltaText(today:avg:higherIsBetter:)",
-   "hash": "7e4b04f982788446",
-   "does": "Renders '+N% vs 30-day avg' coloured grey when |pct|<5, wongOptimal when the direction is good for the metric, wongCaution otherwise.",
-   "entry": "SwiftUI view-tree evaluation (re-evaluated on every body recompute of HRVDetailV2View)",
+   "key": "func HRVDetailV2View.trendDeltaText(today:avg:higherIsBetter:againstBaseline:)",
+   "hash": "65adc7a19ae69136",
+   "does": "'+N% vs baseline' or '+N% vs 30-day avg' (percentage of avg, 0 when avg ≤ 0), coloured tertiary under 5%, optimal when the direction is the good one, caution otherwise.",
+   "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+2",
+     "at": "+1",
      "cond": "avg > 0",
-     "effect": "true: pct = delta/avg*100; false: pct = 0 (shows '+0%')"
+     "effect": "false: 0%"
     },
     {
-     "at": "+5",
-     "cond": "abs(pct) < 5",
-     "effect": "true: tertiary grey"
+     "at": "+4",
+     "cond": "|pct| < 5",
+     "effect": "tertiary colour"
     },
     {
-     "at": "+7",
+     "at": "+6",
      "cond": "direction matches higherIsBetter",
-     "effect": "true: wongOptimal; false (else at 729): wongCaution"
+     "effect": "optimal colour; else caution"
     },
     {
-     "at": "+12",
-     "cond": "directionUp (pct >= 0)",
-     "effect": "prefixes '+' when up, nothing when down (negative sign comes from Int)"
+     "at": "+13",
+     "cond": "againstBaseline",
+     "effect": "true: \"vs baseline\" text; false: \"vs 30-day avg\" text"
     }
    ],
    "flags": [],
@@ -1367,6 +1298,24 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
    }
+  },
+  {
+   "key": "func trendMean(_:)",
+   "hash": "1f2a52d38a5476b1",
+   "does": "Arithmetic mean of the values; nil for an empty list.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "values empty",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
   }
  ],
  "deps": {}

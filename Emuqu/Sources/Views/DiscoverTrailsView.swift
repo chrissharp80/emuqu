@@ -13,8 +13,9 @@ import SwiftUI
 //
 // Two-phase UX:
 //   1. Filters sheet — sport, radius, length range, difficulty
-//   2. Results list — name + length + ascent + difficulty + distance from
-//      you, with map preview on tap and "Use this trail" button
+//   2. Results list — name + length + difficulty + distance from you
+//      (OSM carries no elevation, so no ascent), with map preview on tap
+//      and "Use this trail" button
 //
 // Picking a trail does TWO things:
 //   • Binds the parsed trail as `pickedRoute` on the Start flow so the
@@ -55,14 +56,21 @@ struct DiscoverTrailsView: View {
     @State private var errorText: String?
     @State var radiusKm: Double = 10
     @State var minLengthKm: Double = 0
-    @State var maxLengthKm: Double = 30
+    /// Max length stepper (km). At the stepper's top (`lengthStepperMaxKm`,
+    /// the default) it means "no max", so a long saved route is never hidden
+    /// by a cap the user did not set.
+    @State var maxLengthKm: Double = Self.lengthStepperMaxKm
     /// Min ascent slider (meters). 0 = no min. Filters the saved-routes
     /// list only: discovered trails carry no elevation data.
     @State var minAscentMeters: Double = 0
     /// Max ascent slider (meters). Capped at 2000 m which covers most
     /// non-alpine hike/bike routes; alpine users can pick "no max" by
-    /// leaving the slider at the right edge.
-    @State var maxAscentMeters: Double = 2_000
+    /// leaving the slider at the right edge (`ascentSliderMaxMeters`).
+    @State var maxAscentMeters: Double = Self.ascentSliderMaxMeters
+    /// Top of the max-length stepper; that value reads as "no max".
+    static let lengthStepperMaxKm = 100.0
+    /// Right edge of the max-ascent slider; that value reads as "no max".
+    static let ascentSliderMaxMeters = 2_000.0
     @State private var savedSearchText: String = ""
 
     var body: some View {
@@ -251,21 +259,13 @@ struct DiscoverTrailsView: View {
     /// max) filters the same range as the search (`serviceFilters`) instead
     /// of emptying the list.
     private var filteredSavedRoutes: [SavedRoute] {
-        let lengthLo = min(minLengthKm, maxLengthKm)
-        let lengthHi = max(minLengthKm, maxLengthKm)
-        let ascentLo = min(minAscentMeters, maxAscentMeters)
-        let ascentHi = max(minAscentMeters, maxAscentMeters)
+        let lengths = lengthBounds
+        let ascents = ascentBounds
+        let q = savedSearchText.trimmingCharacters(in: .whitespaces)
         return savedRouteStore.routes.filter { route in
-            let lenKm = route.totalDistanceMeters / 1_000
-            if lenKm < lengthLo || lenKm > lengthHi { return false }
-            let ascent = route.totalAscentMeters
-            if ascent < ascentLo { return false }
-            if ascentHi < 1_999 && ascent > ascentHi { return false }
-            let q = savedSearchText.trimmingCharacters(in: .whitespaces)
-            if !q.isEmpty {
-                return route.name.localizedCaseInsensitiveContains(q)
-            }
-            return true
+            Self.contains(lengths, route.totalDistanceMeters / 1_000)
+                && Self.contains(ascents, route.totalAscentMeters)
+                && (q.isEmpty || route.name.localizedCaseInsensitiveContains(q))
         }.sorted { $0.createdAt > $1.createdAt }
     }
 
@@ -273,12 +273,28 @@ struct DiscoverTrailsView: View {
     /// carries no elevation (that would need a separate DEM lookup per
     /// trail), so the ascent sliders don't apply to discovered trails.
     private var filteredDiscoverResults: [TrailDiscoveryService.DiscoveredTrail] {
-        let lengthLo = min(minLengthKm, maxLengthKm)
-        let lengthHi = max(minLengthKm, maxLengthKm)
-        return results.filter { trail in
-            let lenKm = trail.lengthMeters / 1_000
-            return lenKm >= lengthLo && lenKm <= lengthHi
-        }
+        let lengths = lengthBounds
+        return results.filter { Self.contains(lengths, $0.lengthMeters / 1_000) }
+    }
+
+    /// The length range in km, ordered (a min stepped past max still filters
+    /// the range between them); `hi` is nil for "no max" (max stepper at its top).
+    var lengthBounds: (lo: Double, hi: Double?) {
+        let lo = min(minLengthKm, maxLengthKm)
+        let hi = max(minLengthKm, maxLengthKm)
+        return (lo, hi >= Self.lengthStepperMaxKm ? nil : hi)
+    }
+
+    /// The ascent range in meters, ordered like `lengthBounds`; `hi` is nil
+    /// for "no max" (max slider at its right edge).
+    var ascentBounds: (lo: Double, hi: Double?) {
+        let lo = min(minAscentMeters, maxAscentMeters)
+        let hi = max(minAscentMeters, maxAscentMeters)
+        return (lo, hi >= Self.ascentSliderMaxMeters ? nil : hi)
+    }
+
+    private static func contains(_ bounds: (lo: Double, hi: Double?), _ value: Double) -> Bool {
+        value >= bounds.lo && (bounds.hi.map { value <= $0 } ?? true)
     }
 
     @ViewBuilder
@@ -351,9 +367,12 @@ struct DiscoverTrailsView: View {
         dismiss()
     }
 
-    /// Tap cycles: not-selected → set as min → set as max → cleared. A simple
-    /// two-tap UX for "show easy through moderate" without making the user
-    /// manage two separate pickers.
+    /// With nothing selected, a tap selects that one difficulty (min = max).
+    /// Then a tap on either end of the range clears it; a tap above the min
+    /// moves max there (extending the range, or narrowing it from the top when
+    /// inside); a tap below the min moves min there. A simple two-tap UX for
+    /// "show easy through moderate" without making the user manage two
+    /// separate pickers.
     ///
     /// No force-unwrap of `filters.minDifficulty` inside the
     /// second branch. The outer `nil` check would guard it in practice, but the
@@ -386,14 +405,20 @@ struct DiscoverTrailsView: View {
         }
     }
 
+    /// The range the saved-routes filter applies: ordered, so crossed sliders
+    /// read low–high, and "no max" at the max slider's right edge.
     var ascentRangeLabel: String {
-        let unit: UnitLength = unitsAreImperial ? .feet : .meters
-        let lo = Measurement(value: minAscentMeters, unit: UnitLength.meters).converted(to: unit).value
-        guard maxAscentMeters < 1_999 else {
-            return "\(Self.lengthText(lo, unit))–\(String(localized: "no max", bundle: LanguageManager.appBundle))"
+        Self.rangeLabel(ascentBounds, from: .meters, to: unitsAreImperial ? .feet : .meters)
+    }
+
+    /// "lo–hi unit", or "lo unit–no max" when the range has no upper bound.
+    static func rangeLabel(_ bounds: (lo: Double, hi: Double?), from stored: UnitLength, to unit: UnitLength) -> String {
+        let lo = Measurement(value: bounds.lo, unit: stored).converted(to: unit).value
+        guard let storedHi = bounds.hi else {
+            return "\(lengthText(lo, unit))–\(String(localized: "no max", bundle: LanguageManager.appBundle))"
         }
-        let hi = Measurement(value: maxAscentMeters, unit: UnitLength.meters).converted(to: unit).value
-        return "\(Self.wholeNumber(lo))–\(Self.lengthText(hi, unit))"
+        let hi = Measurement(value: storedHi, unit: stored).converted(to: unit).value
+        return "\(wholeNumber(lo))–\(lengthText(hi, unit))"
     }
 
     /// "12 km" / "40 ft" in the app language, rounded to a whole number.
@@ -478,11 +503,10 @@ struct DiscoverTrailsView: View {
         UnitsPreferenceStore.current.resolved == .imperial
     }
 
+    /// The range both tabs filter by: ordered, with "no max" at the max
+    /// stepper's top.
     var lengthRangeLabel: String {
-        let unit: UnitLength = unitsAreImperial ? .miles : .kilometers
-        let lo = Measurement(value: minLengthKm, unit: UnitLength.kilometers).converted(to: unit).value
-        let hi = Measurement(value: maxLengthKm, unit: UnitLength.kilometers).converted(to: unit).value
-        return "\(Self.wholeNumber(lo))–\(Self.lengthText(hi, unit))"
+        Self.rangeLabel(lengthBounds, from: .kilometers, to: unitsAreImperial ? .miles : .kilometers)
     }
 
     /// Single value label for the length steppers, in the
@@ -491,6 +515,13 @@ struct DiscoverTrailsView: View {
     func stepperLengthLabel(_ km: Double) -> String {
         let unit: UnitLength = unitsAreImperial ? .miles : .kilometers
         return Self.lengthText(Measurement(value: km, unit: UnitLength.kilometers).converted(to: unit).value, unit)
+    }
+
+    /// The max stepper's value, or "no max" at the stepper's top.
+    var maxStepperLengthLabel: String {
+        maxLengthKm >= Self.lengthStepperMaxKm
+            ? String(localized: "no max", bundle: LanguageManager.appBundle)
+            : stepperLengthLabel(maxLengthKm)
     }
 
     private func runSearch() {
@@ -528,8 +559,9 @@ struct DiscoverTrailsView: View {
         f.radiusMeters = radiusKm * 1000
         // Ordered like `filteredSavedRoutes`, so min dragged past max searches
         // the range between them rather than only trails of exactly min.
-        f.minLengthMeters = max(0, min(minLengthKm, maxLengthKm)) * 1000
-        f.maxLengthMeters = max(minLengthKm, maxLengthKm) * 1000
+        let lengths = lengthBounds
+        f.minLengthMeters = max(0, lengths.lo) * 1000
+        f.maxLengthMeters = lengths.hi.map { $0 * 1000 }
         return f
     }
 
@@ -540,16 +572,23 @@ struct DiscoverTrailsView: View {
             CLLocation(latitude: $0.latitude, longitude: $0.longitude)
         }
         let route = Route.fromGPX(name: trail.name, track: track)
-        // Save to library FIRST so road-name enrichment fires before the
-        // user has even started the workout. The recogniser's bidirectional
-        // matching will then pick this trail up automatically on future runs.
-        if let polyline = WorkoutAnalyzer.encodePolyline(track: track),
-           let saved = makeSavedRoute(name: trail.name, sport: trail.activity.workoutSport, polyline: polyline, route: route) {
-            dependencies.location.savedRouteStore.add(saved)
-            dependencies.location.savedRouteStore.enrichWithRoadNames(routeID: saved.id)
-        }
+        saveToLibrary(trail, track: track, route: route)
         onTrailPicked(route)
         dismiss()
+    }
+
+    /// Save to library FIRST so road-name enrichment fires before the user
+    /// has even started the workout. The recogniser's bidirectional matching
+    /// will then pick this trail up automatically on future runs. A trail
+    /// already in the library — the same OSM way picked on an earlier search,
+    /// so the same encoded polyline — is not added again.
+    private func saveToLibrary(_ trail: TrailDiscoveryService.DiscoveredTrail, track: [CLLocation], route: Route) {
+        guard let polyline = WorkoutAnalyzer.encodePolyline(track: track),
+              !savedRouteStore.routes.contains(where: { $0.encodedPolyline == polyline }),
+              let saved = makeSavedRoute(name: trail.name, sport: trail.activity.workoutSport, polyline: polyline, route: route)
+        else { return }
+        savedRouteStore.add(saved)
+        savedRouteStore.enrichWithRoadNames(routeID: saved.id)
     }
 
     private func makeSavedRoute(name: String, sport: Sport, polyline: Data, route: Route) -> SavedRoute? {

@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/DiscoverTrailsView.swift",
- "hash": "26d793eb5bbf0567",
+ "hash": "057528bc9abde1b8",
  "role": "Sheet opened from the Fitness tab route picker: 'My routes' lists SavedRouteStore routes with length/ascent/name filters; 'Find new' runs an OSM Overpass trail search near a one-shot location fix and, on pick, saves the trail to the library and hands a Route back. Also defines OpenStreetMapAttribution, SavedRouteRow, TrailRow and SearchLocationProbe (CLLocationManager wrapper).",
  "types": [
   "DiscoverTrailsView: struct (View) — the route picker sheet",
@@ -19,27 +19,17 @@
   "mem:DiscoverTrailsView.errorText (@State)",
   "mem:DiscoverTrailsView.radiusKm (@State 10)",
   "mem:DiscoverTrailsView.minLengthKm (@State 0)",
-  "mem:DiscoverTrailsView.maxLengthKm (@State 30)",
+  "mem:DiscoverTrailsView.maxLengthKm (@State, default lengthStepperMaxKm 100 = no max)",
   "mem:DiscoverTrailsView.minAscentMeters (@State 0)",
   "mem:DiscoverTrailsView.maxAscentMeters (@State 2000)",
   "mem:DiscoverTrailsView.savedSearchText (@State)",
   "mem:SearchLocationProbe.currentLocation / isDenied / gaveUp (observed)",
   "mem:SearchLocationProbe.retryCount / retryTask (ignored)",
-  "mem:SearchLocationProbe.maxRetries (static 5)"
+  "mem:SearchLocationProbe.maxRetries (static 5)",
+  "static lengthStepperMaxKm = 100 (max-length stepper top = no max), ascentSliderMaxMeters = 2000 (max-ascent slider edge = no max)"
  ],
  "toplevel": "Header (8-24) describes a two-phase UX whose results list shows 'name + length + ascent + difficulty + distance' and says picking saves to SavedRouteStore. @preconcurrency import CoreLocation. Presented only by WorkoutPreflightView.withRouteImporters as a sheet (WorkoutPreflightView.swift:569-572, onTrailPicked sets plan.selectedRoute) and hosted by RemainingScreenSnapshotTests.swift:66; FitnessTabView does not present it.",
  "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Header says each result shows ascent, but TrailRow shows only length, distance and difficulty; DiscoveredTrail has no ascent field.",
-   "evidence": [
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift:16",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift:717",
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift:151"
-   ],
-   "found": "first read, upheld on second"
-  },
   {
    "kind": "broken",
    "sev": "med",
@@ -163,7 +153,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/DiscoverTrailsView.swift::func SearchLocationProbe.start()": "8becdcac9664e3cc",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func SearchLocationProbe.stop()": "51a9c759986f9e59",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func SearchLocationProbe.stop()": "e59be5cf64fc36ed",
     "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.trailsStack": "0037de750cd1f1a8",
     "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.trailsToolbar": "3169d021e4e266d3",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
@@ -372,7 +362,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.discoverRow(_:)": "2519a20dc4292132",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.filteredDiscoverResults": "1042483417bdf133",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.filteredDiscoverResults": "8bec79331a89683c",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
    }
   },
@@ -391,7 +381,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.pickTrail(_:)": "e13e039e1a3809d1"
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.pickTrail(_:)": "fa79d81fe531abfa"
    }
   },
   {
@@ -475,10 +465,14 @@
   },
   {
    "key": "var DiscoverTrailsView.filteredSavedRoutes",
-   "hash": "ae62697508351406",
-   "does": "Saved routes whose length is within the ordered min/max km, ascent >= ordered min and (when max < 1999 m) <= max, and whose name contains the trimmed search text; newest first.",
+   "hash": "8fb3b0758bac5c5c",
+   "does": "Saved routes whose length (km) is within lengthBounds and ascent within ascentBounds (ordered ranges; no upper bound at the stepper/slider top) and whose name contains the trimmed search text, newest first. Not filtered by activity (the picker is hidden on this tab).",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.lengthBounds",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.ascentBounds",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.contains(_:_:)"
+   ],
    "reads": [
     "mem:SavedRouteStore.routes"
    ],
@@ -486,49 +480,29 @@
    "branches": [
     {
      "at": "+7",
-     "cond": "length outside [lo, hi]",
-     "effect": "excluded"
-    },
-    {
-     "at": "+9",
-     "cond": "ascent below lo",
-     "effect": "excluded"
-    },
-    {
-     "at": "+10",
-     "cond": "ascentHi < 1999 and ascent > ascentHi",
-     "effect": "excluded; 1999 is the 'no max' sentinel for the 2000 slider end"
-    },
-    {
-     "at": "+12",
-     "cond": "search text non-empty",
-     "effect": "keeps only case-insensitive name matches; otherwise kept"
+     "cond": "search text empty",
+     "effect": "name not checked; otherwise case-insensitive contains"
     }
    ],
-   "flags": [
-    {
-     "kind": "hack",
-     "sev": "low",
-     "text": "Magic 1_999 sentinel distinguishes 'no max' from the slider's 2000 m end; the same literal is duplicated in ascentRangeLabel.",
-     "evidence": [
-      "Emuqu/Sources/Views/DiscoverTrailsView.swift:263",
-      "Emuqu/Sources/Views/DiscoverTrailsView.swift:392"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "ed55e0f71de4cd6c",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "d183aa1e85ebbd65",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.contains(_:_:)": "c9fc10df46263bd4",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.ascentBounds": "4688ffa7873fd68f",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.lengthBounds": "e1810731ac1fc74d",
     "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.savedRouteStore": "cbe8373898f4e79d"
    }
   },
   {
    "key": "var DiscoverTrailsView.filteredDiscoverResults",
-   "hash": "14f5ea3abea5b6e7",
-   "does": "Search results whose length in km is within the ordered min/max stepper range.",
+   "hash": "53d0e6462caa325e",
+   "does": "Search results whose length in km is within lengthBounds (ordered; no max at the stepper's top).",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.lengthBounds",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.contains(_:_:)"
+   ],
    "reads": [
     "mem:DiscoverTrailsView.results (@State)"
    ],
@@ -536,8 +510,64 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/Route.swift::var Route.Climb.lengthMeters": "9201abd22a88cf21"
+    "Emuqu/Sources/Models/Route.swift::var Route.Climb.lengthMeters": "9201abd22a88cf21",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.contains(_:_:)": "c9fc10df46263bd4",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.lengthBounds": "e1810731ac1fc74d"
    }
+  },
+  {
+   "key": "var DiscoverTrailsView.lengthBounds",
+   "hash": "14446523173969be",
+   "does": "Ordered (min, max) of the length steppers in km; max is nil (no max) when it is at lengthStepperMaxKm.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "ordered max >= lengthStepperMaxKm",
+     "effect": "hi nil (no max)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var DiscoverTrailsView.ascentBounds",
+   "hash": "a3408e623c655a80",
+   "does": "Ordered (min, max) of the ascent sliders in meters; max is nil (no max) when it is at ascentSliderMaxMeters.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "ordered max >= ascentSliderMaxMeters",
+     "effect": "hi nil (no max)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DiscoverTrailsView.contains(_:_:)",
+   "hash": "81b411863235eac1",
+   "does": "value >= lo and (no hi, or value <= hi).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "hi nil",
+     "effect": "no upper bound"
+    }
+   ],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "var DiscoverTrailsView.savedRoutesList",
@@ -635,7 +665,7 @@
    "deps": {
     "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.savedRouteRow(_:)": "38d03b2ee5582eef",
     "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.emptySavedRoutesNote": "c995aac6bded7d26",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.filteredSavedRoutes": "08cbc1df11d591a2"
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.filteredSavedRoutes": "e7ab7798af4f03d7"
    }
   },
   {
@@ -714,20 +744,7 @@
      "effect": "max = d (also shrinks the range when d is inside it); otherwise min = d"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Doc comment says 'not-selected → set as min → set as max → cleared', but the first tap sets both min and max to the same difficulty, and a tap inside an existing range moves max down instead of clearing.",
-     "evidence": [
-      "Emuqu/Sources/Views/DiscoverTrailsView.swift:354",
-      "Emuqu/Sources/Views/DiscoverTrailsView.swift:364",
-      "Emuqu/Sources/Views/DiscoverTrailsView.swift:365",
-      "Emuqu/Sources/Views/DiscoverTrailsView.swift:373"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.Difficulty.<(lhs:rhs:)": "3f6d0f1794ed6b9d"
    }
@@ -774,14 +791,13 @@
   },
   {
    "key": "var DiscoverTrailsView.ascentRangeLabel",
-   "hash": "13566d686a9320b5",
-   "does": "Ascent range label in m or ft; shows '<min>–no max' when the max slider is at 1999 m or more.",
+   "hash": "1abf47a19f58ea08",
+   "does": "Ascent range label from ascentBounds (ordered, so crossed sliders read low–high), in m or ft: 'lo–hi unit', or 'lo unit–no max'.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.unitsAreImperial",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.lengthText(_:_:)",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.wholeNumber(_:)",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.rangeLabel(_:from:to:)",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.ascentBounds",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.unitsAreImperial"
    ],
    "reads": [
     "ud:fitness.unitsPreference (App Group suite)"
@@ -791,20 +807,40 @@
     {
      "at": "+1",
      "cond": "unitsAreImperial",
-     "effect": "feet; otherwise metres"
-    },
+     "effect": "feet; else meters"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.rangeLabel(_:from:to:)": "6e95f07f03e4552b",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.ascentBounds": "4688ffa7873fd68f",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.unitsAreImperial": "5b823efe69e99520"
+   }
+  },
+  {
+   "key": "func DiscoverTrailsView.rangeLabel(_:from:to:)",
+   "hash": "73a272cdf2bf0861",
+   "does": "Formats a stored-unit range in the display unit: 'lo unit–no max' when hi is nil, else 'lo–hi unit' (whole numbers, app locale).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.lengthText(_:_:)",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.wholeNumber(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
     {
-     "at": "+3",
-     "cond": "maxAscentMeters < 1999",
-     "effect": "'<lo>–<hi unit>'; otherwise '<lo unit>–no max'"
+     "at": "+2",
+     "cond": "hi nil",
+     "effect": "'lo unit–no max'"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.lengthText(_:_:)": "7bd1c907ea284ae2",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.wholeNumber(_:)": "dd45b13ad39243bd",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.unitsAreImperial": "5b823efe69e99520"
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.wholeNumber(_:)": "dd45b13ad39243bd"
    }
   },
   {
@@ -987,13 +1023,13 @@
   },
   {
    "key": "var DiscoverTrailsView.lengthRangeLabel",
-   "hash": "a8a278875df804aa",
-   "does": "Length range label 'min–max unit' in km or miles (raw values, not ordered).",
+   "hash": "566090f7838cce95",
+   "does": "Length range label from lengthBounds (ordered) in km or miles: 'lo–hi unit', or 'lo unit–no max' at the stepper's top.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.unitsAreImperial",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.wholeNumber(_:)",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.lengthText(_:_:)"
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.rangeLabel(_:from:to:)",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.lengthBounds",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.unitsAreImperial"
    ],
    "reads": [
     "ud:fitness.unitsPreference (App Group suite)"
@@ -1008,8 +1044,8 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.lengthText(_:_:)": "7bd1c907ea284ae2",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.wholeNumber(_:)": "dd45b13ad39243bd",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.rangeLabel(_:from:to:)": "6e95f07f03e4552b",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.lengthBounds": "e1810731ac1fc74d",
     "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.unitsAreImperial": "5b823efe69e99520"
    }
   },
@@ -1037,6 +1073,30 @@
    "deps": {
     "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.lengthText(_:_:)": "7bd1c907ea284ae2",
     "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.unitsAreImperial": "5b823efe69e99520"
+   }
+  },
+  {
+   "key": "var DiscoverTrailsView.maxStepperLengthLabel",
+   "hash": "e092fabfa008436a",
+   "does": "The max stepper's label value: localized 'no max' at lengthStepperMaxKm, else stepperLengthLabel(maxLengthKm).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.stepperLengthLabel(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "maxLengthKm >= lengthStepperMaxKm",
+     "effect": "'no max'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.stepperLengthLabel(_:)": "6426085749ea7554"
    }
   },
   {
@@ -1068,7 +1128,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.searchAndPublish(near:filters:)": "5a3f23b377db174c",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.serviceFilters()": "105242579eaa4b5c"
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.serviceFilters()": "ed180428a4b6a819"
    }
   },
   {
@@ -1130,29 +1190,28 @@
   },
   {
    "key": "func DiscoverTrailsView.serviceFilters()",
-   "hash": "b584e24757abbfee",
-   "does": "Copies filters and sets radius in metres and ordered min/max length in metres.",
+   "hash": "0610661acf2cd4f2",
+   "does": "Copies filters and sets radius in metres and the lengthBounds in metres (min clamped at 0; max nil = no max).",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.lengthBounds"
+   ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.lengthBounds": "e1810731ac1fc74d"
+   }
   },
   {
    "key": "func DiscoverTrailsView.pickTrail(_:)",
-   "hash": "474d230ba51b54e1",
-   "does": "Converts trail trackpoints to CLLocations (altitude 0), builds a Route, saves a SavedRoute (sport from activity) and requests road-name enrichment, then hands the Route back and dismisses.",
+   "hash": "4f09aaf1238a5dec",
+   "does": "Converts trail trackpoints to CLLocations (altitude 0), builds a Route, saves it to the library unless already there (saveToLibrary), hands the route to onTrailPicked and dismisses.",
    "entry": "TrailRow 'Use this trail' button.",
    "calls": [
     "Emuqu/Sources/Models/Route.swift::func Route.fromGPX(name:track:)",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodePolyline(track:)",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.makeSavedRoute(name:sport:polyline:route:)",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.savedRouteStore",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.add(_:)",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.enrichWithRoadNames(routeID:)",
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::var TrailDiscoveryService.Activity.workoutSport",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.saveToLibrary(_:track:route:)",
     "closure:onTrailPicked set by WorkoutPreflightView.withRouteImporters (WorkoutPreflightView.swift:570-572) -> plan.selectedRoute = route"
    ],
    "reads": [],
@@ -1160,11 +1219,38 @@
     "mem:SavedRouteStore.routes",
     "file:saved_routes.json (App Group)"
    ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoints(session:track:iso:)": "a784bf4553e314a2",
+    "Emuqu/Sources/Models/Route.swift::func Route.fromGPX(name:track:)": "f86b9993b7802976",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.saveToLibrary(_:track:route:)": "65046757ce4a05ee"
+   }
+  },
+  {
+   "key": "func DiscoverTrailsView.saveToLibrary(_:track:route:)",
+   "hash": "a189df988a4c62b2",
+   "does": "Encodes the track polyline; unless a saved route already has the same encoded polyline (the same OSM trail picked on an earlier search), builds a SavedRoute (sport from the trail's activity), adds it to SavedRouteStore and requests road-name enrichment.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodePolyline(track:)",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.makeSavedRoute(name:sport:polyline:route:)",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.savedRouteStore",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.add(_:)",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.enrichWithRoadNames(routeID:)",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::var TrailDiscoveryService.Activity.workoutSport"
+   ],
+   "reads": [
+    "mem:SavedRouteStore.routes"
+   ],
+   "writes": [
+    "mem:SavedRouteStore.routes (persisted by the store)"
+   ],
    "branches": [
     {
-     "at": "+10",
-     "cond": "polyline encodes",
-     "effect": "saves to library and enriches; otherwise skips saving silently and still binds the route"
+     "at": "+1",
+     "cond": "polyline does not encode, or the library already holds that polyline",
+     "effect": "returns without saving (no message)"
     }
    ],
    "flags": [
@@ -1177,31 +1263,17 @@
       "Emuqu/Sources/Views/DiscoverTrailsView.swift:228"
      ],
      "found": "first read, upheld on second"
-    },
-    {
-     "kind": "data-loss",
-     "sev": "med",
-     "text": "Every 'Use this trail' tap appends a new SavedRoute with a fresh UUID. SavedRouteStore.add does not deduplicate, so picking the same OSM trail on later searches fills the library with identical copies, and route recognition then has several matching entries.",
-     "evidence": [
-      "Emuqu/Sources/Views/DiscoverTrailsView.swift:547",
-      "Emuqu/Sources/Views/DiscoverTrailsView.swift:548",
-      "Emuqu/Sources/Views/DiscoverTrailsView.swift:557",
-      "Emuqu/Sources/Models/SavedRoute.swift:195",
-      "Emuqu/Sources/Models/SavedRoute.swift:196"
-     ],
-     "found": "second read"
     }
    ],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.activity(_:)": "c846ec7c0f8921fb",
-    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoints(session:track:iso:)": "a784bf4553e314a2",
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodePolyline(track:)": "f42191bee7fea21e",
-    "Emuqu/Sources/Models/Route.swift::func Route.fromGPX(name:track:)": "5bd959aa42155c68",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.add(_:)": "43b72f91d8b00638",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.enrichWithRoadNames(routeID:)": "d6e812f8164b0019",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "d183aa1e85ebbd65",
     "Emuqu/Sources/Services/TrailDiscoveryService.swift::var TrailDiscoveryService.Activity.workoutSport": "bd57da25e8701858",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.savedRouteStore": "984316b98ce9cac9",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.makeSavedRoute(name:sport:polyline:route:)": "4d17e220188d03ac"
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.makeSavedRoute(name:sport:polyline:route:)": "4d17e220188d03ac",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.savedRouteStore": "cbe8373898f4e79d"
    }
   },
   {
@@ -1739,18 +1811,7 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "stop() calls stopUpdatingLocation, but the probe only ever uses one-shot requestLocation; an in-flight request still delivers after the sheet closes (harmless write to a discarded probe).",
-     "evidence": [
-      "Emuqu/Sources/Views/DiscoverTrailsView.swift:867",
-      "Emuqu/Sources/Views/DiscoverTrailsView.swift:840"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/DiscoverTrailsView.swift::let SearchLocationProbe.manager": "0d114c6a49675276"
    }

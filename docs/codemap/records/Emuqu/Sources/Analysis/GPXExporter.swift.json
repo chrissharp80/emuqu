@@ -36,23 +36,21 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.header(sport:started:summary:iso:)": "010d8aaea57ac71c",
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.summaryDesc(session:)": "462f5386a911ebbd",
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.trackSegment(_:iso:)": "b3223fcfe1d3fa7f",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.summaryDesc(session:)": "b11b2323de911ca8",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.trackSegment(_:iso:)": "b12d34df3934c987",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.displayName": "77a6486ffa8861f3"
    }
   },
   {
    "key": "func GPXExporter.summaryDesc(session:)",
-   "hash": "2a00f33a9e39983c",
-   "does": "Builds the human-readable <desc>: preferred unit system, distance, elevation gain, duration (m:ss), and notes that payload is metric and point times are evenly spread.",
+   "hash": "47e4ddfd1baa16e2",
+   "does": "Builds the human-readable <desc>: preferred unit system, the recorded totals from summaryTotals (left out when none), and notes that payload is metric and point times are evenly spread.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved",
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.distanceLabel(_:imperial:)",
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.elevationLabel(_:imperial:)",
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.durationLabel(_:)",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.summaryTotals(session:imperial:)"
    ],
    "reads": [
     "ud:fitness.unitsPreference (App Group suite SharedUserDefaults.appGroup; legacy UserDefaults.standard fallback, migrated on read)"
@@ -60,46 +58,66 @@
    "writes": [],
    "branches": [
     {
+     "at": "+2",
+     "cond": "no recorded total",
+     "effect": "no totals sentence"
+    },
+    {
      "at": "+3",
-     "cond": "distanceMeters nil",
-     "effect": "reports 0.00 km/mi"
-    },
-    {
-     "at": "+4",
-     "cond": "elevationGainMeters nil",
-     "effect": "reports 0 m/ft"
-    },
-    {
-     "at": "+5",
-     "cond": "duration nil",
-     "effect": "reports 0:00"
-    },
-    {
-     "at": "+6",
      "cond": "imperial",
      "effect": "'imperial' else 'metric' in the text"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "Missing distance/elevation/duration are printed as measured zeros ('Distance 0.00 km, … duration 0:00') instead of being omitted.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/GPXExporter.swift:47",
-      "Emuqu/Sources/Analysis/GPXExporter.swift:49"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.distanceLabel(_:imperial:)": "d55cbea3ea1e0d3f",
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.durationLabel(_:)": "f2beb530f0071a4b",
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.elevationLabel(_:imperial:)": "ce852e25787e14ba",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.summaryTotals(session:imperial:)": "943e67f8555d6704",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d"
+   }
+  },
+  {
+   "key": "func GPXExporter.summaryTotals(session:imperial:)",
+   "hash": "e7c57b0e5505a536",
+   "does": "'Totals: distance …, elevation gain …, duration …' listing only the totals the session recorded (distanceLabel, elevationLabel, CoachReportGenerator.formatDuration h:mm:ss / m:ss); a nil one is left out rather than written as a measured zero; nil when none was recorded.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.distanceLabel(_:imperial:)",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.elevationLabel(_:imperial:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Sections.swift::func CoachReportGenerator.formatDuration(_:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "distance nil",
+     "effect": "left out"
+    },
+    {
+     "at": "+4",
+     "cond": "elevation gain nil",
+     "effect": "left out"
+    },
+    {
+     "at": "+5",
+     "cond": "duration nil",
+     "effect": "left out"
+    },
+    {
+     "at": "+7",
+     "cond": "nothing recorded",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Sections.swift::func CoachReportGenerator.formatDuration(_:)": "b5a55eb1bbb8f892",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.distanceLabel(_:imperial:)": "d55cbea3ea1e0d3f",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.elevationLabel(_:imperial:)": "ce852e25787e14ba",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48"
    }
   },
   {
@@ -160,18 +178,6 @@
    "deps": {}
   },
   {
-   "key": "func GPXExporter.durationLabel(_:)",
-   "hash": "386cf6bd89f65fda",
-   "does": "Formats seconds as total-minutes:seconds ('m:ss', minutes unbounded).",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [],
-   "deps": {}
-  },
-  {
    "key": "func GPXExporter.header(sport:started:summary:iso:)",
    "hash": "3bfb9220c7904d1a",
    "does": "Returns the GPX XML prologue, <gpx> root with namespaces, <metadata> (escaped name '<sport> — <ISO start>', escaped desc, time) and the opening <trk><name><type><trkseg>.",
@@ -185,7 +191,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.escape(_:)": "7328fdb4b7d50e6a",
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.summaryDesc(session:)": "462f5386a911ebbd"
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.summaryDesc(session:)": "b11b2323de911ca8"
    }
   },
   {
@@ -205,22 +211,10 @@
     {
      "at": "+6",
      "cond": "altitude != 0 or verticalAccuracy >= 0",
-     "effect": "writes <ele>; decode() always sets verticalAccuracy 10, so <ele> is always written, including 0.0 when the polyline had no altitude part"
+     "effect": "writes <ele>; decode() gives fixes without a stored altitude verticalAccuracy -1 and altitude 0, so those get no <ele>"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Because every decoded fix has verticalAccuracy 10, a track whose stored polyline lacks altitudes exports <ele>0.0</ele> on every point, which importers read as a sea-level track rather than missing elevation.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/GPXExporter.swift:97",
-      "Emuqu/Sources/Analysis/GPXExporter.swift:152",
-      "Emuqu/Sources/Analysis/GPXExporter.swift:154"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -261,8 +255,8 @@
   },
   {
    "key": "func GPXExporter.decode(polyline:startDate:duration:)",
-   "hash": "e22eec4fb8bea15d",
-   "does": "Decodes the stored polyline Data (UTF-8 '<coords>\\n<altitudes>') to CLLocations with altitude (0 when missing), accuracy 10 m, and timestamps startDate + idx×interval, where interval spreads fixes over duration (or 5 s when duration missing).",
+   "hash": "ab1a362484bb0c9f",
+   "does": "Decodes the stored polyline Data (UTF-8 '<coords>\\n<altitudes>') to CLLocations with horizontal accuracy 10 m, the stored altitude with vertical accuracy 10 m (or altitude 0 with vertical accuracy -1, CoreLocation's 'altitude invalid', when the fix has no stored altitude), and timestamps startDate + idx×interval, where interval spreads fixes over duration (or 5 s when duration missing).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.fixInterval(coordCount:duration:)",
@@ -285,12 +279,17 @@
     {
      "at": "+4",
      "cond": "no second (altitude) part",
-     "effect": "altitudes = [] so every fix gets altitude 0"
+     "effect": "altitudes = [] so every fix gets altitude 0 with verticalAccuracy -1"
     },
     {
-     "at": "+9",
+     "at": "+12",
      "cond": "idx < altitudes.count",
      "effect": "altitude from polyline; else 0"
+    },
+    {
+     "at": "+14",
+     "cond": "idx < altitudes.count",
+     "effect": "verticalAccuracy 10; else -1 (altitude invalid)"
     }
    ],
    "flags": [],
@@ -347,7 +346,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decodeValue(_:_:)": "af84ddbf044ac9fc"
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decodeValue(_:_:)": "bc7e0ee37789adc1"
    }
   },
   {
@@ -374,51 +373,45 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decodeValue(_:_:)": "af84ddbf044ac9fc"
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decodeValue(_:_:)": "bc7e0ee37789adc1"
    }
   },
   {
    "key": "func GPXExporter.decodeValue(_:_:)",
-   "hash": "e30a101b8bfe4b2a",
-   "does": "Decodes one zig-zag varint polyline value (5-bit chunks offset by 63) and advances the index; nil on non-ASCII char.",
+   "hash": "526f14cd5bd53b70",
+   "does": "Decodes one zig-zag varint polyline value (5-bit chunks offset by 63) and advances the index; nil on a non-ASCII char or when the string ends before the value's terminating chunk (a truncated value).",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+3",
+     "at": "+4",
      "cond": "index < end",
      "effect": "consume chars"
     },
     {
-     "at": "+5",
+     "at": "+6",
      "cond": "char not ASCII",
      "effect": "returns nil"
     },
     {
-     "at": "+10",
+     "at": "+11",
      "cond": "chunk < 0x20 (last chunk)",
-     "effect": "break"
+     "effect": "terminated = true; break"
     },
     {
-     "at": "+14",
+     "at": "+13",
+     "cond": "loop ended without a terminating chunk",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+16",
      "cond": "low bit set",
      "effect": "returns ~value (negative); else value"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "A string truncated mid-value ends the loop without a terminating chunk and still returns the partial value as a real coordinate/altitude delta instead of nil.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/GPXExporter.swift:207",
-      "Emuqu/Sources/Analysis/GPXExporter.swift:216"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {

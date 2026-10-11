@@ -13,22 +13,11 @@
   "mem:Availability.unavailable (static let)"
  ],
  "toplevel": "Static lets Availability.alwaysAvailable (hasData true, nil range) and Availability.unavailable (hasData false). FactValue and Availability are Sendable; MissingReason is Codable with raw string values used on the wire.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Doc comment says .string renders 'quoted, truncated for display if very long', but humanReadable returns the raw string unquoted and untruncated.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift:104",
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift:156"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "func Availability.workouts(in:)",
-   "hash": "31383d1d88b3cfab",
+   "hash": "1a573c3e7d952a4d",
    "does": "Builds Availability for workout-backed namespaces from the in-memory SessionArchive: unavailable when no entry has sessionType .workout, otherwise hasData true with validRange earliest...latest workout date and lastUpdated = latest.",
    "entry": null,
    "calls": [],
@@ -39,27 +28,11 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "archive holds at least one workout entry",
-     "effect": "false: returns .unavailable; true: continues to compute date range"
-    },
-    {
-     "at": "+4",
-     "cond": "min and max of the workout dates exist",
-     "effect": "true: returns Availability(hasData: true, validRange: earliest...latest, lastUpdated: latest); false: returns .alwaysAvailable (unreachable because line 86 guaranteed a non-empty date list)"
+     "cond": "there is at least one workout date",
+     "effect": "false: returns .unavailable; true: Availability(hasData: true, validRange: earliest...latest, lastUpdated: latest)"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "The `guard let earliest = dates.min(), let latest = dates.max() else { return .alwaysAvailable }` fallback can never run: the preceding guard ensured at least one workout, so dates is non-empty.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/FactValue.swift:86",
-      "Emuqu/Sources/Assistant/Facts/FactValue.swift:88"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef"
    }
@@ -149,7 +122,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.formatDuration(_:)": "d3ff741bd85e8d5c",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.formatDuration(_:)": "ea85140350616782",
     "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.localISO8601(_:)": "9043f4e802508b2a",
     "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.trimmed(_:)": "7c963de064cf6f69"
    }
@@ -379,8 +352,8 @@
   },
   {
    "key": "var FactValue.toolResultJSON",
-   "hash": "6c32e0d480ada75c",
-   "does": "Encodes envelope() through JSONEncoder (.sortedKeys) via AnyFactJSON to a UTF-8 JSON string used as the cloud-provider tool_result content; falls back to a fixed internalError JSON literal when encoding or UTF-8 decoding fails.",
+   "hash": "3c4589ed4347993f",
+   "does": "Encodes envelope() through JSONEncoder (.sortedKeys) via AnyFactJSON to a UTF-8 JSON string — the tool_result content for every provider (toToolResultJSON returns the same); falls back to '{\"value\":null,\"missingReason\":\"internalError\",\"detail\":\"FactValue not JSON-serialisable\"}' when encoding or UTF-8 decoding fails.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.envelope()",
@@ -394,22 +367,10 @@
     {
      "at": "+4",
      "cond": "encode succeeded and data decodes as UTF-8",
-     "effect": "true: returns the JSON string; false: returns '{\"missingReason\":\"internalError\",\"detail\":\"encoding failed\"}' (attempt() logs the thrown error); this fallback lacks the 'value' key the envelope contract promises"
+     "effect": "true: returns the JSON string; false: returns the internalError envelope literal (attempt() logs the thrown error)"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "toolResultJSON (JSONEncoder + AnyFactJSON) and toToolResultJSON() (JSONSerialization) serialise the same envelope() with two different encoders and two different failure literals; tests at FactValueTests.swift:385-400 exist only to keep them in step.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/FactValue.swift:277",
-      "Emuqu/Sources/Assistant/Facts/FactValue.swift:294",
-      "EmuquTests/FactValueTests.swift:385"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/FactValue.swift::func AnyFactJSON.encode(to:)": "1f64c918453d58e4",
     "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.envelope()": "35310e35baf598c2",
@@ -419,31 +380,18 @@
   },
   {
    "key": "func FactValue.toToolResultJSON()",
-   "hash": "7491a7a497e51e4e",
-   "does": "Serialises envelope() with JSONSerialization (.sortedKeys) for the Apple Foundation tool path; returns a fixed internalError JSON when the dictionary is not a valid JSON object or serialisation throws, and '{}' if UTF-8 decoding fails.",
+   "hash": "808fc429c79b1fad",
+   "does": "Returns toolResultJSON: the same envelope bytes for the Apple Foundation tool path, from the one encoder.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.envelope()",
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.toAnyJSON()"
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.toolResultJSON"
    ],
    "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "env is a valid JSON object and JSONSerialization succeeds",
-     "effect": "false: returns '{\"value\":null,\"missingReason\":\"internalError\",\"detail\":\"FactValue not JSON-serialisable\"}' (error swallowed by try?); true: continues"
-    },
-    {
-     "at": "+7",
-     "cond": "String(data:encoding:.utf8) ?? '{}'",
-     "effect": "non-nil string returned; nil -> '{}' (an envelope with no fields)"
-    }
-   ],
+   "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.envelope()": "35310e35baf598c2",
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.toAnyJSON()": "d302e6f6601daddf"
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.toolResultJSON": "7dc478c8b77ccf50"
    }
   },
   {
@@ -586,20 +534,7 @@
      "effect": "returns '%dm %02ds'; else falls to '\\(s)s'"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "The FactValue doc says .duration renders as \"63m 07s\", but formatDuration switches to an hours form at 3600 s: 3787 s renders \"1h 3m 7s\". Minutes are zero-padded only when there is no hour part.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/FactValue.swift:106",
-      "Emuqu/Sources/Assistant/Facts/FactValue.swift:360",
-      "Emuqu/Sources/Assistant/Facts/FactValue.swift:361",
-      "Emuqu/Sources/Assistant/Facts/FactValue.swift:362"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {

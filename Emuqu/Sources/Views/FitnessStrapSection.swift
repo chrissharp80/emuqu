@@ -32,6 +32,8 @@ struct FitnessStrapSection {
     /// of spinning.
     @Binding var latestWorkoutLoadFailed: Bool
     @Binding var selectedHistorySession: HRVSession?
+    /// A tapped recent workout's file couldn't be read; the tab alerts.
+    @Binding var recentWorkoutLoadFailed: Bool
     @Binding var meanHRR1m7d: Double?
 }
 
@@ -58,6 +60,7 @@ extension FitnessTabView {
             latestWorkoutSession: $latestWorkoutSession,
             latestWorkoutLoadFailed: $latestWorkoutLoadFailed,
             selectedHistorySession: $selectedHistorySession,
+            recentWorkoutLoadFailed: $recentWorkoutLoadFailed,
             meanHRR1m7d: $meanHRR1m7d
         )
     }
@@ -75,8 +78,4 @@ extension FitnessTabView {
     func recentWorkoutsList(entries: [SessionArchiveEntry]) -> some View {
         strapSection.recentWorkoutsList(entries: entries)
     }
-
-    var heroReloadKey: String { strapSection.heroReloadKey }
-
-    func loadLatestWorkoutSession() async { await strapSection.loadLatestWorkoutSession() }
 }

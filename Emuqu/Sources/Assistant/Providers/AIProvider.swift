@@ -79,10 +79,6 @@ struct ModelOption: Codable, Hashable, Identifiable, Sendable {
     var id: String {
         "\(providerID.rawValue):\(apiID)"
     }
-
-    var isFree: Bool {
-        inputPricePerMTok == nil && outputPricePerMTok == nil
-    }
 }
 
 // MARK: - Chat turn
@@ -479,6 +475,127 @@ enum ProviderAccountReply {
     static func carriesPurchasePrompt(_ text: String) -> Bool {
         let lower = text.lowercased()
         return purchaseMarkers.contains { lower.contains($0) }
+    }
+}
+
+// MARK: - Shared HTTP plumbing
+
+/// What the three cloud streamers (Anthropic, Gemini and the
+/// OpenAI-compatible one) do identically: the URL session, draining an error
+/// body, reading a vendor's JSON error envelope, mapping a status to the
+/// error the chat shows, and splitting the composed prompt around the cache
+/// marker. One copy, so a fix to any of them reaches every provider.
+enum ProviderHTTP {
+    /// Dedicated URLSession for AI streaming requests
+    /// that survives the brief network blips you get on cellular
+    /// while walking. `URLSession.shared` uses iOS defaults which
+    /// fail a request the moment the radio drops; user report
+    /// ("Flo cannot connect to Grok when I'm walking") matches that
+    /// exactly — tower handoffs during a walk are a common cause.
+    ///
+    /// Config choices:
+    ///   • `waitsForConnectivity = true` — iOS holds the request and
+    ///     retries transparently when connectivity returns, up to
+    ///     `timeoutIntervalForResource`. A 5-second tower handoff
+    ///     stops looking like a failure to the caller.
+    ///   • `timeoutIntervalForRequest = 30` — fail fast on the
+    ///     initial connect (so the fallback provider chain kicks
+    ///     in before the user gives up). The wait-for-connectivity
+    ///     path is the long-tail handler; this is the short-tail.
+    ///   • `timeoutIntervalForResource = 180` — caps streaming
+    ///     response time at 3 min. Long enough for a verbose
+    ///     reasoning turn, short enough that a wedged stream
+    ///     surfaces as an error eventually.
+    ///   • `allowsCellularAccess = true`, `allowsConstrainedNetworkAccess = true`
+    ///     — explicit (also the defaults) so iOS knows we want the
+    ///     request on a metered or constrained link rather than
+    ///     pretending we're offline.
+    ///   • `httpMaximumConnectionsPerHost = 4` — small ceiling
+    ///     keeps the session from holding extra connections open
+    ///     while idle, but high enough that overlapping tool-use
+    ///     turns don't queue.
+    /// `URLSession` is `Sendable`, so no isolation annotation is needed.
+    static let streamSession: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.waitsForConnectivity = true
+        config.timeoutIntervalForRequest = 30
+        config.timeoutIntervalForResource = 180
+        config.allowsCellularAccess = true
+        config.allowsConstrainedNetworkAccess = true
+        config.allowsExpensiveNetworkAccess = true
+        config.httpMaximumConnectionsPerHost = 4
+        // No URLCache — these are POSTs against a per-request body
+        // anyway. Saves disk + memory.
+        config.urlCache = nil
+        return URLSession(configuration: config)
+    }()
+
+    /// The first 4 KB of a failed response's body, for diagnostics.
+    static func errorBody(_ bytes: URLSession.AsyncBytes) async throws -> Data {
+        var collected = Data()
+        for try await byte in bytes {
+            collected.append(byte)
+            if collected.count >= 4096 { break }
+        }
+        return collected
+    }
+
+    /// Pulls `error.message` out of a vendor's JSON error envelope
+    /// (`{"error":{"message":"..."}}`, Anthropic's and Gemini's shape) so the
+    /// banner shows one readable sentence instead of raw JSON. Redacted: a
+    /// provider can echo part of the request, key included, back in it.
+    static func errorMessage(from data: Data) -> String? {
+        let object: Any
+        do { object = try JSONSerialization.jsonObject(with: data) } catch { return nil }
+        guard let json = object as? [String: Any],
+              let error = json["error"] as? [String: Any],
+              let message = error["message"] as? String, !message.isEmpty
+        else { return nil }
+        return redactAPIKeys(message)
+    }
+
+    /// Maps an HTTP failure to the error the chat banner shows. 5xx are
+    /// transient on the vendor's side, so the user gets `overloaded` (a plain
+    /// "try again") instead of a status dump.
+    static func statusError(_ status: Int, message: String, overloaded: @autoclosure () -> String) -> AIProviderError {
+        switch status {
+        case 401, 403: return .authFailed
+        case 429: return .rateLimited
+        case 404: return .modelUnavailable(message)
+        case 500...599: return .modelUnavailable(overloaded())
+        default: return .invalidResponse("HTTP \(status): \(message)")
+        }
+    }
+
+    /// An `{"error":{...}}` object that arrives as a stream chunk after a 200
+    /// (OpenAI-compatible and Gemini both do this when a reply fails
+    /// mid-stream), as the error the chat layer acts on. Nil for an ordinary
+    /// chunk.
+    static func streamFailure(in json: [String: Any]) -> AIProviderError? {
+        guard let error = json["error"] as? [String: Any] else { return nil }
+        let message = error["message"] as? String ?? "stream error"
+        return .invalidResponse(redactAPIKeys(message))
+    }
+
+    /// The composed prompt cut at `AssistantSystemPrompt.Composed.cacheSplitMarker`:
+    /// the cacheable stable prefix and the per-send variable suffix (empty
+    /// when the prompt carries no marker).
+    static func splitOnCacheMarker(_ systemPrompt: String) -> (stable: String, variable: String) {
+        let marker = AssistantSystemPrompt.Composed.cacheSplitMarker
+        let parts = systemPrompt.components(separatedBy: marker)
+        let variable = parts.count > 1 ? parts.dropFirst().joined(separator: marker) : ""
+        return (parts.first ?? systemPrompt, variable)
+    }
+
+    /// The `<live_state>` envelope spliced into the last user message, or an
+    /// empty string when neither half has content.
+    ///
+    /// For tool-mode calls (cloud providers) `contextRendered` is already
+    /// empty (see AssistantViewModel.dispatch), so this just carries the
+    /// variable suffix when there is one.
+    static func liveStateEnvelope(variableSystem: String, contextRendered: String) -> String {
+        let body = [variableSystem, contextRendered].filter { !$0.isEmpty }.joined(separator: "\n\n")
+        return body.isEmpty ? "" : "\n\n<live_state>\n\(body)\n</live_state>"
     }
 }
 

@@ -30,7 +30,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsPages+Data.swift::var CustomTagsPage.addTagSheet": "1fff3ebd4a7c8ea3",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var CustomTagsPage.addTagSheet": "f56db70d869a66bf",
     "Emuqu/Sources/Views/SettingsPages+Data.swift::var CustomTagsPage.tagsSection": "45bbf18abf72e20a",
     "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()": "fde01388fd5e4e8c"
    }
@@ -54,9 +54,9 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsPages+Data.swift::func CustomTagsPage.deleteTags(at:)": "b8d9266227edcac4",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func CustomTagsPage.deleteTags(at:)": "949d34df4aab36ea",
     "Emuqu/Sources/Views/SettingsPages+Data.swift::func CustomTagsPage.tagRow(_:)": "c97591e8a1eeb559",
     "Emuqu/Sources/Views/SettingsPages+Data.swift::var CustomTagsPage.addCustomTagButton": "9e2c01c9ab4f18d0"
    }
@@ -84,8 +84,8 @@
   },
   {
    "key": "func CustomTagsPage.deleteTags(at:)",
-   "hash": "f339ef4f4e7bff7e",
-   "does": "For each swiped index, removes settings.customTags[index] via SettingsManager.removeCustomTag (each removal persists the settings file and posts settings-changed).",
+   "hash": "7fd07fb0a658a261",
+   "does": "Resolves every swiped index to its tag first, then removes each via SettingsManager.removeCustomTag (each removal persists the settings file and posts settings-changed), so later indexes are not shifted by earlier removals.",
    "entry": "SwiftUI List .onDelete swipe action (via tagsSection closure)",
    "calls": [
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.removeCustomTag(_:)",
@@ -99,53 +99,40 @@
     "notif:flowRecoverySettingsChanged",
     "mem:SettingsManager.settings"
    ],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "for each index in offsets",
-     "effect": "removes the tag currently at that index; the array is re-read after every removal"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Indexes are resolved against the live array after each removal; a multi-index IndexSet would shift and remove the wrong tag or index out of range. Only single-row swipe is reachable (no EditButton on the page).",
-     "evidence": [
-      "Emuqu/Sources/Views/SettingsPages+Data.swift:54",
-      "Emuqu/Sources/Views/SettingsPages+Data.swift:55"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "branches": [],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.removeCustomTag(_:)": "faa5ffb23f9095c4",
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841"
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4"
    }
   },
   {
    "key": "var CustomTagsPage.addTagSheet",
-   "hash": "ff51b225b388cf3d",
-   "does": "AddTagSheet bound to newTagName/newTagColor with onSave → saveNewTag.",
+   "hash": "f9b562c7e916b223",
+   "does": "AddTagSheet bound to newTagName/newTagColor with onSave → saveNewTag and existingTagNames = displayName of every tag (system + custom), so Save is refused for a name already shown.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/SettingsPages+Data.swift::func CustomTagsPage.saveNewTag()",
     "Emuqu/Sources/Views/SettingsSubviews.swift::var AddTagSheet.body",
-    "closure:onSave → Emuqu/Sources/Views/SettingsPages+Data.swift:67, invoked by AddTagSheet"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.allTags",
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.displayName",
+    "closure:onSave → saveNewTag, invoked by AddTagSheet"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SettingsPages+Data.swift::func CustomTagsPage.saveNewTag()": "1e7182bb6b9aba79",
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.displayName": "7731151a254946c1",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.allTags": "f7e94e6fb3a9db3b",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func CustomTagsPage.saveNewTag()": "afd2798ff0bccd16",
     "Emuqu/Sources/Views/SettingsSubviews.swift::var AddTagSheet.body": "dae09bb072473ef2"
    }
   },
   {
    "key": "func CustomTagsPage.saveNewTag()",
-   "hash": "b5a0fd89af62c31c",
-   "does": "Creates ReadingTag(name: newTagName, colorHex: newTagColor.hexString), adds it via SettingsManager.addCustomTag (no-op if id already present; new UUID so always appended), resets name and colour to blue.",
+   "hash": "da8e80c73444b42b",
+   "does": "Creates ReadingTag(name: newTagName trimmed of whitespace, colorHex: newTagColor.hexString), adds it via SettingsManager.addCustomTag, resets name and colour to blue. Duplicate names are refused by AddTagSheet before this runs.",
    "entry": "AddTagSheet onSave closure",
    "calls": [
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.addCustomTag(_:)",
@@ -159,22 +146,10 @@
     "mem:SettingsManager.settings"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "The tag name is stored untrimmed and without a duplicate-name check: AddTagSheet only disables Save for whitespace-only input, so \" Travel \" and a second \"Travel\" are both saved as distinct tags.",
-     "evidence": [
-      "Emuqu/Sources/Views/SettingsPages+Data.swift:68",
-      "Emuqu/Sources/Views/SettingsSubviews.swift:490",
-      "Emuqu/Sources/Models/SettingsManager.swift:349"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)": "66647711f045f928",
-    "Emuqu/Sources/Models/HRVSession.swift::var Color.hexString": "1127dcb2a7098372",
+    "Emuqu/Sources/Models/HRVSession.swift::var Color.hexString": "bc8fa474ed644c36",
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.addCustomTag(_:)": "0c3431f06398e419"
    }
   },
@@ -218,13 +193,14 @@
   },
   {
    "key": "func DataSettingsPage.forceCloudKitSync()",
-   "hash": "2ff754874fb7a107",
-   "does": "Force iCloud sync: guarded against re-entry, records uploadedCount, awaits CloudKitSyncManager.performFullSync, then on main clears the spinner, builds the alert text from the uploaded delta and shows the alert.",
+   "hash": "6b3bcb4310e59068",
+   "does": "Force iCloud sync: guarded against re-entry, records uploadedCount and lastSyncDate, awaits CloudKitSyncManager.performFullSync, then on main clears the spinner, builds the alert text with forceSyncOutcome and shows the alert.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.uploadedCount",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.lastSyncDate",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSync()",
-    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.forceSyncSummary(newlyUploaded:)",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.forceSyncOutcome(newlyUploaded:lastSyncBefore:)",
     "ext:Task"
    ],
    "reads": [
@@ -242,25 +218,51 @@
      "effect": "returns immediately (double tap ignored); else proceeds"
     }
    ],
-   "flags": [
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSync()": "7c2d1af046f8a3ad",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.lastSyncDate": "286a8e7037609f5f",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.uploadedCount": "ea7edaf6d8718c1a",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.forceSyncOutcome(newlyUploaded:lastSyncBefore:)": "d266a9dbead223f5"
+   }
+  },
+  {
+   "key": "func DataSettingsPage.forceSyncOutcome(newlyUploaded:lastSyncBefore:)",
+   "hash": "1ef4f84bd2a87856",
+   "does": "Alert text for a force sync: \"iCloud unavailable\" when the schema is unavailable this launch; the forceSyncSummary error text when syncState is .error; \"Syncing…\" when lastSyncDate did not change (the call was skipped because another full sync is running, so nothing synced); otherwise forceSyncSummary.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.forceSyncSummary(newlyUploaded:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.lastSyncDate"
+   ],
+   "reads": [
+    "mem:CloudKitSyncManager.schemaUnavailable",
+    "mem:CloudKitSyncManager.syncState",
+    "mem:CloudKitSyncManager.lastSyncDate"
+   ],
+   "writes": [],
+   "branches": [
     {
-     "kind": "silent-failure",
-     "sev": "med",
-     "text": "performFullSync returns without syncing when the schema is unavailable or when a young sync is already in flight (CloudKitSyncManager.swift:660-667); neither path sets .error, so forceSyncSummary reports \"Up to date. N sessions in iCloud.\" (or a stale earlier error) although nothing synced. The third early return (iCloud Sync off, :668) is not reachable from this button, which is disabled when isCloudKitAvailable (= the same setting) is false.",
-     "evidence": [
-      "Emuqu/Sources/Views/SettingsPages+Data.swift:125",
-      "Emuqu/Sources/Views/SettingsPages+Data.swift:148",
-      "Emuqu/Sources/Storage/CloudKitSyncManager.swift:660",
-      "Emuqu/Sources/Storage/CloudKitSyncManager.swift:664",
-      "Emuqu/Sources/Views/SettingsPages+Data.swift:386",
-      "Emuqu/Sources/Storage/CloudKitSyncManager.swift:188"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+1",
+     "cond": "schema unavailable",
+     "effect": "\"iCloud unavailable\""
+    },
+    {
+     "at": "+4",
+     "cond": "sync error",
+     "effect": "forceSyncSummary (error text)"
+    },
+    {
+     "at": "+7",
+     "cond": "no completed sync",
+     "effect": "\"Syncing…\""
     }
    ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSync()": "e1168fc765a065fb",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.uploadedCount": "ea7edaf6d8718c1a",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.lastSyncDate": "286a8e7037609f5f",
     "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.forceSyncSummary(newlyUploaded:)": "bf4eef30e244b501"
    }
   },
@@ -327,7 +329,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func recoveryMessage(_:)": "b0d25a92354edfb2",
-    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.refreshDeletedCount()": "f8002b336489ed10",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.refreshDeletedCount()": "6a2510e751796fb9",
     "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.icloudSyncSection": "b13bedfbdffa7baa",
     "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.importSection": "82b177ecf43360bb",
     "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.sessionStorageSection": "0c4341d6d2e4c252",
@@ -768,7 +770,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.isCloudKitAvailable": "e1378ec97a10e33d",
-    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.forceCloudKitSync()": "dff82286fb3a81e1",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.forceCloudKitSync()": "e8ac8249b32c8631",
     "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.forceSyncLabel": "ae27c89cd1e3e500"
    }
   },
@@ -1038,7 +1040,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.restoreSettingsFromCloud()": "0f9e2d43fc647937"
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.restoreSettingsFromCloud()": "4e319dad2af5243e"
    }
   },
   {
@@ -1170,11 +1172,12 @@
   },
   {
    "key": "func DataSettingsPage.restoreSettingsFromCloud()",
-   "hash": "3dead24c90a65e16",
-   "does": "Manual restore: re-entry guarded, awaits restoreSettingsMessage (which performs the restore) and finishSettingsRestore on main.",
+   "hash": "4b3d24ff8b5df2ad",
+   "does": "Manual restore: re-entry guarded; takes CloudKitSettingsSync from the view's own dependencies (as backup does), awaits restoreSettingsMessage(from:) (which performs the restore) and finishSettingsRestore on main.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.restoreSettingsMessage()",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.restoreSettingsMessage(from:)",
     "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.finishSettingsRestore(_:)"
    ],
    "reads": [
@@ -1193,64 +1196,42 @@
      "effect": "returns; else starts restore"
     }
    ],
-   "flags": [
-    {
-     "kind": "coupling",
-     "sev": "low",
-     "text": "Restore resolves CloudKitSettingsSync through the global AppDependencies.current (via restoreSettingsMessage) while the sibling backup uses the view's @Environment dependencies; an environment override (previews/tests) affects backup but not restore.",
-     "evidence": [
-      "Emuqu/Sources/Views/SettingsPages+Data.swift:542",
-      "Emuqu/Sources/Views/SettingsPages+Data.swift:592"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "4fcad23c55561141",
     "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.finishSettingsRestore(_:)": "a191255839d1c7ba",
-    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.restoreSettingsMessage()": "5c953a7dda98ad35"
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.restoreSettingsMessage(from:)": "b27a7dc8a9ac99b4"
    }
   },
   {
-   "key": "func DataSettingsPage.restoreSettingsMessage()",
-   "hash": "221e72e5bbcc9f70",
-   "does": "Static async: calls AppDependencies.current CloudKitSettingsSync.restoreFromCloud (which overwrites local settings, keeping the HealthKit profile) and returns a success string with the record modifiedAt, or a failure string.",
+   "key": "func DataSettingsPage.restoreSettingsMessage(from:)",
+   "hash": "a727a390eb924596",
+   "does": "Performs CloudKitSettingsSync.restoreFromCloud on the given instance and returns the alert text: \"Settings restored from iCloud (last pushed <date>)\" or \"Restore failed: <reason>\".",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSettingsSync",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.restoreFromCloud()",
-    "ext:CloudKit CKDatabase.record(for:) (via restoreFromCloud)",
-    "ext:DateFormatter"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [
     "ck:UserSettings record \"primary\""
    ],
    "writes": [
     "file:user_settings.json (App Group, via SettingsManager.save)",
-    "notif:flowRecoverySettingsChanged",
     "mem:SettingsManager.settings"
    ],
    "branches": [
     {
-     "at": "+9",
-     "cond": "restoreFromCloud throws",
-     "effect": "returns \"Restore failed: <detail>\"; error not logged"
-    },
-    {
-     "at": "+10",
-     "cond": "error is LocalizedError with errorDescription",
-     "effect": "uses it; else error.localizedDescription"
+     "at": "+1",
+     "cond": "restore succeeded",
+     "effect": "restored message; error → \"Restore failed: …\""
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.restoreFromCloud()": "5c8358ee0092082d",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSettingsSync": "795829a4e1aab357"
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.restoreFromCloud()": "5c8358ee0092082d"
    }
   },
   {
@@ -1269,12 +1250,12 @@
   },
   {
    "key": "func DataSettingsPage.refreshDeletedCount()",
-   "hash": "2ee1b49c8e4836af",
-   "does": "Counts trashed sessions via RRCollector.checkForDeletedSessions inside Task.detached and assigns deletedSessionCount on main.",
+   "hash": "15ce9a0f233de4e5",
+   "does": "Counts trashed sessions via RRCollector.checkForDeletedSessions in a Task on the main actor (where RRCollector lives) and assigns deletedSessionCount.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.checkForDeletedSessions()",
-    "ext:Task.detached"
+    "ext:Task"
    ],
    "reads": [
     "archive:SessionArchive.deletedIds/trashedIds",
@@ -1282,19 +1263,7 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "hack",
-     "sev": "low",
-     "text": "Task.detached does not take the work off the main actor: RRCollector is @MainActor, so `await collectorRef.checkForDeletedSessions()` hops back to main and the backup/trash scan runs on the main thread.",
-     "evidence": [
-      "Emuqu/Sources/Views/SettingsPages+Data.swift:615",
-      "Emuqu/Sources/Views/SettingsPages+Data.swift:616",
-      "Emuqu/Sources/Collection/RRCollector.swift:21"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.checkForDeletedSessions()": "6e8cc878b4b6bb5d"
    }

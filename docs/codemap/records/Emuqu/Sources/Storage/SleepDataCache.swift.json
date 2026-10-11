@@ -35,23 +35,11 @@
      "effect": "returns nil (cache miss), else filters/min-selects entries"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Entries are written keyed by startOfDay(SleepData.date) (line 59) but looked up by a recording-start-derived morning key with +-25h tolerance and nearest-wins, so with the target night missing it returns an adjacent night; correctness relies on every caller applying plausiblyBelongsToRecording (comment lines 50-52).",
-     "evidence": [
-      "Emuqu/Sources/Storage/SleepDataCache.swift:59",
-      "Emuqu/Sources/Storage/SleepDataCache.swift:52",
-      "Emuqu/Sources/Storage/SleepDataCache.swift:41"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.dayKey(_:)": "570eea800f58e83b",
     "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.loadStore()": "3d4541666e868f45",
-    "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.morningKey(for:calendar:)": "c5999edbd4c990ec"
+    "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.morningKey(for:calendar:)": "e2d68c6b0291b4c7"
    }
   },
   {
@@ -130,19 +118,7 @@
      "effect": "?? fallback to same-day startOfDay"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Comment at line 41-42 says recordings before local 4 AM map to the morning AFTER, otherwise the recording's own morning; the code uses a 16:00 cutoff (16:00-23:59 -> next day, 00:00-15:59 -> same day), matching the inner comment at lines 79-80 but not the outer one.",
-     "evidence": [
-      "Emuqu/Sources/Storage/SleepDataCache.swift:41",
-      "Emuqu/Sources/Storage/SleepDataCache.swift:79",
-      "Emuqu/Sources/Storage/SleepDataCache.swift:81"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
    }

@@ -12,7 +12,8 @@ import SwiftUI
 ///   nowhere else (`scripts/check_no_shared_outside_root.sh` enforces it).
 /// - Every accessor resolves lazily, so nothing is constructed until it is
 ///   asked for and no service's initialiser can recurse into the container.
-/// - Views read `@Environment(\.dependencies)`; the root injects `.current`.
+/// - Views read `@Environment(\.dependencies)`, which defaults to
+///   `AppDependencies.current` as it is at the time of the read.
 /// - Static helpers read `AppDependencies.current`.
 /// - A test makes a fresh container, sets the substitute on its `overrides`,
 ///   assigns it to `current` in `setUp`, and calls `reset()` in `tearDown`.
@@ -90,7 +91,6 @@ struct AppDependencies: Sendable {
             var ambientLocationService: AmbientLocationService?
             var breadcrumbRecorder: BreadcrumbRecorder?
             var breadcrumbStore: BreadcrumbStore?
-            var locationFinder: LocationFinder?
             var roadGeocodingService: RoadGeocodingService?
             var roadGraphService: RoadGraphService?
             var savedRouteStore: SavedRouteStore?
@@ -269,10 +269,6 @@ struct AppDependencies: Sendable {
         var breadcrumbStore: BreadcrumbStore? {
             get { values.withLock { $0.breadcrumbStore } }
             set { values.withLock { $0.breadcrumbStore = newValue } }
-        }
-        var locationFinder: LocationFinder? {
-            get { values.withLock { $0.locationFinder } }
-            set { values.withLock { $0.locationFinder = newValue } }
         }
         var roadGeocodingService: RoadGeocodingService? {
             get { values.withLock { $0.roadGeocodingService } }
@@ -593,11 +589,6 @@ struct LocationServices: Sendable {
         return BreadcrumbStore.shared
     }
     @MainActor
-    var locationFinder: LocationFinder {
-        if let substitute = overrides.locationFinder { return substitute }
-        return LocationFinder.shared
-    }
-    @MainActor
     var roadGeocodingService: RoadGeocodingService {
         if let substitute = overrides.roadGeocodingService { return substitute }
         return RoadGeocodingService.shared
@@ -775,13 +766,17 @@ struct StorageServices: Sendable {
 
 // MARK: - SwiftUI environment
 
+/// Computed, not a stored snapshot: a view that has no injected value reads
+/// whatever `AppDependencies.current` holds at that moment, so a container
+/// swapped in by a test reaches views too.
 private struct DependenciesKey: EnvironmentKey {
-    static let defaultValue = AppDependencies.current
+    static var defaultValue: AppDependencies { AppDependencies.current }
 }
 
 extension EnvironmentValues {
-    /// The services a view reads. Injected once at the root; previews and
-    /// tests can override it with `.environment(\.dependencies, ...)`.
+    /// The services a view reads. Nothing injects it, so views get
+    /// `AppDependencies.current`; a preview or test can still override it
+    /// with `.environment(\.dependencies, ...)`.
     var dependencies: AppDependencies {
         get { self[DependenciesKey.self] }
         set { self[DependenciesKey.self] = newValue }

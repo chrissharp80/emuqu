@@ -1,18 +1,21 @@
 {
  "file": "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift",
- "hash": "eea831c51f06c9a2",
+ "hash": "b6033d47b1ca797c",
  "role": "@MainActor process-lifetime singleton cache of per-session Beat Consistency nightly feature medians (and ids known to yield none), persisted to two JSON files in Caches, warmed by a single deduped background walk that decrypts archived sessions, and pruned via .flowRecoveryArchiveChanged.",
  "types": [
   "BeatConsistencyPriorsCache: class (@MainActor, final) — features cache + warm-up walk",
-  "BeatConsistencyPriorsCache.WarmOutcome: private enum — features / featureless / unavailable"
+  "BeatConsistencyPriorsCache.WarmOutcome: private enum — features / featureless / unavailable",
+  "BeatConsistencyPriorsCache.StoredEntries: private struct Codable — the features file as an ordered [{id, features}] array (oldest first); decodes the legacy [UUID: Features] dictionary too"
  ],
  "state": [
   "mem:BeatConsistencyPriorsCache.shared (static let singleton)",
   "mem:BeatConsistencyPriorsCache.entries ([UUID: Features])",
   "mem:BeatConsistencyPriorsCache.featureless (Set<UUID>)",
+  "mem:BeatConsistencyPriorsCache.featurelessOrder ([UUID] insertion order, capped at 200; what is persisted)",
+  "mem:BeatConsistencyPriorsCache.queuedIds ([UUID] ids waiting for the warm-up walk)",
   "mem:BeatConsistencyPriorsCache.entryOrder ([UUID] insertion order)",
   "mem:BeatConsistencyPriorsCache.entryCap (static let 200)",
-  "file:Caches/beat_consistency_priors.json (diskURL)",
+  "file:Caches/beat_consistency_priors.json (diskURL; ordered [{id, features}] array, legacy [UUID: Features] still read)",
   "file:Caches/beat_consistency_priors_featureless.json (featurelessURL)",
   "mem:BeatConsistencyPriorsCache.notificationToken",
   "mem:BeatConsistencyPriorsCache.boundArchive (weak SessionArchive)",
@@ -20,7 +23,7 @@
   "mem:BeatConsistencyPriorsCache.pendingWrite",
   "notif:flowRecoveryArchiveChanged (observed)"
  ],
- "toplevel": "static shared singleton; entries/featureless/entryOrder start empty; diskURL closure-initializer; boundArchive weak; walkTask/pendingWrite nil.",
+ "toplevel": "static shared singleton; entries/featureless/featurelessOrder/entryOrder/queuedIds start empty; diskURL closure-initializer; boundArchive weak; walkTask/pendingWrite nil.",
  "flags": [],
  "units": [
   {
@@ -77,8 +80,8 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.loadFeaturelessFromDisk()": "92594b48d3fedc13",
-    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.loadFromDisk()": "bb5d3ecb02c5494a"
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.loadFeaturelessFromDisk()": "15f9bcbbb13154c7",
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.loadFromDisk()": "79ec211a9d8e2181"
    }
   },
   {
@@ -146,14 +149,14 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.invalidate(_:)": "7bb5e2f1c89b88cf",
-    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.reconcileAgainstBoundArchive()": "cb30ccb643fbc7b4"
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.invalidate(_:)": "03d08e5064a11272",
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.reconcileAgainstBoundArchive()": "f9a3706da74c183a"
    }
   },
   {
    "key": "func BeatConsistencyPriorsCache.reconcileAgainstBoundArchive()",
-   "hash": "5cb1c2fd9c3ec608",
-   "does": "Drops cached features/featureless ids for sessions no longer in archive.entries and persists if anything was removed.",
+   "hash": "38c43891d9c5e812",
+   "does": "Drops cached features/featureless ids (and their order entries) for sessions no longer in archive.entries and persists if anything was removed.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
@@ -166,7 +169,9 @@
    ],
    "writes": [
     "mem:BeatConsistencyPriorsCache.entries",
-    "mem:BeatConsistencyPriorsCache.featureless"
+    "mem:BeatConsistencyPriorsCache.entryOrder",
+    "mem:BeatConsistencyPriorsCache.featureless",
+    "mem:BeatConsistencyPriorsCache.featurelessOrder"
    ],
    "branches": [
     {
@@ -187,7 +192,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.persistToDisk()": "79a500ee6383539e",
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.persistToDisk()": "87deea0cf6c6d4c2",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e"
    }
   },
@@ -234,13 +239,13 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.features(for:)": "3e4c6773d72896ca",
-    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.persistToDisk()": "79a500ee6383539e"
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.persistToDisk()": "87deea0cf6c6d4c2"
    }
   },
   {
    "key": "func BeatConsistencyPriorsCache.invalidate(_:)",
-   "hash": "067feabd58107a9f",
-   "does": "Removes one session from entries and featureless; persists only if it was present.",
+   "hash": "6b24c00ed2fa6af5",
+   "does": "Removes one session from entries/entryOrder and featureless/featurelessOrder; persists only if it was present.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.persistToDisk()"
@@ -261,46 +266,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.persistToDisk()": "79a500ee6383539e"
-   }
-  },
-  {
-   "key": "func BeatConsistencyPriorsCache.invalidateAll()",
-   "hash": "6f3d9c694b32b849",
-   "does": "Clears all entries and featureless ids and persists the empty cache.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.persistToDisk()"
-   ],
-   "reads": [],
-   "writes": [
-    "mem:BeatConsistencyPriorsCache.entries",
-    "mem:BeatConsistencyPriorsCache.featureless",
-    "file:Caches/beat_consistency_priors.json",
-    "file:Caches/beat_consistency_priors_featureless.json"
-   ],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "cache already empty",
-     "effect": "returns"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "invalidateAll() has no caller anywhere (app or tests); its doc says it is used on coarse archive changes, but applyArchiveChange reconciles instead.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift:221",
-      "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift:223",
-      "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift:163"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.persistToDisk()": "79a500ee6383539e"
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.persistToDisk()": "87deea0cf6c6d4c2"
    }
   },
   {
@@ -319,80 +285,70 @@
   },
   {
    "key": "func BeatConsistencyPriorsCache.startWarm(_:archive:)",
-   "hash": "38aa757097c6d8e5",
-   "does": "Deduped fire-and-forget: if no walk is running, starts a Task that warms every id not cached and not featureless, then clears walkTask.",
+   "hash": "0714eea49da1fd8d",
+   "does": "Queues every id that is not cached, not featureless and not already queued; if no walk is running and the queue is non-empty, starts a Task that drains the queue (drainQueue) and then clears walkTask. Ids requested during a walk join it instead of being dropped.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.warmAll(_:archive:)"
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.drainQueue(archive:)"
    ],
    "reads": [],
    "writes": [
+    "mem:BeatConsistencyPriorsCache.queuedIds",
     "mem:BeatConsistencyPriorsCache.walkTask"
    ],
    "branches": [
     {
-     "at": "+1",
-     "cond": "a walk is already running",
-     "effect": "returns; the new ids are not queued"
-    },
-    {
      "at": "+3",
-     "cond": "nothing missing",
-     "effect": "returns without starting a task"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "While one walk runs, startWarm drops every other request instead of queuing its ids, so opening a second night's HRV detail during a walk for a different prior set leaves that night's missing priors unwarmed; HRVDetailV2View.waitForPriors keeps polling while isWarming is true (up to 40 × 0.5 s) and then scores with whatever is cached, which can show 'Calibrating' for a user with >= 14 nights.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift:255",
-      "Emuqu/Sources/Views/HRVDetailV2View.swift:324",
-      "Emuqu/Sources/Views/HRVDetailV2View.swift:364"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.warmAll(_:archive:)": "31348611e5550c79"
-   }
-  },
-  {
-   "key": "func BeatConsistencyPriorsCache.warmAll(_:archive:)",
-   "hash": "7fbd789040d1aee6",
-   "does": "Sequentially warms each missing id.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.warmOne(_:archive:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "for each id",
-     "effect": "awaits warmOne"
+     "cond": "a walk is running, or nothing queued",
+     "effect": "returns (a running walk picks up the newly queued ids)"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.warmOne(_:archive:)": "ad50433cb3a1e179"
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.drainQueue(archive:)": "2d00a90b145eb342"
+   }
+  },
+  {
+   "key": "func BeatConsistencyPriorsCache.drainQueue(archive:)",
+   "hash": "6d7076861ae160c7",
+   "does": "Takes queued ids one at a time, oldest first, and warms each with warmOne until the queue is empty, including ids queued while it runs.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.warmOne(_:archive:)"
+   ],
+   "reads": [
+    "mem:BeatConsistencyPriorsCache.queuedIds"
+   ],
+   "writes": [
+    "mem:BeatConsistencyPriorsCache.queuedIds"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "queue non-empty",
+     "effect": "pop the first id and warm it"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.warmOne(_:archive:)": "245ce2f7e5c89ab9"
    }
   },
   {
    "key": "func BeatConsistencyPriorsCache.warmOne(_:archive:)",
-   "hash": "7b40e3a0128c477b",
-   "does": "Skips cached ids; otherwise decodes the session off-main (archive.retrieve), scores it with baseline nil, and stores features, marks featureless, or leaves it for a later walk when unreadable.",
+   "hash": "81de2c4a21073577",
+   "does": "Skips cached ids; otherwise decodes the session off-main (archive.retrieve) and scores it with baseline nil; if the session is no longer in the archive by then (deleted mid-decode) stores nothing, else stores features, marks featureless, or leaves it for a later walk when unreadable.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)",
     "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.baselineFeatures(from:)",
     "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.store(_:for:)",
     "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.markFeatureless(_:)"
    ],
    "reads": [
-    "archive:SessionArchive.retrieve"
+    "archive:SessionArchive.retrieve",
+    "archive:SessionArchive index (exists)"
    ],
    "writes": [
     "mem:BeatConsistencyPriorsCache.entries",
@@ -415,47 +371,40 @@
      "effect": "featureless; else features"
     },
     {
-     "at": "+7",
+     "at": "+6",
+     "cond": "session no longer in the archive",
+     "effect": "returns without storing"
+    },
+    {
+     "at": "+8",
      "cond": "case .features",
      "effect": "store"
     },
     {
-     "at": "+8",
+     "at": "+9",
      "cond": "case .featureless",
      "effect": "markFeatureless"
     },
     {
-     "at": "+9",
+     "at": "+10",
      "cond": "case .unavailable",
      "effect": "nothing, retried on next walk"
     }
    ],
-   "flags": [
-    {
-     "kind": "race",
-     "sev": "low",
-     "text": "A session decoded by the detached retrieve before a data purge is stored after the purge's nil-object notification has already reconciled the cache (both hop to MainActor independently), so its RR-derived features are re-persisted to Caches/beat_consistency_priors.json for a deleted session until the next coarse archive signal.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift:285",
-      "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift:289",
-      "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift:163",
-      "Emuqu/Sources/Services/DataPurgeService.swift:219"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.baselineFeatures(from:)": "a87a8b02184e3531",
     "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.features(for:)": "3e4c6773d72896ca",
-    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.markFeatureless(_:)": "c756dd69c179f244",
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.markFeatureless(_:)": "6b5e0280b826de1e",
     "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.store(_:for:)": "8f61d71fe267fc1e",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "129adb95a00b9a83",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000"
    }
   },
   {
    "key": "func BeatConsistencyPriorsCache.markFeatureless(_:)",
-   "hash": "a8317c03ffa055fa",
-   "does": "Adds id to featureless and persists.",
+   "hash": "2c641751c18f231e",
+   "does": "Adds id to featureless and featurelessOrder (no-op if already there), evicts the oldest beyond 200, and persists.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.persistToDisk()"
@@ -463,13 +412,25 @@
    "reads": [],
    "writes": [
     "mem:BeatConsistencyPriorsCache.featureless",
+    "mem:BeatConsistencyPriorsCache.featurelessOrder",
     "file:Caches/beat_consistency_priors.json",
     "file:Caches/beat_consistency_priors_featureless.json"
    ],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "id already featureless",
+     "effect": "returns without writing"
+    },
+    {
+     "at": "+3",
+     "cond": "more than 200 featureless ids",
+     "effect": "drop the oldest"
+    }
+   ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.persistToDisk()": "79a500ee6383539e"
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.persistToDisk()": "87deea0cf6c6d4c2"
    }
   },
   {
@@ -513,22 +474,72 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)": "d7431f8070d2c93d",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)": "2fe65de6c9756717",
     "Emuqu/Sources/Analysis/BeatConsistency.swift::var BeatConsistency.State.feedsBaseline": "473f4de02f513ae6",
     "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs": "fc1fd164e934dda1"
    }
   },
   {
-   "key": "func BeatConsistencyPriorsCache.loadFromDisk()",
-   "hash": "f6c6da0c44bfea79",
-   "does": "Decodes [UUID: Features] from diskURL into entries; entryOrder seeded from dictionary key order.",
+   "key": "init BeatConsistencyPriorsCache.StoredEntries(entries:)",
+   "hash": "738a1608c4e8c8fd",
+   "does": "Memberwise: the ordered entries to write.",
    "entry": null,
    "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init BeatConsistencyPriorsCache.StoredEntries(from:)",
+   "hash": "458cd082b7fa6424",
+   "does": "Decodes the ordered [{id, features}] array; when that fails, decodes the legacy [UUID: Features] dictionary (order as decoded) and throws only if both fail.",
+   "entry": "JSONDecoder (Decodable)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "ordered array decodes",
+     "effect": "entries = array"
+    },
+    {
+     "at": "+4",
+     "cond": "it does not (catch)",
+     "effect": "decode the legacy dictionary; rethrows its error if that fails too"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func BeatConsistencyPriorsCache.StoredEntries.encode(to:)",
+   "hash": "fecf9cb065ff8432",
+   "does": "Encodes the entries as a single JSON array.",
+   "entry": "JSONEncoder (Encodable)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func BeatConsistencyPriorsCache.loadFromDisk()",
+   "hash": "341cff52d9f5e7c1",
+   "does": "Decodes StoredEntries from diskURL (ordered, or legacy unordered), keeps the newest 200, and seeds entries and entryOrder from it so eviction order survives a relaunch.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::init BeatConsistencyPriorsCache.StoredEntries(from:)"
+   ],
    "reads": [
     "file:Caches/beat_consistency_priors.json"
    ],
    "writes": [
-    "mem:BeatConsistencyPriorsCache.entries"
+    "mem:BeatConsistencyPriorsCache.entries",
+    "mem:BeatConsistencyPriorsCache.entryOrder"
    ],
    "branches": [
     {
@@ -537,26 +548,17 @@
      "effect": "returns silently with empty cache"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "entryOrder is seeded from Dictionary key order (unspecified), so once the 200 cap is hit after a relaunch, eviction removes arbitrary sessions — possibly the recent nights the baseline walk needs, forcing re-decrypts.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift:325",
-      "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift:204"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.features(for:)": "3e4c6773d72896ca",
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::init BeatConsistencyPriorsCache.StoredEntries(from:)": "eb54e06a37923459",
     "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::let BeatConsistencyPriorsCache.diskURL": "5a29a5409c13e4e5"
    }
   },
   {
    "key": "func BeatConsistencyPriorsCache.loadFeaturelessFromDisk()",
-   "hash": "82808ec7ba0dd28d",
-   "does": "Loads featureless ids from its file when present, keeping at most 200.",
+   "hash": "749c0a14e34bd319",
+   "does": "Loads featureless ids from its file when present, keeping the newest 200 in order (featurelessOrder) and as a set.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)"
@@ -565,7 +567,8 @@
     "file:Caches/beat_consistency_priors_featureless.json"
    ],
    "writes": [
-    "mem:BeatConsistencyPriorsCache.featureless"
+    "mem:BeatConsistencyPriorsCache.featureless",
+    "mem:BeatConsistencyPriorsCache.featurelessOrder"
    ],
    "branches": [
     {
@@ -587,15 +590,17 @@
   },
   {
    "key": "func BeatConsistencyPriorsCache.persistToDisk()",
-   "hash": "ecb26c1aa70d6b36",
-   "does": "Snapshots entries and up to 200 featureless ids, then chains a detached utility task after the previous write to write both JSON files in order.",
+   "hash": "4ee490d2f81bfb0f",
+   "does": "Snapshots entries in entryOrder as StoredEntries and featurelessOrder (both already capped at 200), then chains a detached utility task after the previous write to write both JSON files in order.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::init BeatConsistencyPriorsCache.StoredEntries(entries:)",
     "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.write(_:to:)"
    ],
    "reads": [
     "mem:BeatConsistencyPriorsCache.entries",
-    "mem:BeatConsistencyPriorsCache.featureless"
+    "mem:BeatConsistencyPriorsCache.entryOrder",
+    "mem:BeatConsistencyPriorsCache.featurelessOrder"
    ],
    "writes": [
     "file:Caches/beat_consistency_priors.json",
@@ -603,21 +608,10 @@
     "mem:BeatConsistencyPriorsCache.pendingWrite"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "featureless grows without bound in memory but only an arbitrary prefix(200) of the unordered Set is persisted, so beyond 200 ids random ones are dropped on relaunch and re-decrypted.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift:349",
-      "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift:296",
-      "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift:335"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.write(_:to:)": "a25f13927614ece1",
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::init BeatConsistencyPriorsCache.StoredEntries(entries:)": "88641b47898e8ffd",
     "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::let BeatConsistencyPriorsCache.diskURL": "5a29a5409c13e4e5",
     "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::var BeatConsistencyPriorsCache.featurelessURL": "e6245cab18897e3c"
    }

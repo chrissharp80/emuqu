@@ -1,10 +1,9 @@
 {
  "file": "Emuqu/Sources/Views/MorningResultsCards.swift",
- "hash": "c25185ae4eaac51f",
- "role": "Small shared result components: HRVMetricCell (value tile with explanation popover), SectionHeader, TrendComparisonRow (current vs average with % change and colour), DiagnosticCard (primary assessment) and ProbableCauseRow (ranked cause with confidence badge).",
+ "hash": "73e34ffd69612484",
+ "role": "Small shared result components: HRVMetricCell (value tile with explanation popover), TrendComparisonRow (current vs recent average with % change and colour, plus the difference from the personal baseline when given), DiagnosticCard (primary assessment) and ProbableCauseRow (ranked cause with confidence badge).",
  "types": [
   "HRVMetricCell: struct (View) — used by SessionHRVDetailView+Metrics.swift:403",
-  "SectionHeader: struct (View) — no users",
   "TrendComparisonRow: struct (View) — used by TrendComparisonCard",
   "DiagnosticCard: struct (View) — used by MorningResultsView+Actions.swift:47",
   "ProbableCauseRow: struct (View) — used by MorningResultsView+Actions.swift:75"
@@ -13,17 +12,7 @@
   "mem:HRVMetricCell.showingInfo (@State Bool)"
  ],
  "toplevel": "ProbableCauseRow.confidenceLevel is an optional var defaulting to nil.",
- "flags": [
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "SectionHeader is declared but never constructed anywhere in the repo (grep of \\bSectionHeader\\b finds only its declaration, no tests).",
-   "evidence": [
-    "Emuqu/Sources/Views/MorningResultsCards.swift:46"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "var HRVMetricCell.body",
@@ -57,31 +46,6 @@
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "6c53c4c95f5cb401",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
-   }
-  },
-  {
-   "key": "var SectionHeader.body",
-   "hash": "6d9503c9d4d904ca",
-   "does": "Icon + bold title HStack.",
-   "entry": "SwiftUI View.body evaluation",
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "SectionHeader.body is never rendered: the type has no construction site.",
-     "evidence": [
-      "Emuqu/Sources/Views/MorningResultsCards.swift:46"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
    }
   },
   {
@@ -222,27 +186,14 @@
      "effect": "'stable'; else 'up' when positive, 'down' otherwise"
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "TrendComparisonRow stores `baseline` but never reads it; the baselines TrendComparisonCard passes are discarded, although RecoveryScoreDetailView documents the card as 'current vs recent-average vs personal baseline'.",
-     "evidence": [
-      "Emuqu/Sources/Views/MorningResultsCards.swift:68",
-      "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift:69",
-      "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift:81",
-      "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift:41"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func average(_:)": "fdae4edac95e51e3",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
     "Emuqu/Sources/Views/MorningResultsCards.swift::func TrendComparisonRow.formatValue(_:)": "be335e7bec9530e6",
     "Emuqu/Sources/Views/MorningResultsCards.swift::var TrendComparisonRow.pctDiff": "dbeb03d1757b0e28",
-    "Emuqu/Sources/Views/MorningResultsCards.swift::var TrendComparisonRow.trendColumn": "1aea1dee142a4839",
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var TrendComparisonRow.trendColumn": "34b79b805a2e2bc6",
     "Emuqu/Sources/Views/MorningResultsCards.swift::var TrendComparisonRow.valueColumn": "3ffd6f28795728fa",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "6c53c4c95f5cb401"
    }
@@ -268,8 +219,8 @@
   },
   {
    "key": "var TrendComparisonRow.trendColumn",
-   "hash": "8ec6ff8bd32626f6",
-   "does": "Trend icon and signed % in trend colour, over 'vs avg <average>'.",
+   "hash": "d84310ee3fcedb69",
+   "does": "Trend icon and signed % in trend colour, over 'vs avg <average>', then the baseline line (baselineLine).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/MorningResultsCards.swift::var TrendComparisonRow.trendIcon",
@@ -277,7 +228,8 @@
     "Emuqu/Sources/Views/MorningResultsCards.swift::var TrendComparisonRow.pctDiff",
     "Emuqu/Sources/Views/MorningResultsCards.swift::func TrendComparisonRow.formatValue(_:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var TrendComparisonRow.baselineLine"
    ],
    "reads": [],
    "writes": [],
@@ -288,9 +240,51 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
     "Emuqu/Sources/Views/MorningResultsCards.swift::func TrendComparisonRow.formatValue(_:)": "be335e7bec9530e6",
+    "Emuqu/Sources/Views/MorningResultsCards.swift::var TrendComparisonRow.baselineLine": "98e0af46edaac295",
     "Emuqu/Sources/Views/MorningResultsCards.swift::var TrendComparisonRow.pctDiff": "dbeb03d1757b0e28",
     "Emuqu/Sources/Views/MorningResultsCards.swift::var TrendComparisonRow.trendColor": "f39f254356a70055",
     "Emuqu/Sources/Views/MorningResultsCards.swift::var TrendComparisonRow.trendIcon": "055dae943c2fee5e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var TrendComparisonRow.baselineLine",
+   "hash": "8a50c3c32e05e3ee",
+   "does": "When a baseline was passed: '<sign><current − baseline> vs baseline' in tertiary caption2 (sign '+' when ≥ 0; value through formatValue). Nothing when baseline is nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsCards.swift::func TrendComparisonRow.formatValue(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "baseline != nil",
+     "effect": "show the delta line; else nothing"
+    },
+    {
+     "at": "+3",
+     "cond": "delta >= 0",
+     "effect": "\"+\" prefix; negative values carry their own minus"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "A delta between -0.5 and 0 formats as \"-0 vs baseline\" (formatValue rounds after the sign was chosen).",
+     "evidence": [
+      "Emuqu/Sources/Views/MorningResultsCards.swift:133"
+     ],
+     "found": "fix batch b23"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MorningResultsCards.swift::func TrendComparisonRow.formatValue(_:)": "be335e7bec9530e6",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
    }
   },

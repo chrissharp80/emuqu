@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/RecordView.swift",
- "hash": "e6c6db6e9fe4b788",
+ "hash": "76972836ced7493e",
  "role": "The Record tab's root SwiftUI view: owns all Record-tab @State, lays out the section stack, presents tag picker / pre-score prompt / morning and quick results covers, routes errors and overnight auto-acceptance, and hosts the interrupted-workout strap-recovery card.",
  "types": [
   "RecordView: struct (View) — Record tab root; observes DeviceStatus/StreamingLifecycle/SessionState/MorningCoordination/SettingsManager from the environment",
@@ -9,7 +9,7 @@
  ],
  "state": [
   "@State selectedTags: Set<ReadingTag> (view-local, lost when view is recreated)",
-  "@State showingTagPicker, sessionNotes, showingError (private), morningPresentation, quickPresentation, pendingMorningPresentation, fetchFailed, isRetrying, sleepEditSaveFailed",
+  "@State showingTagPicker, sessionNotes, showingError (private), morningPresentation, quickPresentation, pendingMorningPresentation, fetchFailed, isRetrying, sleepEditSaveFailed, quickDiscardFailed",
   "@State selectedSessionType: SessionType? = .overnight",
   "@State cachedRecentSessions: [HRVSession]",
   "@State isRecoveringWorkout, workoutRecoverMessage (private), interruptedWorkoutId: UUID?",
@@ -17,7 +17,7 @@
   "@State extendedCaptureMode: ExtendedCaptureMode = .both",
   "@Binding selectedTab: MainTabView.Tab; var scrollToTopToken: UUID"
  ],
- "toplevel": "Stored-property initializers: selectedSessionType defaults to .overnight, extendedCaptureMode defaults to .both (overwritten onAppear by restoreCaptureMode), breathingAudio is a fresh BreathingAudioManager per view identity. Comment RecordView.swift:6-10 states all recording-state reads must go through the observed sub-objects, not collector forwarders.",
+ "toplevel": "Stored-property initializers: selectedSessionType defaults to .overnight, extendedCaptureMode defaults to .both (overwritten onAppear by restoreCaptureMode), breathingAudio is a fresh BreathingAudioManager per view identity. Comment RecordView.swift:6-10 says recording-state reads go through the observed sub-objects (a read through an RRCollector forwarder is tracked too but hides the dependency).",
  "flags": [
   {
    "kind": "spec-mismatch",
@@ -35,26 +35,13 @@
   },
   {
    "kind": "data-loss",
-   "sev": "med",
-   "text": "Tags and notes chosen before an overnight/nap recording (preSessionTagSection is shown for any selected type, default .overnight) live only in RecordView @State. The overnight path never writes them: routeOvernightAcceptance → autoAcceptOvernight scores and clears selectedTags/sessionNotes without calling persistTagsAndNotes. They are also lost if the view/app is recreated during the night. The Sections comment claims they persist at archive time via updateTags.",
-   "evidence": [
-    "Emuqu/Sources/Views/RecordView.swift:324",
-    "Emuqu/Sources/Views/RecordView.swift:334",
-    "Emuqu/Sources/Views/RecordView+Sections.swift:68",
-    "Emuqu/Sources/Views/RecordView+Results.swift:155"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
    "sev": "low",
-   "text": "The header comment says RRCollector 'publishes nothing' so reads through collector do not trigger re-renders; RRCollector is @Observable and its stored vars are tracked (the Forwarders comment says so explicitly). The stale comment is the premise of the panel 'coupling' concerns and misleads future edits.",
+   "text": "Tags and notes picked before an overnight/nap recording live only in RecordView @State until auto-accept writes them (preSessionTagged); if the view or the app is recreated during the night they are lost.",
    "evidence": [
-    "Emuqu/Sources/Views/RecordView.swift:6",
-    "Emuqu/Sources/Collection/RRCollector.swift:20",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift:16"
+    "Emuqu/Sources/Views/RecordView.swift:18",
+    "Emuqu/Sources/Views/RecordView+Results.swift:117"
    ],
-   "found": "second read"
+   "found": "fix batch b24"
   }
  ],
  "units": [
@@ -116,8 +103,8 @@
   },
   {
    "key": "var RecordView.body",
-   "hash": "b924c39ba0d2bfab",
-   "does": "Root body: recordSurface plus an 'Error' alert bound to showingError, onChange of sessionState.lastError (stringified) → presentErrorIfActionable, onChange of needsAcceptance → routeOvernightAcceptance, onAppear → restoreCaptureMode, onChange of deviceStatus.connectedDeviceType → coerceCaptureModeForDevice.",
+   "hash": "67df09aacfdcd82c",
+   "does": "Root body: recordSurface plus an Error alert bound to showingError, onChange of sessionState.lastError (stringified) → presentErrorIfActionable, onChange(initial: true) of needsAcceptance → routeOvernightAcceptance (also on first build, so a night finalised before the tab existed is accepted), onAppear → restoreCaptureMode, onChange of deviceStatus.connectedDeviceType → coerceCaptureModeForDevice.",
    "entry": "SwiftUI body of RecordView, created by MainTabView's Record tab.",
    "calls": [
     "Emuqu/Sources/Views/RecordView.swift::var RecordView.recordSurface",
@@ -135,34 +122,7 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "The error alert is triggered by onChange of String(describing: lastError); lastError is never cleared by the alert's OK button or resetSession (RRCollector+Session.swift:8-20), so a second identical error (same description) does not change the key and no alert is shown.",
-     "evidence": [
-      "Emuqu/Sources/Views/RecordView.swift:88",
-      "Emuqu/Sources/Views/RecordView.swift:180",
-      "Emuqu/Sources/Collection/RRCollector+Session.swift:8"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "fragile",
-     "sev": "med",
-     "text": "Overnight/nap finalisation (re-score with HealthKit export + clearAcceptanceState) runs only from this view's onChange(of: needsAcceptance), which has no initial: true. The Record tab is a LazyView created on first tap, and finalizeFromPause can run without the UI (battery <=5% while paused). If needsAcceptance is already true when RecordView is first built, routeOvernightAcceptance never runs; the overnight acceptance/preview sections exclude overnight/nap, and isSessionActive stays true, so the Record tab shows no way to finish and the metrics are never exported.",
-     "evidence": [
-      "Emuqu/Sources/Views/RecordView.swift:91",
-      "Emuqu/Sources/Views/MainTabView.swift:635",
-      "Emuqu/Sources/Collection/RRCollector+Bindings.swift:205",
-      "Emuqu/Sources/Collection/RRCollector+PauseResume.swift:267",
-      "Emuqu/Sources/Views/RecordView+Sections.swift:268",
-      "Emuqu/Sources/Views/RecordView+Sections.swift:311",
-      "Emuqu/Sources/Views/RecordView+Actions.swift:228"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance": "37c71d78df96a761",
@@ -172,7 +132,7 @@
     "Emuqu/Sources/Views/RecordView.swift::func RecordView.presentErrorIfActionable(_:)": "bdcf67b1f64c931f",
     "Emuqu/Sources/Views/RecordView.swift::func RecordView.restoreCaptureMode()": "912efcdf347253e9",
     "Emuqu/Sources/Views/RecordView.swift::func RecordView.routeOvernightAcceptance(_:)": "26e0d34f4064b4ec",
-    "Emuqu/Sources/Views/RecordView.swift::var RecordView.errorAlertActions": "863efa32fbf54346",
+    "Emuqu/Sources/Views/RecordView.swift::var RecordView.errorAlertActions": "374e1bd8ba5e5b59",
     "Emuqu/Sources/Views/RecordView.swift::var RecordView.errorAlertMessage": "f6bdd812f1593326",
     "Emuqu/Sources/Views/RecordView.swift::var RecordView.recordSurface": "bac878fbf3598606"
    }
@@ -196,7 +156,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.morningCover(_:)": "590e0fd29ef8d706",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.quickCover(_:)": "6ad317344c378857",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.quickCover(_:)": "3ad5e4a704cd0364",
     "Emuqu/Sources/Views/RecordView.swift::func RecordView.preScoreCover(_:)": "3ebc978c2064a31b",
     "Emuqu/Sources/Views/RecordView.swift::var RecordView.recordScroll": "6fb5526f6ca0aa53",
     "Emuqu/Sources/Views/RecordView.swift::var RecordView.tagPickerSheet": "cc661372802919ab",
@@ -220,13 +180,13 @@
    "deps": {
     "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.scrollToTop(_:)": "dccf289295b2922f",
     "Emuqu/Sources/Views/RecordView.swift::func RecordView.resolveInterruptedWorkout()": "f90c897d41888626",
-    "Emuqu/Sources/Views/RecordView.swift::var RecordView.recordStack": "9943b42b08ee3f03"
+    "Emuqu/Sources/Views/RecordView.swift::var RecordView.recordStack": "e873ac3e26317063"
    }
   },
   {
    "key": "var RecordView.recordStack",
-   "hash": "b43f602a97bff43a",
-   "does": "VStack of the twelve Record sections in render order (session type, selected header, tags, connection, recoverable data, active session, morning processing, live data, verification, morning preview, quick results, acceptance), padded and id'd 'recordTop' for scroll-to-top.",
+   "hash": "39b48fa3633048f7",
+   "does": "VStack of the thirteen Record sections in render order (session type, selected header, tags, connection, recoverable data, workout recovery, active session, morning processing, live data, verification, morning preview, quick results, acceptance), padded and id'd 'recordTop' for scroll-to-top.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.sessionTypeSection",
@@ -234,6 +194,7 @@
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.preSessionTagSection",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.connectionSection",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.recoverableDataSection",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.workoutRecoverySection",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.activeSessionSection",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.morningProcessingSection",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.liveDataSection",
@@ -248,7 +209,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.acceptanceSectionIfNeeded": "73c3ed46f2c6af0f",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.activeSessionSection": "942a212c21f2890c",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.activeSessionSection": "62e071f819d201cc",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.connectionSection": "31ee34418cdf8f3c",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.liveDataSection": "f865953d36a7ecfd",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.morningProcessingSection": "caf7e008b594017c",
@@ -258,7 +219,8 @@
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.recoverableDataSection": "ebaea2433191da38",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.selectedSessionSection": "31d20a81e30afe67",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.sessionTypeSection": "aa3439e53603aa42",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.verificationSectionIfPending": "1e92995f71a968ec"
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.verificationSectionIfPending": "1e92995f71a968ec",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.workoutRecoverySection": "81771fd3512f6ca9"
    }
   },
   {
@@ -317,40 +279,54 @@
   },
   {
    "key": "var RecordView.errorAlertActions",
-   "hash": "12281c90fa4e1b91",
-   "does": "OK button of the error alert: if the current session is .failed, clears fetchFailed and resets the collector session to idle; otherwise just dismisses.",
+   "hash": "4f32a510eff7fc6f",
+   "does": "OK button of the error alert, running acknowledgeError.",
    "entry": "Alert action button.",
+   "calls": [
+    "Emuqu/Sources/Views/RecordView.swift::func RecordView.acknowledgeError()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordView.swift::func RecordView.acknowledgeError()": "de9adc51f913928b"
+   }
+  },
+  {
+   "key": "func RecordView.acknowledgeError()",
+   "hash": "9833dad0880992f3",
+   "does": "Error alert OK. With fetchFailed set, does nothing: the Retry card keeps its reason (lastError) and session and has its own Dismiss. Otherwise resets a stale .failed session (resetSession also clears lastError) and clears lastError, so the same error raised again re-presents.",
+   "entry": "Error alert OK button.",
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.resetSession()"
    ],
    "reads": [
+    "mem:RecordView.fetchFailed",
     "mem:SessionState.currentSession"
    ],
    "writes": [
-    "mem:RRCollector session state (currentSession, needsAcceptance, recordingPhase, pausedSession...)"
+    "mem:RRCollector session state (via resetSession)",
+    "mem:SessionState.lastError"
    ],
    "branches": [
     {
-     "at": "+4",
-     "cond": "sessionState.currentSession?.state == .failed",
-     "effect": "true: fetchFailed=false and collector.resetSession() (also clears paused state); false: alert just dismisses, nothing reset"
-    }
-   ],
-   "flags": [
+     "at": "+1",
+     "cond": "fetchFailed",
+     "effect": "true: return, nothing changes"
+    },
     {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "When a failed fetch leaves currentSession in .failed, tapping OK clears fetchFailed and resets the session, removing the RetryFetchCard the user would use to retry the download; the retry affordance disappears with the alert.",
-     "evidence": [
-      "Emuqu/Sources/Views/RecordView.swift:182",
-      "Emuqu/Sources/Views/RecordView+Sections.swift:139"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+2",
+     "cond": "currentSession?.state == .failed",
+     "effect": "true: collector.resetSession()"
     }
    ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.resetSession()": "ab465e22e805298a",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.resetSession()": "ef2f6ec8bd862038"
    }
   },
   {
@@ -425,7 +401,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Views/RecordView.swift::func RecordView.autoAcceptOvernight()": "3c8af07e40550e84"
+    "Emuqu/Sources/Views/RecordView.swift::func RecordView.autoAcceptOvernight()": "4b18858f05716750"
    }
   },
   {
@@ -623,7 +599,7 @@
   {
    "key": "func RecordView.autoAcceptOvernight()",
    "hash": "3bce71559df9ac71",
-   "does": "Task: if a current session exists, re-scores the latest archived version (scoreLatestVersion, exports metrics); then on main clears acceptance state in the collector and empties selectedTags and sessionNotes.",
+   "does": "Task: if a current session exists, re-scores the latest archived version with the pre-session tags/notes added (scoreLatestVersion, exports metrics); then on main clears acceptance state in the collector and empties selectedTags and sessionNotes.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/RecordView.swift::func RecordView.scoreLatestVersion(of:)",
@@ -645,39 +621,31 @@
      "effect": "true: await scoreLatestVersion; false: log 'currentSession is nil — skipping' and still clear acceptance state"
     }
    ],
-   "flags": [
-    {
-     "kind": "data-loss",
-     "sev": "med",
-     "text": "Clears selectedTags and sessionNotes for an overnight/nap reading without ever writing them to the session (no persistTagsAndNotes / writeTagsToArchive call), so pre-session tags picked for the night are discarded.",
-     "evidence": [
-      "Emuqu/Sources/Views/RecordView.swift:334",
-      "Emuqu/Sources/Views/RecordView+Results.swift:155"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.clearAcceptanceState()": "34ab520d2fde1bb8",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Views/RecordView.swift::func RecordView.scoreLatestVersion(of:)": "a10f9cb14c301499"
+    "Emuqu/Sources/Views/RecordView.swift::func RecordView.scoreLatestVersion(of:)": "d681cc247f7c3599"
    }
   },
   {
    "key": "func RecordView.scoreLatestVersion(of:)",
-   "hash": "4b3e4434e373fdd4",
-   "does": "Fetches the archived copy of the session off-main (falls back to the in-memory one if retrieval fails) and recomputes/re-archives its composite recovery score with HealthKit export enabled.",
+   "hash": "df6bb16857d99b8e",
+   "does": "Fetches the archived copy of the session off-main (falls back to the in-memory one if retrieval fails), adds the pre-session tags/notes (preSessionTagged), and recomputes/re-archives its composite recovery score with HealthKit export enabled, so the tags reach the archive with the score.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.retrieveFullSessionAsync(_:)",
+    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.preSessionTagged(_:)",
     "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.updateCompositeRecoveryScore(for:exportMetrics:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
-    "archive:SessionArchive.retrieveOrLog"
+    "archive:SessionArchive.retrieveOrLog",
+    "mem:RecordView.selectedTags",
+    "mem:RecordView.sessionNotes"
    ],
    "writes": [
-    "archive:SessionArchive.archive (re-archive with score)",
+    "archive:SessionArchive.archive (re-archive with score, tags, notes)",
     "hk:HRV/recovery metrics export (if enabled)"
    ],
    "branches": [
@@ -702,7 +670,8 @@
     "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.updateCompositeRecoveryScore(for:exportMetrics:)": "ca5433c14d9521d5",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.retrieveFullSessionAsync(_:)": "0f232a98a915f52c",
     "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.dataSourceSummary(_:baseSession:totalBeats:)": "79391780177697bc",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.preSessionTagged(_:)": "0be9f316ab97a166"
    }
   }
  ],

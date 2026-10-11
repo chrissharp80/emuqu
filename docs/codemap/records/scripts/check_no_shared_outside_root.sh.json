@@ -8,19 +8,7 @@
   "dir:EmuquWatch Watch App"
  ],
  "toplevel": "cd to repo root; sources preflight. No Swift -> 2. grep -rnE `.shared` reads, drop // comment lines, SYSTEM types and static declarations; any remaining hit outside ROOT_FILES -> printed, exit 1; else clean.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Header says scope is the iOS app and the watch extension 'stays on the tech-debt count', but the grep scans 'EmuquWatch Watch App' and WatchApp.swift is in ROOT_FILES.",
-   "evidence": [
-    "scripts/check_no_shared_outside_root.sh:19",
-    "scripts/check_no_shared_outside_root.sh:33",
-    "scripts/check_no_shared_outside_root.sh:43"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [],
  "deps": {}
 }

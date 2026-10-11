@@ -13,10 +13,11 @@
  "units": [
   {
    "key": "func SessionMerger.onClock(_:startingAt:)",
-   "hash": "b5d07ad8d194306a",
-   "does": "Returns the session re-counted from clockStart: copy with new startDate, rrSeries points rebased from the series' own startDate, sleep bounds/segments and analysis/autoWindow times shifted by the session start offset. Returns the session unchanged when its start equals clockStart.",
+   "hash": "4f7b8185f3c0e4ad",
+   "does": "Returns the session re-counted from clockStart: copy with new startDate, rrSeries points rebased from the series' own startDate, analysis/autoWindow times (beat times) shifted by the series' offset, sleep bounds/segments by the session start offset. Returns the session unchanged only when both the session and its series already start at clockStart.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.isOnClock(_:_:)",
     "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)",
     "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.copy(of:startDate:)",
     "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.rebased(_:from:onto:)",
@@ -26,31 +27,43 @@
    "writes": [],
    "branches": [
     {
-     "at": "+2",
-     "cond": "offsetMs != 0 OR startDate != clockStart",
-     "effect": "false: return session unchanged; true: build moved copy"
-    }
-   ],
-   "flags": [
+     "at": "+1",
+     "cond": "session and series already on clockStart",
+     "effect": "return session unchanged"
+    },
     {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Beats are rebased from rrSeries.startDate while sleep bounds/analysis times are shifted by session.startDate's offset; if a series' startDate ever differs from its session's, the two are moved by different amounts. When session.startDate == clockStart the early return also skips re-basing a series whose startDate differs.",
-     "evidence": [
-      "Emuqu/Sources/Storage/SessionMerger+Rebase.swift:20",
-      "Emuqu/Sources/Storage/SessionMerger+Rebase.swift:15",
-      "Emuqu/Sources/Storage/SessionMerger+Rebase.swift:16"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+5",
+     "cond": "no rrSeries",
+     "effect": "beat offset = session offset"
     }
    ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b",
     "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.copy(of:startDate:)": "6d1decbb48a91988",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.isOnClock(_:_:)": "d49529f354fcaf64",
     "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.shifted(_:by:)": "188a06e60c0a2f5c",
     "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.rebased(_:from:onto:)": "7b9af85ecd99f554",
-    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac"
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "6d761b0522590a2a"
    }
+  },
+  {
+   "key": "func SessionMerger.isOnClock(_:_:)",
+   "hash": "55942048c2555652",
+   "does": "True when the session's startDate equals clockStart and its series (if any) starts there too.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no series",
+     "effect": "only the session start is compared"
+    }
+   ],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "func SessionMerger.shifted(_:by:)",
@@ -133,6 +146,53 @@
    "deps": {
     "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b"
    }
+  },
+  {
+   "key": "func SessionMerger.repointed(_:onto:)",
+   "hash": "8d041a13c2664a36",
+   "does": "Re-points an analysis window at a different series on the same clock by time: windowStart/windowEnd become the first beats at or after windowStartMs/windowEndMs (via withWindow); returns the result unchanged when points is empty or the window has no times.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.firstIndex(atOrAfter:in:)",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.withWindow(_:start:end:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "points empty or window times missing",
+     "effect": "return result unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.firstIndex(atOrAfter:in:)": "b9e69d771f26aec8",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.withWindow(_:start:end:)": "7047e557a7b4fab0"
+   }
+  },
+  {
+   "key": "func SessionMerger.firstIndex(atOrAfter:in:)",
+   "hash": "0cece40ac3b95c24",
+   "does": "Binary search for the first index whose beat t_ms is >= timeMs; points.count when none.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "while low < high",
+     "effect": "halve the range"
+    },
+    {
+     "at": "+5",
+     "cond": "points[mid].t_ms < timeMs",
+     "effect": "low = mid+1; else high = mid"
+    }
+   ],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "func SessionMerger.withWindow(_:start:end:)",

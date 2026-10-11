@@ -1,38 +1,13 @@
 {
  "file": "Emuqu/Sources/Views/RecordView+Sections.swift",
  "hash": "fe0594e9cbc215c4",
- "role": "RecordView extension: one computed property per Record-stack section with its visibility gate, the acceptance Save/Discard card, the morning and quick results full-screen covers, and the small callbacks they use (discard, finish, re-trim recovered workout).",
+ "role": "RecordView extension: one computed property per Record-stack section with its visibility gate (the interrupted-workout cards outside activeSessionSection), the acceptance Save/Discard card, the morning and quick results full-screen covers, and the small callbacks they use (discard, finish, re-trim recovered workout).",
  "types": [
   "RecordView: extension — section builders, results covers and callbacks"
  ],
  "state": [],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "broken",
-   "sev": "high",
-   "text": "Tapping Done on a quick reading's report (finishQuickReading) runs updateCompositeRecoveryScore on the quick session, which fetches and stores sleepSnapshot/vitalsSnapshot and stamps a composite recoveryScore onto it (SessionAcceptanceService.swift:398-425, 473-475). The streaming code says a quick reading carries no recovery score (RRCollector+Streaming.swift:206-209) and the device path refuses snapshots on non-overnight captures because the newest snapshot-bearing session hijacks the Dashboard sleep chip (RRCollector+DeviceRecording.swift:494-506). DashboardSessionPolicy.latestWithSleep/latestWithVitals pick the first session with a snapshot, so a daytime quick check becomes the Dashboard's sleep/vitals source and gets a recovery score; with export enabled its metrics also go to Apple Health.",
-   "evidence": [
-    "Emuqu/Sources/Views/RecordView+Sections.swift:438",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift:416",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift:473",
-    "Emuqu/Sources/Collection/RRCollector+Streaming.swift:206",
-    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift:494",
-    "Emuqu/Sources/Models/DashboardSessionPolicy.swift:198"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "med",
-   "text": "Comment says pre-session tags 'persist onto the session at archive time via the existing updateTags flow' but for overnight/nap (the default selection) the auto-accept path clears them without writing (RecordView.swift:324-337).",
-   "evidence": [
-    "Emuqu/Sources/Views/RecordView+Sections.swift:68",
-    "Emuqu/Sources/Views/RecordView.swift:334"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "var RecordView.acceptanceSection",
@@ -68,7 +43,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.acceptSession()": "db7ec63ccad27482",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.acceptSession()": "d91bcd99edec01b4",
     "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.rejectSession()": "197213eef8b7e4f4"
    }
   },
@@ -224,18 +199,16 @@
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.offersStrapRecovery": "10003bf4e1cf9b6e",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/RecordView+PanelForwarding.swift::func RecordView.discardAndStartFresh()": "502ceb22039dbc90",
-    "Emuqu/Sources/Views/RecordView+PanelForwarding.swift::func RecordView.recoverStoredData()": "50798b6166e2971c"
+    "Emuqu/Sources/Views/RecordView+PanelForwarding.swift::func RecordView.recoverStoredData()": "4174e0d2d660cc8b"
    }
   },
   {
    "key": "var RecordView.activeSessionSection",
-   "hash": "657b0e2b8fc8534d",
-   "does": "When connected or paused, no morning status, and a type selected: shows retry/strap-recovery/review/continue/overnight sections unless quick-streaming, then the quick-reading section.",
+   "hash": "e9aee9a66efbead3",
+   "does": "When connected or paused, no morning status, and a type selected: shows the retry, continue-recovery and overnight sections unless quick-streaming, then the quick-reading section. The interrupted-workout cards are in workoutRecoverySection.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.retryFetchSection",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.strapRecoverySection",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.recoveredWorkoutReviewSection",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.continueRecoverySection",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.overnightRecordingSectionIfSelected",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.quickReadingSectionIfSelected"
@@ -252,12 +225,12 @@
     {
      "at": "+2",
      "cond": "(connected || paused) && morningStatus == nil && selectedSessionType != nil",
-     "effect": "false: whole section hidden (incl. strap workout recovery card when no type is selected); true: continue"
+     "effect": "false: whole section hidden; true: continue"
     },
     {
      "at": "+7",
      "cond": "!isStreaming || overnightStreaming || paused",
-     "effect": "true: retry/strap/review/continue/overnight subsections; false (quick streaming): only quickReadingSectionIfSelected"
+     "effect": "true: retry/continue/overnight subsections; false (quick streaming): only quickReadingSectionIfSelected"
     }
    ],
    "flags": [],
@@ -268,9 +241,7 @@
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.continueRecoverySection": "24e48bc1e785d2a7",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.overnightRecordingSectionIfSelected": "4348089f16a16823",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.quickReadingSectionIfSelected": "78f32b1b658fe710",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.recoveredWorkoutReviewSection": "c4847e54743f6d8a",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.retryFetchSection": "8b0d2fc213862848",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.strapRecoverySection": "39cb0044e0e56bb0"
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.retryFetchSection": "8b0d2fc213862848"
    }
   },
   {
@@ -344,6 +315,37 @@
    }
   },
   {
+   "key": "var RecordView.workoutRecoverySection",
+   "hash": "c211778ec59aa8a6",
+   "does": "Interrupted-workout strap-recovery card and recovered-workout review card, shown with or without a connected strap or selected session type; hidden only while the morning card runs or a quick reading streams.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.strapRecoverySection",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.recoveredWorkoutReviewSection"
+   ],
+   "reads": [
+    "mem:MorningCoordination.morningStatus",
+    "mem:DeviceStatus.isStreaming",
+    "mem:StreamingLifecycle.isOvernightStreaming",
+    "mem:StreamingLifecycle.isPaused"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "morningStatus == nil && (!isStreaming || overnightStreaming || paused)",
+     "effect": "true: both cards (each with its own gate); false: hidden"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "ee98ca364404b3d4",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.morningStatus": "da56eb55b4d86205",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.recoveredWorkoutReviewSection": "c4847e54743f6d8a",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.strapRecoverySection": "8f48fc09e7d011e2"
+   }
+  },
+  {
    "key": "var RecordView.strapRecoverySection",
    "hash": "567e9f816b06db1d",
    "does": "Shows the workout strap-recovery card when an interrupted workout id is known and no recovered-workout review is pending.",
@@ -362,20 +364,7 @@
      "effect": "true: card; false: hidden"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Comment says the workout strap-recovery card 'Shows whenever a workout was recording when the app died', and the card tells the user to connect the strap, but it is nested in activeSessionSection, which needs a connected (or paused) device, a selected session type and no morning status. With the strap disconnected or no type selected the card never appears, so the user is never told to connect.",
-     "evidence": [
-      "Emuqu/Sources/Views/RecordView+Sections.swift:165",
-      "Emuqu/Sources/Views/RecordView+Sections.swift:120",
-      "Emuqu/Sources/Views/RecordView+Sections.swift:121",
-      "Emuqu/Sources/Views/RecordView.swift:251"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/RecordView.swift::func RecordView.workoutStrapRecoveryCard(sessionId:)": "afe099895c56f3b2"
    }
@@ -581,7 +570,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance": "37c71d78df96a761",
-    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.morningResultsPreview(session:result:)": "ca1c03573514f18b"
+    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.morningResultsPreview(session:result:)": "90e02d8dc40cc08d"
    }
   },
   {
@@ -608,7 +597,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance": "37c71d78df96a761",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.clearFinishedQuickReading()": "3baaa4d74372080d",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.clearFinishedQuickReading()": "e80f7fcaa9220271",
     "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.presentQuickReport(session:result:)": "852d343c9e311367"
    }
   },
@@ -636,8 +625,8 @@
   {
    "key": "func RecordView.clearFinishedQuickReading()",
    "hash": "cdcc7cf2686de224",
-   "does": "Done on the quick results card: resets the collector session and clears tags, notes and selected type. Does not re-score the session (unlike finishQuickReading).",
-   "entry": "QuickResultsCard onDone.",
+   "does": "Done on a finished quick reading (the card, and via resetAfterQuickReading the report): resets the collector session and clears tags, notes and selected type. Saves and scores nothing more.",
+   "entry": "QuickResultsCard onDone; resetAfterQuickReading.",
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.resetSession()"
    ],
@@ -648,7 +637,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.resetSession()": "ab465e22e805298a"
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.resetSession()": "ef2f6ec8bd862038"
    }
   },
   {
@@ -840,16 +829,16 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.finishMorningReading()": "12bcaf1c925e8e48"
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.finishMorningReading()": "932460f1926b9db5"
    }
   },
   {
    "key": "func RecordView.finishMorningReading()",
-   "hash": "5aba22e4c99cd080",
-   "does": "Accepts the reading (saveMorningReading) and closes the morning cover.",
+   "hash": "74c1158fd7c9685e",
+   "does": "Accepts the reading (acceptSession) and closes the morning cover.",
    "entry": "Done toolbar button.",
    "calls": [
-    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.saveMorningReading()"
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.acceptSession()"
    ],
    "reads": [],
    "writes": [
@@ -858,25 +847,49 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.saveMorningReading()": "c2cb6aee56ee476a"
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.acceptSession()": "d91bcd99edec01b4"
    }
   },
   {
    "key": "func RecordView.quickCover(_:)",
-   "hash": "5ba22f01d6961a68",
-   "does": "NavigationStack wrapping quick results with a Done toolbar.",
+   "hash": "514a65b9a738caef",
+   "does": "NavigationStack wrapping quick results with a Done toolbar and the 'Couldn't delete this reading' alert bound to quickDiscardFailed.",
    "entry": "fullScreenCover(item: $quickPresentation) content.",
    "calls": [
     "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.quickResults(_:)",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.quickDoneToolbar(_:)"
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.quickDoneToolbar",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.quickDiscardFailedActions",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:RecordView.quickDiscardFailed"
+   ],
+   "writes": [
+    "mem:RecordView.quickDiscardFailed (alert dismissal)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.quickResults(_:)": "952361bbc9ff3413",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.quickDiscardFailedActions": "847565b75b44b482",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.quickDoneToolbar": "2856e5fcd5c900b1"
+   }
+  },
+  {
+   "key": "var RecordView.quickDiscardFailedActions",
+   "hash": "6c48f80891e1b1d6",
+   "does": "OK (cancel role) button for the delete-failed alert.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.quickDoneToolbar(_:)": "d7b436b738dc1dcc",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.quickResults(_:)": "952361bbc9ff3413"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },
   {
@@ -896,13 +909,13 @@
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "ed8abe89df2283be",
     "Emuqu/Sources/Views/MorningResultsView.swift::init MorningResultsView(session:result:recentSessions:onDiscard:onDelete:onReanalyze:onUpdateTags:onReanalyzeAt:onApplyManualResult:onUpdateSleep:onAdjustSleep:onUnlinkSegment:linkedSegments:)": "708e5b20f5522dc7",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.discardQuickReading(_:)": "2fa37af576c347ce"
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.discardQuickReading(_:)": "443f6cce95b57541"
    }
   },
   {
    "key": "func RecordView.discardQuickReading(_:)",
-   "hash": "7bbeb3e3248d17a1",
-   "does": "Deletes the quick reading from the archive and uploads a CloudKit deletion; a delete error is logged; always resets UI state.",
+   "hash": "9963ab92e74547cb",
+   "does": "Deletes the quick reading from the archive and uploads a CloudKit deletion, then resets UI state; when the delete throws it logs, sets quickDiscardFailed (alert over the still-open report) and resets nothing.",
    "entry": "MorningResultsView onDiscard (quick).",
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)",
@@ -913,62 +926,52 @@
    "reads": [],
    "writes": [
     "archive:SessionArchive.delete (index + trash)",
-    "ck:deletion flag"
+    "ck:deletion flag",
+    "mem:RecordView.quickDiscardFailed"
    ],
    "branches": [
     {
-     "at": "+4",
+     "at": "+5",
      "cond": "catch on archive.delete",
-     "effect": "logged and swallowed; no CloudKit deletion sent; UI still resets so the user sees the reading as discarded though it remains archived"
+     "effect": "logged; quickDiscardFailed = true; return (report stays open, reading still archived)"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "If archive.delete throws, the user sees the reading discarded (cover closes, session reset) but it stays in the archive and history.",
-     "evidence": [
-      "Emuqu/Sources/Views/RecordView+Sections.swift:409",
-      "Emuqu/Sources/Views/RecordView+Sections.swift:412"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "cefef470ab858af7",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadDeletion(_:)": "35795a3f19c6054a",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.resetAfterQuickReading()": "73693e3a005641dc"
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.resetAfterQuickReading()": "30185f6a37c3ef3c"
    }
   },
   {
    "key": "func RecordView.resetAfterQuickReading()",
-   "hash": "fc7fd84a4b4142c7",
-   "does": "Closes the quick cover, resets the collector session and clears selectedSessionType.",
+   "hash": "431d0d57471f1e29",
+   "does": "Closes the quick cover and runs clearFinishedQuickReading (session reset, tags, notes and type cleared).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.resetSession()"
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.clearFinishedQuickReading()"
    ],
    "reads": [],
    "writes": [
-    "mem:RRCollector session state",
     "mem:RecordView.quickPresentation"
    ],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.resetSession()": "ab465e22e805298a"
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.clearFinishedQuickReading()": "e80f7fcaa9220271"
    }
   },
   {
-   "key": "func RecordView.quickDoneToolbar(_:)",
-   "hash": "caa738ca35007f1a",
-   "does": "Confirmation toolbar 'Done' → finishQuickReading(presentation).",
-   "entry": "Toolbar.",
+   "key": "var RecordView.quickDoneToolbar",
+   "hash": "6c4dd5c1d62dcfb1",
+   "does": "The quick report's Done: resetAfterQuickReading (closes the cover and does what the card's Done does). Saves and scores nothing: the reading was archived with its tags at stop and carries no recovery score.",
+   "entry": "Toolbar button in the quick results cover.",
    "calls": [
-    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.finishQuickReading(_:)"
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.resetAfterQuickReading()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
    "writes": [],
@@ -976,60 +979,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.finishQuickReading(_:)": "8e5b6c709b431938"
-   }
-  },
-  {
-   "key": "func RecordView.finishQuickReading(_:)",
-   "hash": "401d5af1f06b44bb",
-   "does": "Task: re-reads the archived quick session (fallback the captured one) and runs updateCompositeRecoveryScore with exportMetrics=true; immediately resets UI.",
-   "entry": "Quick results Done toolbar.",
-   "calls": [
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.retrieveFullSessionAsync(_:)",
-    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.updateCompositeRecoveryScore(for:exportMetrics:)",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.resetAfterQuickReading()"
-   ],
-   "reads": [
-    "archive:SessionArchive.retrieve"
-   ],
-   "writes": [
-    "archive:SessionArchive.archive (score + sleep/vitals snapshots)",
-    "hk:metrics export (if enabled)"
-   ],
-   "branches": [
-    {
-     "at": "+4",
-     "cond": "retrieveFullSessionAsync ?? captured",
-     "effect": "archive miss → scores the captured in-memory copy (which lacks later tag/sleep edits) and writes it over the stored file"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "high",
-     "text": "Gives a quick spot-check a composite recovery score and sleep/vitals snapshots, which the Dashboard's latestWithSleep/latestWithVitals then prefer when it is the newest session; contradicts RRCollector+Streaming.swift:206-209 and RRCollector+DeviceRecording.swift:494-506.",
-     "evidence": [
-      "Emuqu/Sources/Views/RecordView+Sections.swift:438",
-      "Emuqu/Sources/Services/SessionAcceptanceService.swift:473",
-      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:198"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Two different 'Done' actions for the same quick reading: QuickResultsCard onDone (clearFinishedQuickReading) only resets, the report's Done (finishQuickReading) re-scores; the archived result depends on which Done the user taps.",
-     "evidence": [
-      "Emuqu/Sources/Views/RecordView+Sections.swift:298",
-      "Emuqu/Sources/Views/RecordView+Sections.swift:433"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.updateCompositeRecoveryScore(for:exportMetrics:)": "ca5433c14d9521d5",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.retrieveFullSessionAsync(_:)": "0f232a98a915f52c",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.resetAfterQuickReading()": "73693e3a005641dc"
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.resetAfterQuickReading()": "30185f6a37c3ef3c"
    }
   },
   {

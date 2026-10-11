@@ -22,7 +22,9 @@ set -uo pipefail
 
 cd "$(dirname "$0")/.."
 
-SOURCES=("Emuqu/Sources" "EmuquWatch Watch App")
+# The whole app target (EmuquApp.swift sits at `Emuqu/`, outside Sources), the
+# same roots the Zip and firmware checks below read.
+SOURCES=("Emuqu" "EmuquWatch Watch App")
 
 python3 - "${SOURCES[@]}" <<'PY'
 import pathlib
@@ -64,16 +66,22 @@ ALLOWED = {
     "developers.google.com",
 }
 
+# A host reaches the code as a URL literal, or as a bare host string handed to
+# URLComponents (`components.host = "x"`, `host: "x"`). Hosts the USER types
+# (a custom base URL for a self-hosted model) are not the developer's and
+# cannot be listed here; this gate is about the hosts the code names.
 URL = re.compile(r"https?://([A-Za-z0-9.-]+)")
+HOST = re.compile(r"(?:\.host\s*=\s*|\bhost:\s*)\"([A-Za-z0-9.-]+)\"")
 
 found = {}
 for root in sys.argv[1:]:
     base = pathlib.Path(root)
-    if not base.exists():
-        continue
+    if not base.is_dir():
+        print(f"check_no_developer_endpoint: source root not found: {base}", file=sys.stderr)
+        raise SystemExit(2)
     for path in sorted(base.rglob("*.swift")):
         for lineno, line in enumerate(path.read_text(errors="ignore").split("\n"), 1):
-            for match in URL.finditer(line):
+            for match in list(URL.finditer(line)) + list(HOST.finditer(line)):
                 found.setdefault(match.group(1), []).append(f"{path}:{lineno}")
 
 unknown = {h: locs for h, locs in found.items() if h not in ALLOWED}

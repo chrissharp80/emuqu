@@ -1,56 +1,33 @@
 {
  "file": "Emuqu/Sources/Collection/Concept2Manager.swift",
- "hash": "7ca09c09f7201ede",
- "role": "CoreBluetooth client for a Concept2 PM5 rowing monitor: lazy central, scan/auto-connect to remembered ergs, reconnect during a workout, subscription to the rowing service's 0x0031/0x0032/0x0036 characteristics, and decoding into observable distance, drag factor, stroke rate, pace, stroke power and stroke count read by WorkoutRecorder.",
+ "hash": "6a2334b7e25ca7b4",
+ "role": "CoreBluetooth client for a Concept2 PM5 rowing monitor: lazy central, scan/auto-connect to remembered ergs, reconnect during a workout (after a drop or a failed connect), subscription to the rowing service's 0x0031/0x0032/0x0036 characteristics, and decoding into observable workout distance, drag factor, stroke rate, stroke power and workout stroke count read by WorkoutRecorder. Declares ErgPieceCounter, which turns the PM5's own piece counters into workout totals.",
  "types": [
   "Concept2Manager: class (@Observable @MainActor, NSObject, BLEPeripheralConnecting, CBCentralManagerDelegate, CBPeripheralDelegate) — PM5 BLE manager",
   "Concept2Manager.ConnectionState: enum",
   "Concept2Manager.KnownErg: struct Codable — remembered erg",
   "Concept2Manager.DiscoveredErg: struct — scan result",
-  "Concept2Manager.StrokeData: struct — decoded 0x0036 power/stroke count"
+  "Concept2Manager.StrokeData: struct — decoded 0x0036 power/stroke count",
+  "ErgPieceCounter<Value: AdditiveArithmetic & Comparable>: struct — PM5 piece counter → workout total (baseline at workout start, carries across a PM5 piece reset)"
  ],
  "state": [
   "static Concept2Manager.shared (via CollectionServices.concept2Manager, AppDependencies.swift:551)",
   "mem:Concept2Manager.connectionState",
   "mem:Concept2Manager.distanceMeters",
-  "mem:Concept2Manager.paceSecPer500m",
   "mem:Concept2Manager.strokeRateSPM",
   "mem:Concept2Manager.dragFactor",
   "mem:Concept2Manager.instantaneousPowerWatts",
-  "mem:Concept2Manager.caloriesBurned",
   "mem:Concept2Manager.strokeCount",
   "mem:Concept2Manager.knownDevices",
   "mem:Concept2Manager.discoveredDevices",
   "mem:Concept2Manager.lastStatusLine",
   "mem:Concept2Manager.pendingReconnectId",
-  "centralIfCreated, scanWaitingForBluetooth, activePeripheral, expectsLink, workoutHoldsLink, 3 characteristic refs, scanTimeoutTimer (ObservationIgnored)",
+  "centralIfCreated, scanWaitingForBluetooth, activePeripheral, expectsLink, workoutHoldsLink, 3 characteristic refs, scanTimeoutTimer, pieceDistance / pieceStrokes ErgPieceCounters (ObservationIgnored)",
   "ud:fitness.concept2.knownDevices",
   "static UUIDs ce060000/ce060030/ce060031/ce060032/ce060036 and plausibleStrokePowerWatts 1...1500"
  ],
  "toplevel": "Stored defaults only; the central is not built at init.",
  "flags": [
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "caloriesBurned is never assigned anywhere (always nil), and the comment's claim that finalize (WorkoutRecorder+Lifecycle) reads it is false: applyRowingTelemetry reads only strokeCount and dragFactor.",
-   "evidence": [
-    "Emuqu/Sources/Collection/Concept2Manager.swift:56",
-    "Emuqu/Sources/Collection/Concept2Manager.swift:61",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift:343"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "paceSecPer500m is decoded and published but no code outside this file reads it; the recorder derives average split from moving time and distance instead.",
-   "evidence": [
-    "Emuqu/Sources/Collection/Concept2Manager.swift:44",
-    "Emuqu/Sources/Collection/Concept2Manager.swift:430",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift:347"
-   ],
-   "found": "first read, upheld on second"
-  },
   {
    "kind": "duplicate",
    "sev": "low",
@@ -103,12 +80,12 @@
   },
   {
    "key": "func Concept2Manager.startScanning()",
-   "hash": "ce5eecb6afe526f9",
-   "does": "If Bluetooth is not powered on, marks the scan as waiting; otherwise clears discovered list, sets state .scanning, scans for the PM5 discovery service and arms a 20 s timer that stops scanning.",
+   "hash": "4f19a260e86f95ed",
+   "does": "If Bluetooth is not powered on, marks the scan as waiting; otherwise clears discovered list, sets state .scanning, scans for the PM5 discovery service and arms a 20 s timer that ends the scan (endTimedOutScan, which also drops a parked reconnect id).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/Concept2Manager.swift::var Concept2Manager.central",
-    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.stopScanning()",
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.endTimedOutScan()",
     "ext:CBCentralManager.scanForPeripherals",
     "ext:Timer.scheduledTimer"
    ],
@@ -127,9 +104,28 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.stopScanning()": "cd2a8668172269eb",
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.endTimedOutScan()": "d6669183212cacb9",
     "Emuqu/Sources/Collection/Concept2Manager.swift::var Concept2Manager.central": "8341bc1e5500625f",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func Concept2Manager.endTimedOutScan()",
+   "hash": "fc20ccec20360985",
+   "does": "The 20 s scan timeout: drops any parked reconnect id (the erg it was scanning for did not appear) and stops the scan.",
+   "entry": "Fired by the scan timeout Timer armed in startScanning.",
+   "calls": [
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.stopScanning()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:Concept2Manager.pendingReconnectId",
+    "mem:Concept2Manager.connectionState"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.stopScanning()": "cd2a8668172269eb"
    }
   },
   {
@@ -178,29 +174,72 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func BLEPeripheralConnecting.connect(deviceId:)": "3235b50b8ba74c15"
+    "Emuqu/Sources/Collection/FootPodManager.swift::func BLEPeripheralConnecting.connect(deviceId:)": "698a62ba3a0c388c"
    }
   },
   {
    "key": "func Concept2Manager.holdLinkForWorkout(_:)",
-   "hash": "83e0acfc3db7aca8",
-   "does": "Sets workoutHoldsLink; at workout stop (false) cancels a reconnect still in .connecting with an expected link.",
+   "hash": "f3c7c9c9ee0824a3",
+   "does": "Sets workoutHoldsLink. At a workout's start (true) zeroes the PM5 piece counters for it (beginPieceCounting). At its stop (false), when a link was expected, drops any parked reconnect id and cancels a reconnect still in .connecting.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.beginPieceCounting()",
     "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.disconnect()"
    ],
-   "reads": [],
-   "writes": [],
+   "reads": [
+    "mem:Concept2Manager.connectionState"
+   ],
+   "writes": [
+    "mem:Concept2Manager.pendingReconnectId"
+   ],
    "branches": [
     {
      "at": "+2",
-     "cond": "releasing, link expected and state .connecting",
-     "effect": "disconnect(); otherwise only stores the flag"
+     "cond": "holds (workout start)",
+     "effect": "beginPieceCounting(); return"
+    },
+    {
+     "at": "+7",
+     "cond": "releasing and no link expected",
+     "effect": "return (flag stored only)"
+    },
+    {
+     "at": "+9",
+     "cond": "releasing with an expected link and state .connecting",
+     "effect": "disconnect(); pendingReconnectId cleared either way"
     }
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.beginPieceCounting()": "61a98c8817cfa7b4",
     "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.disconnect()": "118b776d5e4d9528"
+   }
+  },
+  {
+   "key": "func Concept2Manager.beginPieceCounting()",
+   "hash": "2e0c21a53a867dda",
+   "does": "Starts both ErgPieceCounters for a workout beginning now (the erg's last reading is the baseline when connected, else its first reading once it connects) and resets the published distanceMeters/strokeCount to 0 when a connected erg has already reported, nil otherwise, so a previous workout's totals never open this one.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func ErgPieceCounter.beginWorkout(linkIsUp:)"
+   ],
+   "reads": [
+    "mem:Concept2Manager.connectionState"
+   ],
+   "writes": [
+    "mem:Concept2Manager.distanceMeters",
+    "mem:Concept2Manager.strokeCount"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "connected and a value was published",
+     "effect": "0; not connected or never reported → nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func ErgPieceCounter.beginWorkout(linkIsUp:)": "eae2013630d78f76"
    }
   },
   {
@@ -209,7 +248,7 @@
    "does": "Clears expectsLink, cancels the active peripheral connection (only if central exists) and resets all erg state.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.cleanupAfterDisconnect()",
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.cleanupAfterDisconnect(keepingPiece:)",
     "ext:CBCentralManager.cancelPeripheralConnection"
    ],
    "reads": [],
@@ -225,7 +264,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.cleanupAfterDisconnect()": "821f5ccd35fa0285"
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.cleanupAfterDisconnect(keepingPiece:)": "04931c860fc58900"
    }
   },
   {
@@ -285,33 +324,28 @@
    }
   },
   {
-   "key": "func Concept2Manager.cleanupAfterDisconnect()",
-   "hash": "3b75932526699b6f",
-   "does": "Clears the active peripheral, characteristic refs, all live metrics (distance, pace, stroke rate, power, drag, calories, stroke count) and sets .disconnected.",
+   "key": "func Concept2Manager.cleanupAfterDisconnect(keepingPiece:)",
+   "hash": "850815034e275412",
+   "does": "Clears the active peripheral, characteristic refs, stroke rate and stroke power and sets .disconnected. Unless keepingPiece (a drop mid-workout), also clears distanceMeters, dragFactor and strokeCount; kept, they stand through the drop so live distance stays the erg's and a workout stopped meanwhile still saves strokes and drag factor.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [
+    "mem:Concept2Manager.connectionState",
     "mem:Concept2Manager.distanceMeters",
-    "mem:Concept2Manager.strokeCount",
+    "mem:Concept2Manager.strokeRateSPM",
+    "mem:Concept2Manager.instantaneousPowerWatts",
     "mem:Concept2Manager.dragFactor",
-    "mem:Concept2Manager.connectionState"
+    "mem:Concept2Manager.strokeCount"
    ],
-   "branches": [],
-   "flags": [
+   "branches": [
     {
-     "kind": "data-loss",
-     "sev": "low",
-     "text": "A mid-workout drop restores only distanceMeters (lines 309/315, 258/263); strokeCount and dragFactor stay nil until the PM5 sends its next packets, so a workout stopped while the erg link is down saves nil stroke count and drag factor (WorkoutRecorder+Lifecycle.swift:345-346).",
-     "evidence": [
-      "Emuqu/Sources/Collection/Concept2Manager.swift:204",
-      "Emuqu/Sources/Collection/Concept2Manager.swift:206",
-      "Emuqu/Sources/Collection/Concept2Manager.swift:315",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift:345"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+8",
+     "cond": "keepingPiece",
+     "effect": "return with distance, drag factor and stroke count kept; else clear them"
     }
    ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -428,40 +462,40 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.dropForPowerOff()": "063affb453f22b2d",
-    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.startScanning()": "826a95110434a973",
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.dropForPowerOff()": "0463ccb5a68fd468",
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.startScanning()": "2ef8dd940bf1c376",
     "Emuqu/Sources/Collection/Concept2Manager.swift::var Concept2Manager.central": "8341bc1e5500625f",
-    "Emuqu/Sources/Collection/FootPodManager.swift::func BLEPeripheralConnecting.connect(deviceId:)": "3235b50b8ba74c15"
+    "Emuqu/Sources/Collection/FootPodManager.swift::func BLEPeripheralConnecting.connect(deviceId:)": "698a62ba3a0c388c"
    }
   },
   {
    "key": "func Concept2Manager.dropForPowerOff()",
-   "hash": "ed541ef69675b7de",
-   "does": "Clears erg state on Bluetooth off; if a workout holds an expected link, parks the erg id for reconnect and restores the piece distance.",
+   "hash": "799f37151af9298d",
+   "does": "Bluetooth off: if a workout holds an expected link, parks the erg id for .poweredOn and clears the link keeping the piece totals; otherwise clears everything.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.cleanupAfterDisconnect()"
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.cleanupAfterDisconnect(keepingPiece:)"
    ],
    "reads": [],
    "writes": [
     "mem:Concept2Manager.pendingReconnectId",
-    "mem:Concept2Manager.distanceMeters"
+    "mem:Concept2Manager.connectionState"
    ],
    "branches": [
     {
-     "at": "+3",
+     "at": "+2",
      "cond": "link expected and workout holds it",
      "effect": "parkedId = active peripheral id; else nil"
     },
     {
-     "at": "+5",
+     "at": "+4",
      "cond": "nothing to park",
-     "effect": "returns after cleanup (distance cleared)"
+     "effect": "returns after a full cleanup"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.cleanupAfterDisconnect()": "821f5ccd35fa0285"
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.cleanupAfterDisconnect(keepingPiece:)": "04931c860fc58900"
    }
   },
   {
@@ -534,58 +568,82 @@
   },
   {
    "key": "func Concept2Manager.centralManager(_:didFailToConnect:error:)",
-   "hash": "5f6929dc793754e1",
-   "does": "Connect failed: sets .disconnected and 'Connection failed' without clearing activePeripheral/characteristics or retrying.",
+   "hash": "75d03156cb8ed9a7",
+   "does": "Connect failed: cleans up the link (keeping the piece totals mid-workout), shows 'Connection failed', and mid-workout (expected link held by a workout) asks for the connection again via retryConnect.",
    "entry": "CBCentralManagerDelegate didFailToConnect.",
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.cleanupAfterDisconnect(keepingPiece:)",
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.retryConnect(_:)"
+   ],
    "reads": [],
    "writes": [
     "mem:Concept2Manager.connectionState",
     "mem:Concept2Manager.lastStatusLine"
    ],
-   "branches": [],
-   "flags": [
+   "branches": [
     {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Unlike FootPodManager (line 431), a failed connect leaves activePeripheral and characteristic refs set and never retries even when workoutHoldsLink; a failed mid-workout reconnect (from didDisconnect's attach) ends erg data for the rest of the workout.",
-     "evidence": [
-      "Emuqu/Sources/Collection/Concept2Manager.swift:300",
-      "Emuqu/Sources/Collection/FootPodManager.swift:431",
-      "Emuqu/Sources/Collection/Concept2Manager.swift:316"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+5",
+     "cond": "link expected and a workout holds it",
+     "effect": "retryConnect(peripheral); else nothing more"
     }
    ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.cleanupAfterDisconnect(keepingPiece:)": "04931c860fc58900",
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.retryConnect(_:)": "c6e22773fc012162",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },
   {
+   "key": "func Concept2Manager.retryConnect(_:)",
+   "hash": "3b17ca16eb94dc25",
+   "does": "After a 2 s pause, re-attaches the peripheral if a workout still holds an expected link and the erg is still disconnected.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)",
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.attach(peripheral:)"
+   ],
+   "reads": [
+    "mem:Concept2Manager.connectionState"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "self gone, link no longer expected/held, or no longer disconnected",
+     "effect": "return without reconnecting"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.attach(peripheral:)": "4d7ef27a2dfb15cd",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851"
+   }
+  },
+  {
    "key": "func Concept2Manager.centralManager(_:didDisconnectPeripheral:error:)",
-   "hash": "e1050a53eb7fcad5",
-   "does": "Disconnected: clears state; if a workout holds an expected link, restores distance and re-attaches (CoreBluetooth keeps the connect request open).",
+   "hash": "d2e5c23d7ab5fe5d",
+   "does": "Disconnected: cleans up the link, keeping distance, stroke count and drag factor when a workout holds an expected link, and in that case re-attaches (CoreBluetooth keeps the connect request open).",
    "entry": "CBCentralManagerDelegate didDisconnectPeripheral.",
    "calls": [
-    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.cleanupAfterDisconnect()",
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.cleanupAfterDisconnect(keepingPiece:)",
     "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.attach(peripheral:)"
    ],
    "reads": [],
    "writes": [
-    "mem:Concept2Manager.distanceMeters",
     "mem:Concept2Manager.connectionState"
    ],
    "branches": [
     {
      "at": "+4",
      "cond": "link not expected or no workout holds it",
-     "effect": "returns after cleanup (distance cleared)"
+     "effect": "returns after a full cleanup"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.attach(peripheral:)": "4d7ef27a2dfb15cd",
-    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.cleanupAfterDisconnect()": "821f5ccd35fa0285"
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.cleanupAfterDisconnect(keepingPiece:)": "04931c860fc58900"
    }
   },
   {
@@ -730,18 +788,20 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.applyStrokeData(_:)": "5365f62c9c9e1f4b",
-    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.parseAdditionalData(data:)": "48450da86e19763f",
-    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.parseGeneralData(data:)": "8627dbe494fbd65f",
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.applyStrokeData(_:)": "4baa68311be7df0c",
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.parseAdditionalData(data:)": "e374f15c16e5bd8e",
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.parseGeneralData(data:)": "d6a2d401374f0eea",
     "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.strokeData(from:)": "efbc4319ce4cd1c4"
    }
   },
   {
    "key": "func Concept2Manager.parseGeneralData(data:)",
-   "hash": "897aafd6d6603e47",
-   "does": "Decodes 0x0031: distance = u24 bytes 3–5 × 0.1 m, drag factor = byte 18.",
+   "hash": "38da0221821f4f5a",
+   "does": "Decodes 0x0031: the PM5's piece distance (u24 bytes 3–5 × 0.1 m) goes through pieceDistance, so distanceMeters is this workout's distance; drag factor = byte 18.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func ErgPieceCounter.total(forRaw:)"
+   ],
    "reads": [
     "ble:PM5 General Status ce060031"
    ],
@@ -756,51 +816,32 @@
      "effect": "ignored"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "distanceMeters is documented as 'Distance rowed in this session ... from the PM5 odometer reset at session start', but nothing in the app resets or baselines the PM5 (the Control service is unused, line 14): the raw piece distance from 0x0031 is shown live and saved as the row's distance (and strokeCount likewise raw). Metres rowed on the PM5 before the app workout started are counted, and a PM5 piece reset mid-workout drops everything before it.",
-     "evidence": [
-      "Emuqu/Sources/Collection/Concept2Manager.swift:39",
-      "Emuqu/Sources/Collection/Concept2Manager.swift:14",
-      "Emuqu/Sources/Collection/Concept2Manager.swift:401",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:499",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift:146",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift:345"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {}
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func ErgPieceCounter.total(forRaw:)": "6f9c9b44adafc9ab"
+   }
   },
   {
    "key": "func Concept2Manager.parseAdditionalData(data:)",
-   "hash": "2b22ce21a6268544",
-   "does": "Decodes 0x0032: stroke rate = byte 5 (nil if 0), current pace = u16 bytes 7–8 × 0.01 s/500 m (nil if 0).",
+   "hash": "55115c5ef56b667e",
+   "does": "Decodes 0x0032: stroke rate = byte 5 (nil if 0).",
    "entry": null,
    "calls": [],
    "reads": [
     "ble:PM5 Additional Status ce060032"
    ],
    "writes": [
-    "mem:Concept2Manager.strokeRateSPM",
-    "mem:Concept2Manager.paceSecPer500m"
+    "mem:Concept2Manager.strokeRateSPM"
    ],
    "branches": [
     {
-     "at": "+6",
-     "cond": "fewer than 9 bytes",
+     "at": "+4",
+     "cond": "fewer than 6 bytes",
      "effect": "ignored"
     },
     {
-     "at": "+8",
+     "at": "+6",
      "cond": "stroke rate 0",
-     "effect": "nil; else value"
-    },
-    {
-     "at": "+11",
-     "cond": "pace 0",
      "effect": "nil; else value"
     }
    ],
@@ -832,10 +873,12 @@
   },
   {
    "key": "func Concept2Manager.applyStrokeData(_:)",
-   "hash": "708c73aa77af83fd",
-   "does": "Applies decoded stroke power and count to published state.",
+   "hash": "f59e9e08d160f754",
+   "does": "Applies decoded stroke power, and the PM5's stroke count through pieceStrokes (this workout's strokes), to published state.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func ErgPieceCounter.total(forRaw:)"
+   ],
    "reads": [],
    "writes": [
     "mem:Concept2Manager.instantaneousPowerWatts",
@@ -850,8 +893,55 @@
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func ErgPieceCounter.total(forRaw:)": "6f9c9b44adafc9ab",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "ad61e93456f590a4"
    }
+  },
+  {
+   "key": "func ErgPieceCounter.beginWorkout(linkIsUp:)",
+   "hash": "c72f6fac6767fb13",
+   "does": "Starts counting a workout: clears what was carried and takes the last raw reading as the baseline when the link is up and one exists; otherwise waits to take the next reading as the baseline.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "link down or no reading yet",
+     "effect": "baseline deferred to the next reading; else baseline = last reading"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ErgPieceCounter.total(forRaw:)",
+   "hash": "15040f43aa09ad0a",
+   "does": "Returns this workout's total for a raw PM5 reading: takes a pending baseline from it; when the reading is below the previous one (the PM5 piece was reset) carries what the previous stretch counted and counts the new stretch from zero; before any workout passes the raw value through.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "awaiting a baseline",
+     "effect": "this reading is the baseline (and the last reading)"
+    },
+    {
+     "at": "+6",
+     "cond": "reading below the last one, within a workout",
+     "effect": "carried += last − stretch start; stretch restarts at 0"
+    },
+    {
+     "at": "+11",
+     "cond": "no workout begun",
+     "effect": "return raw"
+    }
+   ],
+   "flags": [],
+   "deps": {}
   }
  ],
  "deps": {}

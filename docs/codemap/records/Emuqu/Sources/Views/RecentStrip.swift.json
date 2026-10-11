@@ -14,17 +14,6 @@
   {
    "kind": "spec-mismatch",
    "sev": "low",
-   "text": "Comments disagree on the dots-mode threshold: the header says 28 baseline nights (ScoreAppearancePolicy.fullBaselineNights = 28), dayMarker's comment says \"first-30-days users\"; the header also calls it \"last 7 readings\" while the strip renders whatever `days` the host passes.",
-   "evidence": [
-    "Emuqu/Sources/Views/RecentStrip.swift:8-10",
-    "Emuqu/Sources/Views/RecentStrip.swift:138-140",
-    "Emuqu/Sources/Models/DashboardSessionPolicy.swift:338"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
    "text": "Docs disagree with code on the Recent strip: USERS_MANUAL says verdict words show 'once you have 30 nights of baseline' but the host gates showVerdicts on ScoreAppearancePolicy.fullBaselineNights = 28; FLOWCHART says 'Recent strip = 30 days' and ARCHITECTURE says '8 are visible at a time', but DashboardSessionPolicy.recentDays always builds exactly 7 days (offsets 6...0).",
    "evidence": [
     "docs/USERS_MANUAL.md:99",
@@ -53,7 +42,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/RecentStrip.swift::var RecentStrip.recentStripHeader": "b29f8b345417a62e",
-    "Emuqu/Sources/Views/RecentStrip.swift::var RecentStrip.recentStripScroll": "84e6597357ef0308"
+    "Emuqu/Sources/Views/RecentStrip.swift::var RecentStrip.recentStripScroll": "ad64d2d376106ca9"
    }
   },
   {
@@ -79,19 +68,17 @@
   },
   {
    "key": "var RecentStrip.recentStripScroll",
-   "hash": "2536a09dfb810ed3",
-   "does": "ScrollViewReader around the row; .task(id: days.count) scrolls to today.",
+   "hash": "3f710b180a6f28df",
+   "does": "The row with defaultScrollAnchor(.trailing): today's card is in view on first paint and the strip stays trailing-anchored when a day is added, without a timed wait for layout.",
    "entry": "SwiftUI .task(id:) fires after layout and whenever days.count changes.",
    "calls": [
-    "Emuqu/Sources/Views/RecentStrip.swift::var RecentStrip.recentStripRow",
-    "Emuqu/Sources/Views/RecentStrip.swift::func RecentStrip.anchorToToday(_:)"
+    "Emuqu/Sources/Views/RecentStrip.swift::var RecentStrip.recentStripRow"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecentStrip.swift::func RecentStrip.anchorToToday(_:)": "554410c588256b44",
     "Emuqu/Sources/Views/RecentStrip.swift::var RecentStrip.recentStripRow": "5f54f277d6a30a6a"
    }
   },
@@ -110,40 +97,6 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/RecentStrip.swift::func RecentStrip.card(for:)": "f13c63bb35a01e46"
-   }
-  },
-  {
-   "key": "func RecentStrip.anchorToToday(_:)",
-   "hash": "f0e89dd72ee6cad1",
-   "does": "Sleeps 50 ms then animates scrollTo(last day id, anchor: .trailing).",
-   "entry": ".task(id: days.count) in recentStripScroll.",
-   "calls": [
-    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "days.last exists (guard)",
-     "effect": "empty: return without scrolling."
-    }
-   ],
-   "flags": [
-    {
-     "kind": "hack",
-     "sev": "low",
-     "text": "Uses a fixed 50 ms sleep to wait for LazyHStack layout before scrollTo; the comment admits onAppear no-ops, so correctness depends on layout finishing within 50 ms. (The row is actually an HStack, not a LazyHStack as the comment says.)",
-     "evidence": [
-      "Emuqu/Sources/Views/RecentStrip.swift:55-68",
-      "Emuqu/Sources/Views/RecentStrip.swift:86",
-      "Emuqu/Sources/Views/RecentStrip.swift:102"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851"
    }
   },
   {

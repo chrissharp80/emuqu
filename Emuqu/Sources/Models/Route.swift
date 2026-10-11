@@ -29,7 +29,8 @@ struct Route: Codable, Identifiable, Equatable {
     let cumulativeDistanceMeters: [Double]
     /// Detected climb segments — sustained gain ≥ 30 m at ≥ 3 % avg grade.
     /// Sorted by start distance, so "the next one past my current position"
-    /// is the first climb that ends beyond it.
+    /// is the first climb that starts beyond it (`RouteProgress.compute`;
+    /// while the user is on a climb, the next one is the climb after it).
     let climbs: [Climb]
     let totalDistanceMeters: Double
     let totalAscentMeters: Double
@@ -127,6 +128,8 @@ struct Route: Codable, Identifiable, Equatable {
     }
 
     /// Cumulative distance at each trackpoint, plus total ascent and descent.
+    /// The totals are summed over the same 5-point smoothed altitude climb
+    /// detection uses, so GPS altitude noise does not inflate them.
     private static func elevationProfile(
         track: [CLLocation]
     ) -> (cumulative: [Double], ascent: Double, descent: Double) {
@@ -135,9 +138,10 @@ struct Route: Codable, Identifiable, Equatable {
         var descent: Double = 0
         // `1 ..< 0` traps on an empty track.
         guard track.count > 1 else { return (cumulative, ascent, descent) }
+        let altitude = smooth(track.map(\.altitude), window: 5)
         for i in 1 ..< track.count {
             cumulative.append(cumulative[i - 1] + track[i].distance(from: track[i - 1]))
-            let dh = track[i].altitude - track[i - 1].altitude
+            let dh = altitude[i] - altitude[i - 1]
             if dh > 0 { ascent += dh } else { descent += abs(dh) }
         }
         return (cumulative, ascent, descent)

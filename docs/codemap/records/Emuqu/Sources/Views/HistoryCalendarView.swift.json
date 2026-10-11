@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Views/HistoryCalendarView.swift",
- "hash": "26d2779bea54035a",
- "role": "Trends-tab monthly calendar (Sun-Sat grid) of the user's sessions showing per-day training LOAD, morning-feeling dot, weekly and monthly totals, month navigation, plus a private day-summary sheet that lists the day's sessions and lets the user soft-delete one via the parent's onDelete closure.",
+ "hash": "be856e019233d8dc",
+ "role": "Trends-tab monthly calendar (Sun-Sat grid) of the user's sessions — each on the day History lists it under (an overnight on the morning it ended) — showing per-day training LOAD, morning-feeling dot, in-month weekly and monthly totals, month navigation, plus a private day-summary sheet that lists the day's sessions and lets the user soft-delete one via the parent's onDelete closure.",
  "types": [
   "HistoryCalendarView: struct (View, @MainActor) — calendar card fed by TrendsV2View's allSessions snapshot",
   "HistoryCalendarView.DayCell: private struct — one grid cell (date, in-month flag, summed load, sessions, overnight morningFeeling)",
@@ -15,71 +15,28 @@
   "mem:HistoryCalendarView.selectedDaySheet (@State)",
   "mem:HistoryCalendarView.memoizedWeeks/memoizedMonthStats/memoFingerprint (@State memo cache)",
   "mem:DaySummarySheet.sessions (@State local copy)",
-  "mem:DaySummarySheet.pendingDelete/deleteFailed (@State)"
+  "mem:DaySummarySheet.pendingDelete/deleteFailed (@State)",
+  "env:dependencies (settings snapshot read for the FTP anchors in sessionsFingerprint)"
  ],
  "toplevel": "onDelete defaults to `{ _ in false }` (line 30), so a caller that omits it gets a sheet whose every delete shows the failure alert. visibleMonth initialised to startOfMonth(Date()) (line 32). memoizedMonthStats initial MonthStats(0,0). DaySheetIdentity.id is the date so the sheet identity ignores session content. Only callers: TrendsV2View.swift:218 (onDelete: deleteSession) and EmuquTests/ScreenSnapshotTests.swift:35,46.",
- "flags": [
-  {
-   "kind": "broken",
-   "sev": "med",
-   "text": "Days are bucketed by cal.startOfDay(session.startDate) (lines 437-440), so an overnight that starts before midnight (e.g. Mon 23:00) lands on Monday's cell together with its morning-feeling dot, while the History list (HistoryView via SessionArchiveEntry.displayDate = sleepEnd/endDate for overnights) shows the same night under Tuesday; month totals (line 421-423) also attribute a Sep-30-23:00 night to September. The doc comment at 397-399 calls it the overnight that 'anchors' the day, but the anchor is bedtime, not the wake day the feeling was rated on.",
-   "evidence": [
-    "Emuqu/Sources/Views/HistoryCalendarView.swift:437",
-    "Emuqu/Sources/Views/HistoryCalendarView.swift:508",
-    "Emuqu/Sources/Models/SessionMetadata.swift:776"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Header doc lists the load resolver as powerTSS → hrTSS → METs → luciaTRIMP → route-history, but WorkoutMetadata.preferredTrainingLoad puts route-history (extrapolatedTRIMP) second when routeEstimateReplacesHRLoad is true.",
-   "evidence": [
-    "Emuqu/Sources/Views/HistoryCalendarView.swift:8",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift:715"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "ARCHITECTURE.md says nights are keyed by the wake date (SleepSchedule.nightKey); the calendar keys every session, overnights included, by cal.startOfDay(startDate), so a night begun before midnight and its morning-feeling dot sit on the previous day.",
-   "evidence": [
-    "docs/ARCHITECTURE.md:620",
-    "Emuqu/Sources/Views/HistoryCalendarView.swift:437",
-    "Emuqu/Sources/Views/HistoryCalendarView.swift:508"
-   ],
-   "found": "second read"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "var HistoryCalendarView.weekdaySymbols",
-   "hash": "1bc8d2c1da66e0fe",
-   "does": "Builds a fresh DateFormatter with LanguageManager.appLocale on every access and returns its veryShortStandaloneWeekdaySymbols (Sunday-first one-letter names).",
+   "hash": "78de69c1839c3014",
+   "does": "Sunday-first one-letter weekday names (veryShortStandaloneWeekdaySymbols) read from LocalizedDateFormat's per-locale cached formatter, so no formatter is built per access.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.formatter(template:)"
    ],
    "reads": [
     "mem:LanguageManager.shared.locale"
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "hack",
-     "sev": "low",
-     "text": "Static computed property allocates a new DateFormatter per access; weekdaySymbolCells reads it once per column (7 allocations per render) although LocalizedDateFormat already provides a per-locale cache.",
-     "evidence": [
-      "Emuqu/Sources/Views/HistoryCalendarView.swift:49",
-      "Emuqu/Sources/Views/HistoryCalendarView.swift:228"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.formatter(template:)": "ca42a77cea56606e"
    }
   },
   {
@@ -97,7 +54,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.withMonthSwipe(_:)": "eaa941d8f4e77fff",
-    "Emuqu/Sources/Views/HistoryCalendarView.swift::var HistoryCalendarView.calendarCard": "d5d53eb57c12138f"
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::var HistoryCalendarView.calendarCard": "630f69a36e60b48b"
    }
   },
   {
@@ -121,26 +78,14 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "The memo comment (35-42) says the grid is no longer rebuilt per body invalidation, but `.onChange(of: sessionsFingerprint)` recomputes the fingerprint on every body evaluation, which walks every session and resolves preferredTrainingLoad (computedMETLoad sorts each workout's samples, computedPowerTSS reads settings) — the O(n) per-render walk the memo was meant to avoid remains.",
-     "evidence": [
-      "Emuqu/Sources/Views/HistoryCalendarView.swift:79",
-      "Emuqu/Sources/Views/HistoryCalendarView.swift:105",
-      "Emuqu/Sources/Models/WorkoutMetadata.swift:536"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.rebuildMemoIfNeeded()": "5e49126df97caef8",
     "Emuqu/Sources/Views/HistoryCalendarView.swift::init DaySummarySheet(date:sessions:onDelete:)": "756f5627a3ef9e93",
     "Emuqu/Sources/Views/HistoryCalendarView.swift::var HistoryCalendarView.monthGrid": "63c84dd4de446450",
     "Emuqu/Sources/Views/HistoryCalendarView.swift::var HistoryCalendarView.monthHeader": "a377e88942d4a985",
     "Emuqu/Sources/Views/HistoryCalendarView.swift::var HistoryCalendarView.sectionHeader": "fba10a31dd53684a",
-    "Emuqu/Sources/Views/HistoryCalendarView.swift::var HistoryCalendarView.sessionsFingerprint": "a17ea4999c4f5cef",
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::var HistoryCalendarView.sessionsFingerprint": "fc84e0868f4ddd82",
     "Emuqu/Sources/Views/HistoryCalendarView.swift::var HistoryCalendarView.weekdayRow": "88661856597b7729",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
     "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
@@ -170,44 +115,77 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.stepMonth(by:)": "0b9f1427656c9d3c"
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.stepMonth(by:)": "ba5e7bc4f69f9071"
    }
   },
   {
    "key": "var HistoryCalendarView.sessionsFingerprint",
-   "hash": "9d7121045b98bc95",
-   "does": "Hashes id, startDate, morningFeeling, recoveryScore and preferredTrainingLoad value of every session in allSessions into an Int fingerprint.",
+   "hash": "99f72233d7392413",
+   "does": "Int fingerprint of everything the grid and day sheet show, from stored fields only (no load resolution): the FTP anchors from the environment's settings snapshot (a power session without stored TSS is scored against today's FTP), then hashShownFields for every session.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.preferredTrainingLoad"
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.current(_:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot",
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.hashShownFields(of:into:)"
    ],
    "reads": [
-    "mem:AppDependencies.current.app.settingsManager.settings (via computedPowerTSS FTP)"
+    "mem:SettingsManager.settingsSnapshot (FTP fields)",
+    "mem:FTPAutoEstimator.cachedRunningFTP"
    ],
    "writes": [],
    "branches": [
     {
-     "at": "+2",
+     "at": "+5",
      "cond": "for each session in allSessions",
-     "effect": "combines 5 fields per session; empty array yields the hash of nothing"
+     "effect": "hashShownFields; empty array hashes only the FTP anchors"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Fingerprint omits sessionType, endDate and workoutMetadata details shown in DaySummarySheet (distance, NP, climb, analysisResult RMSSD/meanHR); sheet content is a snapshot anyway, but a re-analysis that changes only RMSSD/meanHR does not refresh memo (grid does not show them, so only the sheet snapshot is affected).",
-     "evidence": [
-      "Emuqu/Sources/Views/HistoryCalendarView.swift:107",
-      "Emuqu/Sources/Views/HistoryCalendarView.swift:841"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
     "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.finalize()": "dd0ee2d1995fab40",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.preferredTrainingLoad": "4c06ba92c36737df"
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.current(_:)": "8fe8124d422c3999",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "599269848673b93a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.hashShownFields(of:into:)": "9e197722232e5a20"
+   }
+  },
+  {
+   "key": "func HistoryCalendarView.hashShownFields(of:into:)",
+   "hash": "f82ac7ff1909d2cf",
+   "does": "Hashes a session's id, sessionType, startDate, endDate, sleepEndMs, sleep snapshot end, morningFeeling, recoveryScore, analysis RMSSD and mean HR, and (for a workout) hashLoadInputs.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.hashLoadInputs(of:into:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "workoutMetadata present",
+     "effect": "hashLoadInputs; else none"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.hashLoadInputs(of:into:)": "f58785c7752cbe01"
+   }
+  },
+  {
+   "key": "func HistoryCalendarView.hashLoadInputs(of:into:)",
+   "hash": "1c66e82776b80689",
+   "does": "Hashes the stored inputs of TrainingLoadPrecedence.stored and of the sheet's workout row: powerTSS, intensityFactor, normalizedPowerWatts, hrTSS, luciaTRIMP, extrapolatedTRIMP, sample count, distance and elevation gain.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933"
    }
   },
   {
@@ -237,9 +215,9 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.monthWeeks()": "90b76f6a504c7548",
-    "Emuqu/Sources/Views/HistoryCalendarView.swift::var HistoryCalendarView.monthStats": "18cc3ce7cbd31855",
-    "Emuqu/Sources/Views/HistoryCalendarView.swift::var HistoryCalendarView.sessionsFingerprint": "a17ea4999c4f5cef"
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.monthWeeks()": "6a060880007f9149",
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::var HistoryCalendarView.monthStats": "3a0c0a5f345259a9",
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::var HistoryCalendarView.sessionsFingerprint": "fc84e0868f4ddd82"
    }
   },
   {
@@ -305,7 +283,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.stepMonth(by:)": "0b9f1427656c9d3c",
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.stepMonth(by:)": "ba5e7bc4f69f9071",
     "Emuqu/Sources/Views/HistoryCalendarView.swift::var HistoryCalendarView.body": "76a1003b78e845f6",
     "Emuqu/Sources/Views/HistoryCalendarView.swift::var HistoryCalendarView.canStepForward": "4d7e09abd8925c6c",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
@@ -362,9 +340,9 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.stepMonth(by:)": "0b9f1427656c9d3c",
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.stepMonth(by:)": "ba5e7bc4f69f9071",
     "Emuqu/Sources/Views/HistoryCalendarView.swift::var HistoryCalendarView.body": "76a1003b78e845f6",
-    "Emuqu/Sources/Views/HistoryCalendarView.swift::var HistoryCalendarView.canStepBack": "7a97d0693f08772d",
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::var HistoryCalendarView.canStepBack": "148525409543d926",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
    }
@@ -401,13 +379,13 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HistoryCalendarView.swift::var HistoryCalendarView.weekdaySymbolCells": "6eb16b9a1c3bb314"
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::var HistoryCalendarView.weekdaySymbolCells": "5203eae3aa9df390"
    }
   },
   {
    "key": "var HistoryCalendarView.weekdaySymbolCells",
-   "hash": "de2e60f4f655bebb",
-   "does": "ForEach 0..<7 rendering Self.weekdaySymbols[i] as caption text.",
+   "hash": "93225be44dc6133a",
+   "does": "Reads weekdaySymbols once, then ForEach 0..<7 renders symbols[i] as caption text.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/HistoryCalendarView.swift::var HistoryCalendarView.weekdaySymbols"
@@ -417,7 +395,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HistoryCalendarView.swift::var HistoryCalendarView.weekdaySymbols": "f6ed4e70ac9c7a58",
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::var HistoryCalendarView.weekdaySymbols": "d344c2de7b8ad40a",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
    }
   },
@@ -504,13 +482,13 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::var TrendAnalyzer.TimePeriod.days": "36f2819ab6740ce8",
-    "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.dayCell(_:)": "60eef200bb3228af"
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.dayCell(_:)": "9c6926aae2e9038b"
    }
   },
   {
    "key": "func HistoryCalendarView.dayCell(_:)",
-   "hash": "2fb12a191fa50d88",
-   "does": "Plain Button for one day: tile + feeling dot; tapping a day with sessions sets selectedDaySheet to open DaySummarySheet; disabled for empty days; accessibility label from accessibilityLabel(for:).",
+   "hash": "f11634ccf42aea97",
+   "does": "Plain Button for one day: tile + feeling dot; tapping an in-month day with sessions sets selectedDaySheet to open DaySummarySheet; disabled for empty days and for the dimmed days of neighbouring months, which VoiceOver also skips (accessibilityHidden); label from accessibilityLabel(for:).",
    "entry": "Button tap on a calendar cell",
    "calls": [
     "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.dayCellTile(_:)",
@@ -523,25 +501,19 @@
    ],
    "branches": [
     {
-     "at": "+2",
-     "cond": "day.sessions is empty",
-     "effect": "true: return without opening (button is also disabled); false: selectedDaySheet = DaySheetIdentity(date, sessions) presenting the sheet"
-    }
-   ],
-   "flags": [
+     "at": "+3",
+     "cond": "day is out of the visible month or has no sessions",
+     "effect": "return without opening (button also disabled); else selectedDaySheet = DaySheetIdentity(date, sessions) presents the sheet"
+    },
     {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Out-of-month (leading/trailing) days are tappable and open the sheet for that day's sessions even though the cell is dimmed and its load is excluded from the weekly total.",
-     "evidence": [
-      "Emuqu/Sources/Views/HistoryCalendarView.swift:288",
-      "Emuqu/Sources/Views/HistoryCalendarView.swift:490"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+14",
+     "cond": "day outside the visible month",
+     "effect": "hidden from VoiceOver"
     }
    ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.accessibilityLabel(for:)": "e321880422225a8a",
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.accessibilityLabel(for:)": "d56f9ba0b2e786da",
     "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.dayCellTile(_:)": "905e21f05082806c",
     "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.feelingDot(_:)": "3b9d132289d66a14"
    }
@@ -798,46 +770,38 @@
   },
   {
    "key": "var HistoryCalendarView.monthStats",
-   "hash": "f2faf91989798647",
-   "does": "Filters allSessions to those whose startDate year/month equals visibleMonth's, sums preferredTrainingLoad (nil → 0) and returns MonthStats(total, count).",
+   "hash": "14674b18912db69b",
+   "does": "Filters allSessions to those whose calendarDay (an overnight's wake day, else its start day) falls in visibleMonth, sums preferredTrainingLoad (nil → 0) and returns MonthStats(total, count). Counts every archived reading, split-night segments included, by design (the calendar lists readings History folds away so they can be deleted).",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.calendarDay(of:cal:)",
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.isIn(month:date:cal:)",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.preferredTrainingLoad"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+8",
+     "at": "+7",
      "cond": "workoutMetadata?.preferredTrainingLoad is nil",
-     "effect": "?? 0: session adds no load (all non-workouts and workouts with no load source) but still counts in sessionCount"
+     "effect": "?? 0: session adds no load but still counts in sessionCount"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "allSessions is every archive entry (RRCollector.recentSessionsAsync(limit:nil) decodes all of archive.entries, RRCollector.swift:296-302); the calendar does not apply the linked-chain / same-night dedup HistoryViewModel uses, so a split night counts as several sessions in the month header and day sheet while History shows one row.",
-     "evidence": [
-      "Emuqu/Sources/Views/HistoryCalendarView.swift:421",
-      "Emuqu/Sources/Views/HistoryCalendarView.swift:428",
-      "Emuqu/Sources/Collection/RRCollector.swift:296",
-      "Emuqu/Sources/ViewModels/HistoryViewModel.swift:128"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.preferredTrainingLoad": "4c06ba92c36737df"
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.preferredTrainingLoad": "83d7dba52bc503b9",
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.calendarDay(of:cal:)": "86a084c2b06c9d3c",
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.isIn(month:date:cal:)": "13d0e6fe9aa4b37c"
    }
   },
   {
    "key": "func HistoryCalendarView.monthWeeks()",
-   "hash": "d431238b8a6a3d6d",
-   "does": "Builds the visible month's week rows: gets the trimmed grid dates, groups all sessions by start-of-day of startDate, and chunks dates by 7 into WeekRows.",
+   "hash": "51d17afea02c198f",
+   "does": "Builds the visible month's week rows: gets the grid dates, groups all sessions by calendarDay (an overnight's wake day, else start day), and chunks dates by 7 into WeekRows.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.gridCells(cal:monthStart:comps:)",
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.gridCells(cal:monthStart:)",
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.calendarDay(of:cal:)",
     "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.weekRow(dates:cal:comps:sessionsByDay:monthStart:)"
    ],
    "reads": [],
@@ -845,96 +809,76 @@
    "branches": [
     {
      "at": "+11",
-     "cond": "stride over trimmed dates in steps of 7",
-     "effect": "one WeekRow per 7 dates; last chunk shorter only if trimmed count not a multiple of 7 (cannot happen after padding unless padding broke)"
+     "cond": "stride over the grid dates in steps of 7",
+     "effect": "one WeekRow per 7 dates (the grid is always a multiple of 7)"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7",
-    "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.gridCells(cal:monthStart:comps:)": "9e7b97bd0e5cb46d",
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.calendarDay(of:cal:)": "86a084c2b06c9d3c",
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.gridCells(cal:monthStart:)": "a056963d7a9313b7",
     "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.weekRow(dates:cal:comps:sessionsByDay:monthStart:)": "143d27529c0b83d7"
    }
   },
   {
-   "key": "func HistoryCalendarView.gridCells(cal:monthStart:comps:)",
-   "hash": "89d501321ed960a6",
-   "does": "Static: produces the calendar dates from the Sunday on/before the 1st through the month end, padded to a multiple of 7, then drops trailing all-out-of-month rows.",
+   "key": "func HistoryCalendarView.gridCells(cal:monthStart:)",
+   "hash": "c502f980a24f4d33",
+   "does": "The month's days preceded by the previous month's days back to Sunday and followed by the next month's days up to Saturday: four to six full rows, each holding an in-month date.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "calendar gives no day range",
+     "effect": "assume 31 days"
+    },
+    {
+     "at": "+5",
+     "cond": "date arithmetic succeeds",
+     "effect": "date appended; else skipped"
+    },
+    {
+     "at": "+10",
+     "cond": "grid not a multiple of 7",
+     "effect": "append the next day"
+    },
+    {
+     "at": "+11",
+     "cond": "next day not computable",
+     "effect": "stop padding"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HistoryCalendarView.calendarDay(of:cal:)",
+   "hash": "6df4d40579dc97e6",
+   "does": "Start of the calendar day a session belongs to, as History lists it (SessionArchiveEntry.displayDate): for an overnight the day of its sleep end (snapshot end, else stored offset, via SessionArchive.deriveSleepIndexFields), else its recording end, else its start; for any other type the day it started.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.trimTrailingOutOfMonthRows(_:cal:comps:)"
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.deriveSleepIndexFields(from:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+1",
-     "cond": "cal.range(of:.day,in:.month) nil",
-     "effect": "?? 1..<32: assumes 31 days (never nil for Gregorian)"
+     "cond": "not an overnight",
+     "effect": "start of its start day"
     },
     {
-     "at": "+4",
-     "cond": "for offset in -leading..<dayCount",
-     "effect": "appends each date; leading = weekday-1 so grid is Sunday-first"
-    },
-    {
-     "at": "+5",
-     "cond": "date(byAdding:) returns a date",
-     "effect": "true: append; false: skip that cell silently"
-    },
-    {
-     "at": "+10",
-     "cond": "cells.count % 7 != 0",
-     "effect": "loop: append next day until full row"
-    },
-    {
-     "at": "+11",
-     "cond": "last cell exists and next date computable",
-     "effect": "false: break padding loop (row left short)"
+     "at": "+2",
+     "cond": "no sleep end",
+     "effect": "recording end, else start"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.trimTrailingOutOfMonthRows(_:cal:comps:)": "bfdef93eae0d4e26"
-   }
-  },
-  {
-   "key": "func HistoryCalendarView.trimTrailingOutOfMonthRows(_:cal:comps:)",
-   "hash": "77175c384e27c0fb",
-   "does": "Static: removes trailing 7-cell rows that contain no date in the target month.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.isIn(month:date:cal:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "result.count >= 7",
-     "effect": "loop while at least one full row"
-    },
-    {
-     "at": "+4",
-     "cond": "last row has an in-month day",
-     "effect": "true: stop; false: removeLast(7) and continue"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "Padding only ever completes the row containing the month's last day, so the final row always holds an in-month date and removeLast(7) never runs; the '42 cells / phantom 6th week' comment describes a grid that is no longer built.",
-     "evidence": [
-      "Emuqu/Sources/Views/HistoryCalendarView.swift:449",
-      "Emuqu/Sources/Views/HistoryCalendarView.swift:462",
-      "Emuqu/Sources/Views/HistoryCalendarView.swift:474"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.isIn(month:date:cal:)": "13d0e6fe9aa4b37c"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.deriveSleepIndexFields(from:)": "11856f250e1889f9"
    }
   },
   {
@@ -1015,23 +959,25 @@
   },
   {
    "key": "var HistoryCalendarView.canStepBack",
-   "hash": "19234230982179e8",
-   "does": "True when visibleMonth is after the start-of-month of the earliest session in allSessions; false when there are no sessions.",
+   "hash": "17c4691596520a4e",
+   "does": "True when visibleMonth is after the start-of-month of the earliest calendarDay in allSessions; false when there are no sessions.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.calendarDay(of:cal:)",
     "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.startOfMonth(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+1",
-     "cond": "allSessions has a min startDate",
+     "at": "+2",
+     "cond": "allSessions has an earliest day",
      "effect": "false (no sessions): return false — cannot go back"
     }
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.calendarDay(of:cal:)": "86a084c2b06c9d3c",
     "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.startOfMonth(_:)": "90719baed35c2f48"
    }
   },
@@ -1053,10 +999,12 @@
   },
   {
    "key": "func HistoryCalendarView.stepMonth(by:)",
-   "hash": "6befd7ccc6279356",
-   "does": "Adds delta months to visibleMonth, normalises to month start, clamps to [earliest session month, current month] by refusing out-of-range moves, and animates visibleMonth to the new month.",
+   "hash": "c55be707ee0be9b3",
+   "does": "Moves visibleMonth by delta months (−1 or 1) under the chevrons' rule: refuses a step back when canStepBack is false (including with no sessions) and a step forward when canStepForward is false; otherwise animates visibleMonth to the start of the new month.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::var HistoryCalendarView.canStepBack",
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::var HistoryCalendarView.canStepForward",
     "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.startOfMonth(_:)"
    ],
    "reads": [
@@ -1067,40 +1015,26 @@
    ],
    "branches": [
     {
+     "at": "+1",
+     "cond": "step back not allowed",
+     "effect": "return"
+    },
+    {
      "at": "+2",
-     "cond": "cal.date(byAdding:.month) succeeds",
-     "effect": "false: return, no change"
+     "cond": "step forward not allowed",
+     "effect": "return"
     },
     {
-     "at": "+6",
-     "cond": "allSessions empty",
-     "effect": "?? nextStart: lower bound becomes the target itself, so with no sessions backward steps are allowed (only the chevron's canStepBack blocks it; swipe gesture can still step back indefinitely)"
-    },
-    {
-     "at": "+7",
-     "cond": "nextStart < earliestMonth",
-     "effect": "true: return without moving"
-    },
-    {
-     "at": "+8",
-     "cond": "nextStart > currentMonth",
-     "effect": "true: return without moving; else animate visibleMonth = nextStart"
+     "at": "+3",
+     "cond": "date arithmetic fails",
+     "effect": "return, no change"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "With no sessions the ?? nextStart fallback makes the lower clamp a no-op, so a right swipe still moves to earlier months even though the back chevron is disabled (canStepBack returns false).",
-     "evidence": [
-      "Emuqu/Sources/Views/HistoryCalendarView.swift:530",
-      "Emuqu/Sources/Views/HistoryCalendarView.swift:515"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.startOfMonth(_:)": "90719baed35c2f48"
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.startOfMonth(_:)": "90719baed35c2f48",
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::var HistoryCalendarView.canStepBack": "148525409543d926",
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::var HistoryCalendarView.canStepForward": "4d7e09abd8925c6c"
    }
   },
   {
@@ -1193,17 +1127,7 @@
      "effect": "false: return label without feeling; true: append 'Morning feeling: …'"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Out-of-month cells that have sessions still say 'Double tap to open.' while their load is excluded from weekly totals, and in-month days are read the same as dimmed ones (no in/out-of-month cue).",
-     "evidence": [
-      "Emuqu/Sources/Views/HistoryCalendarView.swift:566"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.feelingWord(_:)": "489b5c69aa00e098",
@@ -1337,7 +1261,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/HistoryCalendarView.swift::func DaySummarySheet.deleteMenuButton(_:)": "61a391a3becdcaff",
-    "Emuqu/Sources/Views/HistoryCalendarView.swift::func DaySummarySheet.sessionRow(_:)": "bbe0625825e16638"
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::func DaySummarySheet.sessionRow(_:)": "2223933c175e86d4"
    }
   },
   {
@@ -1631,7 +1555,7 @@
     {
      "kind": "spec-mismatch",
      "sev": "med",
-     "text": "USERS_MANUAL says 'Tap a day to list its sessions, then tap one to open it', but DaySummarySheet rows have no tap action or NavigationLink — only a long-press context menu with Delete — so a session cannot be opened from the calendar.",
+     "text": "USERS_MANUAL says 'Tap a day to list its sessions, then tap one to open it', but DaySummarySheet rows have no tap action or NavigationLink — only a long-press context menu with Delete — so a session cannot be opened from the calendar. The sheet is a summary and delete surface by design; the manual must change (handoff from fix batch b22).",
      "evidence": [
       "docs/USERS_MANUAL.md:865",
       "Emuqu/Sources/Views/HistoryCalendarView.swift:627",
@@ -1642,7 +1566,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Views/HistoryCalendarView.swift::func DaySummarySheet.overnightDetailRow(session:result:)": "f108640b9314362d",
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::func DaySummarySheet.overnightDetailRow(session:result:)": "12bcf9e9b994aafc",
     "Emuqu/Sources/Views/HistoryCalendarView.swift::func DaySummarySheet.sessionRowHeader(_:)": "12b3997309f59e57",
     "Emuqu/Sources/Views/HistoryCalendarView.swift::func DaySummarySheet.workoutDetailRow(meta:)": "d0f0e20466cbb9b2",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
@@ -1792,12 +1716,12 @@
   },
   {
    "key": "func DaySummarySheet.overnightDetailRow(session:result:)",
-   "hash": "e4bc4d5a9049b1a4",
-   "does": "Overnight detail row: RMSSD in ms, recovery score shown as safeDisplayScore(score*10), mean HR in bpm when > 0.",
+   "hash": "6ad19224802dceeb",
+   "does": "Overnight detail row: RMSSD in ms, recovery score as historyDisplayScore(score).composite (legacy ms-scale scores scaled as the History row does), mean HR in bpm when > 0.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/HistoryCalendarView.swift::func DaySummarySheet.detailField(label:value:)",
-    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)",
+    "Emuqu/Sources/Views/HistoryView.swift::func historyDisplayScore(_:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
@@ -1806,7 +1730,7 @@
     {
      "at": "+3",
      "cond": "session.recoveryScore non-nil",
-     "effect": "true: show Recovery field as safeDisplayScore(score × 10); false: omit"
+     "effect": "true: Recovery field from historyDisplayScore; false: omit"
     },
     {
      "at": "+6",
@@ -1814,23 +1738,13 @@
      "effect": "true: show Mean HR; false: omit"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "Recovery shown as safeDisplayScore(score*10) with no legacy-scale handling; HistoryView.historyDisplayScore maps raw scores > 10 (legacy ms-scale imports) to min(10, raw/5) before ×10. A legacy session with raw score 45 reads 100 here but 90 in the History row, so the same reading shows two different recovery numbers.",
-     "evidence": [
-      "Emuqu/Sources/Views/HistoryCalendarView.swift:843",
-      "Emuqu/Sources/Views/HistoryView.swift:984"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
-    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "243c4d1d41c669f4",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.composite(key:description:valueType:dependencies:resolve:)": "da5bef37f40af84b",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/HistoryCalendarView.swift::func DaySummarySheet.detailField(label:value:)": "cbbbb81e91e41b8b"
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::func DaySummarySheet.detailField(label:value:)": "cbbbb81e91e41b8b",
+    "Emuqu/Sources/Views/HistoryView.swift::func historyDisplayScore(_:)": "70f6457ef9f4a2bb"
    }
   },
   {

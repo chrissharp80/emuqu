@@ -15,7 +15,6 @@ extension WorkoutRecorder {
     func startTicker() { ticker.startTicker() }
     func stopTicker() { ticker.stopTicker() }
     func observeHeartRate() { ticker.observeHeartRate() }
-    func incrementalBackupTick() { ticker.incrementalBackupTick() }
     func strapSilentSeconds() -> Double? { ticker.strapSilentSeconds() }
     func liveProjectedMinutesUntilFade() -> Double? { ticker.liveProjectedMinutesUntilFade() }
     func liveRecoveryHoursNeeded() -> Double? { ticker.liveRecoveryHoursNeeded() }

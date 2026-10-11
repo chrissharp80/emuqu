@@ -76,13 +76,13 @@
   },
   {
    "key": "func EncryptionManager.decrypt(_:)",
-   "hash": "99eb4894c47cee29",
-   "does": "Decrypts any of the three formats: opens with the extracted version's key; on failure, if the blob was parsed as legacy version-prefixed (not FR), retries the whole blob as bare with the v1 key; else rethrows.",
+   "hash": "64610fe84f62964e",
+   "does": "Decrypts any of the three formats: opens with the extracted version's key; on failure, if any framing was stripped (FR magic or legacy version byte), retries the whole blob as bare with the v1 key via openAsBare, which rethrows the first error if that also fails; an unframed blob's error is rethrown directly.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.extractVersion(from:)",
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openSealed(_:version:)",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.magicPrefixed(_:)"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openAsBare(_:otherwise:)"
    ],
    "reads": [
     "kc:AppConfig.keychainService / session-encryption-key[-vN]",
@@ -99,26 +99,41 @@
     },
     {
      "at": "+5",
-     "cond": "payload shorter than input and not FR-framed",
-     "effect": "retry bare with v1 key; else rethrow original error"
+     "cond": "payload shorter than input (blob was parsed as framed)",
+     "effect": "openAsBare(whole blob); else rethrow original error"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "A bare legacy blob (no framing) whose random nonce begins 0x46 0x52 and is >=31 bytes is classified as FR-framed; the bare-v1 fallback is then refused (magicPrefixed != nil), so about 1 in 65,536 legacy bare files can never be decrypted.",
-     "evidence": [
-      "Emuqu/Sources/Storage/EncryptionManager.swift:103",
-      "Emuqu/Sources/Storage/EncryptionManager.swift:159",
-      "Emuqu/Sources/Storage/EncryptionManager.swift:162"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.extractVersion(from:)": "a845a5d28c932fe3",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.magicPrefixed(_:)": "612228b56ca30f77",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openAsBare(_:otherwise:)": "15d03da16e5017b6",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openSealed(_:version:)": "131eba2f36eca16a"
+   }
+  },
+  {
+   "key": "func EncryptionManager.openAsBare(_:otherwise:)",
+   "hash": "94aaa905e4b3bc86",
+   "does": "Opens the whole blob as bare legacy AES-GCM data with the v1 key; if that throws, throws the framed reading's error instead.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openSealed(_:version:)"
+   ],
+   "reads": [
+    "mem:EncryptionManager.cachedKeys",
+    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
+   ],
+   "writes": [
+    "mem:EncryptionManager.cachedKeys"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "bare open throws",
+     "effect": "throw framedError"
+    }
+   ],
+   "flags": [],
+   "deps": {
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openSealed(_:version:)": "131eba2f36eca16a"
    }
   },
@@ -138,7 +153,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadKey(version:)": "ca33f444b6f02684"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadKey(version:)": "73bbaca567719214"
    }
   },
   {
@@ -190,21 +205,9 @@
      "effect": "return nil (also for legacy version-prefixed v1 and bare blobs, which are never re-framed)"
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Only EncryptionManagerTests calls it (EncryptionManagerTests.swift:111); the doc comment confirms nothing in the app calls it, so key rotation has no migration pass.",
-     "evidence": [
-      "Emuqu/Sources/Storage/EncryptionManager.swift:26",
-      "Emuqu/Sources/Storage/EncryptionManager.swift:127",
-      "EmuquTests/EncryptionManagerTests.swift:111"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)": "f5111c347369a719",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)": "32058ab0050d0265",
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "6236f6fa0100fadb",
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.extractVersion(from:)": "a845a5d28c932fe3"
    }
@@ -286,8 +289,8 @@
   },
   {
    "key": "func EncryptionManager.loadKey(version:)",
-   "hash": "ca5d980f255ba4e8",
-   "does": "Under the cache lock, returns the cached key or reads it from the Keychain (keyNotFound/other errors propagate, never creates), migrates its accessibility, caches it.",
+   "hash": "10fe41885e841025",
+   "does": "Returns the cached key (checked under the lock); on a miss reads it from the Keychain and migrates its accessibility OUTSIDE the lock (keyNotFound/other errors propagate, never creates), then stores it under the lock unless another thread stored one first, returning the stored key.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.keychainAccount(for:)",
@@ -304,24 +307,17 @@
    ],
    "branches": [
     {
-     "at": "+2",
+     "at": "+1",
      "cond": "key cached for version",
-     "effect": "return it; else Keychain read"
-    }
-   ],
-   "flags": [
+     "effect": "return it; else Keychain read outside the lock"
+    },
     {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Holds an OSAllocatedUnfairLock across SecItemCopyMatching and SecItemUpdate IPC; any thread (including main during a cold dashboard decrypt) blocks behind another thread's Keychain round-trip.",
-     "evidence": [
-      "Emuqu/Sources/Storage/EncryptionManager.swift:189",
-      "Emuqu/Sources/Storage/EncryptionManager.swift:192",
-      "Emuqu/Sources/Storage/EncryptionManager.swift:193"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+6",
+     "cond": "another thread cached a key meanwhile",
+     "effect": "return that one; else cache and return this one"
     }
    ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.keychainAccount(for:)": "196540555ada322e",
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.makeKeyMigratable(account:)": "d4f3a003d85390a6",

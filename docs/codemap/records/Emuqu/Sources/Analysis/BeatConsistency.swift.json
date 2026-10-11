@@ -1,15 +1,14 @@
 {
  "file": "Emuqu/Sources/Analysis/BeatConsistency.swift",
- "hash": "ead911e825f71c78",
+ "hash": "b2df9c231703d2f6",
  "role": "Pure math for the Beat-to-Beat Consistency score: splits a night's sleep-window RR series into 30 s windows, computes pNN50 / CV-RR / Poincaré SD1/SD2 per window, compares against a per-user baseline (median center + winsorized-MAD scale over prior nights) and returns a 0-100 score, band and state (calibrating / lowConfidence / normal / insufficientData).",
  "types": [
   "BeatConsistency: enum (namespace) — scorer",
-  "BeatConsistency.NightlyResult: struct — score/band/state + medians, fracHigh, window counts, display windows",
+  "BeatConsistency.NightlyResult: struct — score/band/state + medians, fracHigh, scoring window count",
   "BeatConsistency.Features: struct Codable — pNN50, cvRR, ratio",
   "BeatConsistency.Band: enum — consistent / somewhatVariable / notablyVariable",
   "BeatConsistency.State: enum — calibrating / lowConfidence / normal / insufficientData",
-  "BeatConsistency.Window: struct — one 30 s window with its clean RR and features",
-  "BeatConsistency.WindowKind: enum — scoring (30 s stride) / display (15 s stride)",
+  "BeatConsistency.Window: struct — one non-overlapping 30 s scoring window with its clean RR and features",
   "BeatConsistency.Config: struct — calibration constants (windows, k=4/3, weights .5/.1/.4, floors, band cutoffs 80/60)",
   "BeatConsistency.Baseline: struct — center, scale, acceptedNightCount",
   "BeatConsistency.WindowCounts: private struct — shared NightlyResult builder",
@@ -20,7 +19,7 @@
   "mem:BeatConsistency.Config.default (static let Config())",
   "mem:BeatConsistency.Features.zero (static let)"
  ],
- "toplevel": "Config stored-property defaults: windowLengthMs 30000, displayStrideMs 15000, span tolerance 2000, minValidRRPerWindow 20, minScoringWindowsPerNight 20, minNightsForLowConfidence 14, minNightsForNormal 28, center window 28, scale window 56, winsorize 0.10/0.90, kLowConfidence 4.0, kNormal 3.0, weights pNN50 0.5 / cvRR 0.1 / ratio 0.4, scale floors 2.0 / 0.01 / 0.03, band cutoffs 80 / 60.",
+ "toplevel": "Config stored-property defaults: windowLengthMs 30000 (also the window stride), span tolerance 2000 (minimum span = length − tolerance), minValidRRPerWindow 20, minScoringWindowsPerNight 20, minNightsForLowConfidence 14, minNightsForNormal 28, center window 28, scale window 56, winsorize 0.10/0.90, kLowConfidence 4.0, kNormal 3.0, weights pNN50 0.5 / cvRR 0.1 / ratio 0.4, scale floors 2.0 / 0.01 / 0.03, band cutoffs 80 / 60.",
  "flags": [],
  "units": [
   {
@@ -37,11 +36,11 @@
   },
   {
    "key": "func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)",
-   "hash": "4dfc3d5e2176e4cd",
-   "does": "Builds a clean mask (all clean if flags empty), enumerates valid scoring windows and all display windows inside the sleep range, computes per-feature medians; returns insufficientData when fewer than 20 valid scoring windows, else the calibration-gated score.",
+   "hash": "80887036799c926a",
+   "does": "Builds a clean mask (all clean if flags empty), enumerates the valid 30 s scoring windows inside the sleep range (beats after sleepEndMs excluded), computes per-feature medians; returns insufficientData when fewer than 20 valid scoring windows, else the calibration-gated score.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.enumerateWindows(rr:cleanMask:sleepStartMs:sleepEndMs:kind:config:)",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.enumerateWindows(rr:cleanMask:sleepStartMs:sleepEndMs:config:)",
     "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.medianFeatures(of:)",
     "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.WindowCounts.insufficientData()",
     "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.scored(counts:baseline:config:)"
@@ -55,41 +54,17 @@
      "effect": "every RR treated as clean; else clean = !isArtifact per index"
     },
     {
-     "at": "+24",
+     "at": "+20",
      "cond": "valid scoring windows < 20",
      "effect": "returns .insufficientData (no score, does not feed baseline); else scored(...)"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Doc says windows are only enumerated INSIDE the sleep range, but the last window(s) keep a nominal end of start+30 s and inWindow is not clipped at sleepEndMs, so up to 30 s of post-sleep (awake) beats are scored.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/BeatConsistency.swift:195",
-      "Emuqu/Sources/Analysis/BeatConsistency.swift:196",
-      "Emuqu/Sources/Analysis/BeatConsistency.swift:396",
-      "Emuqu/Sources/Analysis/BeatConsistency.swift:428"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Every score() call enumerates the full night a second time at a 15 s stride to build displayWindows (with per-window RR arrays) for a 'Pass 3 Poincaré plot', but no code in the app or tests reads NightlyResult.displayWindows (grep finds only its declaration and assembly), so the work and memory are spent for nothing, including in every priors-cache warm-up.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/BeatConsistency.swift:220",
-      "Emuqu/Sources/Analysis/BeatConsistency.swift:264",
-      "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift:304"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.WindowCounts.insufficientData()": "11ced4f212a2ca65",
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.enumerateWindows(rr:cleanMask:sleepStartMs:sleepEndMs:kind:config:)": "52c39a996d73fb09",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.enumerateWindows(rr:cleanMask:sleepStartMs:sleepEndMs:config:)": "dfbfd35fd4ce6b8e",
     "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.medianFeatures(of:)": "c30c3859c902f7fd",
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.scored(counts:baseline:config:)": "b5bd96fd425e1142",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.scored(counts:baseline:config:)": "2cb14402de3e1078",
     "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.features(for:)": "3e4c6773d72896ca"
    }
   },
@@ -106,7 +81,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.WindowCounts.result(score:band:state:fracHigh:)": "05da08671886d8a2"
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.WindowCounts.result(score:band:state:fracHigh:)": "07b97e3423b0af9a"
    }
   },
   {
@@ -122,13 +97,13 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.WindowCounts.result(score:band:state:fracHigh:)": "05da08671886d8a2"
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.WindowCounts.result(score:band:state:fracHigh:)": "07b97e3423b0af9a"
    }
   },
   {
    "key": "func BeatConsistency.WindowCounts.result(score:band:state:fracHigh:)",
-   "hash": "cbac00ffff2c82b8",
-   "does": "Assembles a NightlyResult from the given score/band/state/fracHigh plus the stored medians, window counts and display windows.",
+   "hash": "8a965aee78848021",
+   "does": "Assembles a NightlyResult from the given score/band/state/fracHigh plus the stored medians and the scoring window count.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -137,17 +112,16 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.band(for:config:)": "f4f354ee379a9303",
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)": "d7431f8070d2c93d"
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)": "2fe65de6c9756717"
    }
   },
   {
    "key": "func BeatConsistency.scored(counts:baseline:config:)",
-   "hash": "530d3b733c66d49d",
-   "does": "Calibration gate: < 14 prior nights → calibrating; 14-27 → lowConfidence with k=4; >= 28 → normal with k=3; computes fracHigh per feature, composite score and band.",
+   "hash": "68fa12ab02209b35",
+   "does": "Calibration gate: no baseline or < 14 prior nights → calibrating (nightsCollected = the baseline's count, or 0); 14-27 → lowConfidence with k=4; >= 28 → normal with k=3; computes fracHigh per feature, composite score and band.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.WindowCounts.calibrating(nightsCollected:config:)",
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.WindowCounts.insufficientData()",
     "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.computeFracHigh(windows:baseline:k:)",
     "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.compositeScore(fracHigh:config:)",
     "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.band(for:config:)"
@@ -157,49 +131,28 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "baseline nil",
-     "effect": "acceptedNights = 0"
+     "cond": "baseline nil or acceptedNightCount < 14",
+     "effect": "returns calibrating(nightsCollected: count ?? 0)"
     },
     {
-     "at": "+2",
-     "cond": "acceptedNights < 14",
-     "effect": "returns calibrating"
-    },
-    {
-     "at": "+9",
-     "cond": "baseline nil after the gate",
-     "effect": "returns insufficientData (defensive)"
-    },
-    {
-     "at": "+10",
+     "at": "+5",
      "cond": "acceptedNights < 28",
      "effect": "state lowConfidence; else normal"
     },
     {
-     "at": "+15",
+     "at": "+10",
      "cond": "state == .normal",
      "effect": "k = 3.0; else k = 4.0"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "guard let bl = baseline can never fail: acceptedNights >= 14 is only possible from a non-nil baseline (line 273), so the insufficientData fallback is dead.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/BeatConsistency.swift:273",
-      "Emuqu/Sources/Analysis/BeatConsistency.swift:281"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.WindowCounts.calibrating(nightsCollected:config:)": "5843f07fb6bddd9d",
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.WindowCounts.insufficientData()": "11ced4f212a2ca65",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.WindowCounts.result(score:band:state:fracHigh:)": "07b97e3423b0af9a",
     "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.band(for:config:)": "f4f354ee379a9303",
     "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.compositeScore(fracHigh:config:)": "26173577d35abf9b",
     "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.computeFracHigh(windows:baseline:k:)": "7adc7b02fdd173c1",
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)": "d7431f8070d2c93d",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)": "2fe65de6c9756717",
     "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.features(for:)": "3e4c6773d72896ca"
    }
   },
@@ -239,7 +192,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)": "d7431f8070d2c93d"
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)": "2fe65de6c9756717"
    }
   },
   {
@@ -260,19 +213,7 @@
      "effect": "returns nil (scorer reports calibrating)"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "acceptedNightCount doc says it is the count of nights used to compute center (trailing 28), but it is priorNights.count (all nights supplied), so it can exceed 28; it is only used for the >=14 / >=28 gates so the score is unaffected.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/BeatConsistency.swift:172",
-      "Emuqu/Sources/Analysis/BeatConsistency.swift:173",
-      "Emuqu/Sources/Analysis/BeatConsistency.swift:330"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.baselineScale(_:config:)": "fa64213cb4ea4bcf",
     "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.median(_:)": "3753aa9273b2c0c8",
@@ -313,41 +254,36 @@
    }
   },
   {
-   "key": "func BeatConsistency.enumerateWindows(rr:cleanMask:sleepStartMs:sleepEndMs:kind:config:)",
-   "hash": "7dd183d56549d2e3",
-   "does": "Walks windows from sleepStartMs while start < sleepEndMs with stride 30 s (scoring) or 15 s (display), building each window.",
+   "key": "func BeatConsistency.enumerateWindows(rr:cleanMask:sleepStartMs:sleepEndMs:config:)",
+   "hash": "7287b44656036862",
+   "does": "Non-overlapping 30 s windows from sleepStartMs while the start is before sleepEndMs, each built by window(rr:cleanMask:startMs:sleepEndMs:config:); [] for empty rr or an empty sleep range.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.window(rr:cleanMask:startMs:config:)"
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.window(rr:cleanMask:startMs:sleepEndMs:config:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+8",
-     "cond": "rr empty or sleepEnd <= sleepStart",
+     "at": "+7",
+     "cond": "rr empty or sleepEndMs <= sleepStartMs",
      "effect": "returns []"
     },
     {
-     "at": "+9",
-     "cond": "kind == .scoring",
-     "effect": "stride 30000 ms; else 15000 ms"
-    },
-    {
-     "at": "+12",
+     "at": "+10",
      "cond": "startMs < sleepEndMs",
-     "effect": "appends a window and advances; exits when start reaches sleep end"
+     "effect": "append a window and advance by windowLengthMs"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.window(rr:cleanMask:startMs:config:)": "9354e0e390fcac76"
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.window(rr:cleanMask:startMs:sleepEndMs:config:)": "be4d73e3d8159b1b"
    }
   },
   {
-   "key": "func BeatConsistency.window(rr:cleanMask:startMs:config:)",
-   "hash": "bec57427a4c52294",
-   "does": "Builds one Window [start, start+30 s): extracts clean RR, validates count/span, computes features only when valid.",
+   "key": "func BeatConsistency.window(rr:cleanMask:startMs:sleepEndMs:config:)",
+   "hash": "d145e0a0d3ab7565",
+   "does": "One window: nominal end start + 30 s; takes the clean beats in [start, min(end, sleepEndMs)) via inWindow, validates them (>= 20 intervals, span >= 28 s) and computes features when valid.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.inWindow(rr:cleanMask:startMs:endMs:)",
@@ -358,16 +294,16 @@
    "writes": [],
    "branches": [
     {
-     "at": "+17",
-     "cond": "window valid",
-     "effect": "features computed; else features nil"
+     "at": "+18",
+     "cond": "isValid",
+     "effect": "features computed; else nil"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.computeFeatures(rrIntervals:)": "b4565415f7d09047",
     "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.inWindow(rr:cleanMask:startMs:endMs:)": "d8d875417564351f",
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.validateWindow(rrInWindow:expectedLengthMs:toleranceMs:minN:)": "e59b44e89c802ec1",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.validateWindow(rrInWindow:expectedLengthMs:toleranceMs:minN:)": "3afdad56e45c144d",
     "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "cab2cc006b4ecb88"
    }
   },
@@ -438,8 +374,8 @@
   },
   {
    "key": "func BeatConsistency.validateWindow(rrInWindow:expectedLengthMs:toleranceMs:minN:)",
-   "hash": "58980b5c8d9a9c54",
-   "does": "Valid when >= 20 clean intervals and span in [28 s, 32 s].",
+   "hash": "34616af4cc5adad4",
+   "does": "Valid when >= 20 clean intervals and their span >= window length − tolerance (28 s). No upper bound: the beats all lie within one window, so the span is always under its length.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -448,22 +384,10 @@
     {
      "at": "+6",
      "cond": "intervals < minN (20)",
-     "effect": "false; else span check"
+     "effect": "false; else span >= 28 s"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "The span upper bound (32 s) can never be exceeded: inWindow only keeps beats with start <= t_ms < start+30 s, so span < 30 s always; only the 28 s lower bound has effect.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/BeatConsistency.swift:461",
-      "Emuqu/Sources/Analysis/BeatConsistency.swift:462",
-      "Emuqu/Sources/Analysis/BeatConsistency.swift:428"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "cab2cc006b4ecb88"
    }
