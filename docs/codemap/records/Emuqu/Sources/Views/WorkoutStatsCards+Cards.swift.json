@@ -939,13 +939,13 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "d9d2d99276db5bab",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrCountdownText(remaining:)": "313c4a631afdf6a1"
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrCountdownText(remaining:)": "b07390cb99edf7e9"
    }
   },
   {
    "key": "func WorkoutStatsCards.hrrCountdownText(remaining:)",
-   "hash": "430619a4509c00ae",
-   "does": "Two texts: 'Keep your strap on for M:SS more' and an explanation that HRR drops at +1/+2 min from peak are being captured.",
+   "hash": "fb2060e2ccf1f53b",
+   "does": "Two texts: 'Keep your strap on for M:SS more' and an explanation that HRR drops at +1/+2 min after the user stopped are being captured.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.formatMMSS(_:)",
@@ -954,18 +954,7 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Banner text tells the user the drops are measured 'from peak', but the HRR card measures every drop from HR at Stop (stopReferencedDrop), per its own comment.",
-     "evidence": [
-      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:538",
-      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:608"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",

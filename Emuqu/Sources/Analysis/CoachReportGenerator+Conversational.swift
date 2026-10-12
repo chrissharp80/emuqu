@@ -401,9 +401,9 @@ extension CoachReportGenerator {
         else { return nil }
         let (drop, peak, after) = (one.drop, one.peakHR, one.hr)
         let measured: String = if let two = hrr.bestAtTwoMinutes {
-            String(localized: "**Recovery:** Your heart rate dropped \(drop) bpm in the first minute after peak (\(peak) → \(after)) and \(two.drop) bpm by two minutes.", bundle: LanguageManager.appBundle)
+            String(localized: "**Recovery:** Your heart rate dropped \(drop) bpm in the first minute after you stopped (\(peak) → \(after)) and \(two.drop) bpm by two minutes.", bundle: LanguageManager.appBundle)
         } else {
-            String(localized: "**Recovery:** Your heart rate dropped \(drop) bpm in the first minute after peak (\(peak) → \(after)).", bundle: LanguageManager.appBundle)
+            String(localized: "**Recovery:** Your heart rate dropped \(drop) bpm in the first minute after you stopped (\(peak) → \(after)).", bundle: LanguageManager.appBundle)
         }
         return measured + " " + hrrRecoverySentence(oneMinuteDrop: drop)
     }
