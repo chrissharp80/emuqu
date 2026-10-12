@@ -473,14 +473,14 @@ struct FitnessTabView: View {
 
     private func withGPXSheets(_ content: some View) -> some View {
         content
-            .sheet(isPresented: gpxShareBinding, onDismiss: { gpxShareURL = nil }) { gpxShareSheet }
+            .sheet(isPresented: gpxShareBinding, onDismiss: { gpxShareURL = nil }, content: { gpxShareSheet })
             // GPX preview sheet (user-requested
             // "I'm not able to preview first"). Shows the decoded route
             // on a map + summary stats; "Send" inside the sheet opens
             // the system share. Dismissing without tapping Send keeps
             // the temp .gpx file on disk for next time (cleaned up by
             // the OS on temp-dir purge).
-            .sheet(item: $gpxPreviewPayload, onDismiss: { presentPendingGPXShare() }) { gpxPreviewSheet($0) }
+            .sheet(item: $gpxPreviewPayload, onDismiss: { presentPendingGPXShare() }, content: { gpxPreviewSheet($0) })
             .alert(String(localized: "Export", bundle: LanguageManager.appBundle), isPresented: Binding(
                 get: { exportMessage != nil },
                 set: { if !$0 { exportMessage = nil } }

@@ -482,7 +482,6 @@ struct RecoveryScoreDetailView: View {
 
 }
 
-
 /// The detail screen's vitals backfill (`persistMergedVitals`): fresh
 /// HealthKit vitals fill only the fields a session's stored snapshot lacks,
 /// and the archived copy is updated only when that adds a field.

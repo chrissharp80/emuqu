@@ -528,7 +528,7 @@
   },
   {
    "key": "var WorkoutNamespace.hrvPeakTotalPowerMs2Entry",
-   "hash": "5cd8ac78e18c0594",
+   "hash": "b58b9b2af535c958",
    "does": "Declares fixed fact `hrv.peak.total_power_ms2`: peakCapacity.peakTotalPower of OvernightArchive.latest; description says that is last night's reading or, on a day with no reliable overnight, the nap or quick reading hrv.latest reports.",
    "entry": null,
    "calls": [
@@ -544,7 +544,7 @@
    "writes": [],
    "branches": [
     {
-     "at": "+10",
+     "at": "+11",
      "cond": "OvernightArchive.latest returns a session",
      "effect": "false: missing(.notRecorded,'no overnight session'); true: .from(peakTotalPower) or missing 'peak-capacity analysis not present'"
     }
@@ -1087,7 +1087,7 @@
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutDetail.swift::func WorkoutNamespace.timelineBuckets(_:bucketSec:maxBuckets:)",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.displayName"
+    "Emuqu/Sources/Models/Sport.swift::var Sport.displayName"
    ],
    "reads": [],
    "writes": [],
@@ -1106,7 +1106,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutDetail.swift::func WorkoutNamespace.timelineBuckets(_:bucketSec:maxBuckets:)": "d0ef3bbc40cb4c84",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.displayName": "77a6486ffa8861f3"
+    "Emuqu/Sources/Models/Sport.swift::var Sport.displayName": "77a6486ffa8861f3"
    }
   },
   {

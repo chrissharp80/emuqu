@@ -1,9 +1,8 @@
 {
  "file": "Emuqu/Sources/Models/WorkoutMetadata.swift",
- "hash": "fa9f3bd1e5ba3f2b",
- "role": "Workout data model: Sport enum, Split/Lap/LiveMarker/WorkoutSample/HRRSample value types, WorkoutMetadata (all workout-specific fields stored on HRVSession.workoutMetadata, with explicit additive Codable and the cross-source training-load resolver), WorkoutWeatherSnapshot, PartialDataReason, and [HRRSample] best-reading helpers.",
+ "hash": "53a5f741e81fc944",
+ "role": "Workout data model (Sport is in Sport.swift): Split/Lap/LiveMarker/WorkoutSample/HRRSample value types, WorkoutMetadata (all workout-specific fields stored on HRVSession.workoutMetadata, with explicit additive Codable and the cross-source training-load resolver), WorkoutWeatherSnapshot, PartialDataReason, and [HRRSample] best-reading helpers.",
  "types": [
-  "Sport: enum (String, Codable, CaseIterable, Identifiable) — 10 activities with names, icons, GPS use",
   "Split: struct (Codable) — fixed-distance segment",
   "Lap: struct (Codable) — user/interval segment (not produced by the recorder; kept for decode)",
   "LiveMarker: struct (Codable) + Kind enum — timeline markers (never placed; kept for decode)",
@@ -20,10 +19,10 @@
   "mem:WorkoutMetadata.currentSchemaVersion = 1 (written as schemaVersion, never read back)",
   "mem:WorkoutMetadata.routeEstimateNoPriorConfidence = 0.4 (also read by RouteTRIMPEstimator.swift:189)",
   "mem:WorkoutMetadata.routeDropoutRecordedShare = 0.5",
-  "archive: WorkoutMetadata is persisted inside HRVSession (CodingKeys at Emuqu/Sources/Models/WorkoutMetadata.swift:770-786)",
+  "archive: WorkoutMetadata is persisted inside HRVSession (CodingKeys at Emuqu/Sources/Models/WorkoutMetadata.swift:722-738)",
   "hk:HKMetadataKeyWeatherTemperature / HKMetadataKeyWeatherHumidity (read by WorkoutWeatherSnapshot init)"
  ],
- "toplevel": "Split, Lap, LiveMarker, HRRSample, WorkoutWeatherSnapshot, Sport, PartialDataReason and TrainingLoadSource use synthesized conformances. WorkoutSample.CodingKeys lists all 9 fields. WorkoutMetadata.CodingKeys (770-786) covers every stored property except unrecognizedSportRawValue (written back under the sport key) plus schemaVersion; the split encoder writes every key (hrTSS is written by encodePowerMetrics, not encodeLoadMetrics as its doc comment groups it). WorkoutMetadata.unrecognizedSportRawValue (private(set), nil by default) holds a sport string this build does not know. WorkoutPauseSpan uses synthesized Codable; WorkoutMetadata.pauseSpans is coded under key pauseSpans (tolerant decode).",
+ "toplevel": "Split, Lap, LiveMarker, HRRSample, WorkoutWeatherSnapshot, PartialDataReason and TrainingLoadSource use synthesized conformances. WorkoutSample.CodingKeys lists all 9 fields. WorkoutMetadata.CodingKeys (722-738) covers every stored property except unrecognizedSportRawValue (written back under the sport key) plus schemaVersion; the split encoder writes every key (hrTSS is written by encodePowerMetrics, not encodeLoadMetrics as its doc comment groups it). WorkoutMetadata.unrecognizedSportRawValue (private(set), nil by default) holds a sport string this build does not know. WorkoutPauseSpan uses synthesized Codable; WorkoutMetadata.pauseSpans is coded under key pauseSpans (tolerant decode).",
  "flags": [
   {
    "kind": "dead",
@@ -52,236 +51,6 @@
   }
  ],
  "units": [
-  {
-   "key": "var Sport.id",
-   "hash": "f53728ec3a21f88e",
-   "does": "Identifiable id = rawValue.",
-   "entry": "Identifiable requirement used by SwiftUI ForEach over Sport.allCases.",
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [],
-   "deps": {}
-  },
-  {
-   "key": "var Sport.displayName",
-   "hash": "02ca5e197dd423d0",
-   "does": "English display name per sport (used for assistant, exports, logs; 'Ride' for .bike).",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": ".run",
-     "effect": "'Run'"
-    },
-    {
-     "at": "+3",
-     "cond": ".trailRun",
-     "effect": "'Trail Run'"
-    },
-    {
-     "at": "+4",
-     "cond": ".walk",
-     "effect": "'Walk'"
-    },
-    {
-     "at": "+5",
-     "cond": ".hike",
-     "effect": "'Hike'"
-    },
-    {
-     "at": "+6",
-     "cond": ".bike",
-     "effect": "'Ride'"
-    },
-    {
-     "at": "+7",
-     "cond": ".indoorBike",
-     "effect": "'Indoor Ride'"
-    },
-    {
-     "at": "+8",
-     "cond": ".treadmill",
-     "effect": "'Treadmill'"
-    },
-    {
-     "at": "+9",
-     "cond": ".row",
-     "effect": "'Row'"
-    },
-    {
-     "at": "+10",
-     "cond": ".airBike",
-     "effect": "'Air Bike'"
-    },
-    {
-     "at": "+11",
-     "cond": ".crossFit",
-     "effect": "'CrossFit'"
-    }
-   ],
-   "flags": [],
-   "deps": {}
-  },
-  {
-   "key": "var Sport.localizedName",
-   "hash": "b33da76316cf642c",
-   "does": "Localized sport name via LanguageManager.appBundle for screens and the spoken start cue.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [
-    "mem:LanguageManager.shared.bundle"
-   ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+3",
-     "cond": ".run",
-     "effect": "localized 'Run'"
-    },
-    {
-     "at": "+4",
-     "cond": ".trailRun",
-     "effect": "localized 'Trail Run'"
-    },
-    {
-     "at": "+5",
-     "cond": ".walk",
-     "effect": "localized 'Walk'"
-    },
-    {
-     "at": "+6",
-     "cond": ".hike",
-     "effect": "localized 'Hike'"
-    },
-    {
-     "at": "+7",
-     "cond": ".bike",
-     "effect": "localized 'Ride'"
-    },
-    {
-     "at": "+8",
-     "cond": ".indoorBike",
-     "effect": "localized 'Indoor Ride'"
-    },
-    {
-     "at": "+9",
-     "cond": ".treadmill",
-     "effect": "localized 'Treadmill'"
-    },
-    {
-     "at": "+10",
-     "cond": ".row",
-     "effect": "localized 'Row'"
-    },
-    {
-     "at": "+11",
-     "cond": ".airBike",
-     "effect": "localized 'Air Bike'"
-    },
-    {
-     "at": "+12",
-     "cond": ".crossFit",
-     "effect": "localized 'CrossFit'"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
-   }
-  },
-  {
-   "key": "var Sport.icon",
-   "hash": "1d4211b90e31b8e5",
-   "does": "SF Symbol name per sport.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": ".run",
-     "effect": "figure.run"
-    },
-    {
-     "at": "+3",
-     "cond": ".trailRun",
-     "effect": "figure.hiking"
-    },
-    {
-     "at": "+4",
-     "cond": ".walk",
-     "effect": "figure.walk"
-    },
-    {
-     "at": "+5",
-     "cond": ".hike",
-     "effect": "figure.hiking"
-    },
-    {
-     "at": "+6",
-     "cond": ".bike",
-     "effect": "bicycle"
-    },
-    {
-     "at": "+7",
-     "cond": ".indoorBike",
-     "effect": "figure.indoor.cycle"
-    },
-    {
-     "at": "+8",
-     "cond": ".treadmill",
-     "effect": "figure.run"
-    },
-    {
-     "at": "+9",
-     "cond": ".row",
-     "effect": "figure.rower"
-    },
-    {
-     "at": "+10",
-     "cond": ".airBike",
-     "effect": "figure.mixed.cardio"
-    },
-    {
-     "at": "+11",
-     "cond": ".crossFit",
-     "effect": "figure.strengthtraining.functional"
-    }
-   ],
-   "flags": [],
-   "deps": {}
-  },
-  {
-   "key": "var Sport.usesGPS",
-   "hash": "b86a86cc16d6a05e",
-   "does": "Whether the sport records GPS: true for run, trailRun, walk, hike, bike; false for indoor sports.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "outdoor sport (.run,.trailRun,.walk,.hike,.bike)",
-     "effect": "true"
-    },
-    {
-     "at": "+3",
-     "cond": "indoor sport (.indoorBike,.treadmill,.row,.airBike,.crossFit)",
-     "effect": "false"
-    }
-   ],
-   "flags": [],
-   "deps": {}
-  },
   {
    "key": "func WorkoutSample.withAlpha1(_:)",
    "hash": "08c253fd657149d6",

@@ -515,7 +515,7 @@ orientation.
 | **`SleepData`** | `Emuqu/Sources/Models/SleepData.swift` (`SleepData`) | Sleep snapshot — stages, boundaries, efficiency, latency. |
 | **`RecoveryVitals`** | `Emuqu/Sources/Models/RecoveryVitals.swift` | Vitals snapshot — resting HR, respiratory rate, wrist temp, SpO2. |
 | **`UserSettings`** / **`SettingsManager`** | `Emuqu/Sources/Models/UserSettings+Model.swift`, `Emuqu/Sources/Models/SettingsManager.swift` | User profile + prefs (value type); `SettingsManager.shared` is the live `@Observable` store. Drives launch gating. |
-| **`WorkoutMetadata` / `Sport`** | `Emuqu/Sources/Models/WorkoutMetadata.swift` | Workout type + samples (HR, power, cadence, GPS, elevation). |
+| **`WorkoutMetadata` / `Sport`** | `Emuqu/Sources/Models/WorkoutMetadata.swift`, `Emuqu/Sources/Models/Sport.swift` | Workout type + samples (HR, power, cadence, GPS, elevation). |
 | **`WorkoutAnalysisSnapshot`** | `Emuqu/Sources/Models/WorkoutAnalysisSnapshot.swift` | Persisted workout analysis (built by `Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift`). |
 | **`WorkoutThreshold`** | `Emuqu/Sources/Models/WorkoutThreshold.swift` | User-declared physiological constraint for the live coach (HR/power/pace/α1/cadence + debounce/cooldown). |
 | **`IntervalPlan` / `IntervalStep`** | `Emuqu/Sources/Models/IntervalPlan.swift` | Structured interval workout. |

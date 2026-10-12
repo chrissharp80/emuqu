@@ -281,14 +281,12 @@ extension WorkoutRecorder {
         )
         let sessionId = finished.id
         let archive = core.archive
-        let wasStrap = (activeHRSource == .strap)
         let polarRef = core.polarManager
-        let workoutStreamStart = polarRef.streamingStartTime
+        let strap = activeHRSource == .strap ? (manager: polarRef, streamStart: polarRef.streamingStartTime) : nil
         Task.detached(priority: .userInitiated) {
             await self.captureHRRAndRearchive(
                 captureService: captureService, stopDate: stopDate, endHR: endHR,
-                wasStrap: wasStrap, polarRef: polarRef, workoutStreamStart: workoutStreamStart,
-                archive: archive, sessionId: sessionId
+                strap: strap, archive: archive, sessionId: sessionId
             )
         }
     }
@@ -303,19 +301,19 @@ extension WorkoutRecorder {
     /// cannot take them (the update throws, or the session is not in the
     /// archive) the samples still reach the summary on screen
     /// (`showUnsavedHRR`), so the card never stays on "capturing…".
+    /// `strap` is nil when the workout's heart rate did not come from the
+    /// strap; otherwise it is released once the samples are in.
     nonisolated private func captureHRRAndRearchive(
         captureService: HRRCaptureService,
         stopDate: Date,
         endHR: Int,
-        wasStrap: Bool,
-        polarRef: PolarManager,
-        workoutStreamStart: Date?,
+        strap: (manager: PolarManager, streamStart: Date?)?,
         archive: SessionArchive,
         sessionId: UUID
     ) async {
         let samples = await captureService.captureHRR(stopDate: stopDate, stopHR: endHR)
-        if wasStrap {
-            await releaseStrapAfterHRR(polarRef, workoutStreamStart: workoutStreamStart)
+        if let strap {
+            await releaseStrapAfterHRR(strap.manager, workoutStreamStart: strap.streamStart)
         }
         guard let finalSession = Self.rearchiveLoggingFailure(samples, archive: archive, sessionId: sessionId) else {
             await MainActor.run { self.showUnsavedHRR(samples, sessionId: sessionId) }

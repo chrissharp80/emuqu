@@ -130,8 +130,8 @@
   },
   {
    "key": "func JSONOrderingTests.testOpenAICompatibleRequestBodyIsEncodedWithSortedKeys()",
-   "hash": "d179d46819c52014",
-   "does": "Builds a DeepSeek StreamCall and its request through OpenAICompatibleStreamer.requestFor, finds the first '\"messages\":', '\"model\":', '\"stream\":' and '\"stream_options\":' in the body text, and asserts messages precedes model and stream precedes stream_options, the reverse of the private body's declaration order (model, messages, stream, stream_options), i.e. the body was encoded with .sortedKeys.",
+   "hash": "7e63e73e33623b0f",
+   "does": "Builds a DeepSeek StreamCall and its request through OpenAICompatibleStreamer.requestFor, finds the first '\"messages\":', '\"model\":', '\"stream\":' and '\"stream_options\":' in the body text (decoded as UTF-8; the test fails if it is not), and asserts messages precedes model and stream precedes stream_options, the reverse of the private body's declaration order (model, messages, stream, stream_options), i.e. the body was encoded with .sortedKeys.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.requestFor(_:apiKey:)",

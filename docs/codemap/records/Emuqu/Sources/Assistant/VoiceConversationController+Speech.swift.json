@@ -943,7 +943,7 @@
   },
   {
    "key": "func ConversationVoicePicker.bestInstalledVoice(matching:)",
-   "hash": "1fb5a8d0555aa704",
+   "hash": "833a5893b26a92ad",
    "does": "Keeps installed voices of the same language (language code after expanding both tags), excluding novelty and personal voices, and returns the one ranked highest by rank(_:for:): script match, then region match, then quality, then non-'.compact.'.",
    "entry": null,
    "calls": [
@@ -968,14 +968,14 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.preferredLanguage()": "fe566c7c1ee67a2b",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.rank(_:for:)": "3e1e04583dbb1796",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.rank(_:for:)": "8364806a205feb35",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::init ConversationVoicePicker.VoiceLanguage(_:)": "fb2dabf08ef36fba"
    }
   },
   {
    "key": "func ConversationVoicePicker.rank(_:for:)",
-   "hash": "142047db2940b348",
-   "does": "Sort key for a candidate voice against the wanted language: (same script, same region, quality rank, not compact), each larger-is-better, compared as a tuple.",
+   "hash": "cb9a15e08484156e",
+   "does": "Sort key for a candidate voice against the wanted language: [same script, same region, quality rank, not compact], each larger-is-better, compared lexicographically by bestInstalledVoice.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::init ConversationVoicePicker.VoiceLanguage(_:)",
