@@ -88,8 +88,11 @@ for f in "${SCAN_FILES[@]}"; do
     fi
 done
 
-VIOLATIONS="$(
-    python3 - "${SCAN_DIRS[@]}" "${SCAN_FILES[@]}" <<'PY'
+# The Python runs from a function rather than from inside "$( … )": bash 3.2
+# (macOS /bin/bash) scans a here-document inside a command substitution for
+# quotes, and an odd number of ' in the Python ends the substitution early.
+scan_violations() {
+    python3 - "$@" <<'PY'
 import re, sys, pathlib
 
 # The call may be split across lines, so the whole file is searched, and the
@@ -141,7 +144,9 @@ for f in paths:
         if FLOAT.search(fmt) and not INT.search(fmt):
             print(f"{f}:{n}: String(format: \"{fmt}\", …) has no locale")
 PY
-)"
+}
+
+VIOLATIONS="$(scan_violations "${SCAN_DIRS[@]}" "${SCAN_FILES[@]}")"
 # Without this, a crash in the measurement prints nothing and reads as clean.
 measure_status=$?
 if (( measure_status != 0 )); then
