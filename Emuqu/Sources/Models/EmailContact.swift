@@ -216,7 +216,7 @@ final class EmailContactStore {
     /// place; otherwise saves stay blocked.
     private static func setAsideUndecodable(_ url: URL, reason: Error) -> Bool {
         let backup = url.deletingLastPathComponent().appendingPathComponent(undecodableBackupName)
-        let copied = attempt("emailContacts.setAside") {
+        let copied = attempt("emailContacts.setAside") { () throws -> Void in
             if FileManager.default.fileExists(atPath: backup.path) { try FileManager.default.removeItem(at: backup) }
             try FileManager.default.copyItem(at: url, to: backup)
         } != nil
