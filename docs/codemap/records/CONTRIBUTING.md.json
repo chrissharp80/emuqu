@@ -41,8 +41,8 @@
   },
   {
    "key": "§ How a change lands in Emuqu > Before you start",
-   "hash": "577416eab56581f6",
-   "does": "`make setup-hooks` (→ scripts/install-git-hooks.sh) installs .githooks/pre-commit, where SwiftLint errors block and swiftformat runs in --lint mode only; `make codemap-setup` installs the pinned tree-sitter the code map needs, and the hook fails without it. It needs Python 3.10+, which macOS's own python3 (3.9) is not; setup takes the first python3.13…python3.10 or python3 on PATH that is, then Homebrew's, the python.org installer's or pyenv's, or CODEMAP_BASE_PYTHON. A SwiftLint error or a stale code-map record blocks the commit. gates.yml runs script gates on push.",
+   "hash": "d80fcd3a2b44012e",
+   "does": "`make setup-hooks` (→ scripts/install-git-hooks.sh) installs .githooks/pre-commit, where SwiftLint errors block and swiftformat runs in --lint mode only; `make codemap-setup` installs the pinned tree-sitter the code map needs, and the hook fails without it. It needs Python 3.10+, which macOS's own python3 (3.9) is not; setup takes the first python3.13…python3.10 or python3 on PATH that is, then Homebrew's, the python.org installer's or pyenv's, or CODEMAP_BASE_PYTHON; with none installed it downloads a pinned, checksum-verified standalone CPython 3.12 into .codemap-python/. A SwiftLint error or a stale code-map record blocks the commit. gates.yml runs script gates on push.",
    "entry": null,
    "calls": [
     "Makefile::target setup-hooks",

@@ -42,7 +42,8 @@ The first installs the pre-commit hook; the second installs the pinned tree-sitt
 the code map needs (the hook fails without it). It needs Python 3.10 or newer, which
 macOS's own `python3` (3.9) is not; it uses the first `python3.13` … `python3.10` or
 `python3` on PATH that is, then Homebrew's, the python.org installer's or pyenv's, or
-`CODEMAP_BASE_PYTHON`. A SwiftLint error or a stale
+`CODEMAP_BASE_PYTHON`. With none installed, it downloads a pinned, checksum-verified
+standalone CPython 3.12 (python-build-standalone) into `.codemap-python/`. A SwiftLint error or a stale
 code-map record blocks the commit;
 SwiftFormat only reports whether the staged files drifted, because most of the
 tree does not yet conform to `.swiftformat`. `gates.yml` runs the script gates
