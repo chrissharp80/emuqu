@@ -61,25 +61,40 @@ struct ReadingTag: Codable, Hashable, Identifiable, Sendable {
 
     // MARK: - System Preset Tags
 
-    /// Data-driven system tag definitions: (uuid suffix, English storage
-    /// name, color hex, the name in the app's language). Adding a new system
-    /// tag only requires appending one row here, and the row cannot be
-    /// written without its localized name.
-    private static let systemTagDefinitions: [(suffix: String, name: String, colorHex: String, localizedName: @Sendable () -> String)] = [
-        ("1", "Morning", "#4A90D9", { String(localized: "Morning", bundle: LanguageManager.appBundle, comment: "Reading tag") }),
-        ("2", "Post-Exercise", "#E85D4C", { String(localized: "Post-Exercise", bundle: LanguageManager.appBundle, comment: "Reading tag") }),
-        ("3", "Recovery", "#50C878", { String(localized: "Recovery", bundle: LanguageManager.appBundle) }),
-        ("4", "Evening", "#9B59B6", { String(localized: "Evening", bundle: LanguageManager.appBundle, comment: "Reading tag") }),
-        ("5", "Pre-Sleep", "#34495E", { String(localized: "Pre-Sleep", bundle: LanguageManager.appBundle, comment: "Reading tag") }),
-        ("6", "Stressed", "#E74C3C", { String(localized: "Stressed", bundle: LanguageManager.appBundle) }),
-        ("7", "Relaxed", "#1ABC9C", { String(localized: "Relaxed", bundle: LanguageManager.appBundle, comment: "Reading tag") }),
-        ("8", "Alcohol", "#C0392B", { String(localized: "Alcohol", bundle: LanguageManager.appBundle, comment: "Reading tag") }),
-        ("9", "Poor Sleep", "#7F8C8D", { String(localized: "Poor Sleep", bundle: LanguageManager.appBundle, comment: "Reading tag") }),
-        ("A", "Travel", "#3498DB", { String(localized: "Travel", bundle: LanguageManager.appBundle, comment: "Reading tag") }),
-        ("B", "Late Meal", "#E67E22", { String(localized: "Late Meal", bundle: LanguageManager.appBundle, comment: "Reading tag") }),
-        ("C", "Caffeine", "#784212", { String(localized: "Caffeine", bundle: LanguageManager.appBundle, comment: "Reading tag") }),
-        ("D", "Illness", "#27AE60", { String(localized: "Illness", bundle: LanguageManager.appBundle, comment: "Reading tag") }),
-        ("E", "Menstrual", "#E91E63", { String(localized: "Menstrual", bundle: LanguageManager.appBundle, comment: "Reading tag") })
+    /// One system tag: uuid suffix, English storage name, color hex, and the
+    /// name in the app's language.
+    private struct SystemTagDefinition: Sendable {
+        let suffix: String
+        let name: String
+        let colorHex: String
+        let localizedName: @Sendable () -> String
+
+        init(_ suffix: String, _ name: String, _ colorHex: String, _ localizedName: @escaping @Sendable () -> String) {
+            self.suffix = suffix
+            self.name = name
+            self.colorHex = colorHex
+            self.localizedName = localizedName
+        }
+    }
+
+    /// Data-driven system tag definitions. Adding a new system tag only
+    /// requires appending one row here, and the row cannot be written
+    /// without its localized name.
+    private static let systemTagDefinitions: [SystemTagDefinition] = [
+        .init("1", "Morning", "#4A90D9", { String(localized: "Morning", bundle: LanguageManager.appBundle, comment: "Reading tag") }),
+        .init("2", "Post-Exercise", "#E85D4C", { String(localized: "Post-Exercise", bundle: LanguageManager.appBundle, comment: "Reading tag") }),
+        .init("3", "Recovery", "#50C878", { String(localized: "Recovery", bundle: LanguageManager.appBundle) }),
+        .init("4", "Evening", "#9B59B6", { String(localized: "Evening", bundle: LanguageManager.appBundle, comment: "Reading tag") }),
+        .init("5", "Pre-Sleep", "#34495E", { String(localized: "Pre-Sleep", bundle: LanguageManager.appBundle, comment: "Reading tag") }),
+        .init("6", "Stressed", "#E74C3C", { String(localized: "Stressed", bundle: LanguageManager.appBundle) }),
+        .init("7", "Relaxed", "#1ABC9C", { String(localized: "Relaxed", bundle: LanguageManager.appBundle, comment: "Reading tag") }),
+        .init("8", "Alcohol", "#C0392B", { String(localized: "Alcohol", bundle: LanguageManager.appBundle, comment: "Reading tag") }),
+        .init("9", "Poor Sleep", "#7F8C8D", { String(localized: "Poor Sleep", bundle: LanguageManager.appBundle, comment: "Reading tag") }),
+        .init("A", "Travel", "#3498DB", { String(localized: "Travel", bundle: LanguageManager.appBundle, comment: "Reading tag") }),
+        .init("B", "Late Meal", "#E67E22", { String(localized: "Late Meal", bundle: LanguageManager.appBundle, comment: "Reading tag") }),
+        .init("C", "Caffeine", "#784212", { String(localized: "Caffeine", bundle: LanguageManager.appBundle, comment: "Reading tag") }),
+        .init("D", "Illness", "#27AE60", { String(localized: "Illness", bundle: LanguageManager.appBundle, comment: "Reading tag") }),
+        .init("E", "Menstrual", "#E91E63", { String(localized: "Menstrual", bundle: LanguageManager.appBundle, comment: "Reading tag") })
     ]
 
     private static func systemTag(suffix: String, name: String, colorHex: String) -> ReadingTag {

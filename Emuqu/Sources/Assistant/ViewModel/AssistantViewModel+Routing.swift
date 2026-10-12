@@ -406,7 +406,9 @@ extension AssistantTurnRouter {
         if let last = owner.turns.last, last.role == .user {
             owner.turns.removeLast()
             owner.store.save(owner.turns)
-            owner.pendingConsentRequest = (provider: provider.id, text: last.text, fromVoice: voiceMode, regenerate: false)
+            owner.pendingConsentRequest = AssistantViewModel.PendingConsentRequest(
+                provider: provider.id, text: last.text, fromVoice: voiceMode, regenerate: false
+            )
         }
         debugLog("[Assistant] dispatch blocked — routed provider \(provider.id.rawValue) has no data-sharing consent; surfacing consent sheet", level: .warning)
         return false

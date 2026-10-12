@@ -554,19 +554,19 @@ enum ConversationVoicePicker {
                 && !voice.voiceTraits.contains(.isNoveltyVoice)
                 && !voice.voiceTraits.contains(.isPersonalVoice)
         }
-        return candidates.max { rank($0, for: wanted) < rank($1, for: wanted) }
+        return candidates.max { rank($0, for: wanted).lexicographicallyPrecedes(rank($1, for: wanted)) }
     }
 
-    /// Sort key for `bestInstalledVoice`: script match, region match,
-    /// quality, not compact.
-    private static func rank(_ voice: AVSpeechSynthesisVoice, for wanted: VoiceLanguage) -> (Int, Int, Int, Int) {
+    /// Sort key for `bestInstalledVoice`, compared in order: script match,
+    /// region match, quality, not compact.
+    private static func rank(_ voice: AVSpeechSynthesisVoice, for wanted: VoiceLanguage) -> [Int] {
         let language = VoiceLanguage(voice.language)
-        return (
+        return [
             language.script == wanted.script ? 1 : 0,
             language.region == wanted.region ? 1 : 0,
             qualityRank(voice.quality),
             voice.identifier.contains(".compact.") ? 0 : 1
-        )
+        ]
     }
 
     /// A BCP-47 language tag expanded to its likely script and region

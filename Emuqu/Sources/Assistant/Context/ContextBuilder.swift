@@ -289,7 +289,9 @@ enum ContextBuilder {
             trendInsight: summary.trendInsight
         )
     }
+}
 
+extension ContextBuilder {
     // MARK: - Builders
 
     private static func buildUserProfile(

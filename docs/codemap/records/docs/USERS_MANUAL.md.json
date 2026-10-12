@@ -25,8 +25,8 @@
    "does": "Claims three functions: overnight recovery from Polar H10/Verity Sense RR, workouts (10 sports listed) with GPS/Watch/strap HR and Stryd/FTMS/PM5 power, and Flo answering on-device or with the user's API key; integrates HealthKit; not a medical device.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.displayName",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.usesGPS",
+    "Emuqu/Sources/Models/Sport.swift::var Sport.displayName",
+    "Emuqu/Sources/Models/Sport.swift::var Sport.usesGPS",
     "Emuqu/Sources/Collection/FootPodManager.swift::func BLEPeripheralConnecting.connect(deviceId:)",
     "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.startScanning()",
     "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.originFix",
@@ -42,8 +42,8 @@
     "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.defaultModel(of:)": "5f383b6c9e34857e",
     "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.startScanning()": "826a95110434a973",
     "Emuqu/Sources/Collection/FootPodManager.swift::func BLEPeripheralConnecting.connect(deviceId:)": "3235b50b8ba74c15",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.displayName": "77a6486ffa8861f3",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.usesGPS": "e1e254fffc25bef1",
+    "Emuqu/Sources/Models/Sport.swift::var Sport.displayName": "77a6486ffa8861f3",
+    "Emuqu/Sources/Models/Sport.swift::var Sport.usesGPS": "e1e254fffc25bef1",
     "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.originFix": "450e72fc43ee378e"
    }
   },
@@ -1575,12 +1575,12 @@
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sectionsInReadingOrder(_:_:)",
     "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.loadMore()",
     "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.loadMoreTrigger",
-    "Emuqu/Sources/Views/HistoryView.swift::var EntryHistoryRow.body",
-    "Emuqu/Sources/Views/HistoryView.swift::var EntryHistoryRow.tagChips",
-    "Emuqu/Sources/Views/HistoryView.swift::var EntryHistoryRow.timeRow",
-    "Emuqu/Sources/Views/HistoryView.swift::var EntryHistoryRow.primaryMetricReadout",
-    "Emuqu/Sources/Views/HistoryView.swift::var EntryHistoryRow.recoveryScoreReadout",
-    "Emuqu/Sources/Views/HistoryView.swift::func EntryHistoryRow.workoutRowMetrics(entry:)"
+    "Emuqu/Sources/Views/EntryHistoryRow.swift::var EntryHistoryRow.body",
+    "Emuqu/Sources/Views/EntryHistoryRow.swift::var EntryHistoryRow.tagChips",
+    "Emuqu/Sources/Views/EntryHistoryRow.swift::var EntryHistoryRow.timeRow",
+    "Emuqu/Sources/Views/EntryHistoryRow.swift::var EntryHistoryRow.primaryMetricReadout",
+    "Emuqu/Sources/Views/EntryHistoryRow.swift::var EntryHistoryRow.recoveryScoreReadout",
+    "Emuqu/Sources/Views/EntryHistoryRow.swift::func EntryHistoryRow.workoutRowMetrics(entry:)"
    ],
    "reads": [],
    "writes": [],
@@ -1601,14 +1601,14 @@
    ],
    "deps": {
     "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.loadMore()": "fbeba6075711db1c",
-    "Emuqu/Sources/Views/HistoryView.swift::func EntryHistoryRow.workoutRowMetrics(entry:)": "385bd2005a96b319",
+    "Emuqu/Sources/Views/EntryHistoryRow.swift::func EntryHistoryRow.workoutRowMetrics(entry:)": "385bd2005a96b319",
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sectionKey(for:now:)": "93d3da093d0850e7",
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sectionsInReadingOrder(_:_:)": "ebc72d9603360dd5",
-    "Emuqu/Sources/Views/HistoryView.swift::var EntryHistoryRow.body": "09334676d05a60dc",
-    "Emuqu/Sources/Views/HistoryView.swift::var EntryHistoryRow.primaryMetricReadout": "db05cef8551a62f5",
-    "Emuqu/Sources/Views/HistoryView.swift::var EntryHistoryRow.recoveryScoreReadout": "d739f3b594ba3c50",
-    "Emuqu/Sources/Views/HistoryView.swift::var EntryHistoryRow.tagChips": "bc1e4945b6317161",
-    "Emuqu/Sources/Views/HistoryView.swift::var EntryHistoryRow.timeRow": "0c72a6f48b32a764",
+    "Emuqu/Sources/Views/EntryHistoryRow.swift::var EntryHistoryRow.body": "09334676d05a60dc",
+    "Emuqu/Sources/Views/EntryHistoryRow.swift::var EntryHistoryRow.primaryMetricReadout": "db05cef8551a62f5",
+    "Emuqu/Sources/Views/EntryHistoryRow.swift::var EntryHistoryRow.recoveryScoreReadout": "d739f3b594ba3c50",
+    "Emuqu/Sources/Views/EntryHistoryRow.swift::var EntryHistoryRow.tagChips": "bc1e4945b6317161",
+    "Emuqu/Sources/Views/EntryHistoryRow.swift::var EntryHistoryRow.timeRow": "0c72a6f48b32a764",
     "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.groupedEntries": "9cb6f828f1d2a461",
     "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.loadMoreTrigger": "72ba7f081c547805"
    }

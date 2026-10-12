@@ -1,0 +1,164 @@
+{
+ "file": "Emuqu/Sources/Collection/WorkoutRecorder+HRArbitration.swift",
+ "hash": "c3710f404fb6dfa2",
+ "role": "WorkoutTicker.HRArbitration: the pure per-tick decision of which heart rate the workout shows (strap channels or the Watch's wrist HR, by activeHRSource) and which strap notice to raise. Split out of WorkoutRecorder+Ticker.swift, which applies the decision.",
+ "types": [
+  "WorkoutTicker: extension — holds HRArbitration",
+  "WorkoutTicker.HRArbitration: enum — pure HR source priority/strap-notice decision",
+  "WorkoutTicker.HRArbitration.Inputs: struct — per-tick arbitration inputs",
+  "WorkoutTicker.HRArbitration.Decision: struct — display HR update / strap notice / clear flag"
+ ],
+ "state": [
+  "HRArbitration.wristFallbackSilenceSec = 10 s",
+  "HRArbitration.strapNoticeGraceSec = 15 s",
+  "HRArbitration.wristHRMaxAgeSec = 30 s"
+ ],
+ "toplevel": "Static constants only; the header comment says what the file holds.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func WorkoutTicker.HRArbitration.displayIsWrist(_:wasWrist:)",
+   "hash": "f7ea51d7012ad769",
+   "does": "Whether the display after a decision is wrist HR: true if wrist HR copied in, false if cleared, else the previous value.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "decision has a display HR update",
+     "effect": "returns true"
+    },
+    {
+     "at": "+2",
+     "cond": "decision clears display",
+     "effect": "returns false; else wasWrist"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+HRArbitration.swift::func WorkoutTicker.HRArbitration.displayHRUpdate(_:)": "37b2130bf9aca330"
+   }
+  },
+  {
+   "key": "func WorkoutTicker.HRArbitration.decide(_:)",
+   "hash": "e6aa35b842f71d22",
+   "does": "Pure decision: display HR update, strap notice, and clear flag (clear only when no update and all sources silent).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+HRArbitration.swift::func WorkoutTicker.HRArbitration.displayHRUpdate(_:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+HRArbitration.swift::func WorkoutTicker.HRArbitration.strapNotice(_:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+HRArbitration.swift::func WorkoutTicker.HRArbitration.allSourcesSilent(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+HRArbitration.swift::func WorkoutTicker.HRArbitration.allSourcesSilent(_:)": "ae58d48b0c2617b8",
+    "Emuqu/Sources/Collection/WorkoutRecorder+HRArbitration.swift::func WorkoutTicker.HRArbitration.displayHRUpdate(_:)": "37b2130bf9aca330",
+    "Emuqu/Sources/Collection/WorkoutRecorder+HRArbitration.swift::func WorkoutTicker.HRArbitration.strapNotice(_:)": "dbd2024ba681c56a"
+   }
+  },
+  {
+   "key": "func WorkoutTicker.HRArbitration.allSourcesSilent(_:)",
+   "hash": "3f451e560d2ab8e4",
+   "does": "Whether every source the mode relies on is silent: strap mode — both strap channels silent > 10 s and no wrist HR; watch mode — no wrist HR; none — false.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .strap",
+     "effect": "both strap channels silent past 10 s and no wrist HR"
+    },
+    {
+     "at": "+6",
+     "cond": "case .watch",
+     "effect": "silent when no wrist HR"
+    },
+    {
+     "at": "+7",
+     "cond": "case .none",
+     "effect": "never silent (display not cleared)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::var WatchConnectivityBridge.latestWatchHR": "31bb4052344f7ae3"
+   }
+  },
+  {
+   "key": "func WorkoutTicker.HRArbitration.displayHRUpdate(_:)",
+   "hash": "9fd3f452dc3622be",
+   "does": "Wrist HR to copy into the display: strap mode only when both strap channels silent > 10 s; watch mode always the wrist HR; none → nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .strap",
+     "effect": "guard both channels silent > 10 s else nil; returns wrist HR (may be nil)"
+    },
+    {
+     "at": "+3",
+     "cond": "guard strap and Watch-routed silent > 10 s",
+     "effect": "false: nil (strap paths own the display)"
+    },
+    {
+     "at": "+7",
+     "cond": "case .watch",
+     "effect": "returns wrist HR"
+    },
+    {
+     "at": "+9",
+     "cond": "case .none",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::var WatchConnectivityBridge.latestWatchHR": "31bb4052344f7ae3"
+   }
+  },
+  {
+   "key": "func WorkoutTicker.HRArbitration.strapNotice(_:)",
+   "hash": "9db253ddfa39f988",
+   "does": "Strap notice: only for strap mode, after 15 s elapsed, with both channels silent > 10 s; .waitingForStrap → strapNotConnected, .stalled → strapSilent, .settingUp/.live → nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "strap mode, past grace, both channels silent",
+     "effect": "false: nil"
+    },
+    {
+     "at": "+7",
+     "cond": "feed .waitingForStrap",
+     "effect": "returns .strapNotConnected"
+    },
+    {
+     "at": "+8",
+     "cond": "feed .stalled",
+     "effect": "returns .strapSilent"
+    },
+    {
+     "at": "+9",
+     "cond": "feed .settingUp or .live",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

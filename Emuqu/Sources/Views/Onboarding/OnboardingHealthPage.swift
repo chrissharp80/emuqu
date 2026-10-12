@@ -303,7 +303,6 @@ struct OnboardingHealthPage: View {
         .buttonStyle(.bordered)
     }
 
-
     private var scopesPendingRow: some View {
         HStack(spacing: 10) {
             Image(systemName: "info.circle.fill")
