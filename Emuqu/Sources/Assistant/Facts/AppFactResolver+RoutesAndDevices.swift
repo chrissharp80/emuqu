@@ -161,8 +161,11 @@ struct RoutesLibraryNamespace: FactNamespaceResolver {
     }
 
     private func renamed(_ target: SavedRoute, to new: String) -> FactValue {
-        MainActor.assumeIsolated {
+        let saved = MainActor.assumeIsolated {
             AppDependencies.current.location.savedRouteStore.rename(id: target.id, to: new)
+        }
+        guard saved else {
+            return libraryUnreadable() ?? .missing(reason: .notRecorded, detail: "the rename could not be saved; nothing was changed")
         }
         return .record([
             "status": .string("renamed"),
