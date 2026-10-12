@@ -221,7 +221,7 @@ private func oxygenSaturationBox(_ vitals: PDFReportGenerator.VitalsData) -> (St
     if let spo2Min = vitals.oxygenSaturationMin {
         label += String(format: " (min %.0f%%)", locale: LanguageManager.appLocale, spo2Min)
     }
-    let color: UIColor = spo2 < 95 ? UIColor(red: 0.8, green: 0.3, blue: 0.3, alpha: 1) : .darkGray
+    let color: UIColor = spo2 < RecoveryVitals.concerningSpO2Below ? UIColor(red: 0.8, green: 0.3, blue: 0.3, alpha: 1) : .darkGray
     return (String(localized: "SpO2", bundle: LanguageManager.appBundle), label, color)
 }
 

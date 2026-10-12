@@ -121,6 +121,13 @@ final class APIKeyStore: Sendable {
         return allSucceeded
     }
 
+    /// Whether web search has a route: a Tavily key, or the Claude key that
+    /// Anthropic's server-side search rides. Whether a search can run right
+    /// now also depends on the provider answering (`web.available`).
+    var hasWebSearchRoute: Bool {
+        hasServiceKey(for: .tavilyWebSearch) || hasKey(for: .anthropic)
+    }
+
     // MARK: - Non-AI service keys (web search, etc.)
     //
     // Some integrations need their own API key without being an AI provider.

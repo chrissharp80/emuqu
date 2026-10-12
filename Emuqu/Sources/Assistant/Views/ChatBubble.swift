@@ -152,7 +152,7 @@ struct ChatBubble: View, Equatable {
             .alert(String(localized: "Report response", bundle: LanguageManager.appBundle), isPresented: $reportMailUnavailable) {
                 Button(String(localized: "OK", bundle: LanguageManager.appBundle)) {}
             } message: {
-                Text(String(localized: "No mail account is set up on this device. Send your report to chrissharp80@gmail.com.", bundle: LanguageManager.appBundle))
+                Text(String(localized: "No mail account is set up on this device. Send your report to \(AppConfig.contactEmail).", bundle: LanguageManager.appBundle))
             }
     }
 
@@ -212,14 +212,10 @@ struct ChatBubble: View, Equatable {
     /// chat's "Report last spoken coaching" item for lines that were only
     /// spoken.
     static func reportURL(quoting text: String) -> URL? {
-        var components = URLComponents()
-        components.scheme = "mailto"
-        components.path = "chrissharp80@gmail.com"
-        components.queryItems = [
-            URLQueryItem(name: "subject", value: "Emuqu: reported AI response"),
-            URLQueryItem(name: "body", value: String(localized: "What is wrong with this response?", bundle: LanguageManager.appBundle) + "\n\n\n---\n" + text)
-        ]
-        return components.url
+        AppConfig.contactMailURL(
+            subject: "Emuqu: reported AI response",
+            body: String(localized: "What is wrong with this response?", bundle: LanguageManager.appBundle) + "\n\n\n---\n" + text
+        )
     }
 
     private var avatar: some View {

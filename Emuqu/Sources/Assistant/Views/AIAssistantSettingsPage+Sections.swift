@@ -254,11 +254,8 @@ extension AIAssistantSettingsPage {
         .disabled(!canSearchWeb)
     }
 
-    /// Web search has two routes: Tavily, with its own key, and Anthropic's
-    /// server-side search, which rides the Claude key.
     var canSearchWeb: Bool {
-        let keys = dependencies.providers.apiKeyStore
-        return keys.hasServiceKey(for: .tavilyWebSearch) || keys.hasKey(for: .anthropic)
+        dependencies.providers.apiKeyStore.hasWebSearchRoute
     }
 
     var tavilyKeyRow: some View {

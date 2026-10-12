@@ -78,7 +78,7 @@ enum HRSleepEstimator {
         let sleepDurationMinutes = estimateSleepDuration(rrPoints: rrPoints, sleepOnsetMs: onsetWallMs, wakeMs: wakeWallMs)
         let inBedMinutes = Int((rrPoints.map(\.exportTimeMs).max() ?? 0) / 60000)
         let classifiedMinutes = stageResult.map { $0.deepSleepMinutes + $0.remSleepMinutes + $0.coreSleepMinutes } ?? sleepDurationMinutes
-        let efficiency = inBedMinutes > 0 ? Double(classifiedMinutes) / Double(inBedMinutes) * 100 : 0
+        let efficiency = SleepData.efficiencyPercent(sleep: classifiedMinutes, inBed: inBedMinutes)
         return SleepData(
             date: recordingStart, inBedStart: recordingStart,
             sleepStart: sleepStart, sleepEnd: sleepEnd,
@@ -253,7 +253,7 @@ enum HRSleepEstimator {
     /// every display, score and AI context reads that.
     nonisolated static func estimatedSleepData(sleepStart: Date, sleepEnd: Date, sleepMinutes: Int) -> SleepData {
         let inBedMinutes = Int(sleepEnd.timeIntervalSince(sleepStart) / 60)
-        let efficiency = inBedMinutes > 0 ? Double(sleepMinutes) / Double(inBedMinutes) * 100 : 0
+        let efficiency = SleepData.efficiencyPercent(sleep: sleepMinutes, inBed: inBedMinutes)
         return SleepData(
             date: sleepStart,
             inBedStart: sleepStart,

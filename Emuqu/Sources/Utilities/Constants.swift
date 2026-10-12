@@ -20,6 +20,20 @@ enum AppConfig {
     /// Directory name for raw RR backup storage
     static let backupDirectoryName = "RRBackup"
 
+    /// The developer's address: support, privacy questions, reports of AI
+    /// output, and the contact third-party map and elevation services ask for.
+    static let contactEmail = "chrissharp80@gmail.com"
+
+    /// A `mailto:` link to `contactEmail`.
+    static func contactMailURL(subject: String, body: String? = nil) -> URL? {
+        var components = URLComponents()
+        components.scheme = "mailto"
+        components.path = contactEmail
+        components.queryItems = [URLQueryItem(name: "subject", value: subject)]
+            + (body.map { [URLQueryItem(name: "body", value: $0)] } ?? [])
+        return components.url
+    }
+
     /// Resolves the shared App Group container URL, falling back to Documents.
     static func sharedContainerURL() -> URL {
         if let container = FileManager.default.containerURL(

@@ -63,7 +63,7 @@ actor OverpassClient {
 
     /// Identifies the app to the instance operators, so a misbehaving version
     /// can be told apart and its author reached.
-    static let userAgent = "Emuqu/\(Bundle.main.appVersion) iOS (chrissharp80@gmail.com)"
+    static let userAgent = "Emuqu/\(Bundle.main.appVersion) iOS (\(AppConfig.contactEmail))"
 
     static let busyCooldown: TimeInterval = 60
     static let refusalCooldown: TimeInterval = 5 * 60

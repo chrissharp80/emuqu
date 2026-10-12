@@ -45,13 +45,14 @@ import Security
 // That is what makes the anchor tamper-resistant without any server.
 //
 // There is a THIRD copy of `trialStartDate`, and this type does NOT own it:
-// `UserSettings.trialStartDate` rides the pre-existing `CloudKitSettingsSync`
-// and is bridged in by `SettingsManager.adoptTrialStart(_:)`, which calls
-// `adoptTrialStart(_:wallClock:)` on the way in and mirrors the resolved
-// value back out. Do not read the list above as "the anchor also writes
-// settings" — it does not, and deleting that bridge on the assumption that it
-// does would drop the only copy that survives a device change with iCloud
-// Keychain switched off.
+// `UserSettings.trialStartDate` rides the pre-existing `CloudKitSettingsSync`.
+// `SettingsManager.adoptTrialStart(_:)` writes the anchor's start out to it,
+// and every reader of the trial clock falls back to it when the anchor has
+// no start (`anchor.trialStartDate ?? settings.trialStartDate`). Nothing
+// reads it back into the anchor. Do not read the list above as "the anchor
+// also writes settings" — it does not, and deleting that mirror on the
+// assumption that it does would drop the only copy that survives a device
+// change with iCloud Keychain switched off.
 enum EntitlementAnchor {
     /// The durable facts. Monotonic by construction, apart from the App
     /// Store's trial start, which follows the signed-in Apple ID — see
@@ -264,11 +265,11 @@ enum EntitlementAnchor {
         return updated
     }
 
-    /// Adopts a device trial start discovered elsewhere, such as the
-    /// `UserSettings.trialStartDate` that `CloudKitSettingsSync` restores from
-    /// iCloud. Keeps the earlier of the two, so this can only ever shorten a
-    /// trial kept without the App Store's record, never extend it. The App
-    /// Store's own start goes through `recordStoreTrialStart` instead.
+    /// Adopts a trial start as a device start — `SettingsManager.adoptTrialStart`
+    /// passes one here when the anchor holds none earlier. Keeps the earlier
+    /// of the two, so this can only ever shorten a trial kept without the App
+    /// Store's record, never extend it. The App Store's own start goes through
+    /// `recordStoreTrialStart` instead.
     ///
     /// The start is also a moment time has provably reached, so the high-water
     /// mark moves up to it. Without that, a new phone whose clock is set before

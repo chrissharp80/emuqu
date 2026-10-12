@@ -669,7 +669,7 @@ enum SleepResolver {
             deepSleepMinutes: deep,
             remSleepMinutes: rem,
             awakeMinutes: awake,
-            sleepEfficiency: inBed > 0 ? Double(total) / Double(inBed) * 100 : 0,
+            sleepEfficiency: SleepData.efficiencyPercent(sleep: total, inBed: inBed),
             boundarySource: source,
             segments: buildSegments(stages: stages, splitGapMinutes: ctx.splitGapMinutes),
             stageIntervals: stages,

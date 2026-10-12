@@ -836,7 +836,7 @@ private func vitalsConcerns(_ vitals: PDFReportGenerator.VitalsData, bundle: Bun
        temp > ScoringWeights.Vitals.temperatureBandNormalCelsius {
         concerns.append(String(localized: "wrist temperature outside your normal band", bundle: bundle))
     }
-    if let spo2 = vitals.oxygenSaturation, spo2 < 95 {
+    if let spo2 = vitals.oxygenSaturation, spo2 < RecoveryVitals.concerningSpO2Below {
         concerns.append(String(localized: "low blood oxygen", bundle: bundle))
     }
     return concerns

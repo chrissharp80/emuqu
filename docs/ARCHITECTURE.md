@@ -822,14 +822,13 @@ two — **that is the whole of what this type owns.**
 
 A third copy of `trialStartDate` exists and is deliberately *outside* the
 anchor: **`UserSettings.trialStartDate`**, which already round-trips through
-`CloudKitSettingsSync`. It is bridged in by
-`SettingsManager.adoptTrialStart(_:)`. StoreKitManager records the App
-Store's start in the anchor first (`recordStoreTrialStart`), and this mirrors
-it into settings; a start from anywhere else is folded in as a device start
-via `adoptTrialStart(_:wallClock:)` (earliest wins) and the resolved value is
-mirrored back out. It backstops the trial date for a user who has
-iCloud Keychain switched off. Do not remove that bridge on the assumption the
-anchor covers it — the anchor does not write settings.
+`CloudKitSettingsSync`. StoreKitManager records the App Store's start in the
+anchor first (`recordStoreTrialStart`), and `SettingsManager.adoptTrialStart(_:)`
+then mirrors the anchor's start into settings. Every reader of the trial clock
+falls back to the settings copy when the anchor has no start; nothing reads it
+back into the anchor. It backstops the trial date for a user who has iCloud
+Keychain switched off. Do not remove that mirror on the assumption the anchor
+covers it — the anchor does not write settings.
 
 Merge rules make the guarantees: beta status ORs (never revoked by a tier
 that has not heard of it), the device trial start takes the EARLIEST value (a
