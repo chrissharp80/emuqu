@@ -299,20 +299,28 @@
   },
   {
    "key": "func RoutesLibraryNamespace.renamed(_:to:)",
-   "hash": "791784056994c2da",
-   "does": "Calls SavedRouteStore.rename(id:to:) and returns status 'renamed' with id, old and new name.",
+   "hash": "b05eb4f56f7cbb5b",
+   "does": "Calls SavedRouteStore.rename(id:to:) on the main actor. When the store refuses (the library cannot be read), returns libraryUnreadable()'s .missing, or a .missing saying the rename could not be saved; otherwise returns status 'renamed' with id, old and new name.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.rename(id:to:)"
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.rename(id:to:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.libraryUnreadable()"
    ],
    "reads": [],
    "writes": [
     "mem:SavedRouteStore.routes",
     "file:saved_routes.json"
    ],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "rename returned false (not saved)",
+     "effect": ".missing: libraryUnreadable()'s reason, else 'the rename could not be saved; nothing was changed'"
+    }
+   ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.libraryUnreadable()": "055b87cf9617d603",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.rename(id:to:)": "72ccd603eff7558c",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
    }
