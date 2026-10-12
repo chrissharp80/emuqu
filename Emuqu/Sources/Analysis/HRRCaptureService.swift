@@ -132,7 +132,7 @@ final class HRRCaptureService {
         return final
     }
 
-    /// Drop later samples whose `drop` from peak is *smaller* than an
+    /// Drop later samples whose `drop` from the stop rate is *smaller* than an
     /// earlier sample's drop. Cumulative recovery is monotonic by
     /// definition — the heart can't "un-recover". A later reading that
     /// shows a smaller drop is a contamination signal: the user moved,

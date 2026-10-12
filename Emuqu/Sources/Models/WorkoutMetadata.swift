@@ -226,9 +226,12 @@ struct HRRSample: Codable, Equatable {
     let offsetSec: Int
     /// Heart rate at the sample point (bpm).
     let hr: Int
-    /// Drop from peak HR to this sample (bpm). Negative if HR hasn't fallen.
+    /// Drop from `peakHR` to this sample (bpm). Negative if HR hasn't fallen.
     let drop: Int
-    /// Peak HR used as the reference for `drop`.
+    /// The reference `drop` is measured from: the heart rate when the
+    /// workout stopped (`WorkoutRecorder.heartRateAtStop`), not the
+    /// session's highest. Named for the peak of the exercise test the
+    /// measure comes from (Cole 1999), which is where that test ends.
     let peakHR: Int
     let provenance: Provenance
 }

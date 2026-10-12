@@ -34,7 +34,7 @@
    "flags": [],
    "deps": {
     ".github/workflows/gates.yml::step script-gates/Checkout": "72d9a6f0a231d718",
-    ".github/workflows/gates.yml::step script-gates/Code map impact of this pull request": "dee3ea42e8cd6b89",
+    ".github/workflows/gates.yml::step script-gates/Code map impact of this pull request": "276d95220fced24a",
     ".github/workflows/gates.yml::step script-gates/Code map is current": "e6a86cff4afd94ad",
     ".github/workflows/gates.yml::step script-gates/Copy perimeter, science register, scoring governance": "cb4f724309ba1d92",
     ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "6e090e3051ab2682",
@@ -293,10 +293,11 @@
   },
   {
    "key": "step script-gates/Code map impact of this pull request",
-   "hash": "fd42a75facd44c72",
-   "does": "On pull requests only, and even when an earlier step failed (unless the run was cancelled): runs `codemap.py impact --base origin/$GITHUB_BASE_REF` with the venv interpreter, which writes the impact list for the PR's changes (callers up to triggers, tests, docs, shared state, open findings) to the job summary. Not a gate: it exits 0 whenever the base ref resolves. Uses the venv made by the previous step's codemap-setup; if that step failed before creating it, this step fails too.",
+   "hash": "d470b5cb036193b7",
+   "does": "On pull requests only, and even when an earlier step failed (unless the run was cancelled): runs make codemap-setup (a no-op when the venv already works) and then `codemap.py impact --base origin/$GITHUB_BASE_REF` with the venv interpreter, which writes the impact list for the PR's changes (callers up to triggers, tests, docs, shared state, open findings) to the job summary. Not a gate: it exits 0 whenever the base ref resolves. Setting up its own interpreter keeps it working when an earlier step failed and the code map check never created the venv.",
    "entry": "gates.yml workflow on pull_request, script-gates job",
    "calls": [
+    "Makefile::target codemap-setup",
     "scripts/codemap/codemap.py::def main"
    ],
    "reads": [
@@ -314,6 +315,7 @@
    ],
    "flags": [],
    "deps": {
+    "Makefile::target codemap-setup": "b96ea4c9672c70ec",
     "scripts/codemap/codemap.py::": "5d018c610440e0c2",
     "scripts/codemap/codemap.py::def main": "6b5922b4852cf300"
    }

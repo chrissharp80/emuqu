@@ -74,8 +74,10 @@ jobs:
       # so the review can check each one.
       - name: Code map impact of this pull request
         # Runs even when the code map check above failed: that is when the list matters most.
+        # It sets up its own interpreter: when an earlier step failed, the check above
+        # never ran, and without this the step only reported the missing .venv-codemap.
         if: ${{ !cancelled() && github.event_name == 'pull_request' }}
-        run: .venv-codemap/bin/python scripts/codemap/codemap.py impact --base "origin/${GITHUB_BASE_REF}"
+        run: make codemap-setup && .venv-codemap/bin/python scripts/codemap/codemap.py impact --base "origin/${GITHUB_BASE_REF}"
 
       - name: The gates themselves are wired and fail closed
         run: make gates-wired-guard gate-preflight
