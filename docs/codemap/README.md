@@ -156,7 +156,9 @@ failed. `codemap.py callers <path::key>` lists one unit's direct callers.
 8. `make codemap-guard` is clean.
 
 Run these with the interpreter `make codemap-setup` creates (`.venv-codemap/bin/python`); the
-inventory needs tree-sitter.
+inventory needs tree-sitter, which needs Python 3.10 or newer. `scripts/codemap/setup_venv.sh`
+picks the first such interpreter on PATH (or `CODEMAP_BASE_PYTHON`) and rebuilds a venv an
+older one made.
 
 `stamp` records hashes; it does not read anything. Stamping without re-reading defeats the check,
 and review is the only thing that catches that.

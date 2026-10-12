@@ -41,8 +41,8 @@
   },
   {
    "key": "§ How a change lands in Emuqu > Before you start",
-   "hash": "d50cf7c36c402696",
-   "does": "`make setup-hooks` (→ scripts/install-git-hooks.sh) installs .githooks/pre-commit, where SwiftLint errors block and swiftformat runs in --lint mode only; `make codemap-setup` installs the pinned tree-sitter the code map needs, and the hook fails without it. A SwiftLint error or a stale code-map record blocks the commit. gates.yml runs script gates on push.",
+   "hash": "d24af86c28383f45",
+   "does": "`make setup-hooks` (→ scripts/install-git-hooks.sh) installs .githooks/pre-commit, where SwiftLint errors block and swiftformat runs in --lint mode only; `make codemap-setup` installs the pinned tree-sitter the code map needs, and the hook fails without it. It needs Python 3.10+, which macOS's own python3 (3.9) is not; setup takes the first python3.13…python3.10 or python3 on PATH that is, or CODEMAP_BASE_PYTHON. A SwiftLint error or a stale code-map record blocks the commit. gates.yml runs script gates on push.",
    "entry": null,
    "calls": [
     "Makefile::target setup-hooks",
@@ -57,7 +57,7 @@
    "deps": {
     ".githooks/pre-commit::fn fail": "c9514843e832b1c2",
     ".github/workflows/gates.yml::job script-gates": "a3719763dec17ea7",
-    "Makefile::target codemap-setup": "b96ea4c9672c70ec",
+    "Makefile::target codemap-setup": "d2527a25cec71c5c",
     "Makefile::target setup-hooks": "974b9e2eda3668e0"
    }
   },
